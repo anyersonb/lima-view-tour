@@ -1,0 +1,46 @@
+@mixin btn-base {
+    @apply inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-pill font-sans font-semibold uppercase tracking-wide text-sm transition;
+}
+
+@mixin btn-arrow {
+    &::after {
+        content: '›';
+        @apply ml-1 text-base font-normal;
+    }
+}
+
+.btn {
+    @include btn-base;
+}
+
+.btn--primary {
+    @include btn-base;
+    @include btn-arrow;
+    @apply bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700;
+}
+
+.btn--primary-outline {
+    @include btn-base;
+    @include btn-arrow;
+    @apply border border-orange-500 text-orange-500 bg-transparent hover:bg-orange-500 hover:text-white;
+}
+
+.btn--on-cream {
+    @include btn-base;
+    @include btn-arrow;
+    @apply bg-cream-100 text-orange-500 hover:bg-cream-200;
+}
+
+.btn--disabled,
+.btn:disabled {
+    @include btn-base;
+    @apply bg-slate-400 text-teal-700 cursor-not-allowed pointer-events-none;
+}
+
+.btn--sm {
+    @apply px-5 py-2 text-xs;
+}
+
+.btn--block {
+    @apply w-full;
+}

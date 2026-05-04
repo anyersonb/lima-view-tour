@@ -1,0 +1,13 @@
+@use 'abstracts/variables' as *;
+@use 'abstracts/mixins' as *;
+@use 'base/reset';
+@use 'base/typography';
+@use 'layouts/header';
+@use 'layouts/footer';
+@use 'components/buttons';
+@use 'components/cards';
+@use 'pages/home';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -1,0 +1,20 @@
+@use 'variables' as *;
+
+@mixin bp($size) {
+    @if $size == sm  { @media (min-width: $bp-sm)  { @content; } }
+    @else if $size == md  { @media (min-width: $bp-md)  { @content; } }
+    @else if $size == lg  { @media (min-width: $bp-lg)  { @content; } }
+    @else if $size == xl  { @media (min-width: $bp-xl)  { @content; } }
+    @else if $size == 2xl { @media (min-width: $bp-2xl) { @content; } }
+}
+
+@mixin focus-ring {
+    @apply outline-none ring-2 ring-offset-2 ring-brand-500;
+}
+
+@mixin clamp-lines($lines) {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

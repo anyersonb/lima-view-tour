@@ -1,0 +1,27 @@
+// Brand tokens — sync con tailwind.config.js y guía de marca
+$teal-700: #15474b;   // Color principal de marca
+$teal-800: #0f3438;
+$orange-500: #e29347; // Acento / CTA
+$orange-600: #c87530;
+
+$cream-100: #f5f0ed;  // Primario del brand guide (fondo cream claro)
+$cream-200: #ece6e2;  // Primario oscuro
+
+$state-error: #c81f21;
+$state-success: #145212;
+
+$font-sans: 'Albert Sans', system-ui, sans-serif;        // Cuerpo y botones
+$font-display: 'Hedvig Letters Serif', Georgia, serif;   // Titulares
+$font-price: 'Instrument Serif', Georgia, serif;         // Precios
+
+// Breakpoints (mobile-first, mirror Tailwind)
+$bp-sm: 640px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
+$bp-2xl: 1536px;
+
+// Z-index scale
+$z-header: 50;
+$z-modal: 100;
+$z-toast: 200;

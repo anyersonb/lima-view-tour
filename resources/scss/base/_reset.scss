@@ -1,0 +1,20 @@
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    @apply font-sans text-teal-800 antialiased;
+}
+
+img, picture, video {
+    @apply max-w-full h-auto;
+}
+
+a {
+    @apply transition-colors;
+}
+
+:focus-visible {
+    @apply outline-none ring-2 ring-offset-2 ring-orange-500;
+}

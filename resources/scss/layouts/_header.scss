@@ -1,0 +1,15 @@
+.site-header {
+    @apply sticky top-0 z-50 transition-colors;
+
+    &[data-variant="solid"] {
+        @apply bg-teal-700 text-white;
+    }
+
+    &[data-variant="transparent"] {
+        @apply bg-transparent text-white;
+    }
+}
+
+.site-header__nav-link {
+    @apply uppercase tracking-wide text-sm font-semibold hover:text-orange-500 transition-colors;
+}
