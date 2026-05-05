@@ -137,22 +137,24 @@
             </div>
         </div>
 
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-2">
-            @foreach (array_slice($tours, 0, 2) as $i => $tour)
-                <article class="tour-card bg-white rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,40%)]">
-                    <div class="p-6 flex flex-col">
-                        <span class="text-[11px] uppercase tracking-[0.2em] text-orange-500 font-semibold">CUPOS LIMITADOS</span>
-                        <h3 class="font-display text-2xl text-teal-800 leading-snug mt-1">{{ $tour['title'] }}</h3>
+        <div class="owl-carousel owl-theme owl-tours-wide" data-owl-tours-wide>
+            @foreach ($tours as $i => $tour)
+                <article class="item tour-card bg-white rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,40%)] h-full">
+                    <div class="p-5 md:p-6 flex flex-col">
+                        @if ($tour['badge'])
+                            <span class="text-[11px] uppercase tracking-[0.2em] text-orange-500 font-semibold">{{ $tour['badge'] }}</span>
+                        @endif
+                        <h3 class="font-display text-xl md:text-2xl text-teal-800 leading-snug mt-1">{{ $tour['title'] }}</h3>
                         <p class="mt-3 flex items-center gap-2 text-sm text-teal-800/80">
                             <span class="font-semibold">{{ $tour['rating'] }}</span>
-                            <span aria-hidden="true" class="text-orange-400 tracking-tight">★★★★★</span>
+                            <span aria-hidden="true" class="text-orange-400 tracking-tight">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                             <span class="text-teal-800/60 text-xs">( {{ $tour['reviews'] }} Comentarios )</span>
                         </p>
 
                         <ul class="mt-4 grid grid-cols-4 gap-2 text-[10px] text-teal-800/70 text-center">
                             @foreach (['Español/Inglés','Full Day','Tour Grupal','Recojo y retorno'] as $feat)
                                 <li class="flex flex-col items-center gap-1">
-                                    <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700">
+                                    <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
                                     </span>
                                     <span>{{ $feat }}</span>
@@ -168,10 +170,10 @@
                                     <span><span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60">Ahora</span> <span class="font-price text-2xl text-state-error">${{ $tour['now'] }}</span></span>
                                 </p>
                             </div>
-                            <a href="#" class="btn--primary btn--block mt-4">Reservar tour</a>
+                            <a href="{{ $tour['slug'] ? route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) : '#' }}" class="btn--primary btn--block mt-4">Reservar tour</a>
                         </div>
                     </div>
-                    <div class="relative">
+                    <div class="relative min-h-[14rem] sm:min-h-0">
                         <img src="{{ asset('assets/banners/' . $tour['img']) }}" alt="{{ $tour['title'] }}"
                              class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                         @if ($tour['badge'])
@@ -189,22 +191,6 @@
                     </div>
                 </article>
             @endforeach
-        </div>
-
-        <div class="mt-10 flex items-center justify-between">
-            <ul class="flex items-center gap-2" aria-label="Paginación">
-                @for ($d=0; $d<5; $d++)
-                    <li class="w-2 h-2 rounded-full {{ $d===0 ? 'bg-orange-500' : 'bg-teal-800/20' }}"></li>
-                @endfor
-            </ul>
-            <div class="flex gap-3">
-                <button type="button" class="w-11 h-11 rounded-full bg-orange-500 text-white grid place-items-center hover:bg-orange-600" aria-label="Anterior">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <button type="button" class="w-11 h-11 rounded-full bg-orange-500 text-white grid place-items-center hover:bg-orange-600" aria-label="Siguiente">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </button>
-            </div>
         </div>
     </div>
 </section>

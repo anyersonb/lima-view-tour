@@ -145,6 +145,12 @@
                     responsive: { 0: { items: 1 }, 640: { items: 2 }, 1024: { items: 3 }, 1536: { items: 4 } },
                 });
 
+                $('[data-owl-tours-wide]').owlCarousel({
+                    loop: true, margin: 24, nav: true, dots: true, autoplay: true, autoplayHoverPause: true, autoplayTimeout: 5500, smartSpeed: 700,
+                    navText: ['<span aria-label="Anterior">&lsaquo;</span>', '<span aria-label="Siguiente">&rsaquo;</span>'],
+                    responsive: { 0: { items: 1 }, 1024: { items: 2 } },
+                });
+
                 $('[data-owl-experiences]').owlCarousel({
                     loop: true, margin: 24, nav: false, dots: true, autoplay: true, autoplayTimeout: 6000, smartSpeed: 700,
                     responsive: { 0: { items: 1 }, 640: { items: 2 }, 1024: { items: 3 }, 1536: { items: 4 } },
