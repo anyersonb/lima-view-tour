@@ -129,13 +129,13 @@
 ] as $sectionIdx => $section)
 <section class="{{ $section['bg'] }} py-16 lg:py-20">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="flex items-center gap-5 mb-10">
-            {!! $brujula !!}
+        <div class="flex items-center gap-4 md:gap-5 mb-8 md:mb-10">
+            <x-icon-compass class="w-12 h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">{{ $section['eyebrow'] }}</p>
-                <h2 class="font-display text-4xl lg:text-5xl text-teal-800 leading-tight mt-1">{{ $section['title'] }}</h2>
+                <h2 class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight mt-1">{{ $section['title'] }}</h2>
             </div>
-        </header>
+        </div>
 
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-2">
             @foreach (array_slice($tours, 0, 2) as $i => $tour)
@@ -213,13 +213,13 @@
 {{-- ───────── ¿Qué tipo de tour estás buscando? ───────── --}}
 <section class="bg-white py-16 lg:py-20" x-data="{ tab: 'cult' }">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="flex items-center gap-5 mb-8">
-            {!! $brujula !!}
+        <div class="flex items-center gap-4 md:gap-5 mb-8">
+            <x-icon-compass class="w-12 h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">ESTANCIAS</p>
-                <h2 class="font-display text-4xl lg:text-5xl text-teal-800 mt-1">¿Qué tipo de tour estás buscando?</h2>
+                <h2 class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 mt-1 leading-tight">¿Qué tipo de tour estás buscando?</h2>
             </div>
-        </header>
+        </div>
 
         <div role="tablist" class="border-b border-teal-800/15 flex flex-wrap gap-x-8 gap-y-2 mb-8">
             @foreach ([
@@ -256,26 +256,26 @@
 </section>
 
 {{-- ───────── EXPERIENCIAS ÚNICAS ───────── --}}
-<section class="bg-cream-100 py-16 lg:py-20">
+<section class="bg-cream-100 py-14 md:py-16 lg:py-20" aria-labelledby="experiences-title">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="flex items-center gap-5 mb-10">
-            {!! $brujula !!}
+        <div class="flex items-center gap-4 md:gap-5 mb-8 md:mb-10">
+            <x-icon-compass class="w-10 h-10 md:w-12 md:h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">EXPERIENCIAS</p>
-                <h2 class="font-display text-4xl lg:text-5xl text-teal-800 mt-1">Descubre experiencias únicas</h2>
+                <h2 id="experiences-title" class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 mt-1 leading-tight">Descubre experiencias únicas</h2>
             </div>
-        </header>
+        </div>
 
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="owl-carousel owl-theme owl-experiences" data-owl-experiences>
             @foreach (['Rectangle 19216.jpg','Rectangle 19217.jpg','Rectangle 19218.jpg','Rectangle 19219.jpg'] as $i => $img)
-                <article class="bg-white rounded-2xl overflow-hidden shadow-sm">
-                    <img src="{{ asset('assets/banners/' . $img) }}" alt="" class="w-full h-56 object-cover" loading="lazy">
+                <article class="item bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <img src="{{ asset('assets/banners/' . $img) }}" alt="Experiencia turística en {{ ['Lima', 'Cusco', 'Ica', 'Paracas'][$i] ?? 'Perú' }}" class="w-full h-56 object-cover" loading="lazy">
                     <div class="p-5">
                         <h3 class="font-display text-xl text-teal-800 leading-snug">Excursión de día completo en Lima</h3>
                         <ul class="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-teal-800/70">
-                            <li>👤 Español/Inglés</li>
-                            <li>⏱ Full Day</li>
-                            <li>👥 Tour Grupal</li>
+                            <li>&#128100; Español/Inglés</li>
+                            <li>&#9202; Full Day</li>
+                            <li>&#128101; Tour Grupal</li>
                         </ul>
                     </div>
                 </article>
@@ -285,11 +285,12 @@
 </section>
 
 {{-- ───────── TESTIMONIOS ───────── --}}
-<section class="bg-cream-100 pb-16 lg:pb-20">
+<section class="bg-cream-100 pb-14 md:pb-16 lg:pb-20" aria-labelledby="home-testimonials-title">
+    <h2 id="home-testimonials-title" class="sr-only">Testimonios de clientes</h2>
     <div class="container mx-auto px-5 lg:px-10 grid gap-6 lg:grid-cols-[1fr_1fr_minmax(0,1.05fr)] items-stretch">
-        <div class="grid gap-5 sm:grid-cols-2 lg:col-span-2">
-            @foreach ([['Sara Fernández','Spain'],['Rebeca Figueroa','Colombia'],['Sara Fernández','Spain'],['Rebeca Figueroa','Colombia']] as [$name,$country])
-                <figure class="bg-white rounded-2xl overflow-hidden flex flex-col">
+        <div class="lg:col-span-2 owl-carousel owl-theme owl-testimonials" data-owl-testimonials>
+            @foreach ([['Sara Fernández','Spain'],['Rebeca Figueroa','Colombia'],['Liam Carter','USA'],['Ana Suárez','México']] as [$name,$country])
+                <figure class="item bg-white rounded-2xl overflow-hidden flex flex-col h-full">
                     <div class="p-6">
                         <span class="text-orange-400 text-3xl leading-none" aria-hidden="true">”</span>
                         <blockquote class="mt-2 text-sm text-teal-800/85 leading-relaxed">
@@ -363,19 +364,17 @@
         <div class="absolute inset-0 bg-teal-900/60"></div>
     </div>
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="flex items-center gap-5 mb-10 text-white">
-            <span class="w-12 h-12 rounded-full border border-white/40 grid place-items-center">
-                <svg class="w-7 h-7 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="3"/></svg>
-            </span>
+        <div class="flex items-center gap-4 md:gap-5 mb-8 md:mb-10 text-white">
+            <x-icon-compass class="w-10 h-10 md:w-12 md:h-12 lg:w-[58px] lg:h-[60px] text-white shrink-0" stroke="#ffffff" />
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] font-semibold opacity-80">OFERTAS POR ANTICIPACIÓN</p>
-                <h2 class="font-display text-4xl lg:text-5xl mt-1">Ofertas Especiales</h2>
+                <h2 class="font-display text-3xl md:text-4xl lg:text-5xl mt-1 leading-tight">Ofertas Especiales</h2>
             </div>
-        </header>
+        </div>
 
-        <div class="grid gap-6 md:grid-cols-3">
+        <div class="owl-carousel owl-theme owl-offers" data-owl-offers>
             @foreach (['Rectangle 19211.jpg','Rectangle 19212.jpg','Rectangle 19214.jpg'] as $img)
-                <article class="relative rounded-2xl overflow-hidden min-h-[26rem] flex">
+                <article class="item relative rounded-2xl overflow-hidden min-h-[26rem] flex">
                     <img src="{{ asset('assets/banners/' . $img) }}" alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black/80"></div>
                     <div class="relative w-full p-6 flex flex-col text-center">
@@ -448,10 +447,10 @@
 {{-- ───────── DESTINOS MÁS VISITADOS ───────── --}}
 <section class="bg-cream-100 py-16 lg:py-20">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="text-center mb-10">
+        <div class="text-center mb-10">
             <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">MÁS VISITADOS</p>
-            <h2 class="mt-3 font-display text-4xl lg:text-5xl text-teal-800 leading-tight">Descubre Las Ciudades<br>más Visitadas del Perú</h2>
-        </header>
+            <h2 class="mt-3 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">Descubre Las Ciudades<br>más Visitadas del Perú</h2>
+        </div>
 
         <div class="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
             <a href="{{ route('tours.index', ['locale' => $locale]) }}#cusco"

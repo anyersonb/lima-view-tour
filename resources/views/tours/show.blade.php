@@ -170,33 +170,34 @@
 </section>
 
 {{-- ───────── DESCRIPCIÓN + ITINERARIO + INCLUYE ───────── --}}
-<section class="bg-white pb-16 lg:pb-20" x-data="{ open: 0 }">
+<section class="bg-white pb-16 lg:pb-20" x-data="{ open: 0 }" aria-label="Detalle del tour">
     <div class="container mx-auto px-5 lg:px-10 grid gap-12 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div>
-            <header class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Descripción</header>
+            <h2 class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Descripción</h2>
             <div class="bg-cream-100 rounded-b-2xl p-6 lg:p-8 text-sm text-teal-800/85 leading-relaxed space-y-4">
                 <p>Disfruta de un día completo combinando la magia del oasis de Huacachina con la riqueza natural de las Islas Ballestas en Paracas. Una experiencia diseñada para viajeros que buscan diversidad de paisajes y emociones en una sola jornada.</p>
                 <p>Te recogemos directamente en tu hotel en Lima, viajamos en transporte cómodo y climatizado, y contamos con guías oficiales que te acompañarán en cada parada del recorrido.</p>
             </div>
 
-            <header class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Itinerario</header>
+            <h2 class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Itinerario</h2>
             <div class="bg-cream-100 rounded-b-2xl divide-y divide-teal-800/10">
                 @foreach ($itinerary as $i => [$hour, $title, $desc])
-                    <div>
+                    <article>
                         <button type="button" @click="open = (open === {{ $i }} ? -1 : {{ $i }})"
-                                class="w-full flex items-center gap-5 px-6 py-4 text-left">
-                            <span class="font-price text-2xl text-orange-500 w-24 shrink-0">{{ $hour }}</span>
-                            <span class="font-semibold text-teal-800 flex-1">{{ $title }}</span>
-                            <svg class="w-4 h-4 text-teal-800/60 transition-transform" :class="open === {{ $i }} ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                class="w-full flex items-center gap-5 px-6 py-4 text-left"
+                                :aria-expanded="open === {{ $i }} ? 'true' : 'false'">
+                            <span class="font-price text-2xl text-orange-500 w-24 shrink-0" aria-hidden="true">{{ $hour }}</span>
+                            <h3 class="font-semibold text-teal-800 flex-1 text-base">{{ $title }}</h3>
+                            <svg class="w-4 h-4 text-teal-800/60 transition-transform" :class="open === {{ $i }} ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div x-show="open === {{ $i }}" x-cloak x-transition class="px-6 pb-5 -mt-1 pl-[7.75rem] text-sm text-teal-800/80 leading-relaxed">
                             {{ $desc }}
                         </div>
-                    </div>
+                    </article>
                 @endforeach
             </div>
 
-            <header class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Recomendaciones</header>
+            <h2 class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Recomendaciones</h2>
             <div class="bg-cream-100 rounded-b-2xl p-6 lg:p-8 text-sm text-teal-800/85 leading-relaxed">
                 <ul class="grid sm:grid-cols-2 gap-y-2 gap-x-8 list-disc list-inside">
                     <li>Llevar protector solar SPF50+</li>
@@ -210,27 +211,27 @@
 
             <div class="mt-10 grid md:grid-cols-2 gap-6">
                 <div>
-                    <header class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Incluye</header>
+                    <h2 class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Incluye</h2>
                     <ul class="bg-cream-100 rounded-b-2xl p-6 text-sm text-teal-800/85 space-y-2">
-                        <li class="flex gap-2"><span class="text-state-success">&#10003;</span> Recojo y retorno al hotel en Lima</li>
-                        <li class="flex gap-2"><span class="text-state-success">&#10003;</span> Transporte turístico climatizado</li>
-                        <li class="flex gap-2"><span class="text-state-success">&#10003;</span> Guía oficial bilingüe</li>
-                        <li class="flex gap-2"><span class="text-state-success">&#10003;</span> Embarque a Islas Ballestas</li>
-                        <li class="flex gap-2"><span class="text-state-success">&#10003;</span> Ingreso a Reserva de Paracas</li>
+                        <li class="flex gap-2"><span class="text-state-success" aria-hidden="true">&#10003;</span> Recojo y retorno al hotel en Lima</li>
+                        <li class="flex gap-2"><span class="text-state-success" aria-hidden="true">&#10003;</span> Transporte turístico climatizado</li>
+                        <li class="flex gap-2"><span class="text-state-success" aria-hidden="true">&#10003;</span> Guía oficial bilingüe</li>
+                        <li class="flex gap-2"><span class="text-state-success" aria-hidden="true">&#10003;</span> Embarque a Islas Ballestas</li>
+                        <li class="flex gap-2"><span class="text-state-success" aria-hidden="true">&#10003;</span> Ingreso a Reserva de Paracas</li>
                     </ul>
                 </div>
                 <div>
-                    <header class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">No incluye</header>
+                    <h2 class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">No incluye</h2>
                     <ul class="bg-cream-100 rounded-b-2xl p-6 text-sm text-teal-800/85 space-y-2">
-                        <li class="flex gap-2"><span class="text-state-error">&#10007;</span> Almuerzo en Ica</li>
-                        <li class="flex gap-2"><span class="text-state-error">&#10007;</span> Tubulares en Huacachina</li>
-                        <li class="flex gap-2"><span class="text-state-error">&#10007;</span> Bebidas adicionales</li>
-                        <li class="flex gap-2"><span class="text-state-error">&#10007;</span> Propinas (opcionales)</li>
+                        <li class="flex gap-2"><span class="text-state-error" aria-hidden="true">&#10007;</span> Almuerzo en Ica</li>
+                        <li class="flex gap-2"><span class="text-state-error" aria-hidden="true">&#10007;</span> Tubulares en Huacachina</li>
+                        <li class="flex gap-2"><span class="text-state-error" aria-hidden="true">&#10007;</span> Bebidas adicionales</li>
+                        <li class="flex gap-2"><span class="text-state-error" aria-hidden="true">&#10007;</span> Propinas (opcionales)</li>
                     </ul>
                 </div>
             </div>
 
-            <header class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Notas importantes</header>
+            <h2 class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Notas importantes</h2>
             <div class="bg-cream-100 rounded-b-2xl p-6 lg:p-8 text-sm text-teal-800/85 leading-relaxed">
                 <p>El recorrido marítimo a las Islas Ballestas puede sufrir cambios o cancelaciones por condiciones climáticas. En caso de cancelación se reembolsa el ítem correspondiente o se reagenda la salida sin costo.</p>
             </div>
@@ -264,16 +265,16 @@
 </section>
 
 {{-- ───────── TESTIMONIOS ───────── --}}
-<section class="bg-cream-100 py-16 lg:py-20">
+<section class="bg-cream-100 py-14 md:py-16 lg:py-20" aria-labelledby="show-reviews-title">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="text-center max-w-2xl mx-auto mb-10">
+        <div class="text-center max-w-2xl mx-auto mb-8 md:mb-10">
             <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">RESEÑAS</p>
-            <h2 class="mt-3 font-display text-3xl md:text-4xl text-teal-800 leading-tight">Nuestros clientes opinan de nuestros tours</h2>
-        </header>
+            <h2 id="show-reviews-title" class="mt-3 font-display text-2xl sm:text-3xl md:text-4xl text-teal-800 leading-tight">Nuestros clientes opinan de nuestros tours</h2>
+        </div>
 
-        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="owl-carousel owl-theme owl-testimonials" data-owl-testimonials>
             @foreach ([['Sara Fernández','Spain'],['Rebeca Figueroa','Colombia'],['Liam Carter','USA'],['Ana Suárez','México']] as [$name,$country])
-                <figure class="bg-white rounded-2xl overflow-hidden flex flex-col">
+                <figure class="item bg-white rounded-2xl overflow-hidden flex flex-col">
                     <div class="p-6">
                         <span class="text-orange-400 text-3xl leading-none" aria-hidden="true">&rdquo;</span>
                         <blockquote class="mt-2 text-sm text-teal-800/85 leading-relaxed">
@@ -297,7 +298,7 @@
 {{-- ───────── TOURS RELACIONADOS ───────── --}}
 <section class="bg-white py-16 lg:py-20">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="flex items-end justify-between mb-10">
+        <div class="flex items-end justify-between mb-10">
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">SIGUE EXPLORANDO</p>
                 <h2 class="mt-2 font-display text-3xl md:text-4xl text-teal-800 leading-tight">Nuestros tours más comprados</h2>
@@ -305,11 +306,11 @@
             <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="hidden md:inline-flex items-center gap-2 text-sm font-semibold text-orange-500 hover:text-orange-600">
                 Ver catálogo &rsaquo;
             </a>
-        </header>
+        </div>
 
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="owl-carousel owl-theme owl-related" data-owl-related>
             @foreach ($tour['related'] as $i => $img)
-                <article class="group bg-white rounded-2xl overflow-hidden ring-1 ring-teal-800/5">
+                <article class="item group bg-white rounded-2xl overflow-hidden ring-1 ring-teal-800/5">
                     <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => 'machu-picchu']) }}" class="block">
                         <img src="{{ asset('assets/banners/' . $img) }}" alt="" class="w-full h-48 object-cover transition-transform group-hover:scale-105" loading="lazy">
                     </a>

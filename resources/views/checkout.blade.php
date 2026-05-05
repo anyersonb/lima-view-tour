@@ -159,10 +159,10 @@
 {{-- ───────── TOURS RECOMENDADOS ───────── --}}
 <section class="bg-white py-16 lg:py-20">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="text-center mb-10">
+        <div class="text-center mb-10">
             <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">SIGUE EXPLORANDO</p>
             <h2 class="mt-3 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">Nuestros tours más comprados</h2>
-        </header>
+        </div>
         <div class="grid gap-6 md:grid-cols-3">
             @foreach ($related as [$cat,$title,$img,$price])
                 <article class="relative rounded-2xl overflow-hidden min-h-[24rem] flex">

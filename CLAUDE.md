@@ -129,6 +129,35 @@ npm run dev
 
 Carga en `resources/views/layouts/app.blade.php` con `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700&family=Hedvig+Letters+Serif:opsz@12..24&family=Instrument+Serif:ital@0;1&display=swap">`.
 
+### Container y breakpoints
+- `tailwind.config.js` define container con padding responsivo y `screens` hasta `3xl: 1716px`
+- Custom screen `3xl: 1800px` para utilidades en pantallas grandes
+- `max-w-container: 1716px` disponible como utility
+
+### Sliders — Owl Carousel 2.3.4
+- Cargado vía CDN en `layouts/app.blade.php` (jQuery 3.7.1 + Owl Carousel CSS/JS)
+- Inicialización inline al final del body con `data-owl-*` attributes
+- Selectores activos:
+    - `[data-owl-tours]` — 1/2/3/4 items por breakpoint, autoplay
+    - `[data-owl-experiences]` — sección "Descubre experiencias únicas" en home
+    - `[data-owl-testimonials]` — testimonios en home, about, tours/show
+    - `[data-owl-offers]` — "Ofertas Especiales" en home
+    - `[data-owl-related]` — tours relacionados en tours/show
+    - `[data-owl-gallery]` — galería en tours/show
+- Estilos custom en `resources/scss/components/_carousels.scss`: navegación naranja redonda, dots con active expandido
+
+### Iconografía de marca
+- `<x-icon-compass />` — componente Blade con SVG oficial (`public/assets/icons/title-vector.svg`) para títulos de sección "Nuestros Tours más Comprados", "Nuestros Destinos…"
+- Acepta props `class` y `stroke`
+
+### Semántica HTML / SEO
+- `<header>` reservado solo para `x-header` global del sitio
+- Títulos de sección usan `<h2>` con eyebrow en `<p>` (no `<header>` interno)
+- `<h1>` único por página, jerarquía h1 → h2 → h3 sin saltos
+- Imágenes con `alt` descriptivo (no vacío) cuando aportan información
+- `aria-labelledby`/`aria-label` en cada `<section>` relevante
+- `aria-hidden` en SVG decorativos y emoticones
+
 ### Botones (4 estados × 2 variantes — ver `Button.png`)
 - **Primario**: relleno naranja con texto blanco / outline naranja con texto naranja / fondo naranja oscuro / disabled gris
 - **Secundario**: outline naranja / relleno naranja / fondo cream con texto naranja / disabled gris

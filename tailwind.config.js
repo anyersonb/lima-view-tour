@@ -63,8 +63,19 @@ export default {
                     xl: '3rem',
                 },
                 screens: {
-                    '2xl': '1280px',
+                    sm: '640px',
+                    md: '768px',
+                    lg: '1024px',
+                    xl: '1280px',
+                    '2xl': '1536px',
+                    '3xl': '1716px',
                 },
+            },
+            screens: {
+                '3xl': '1800px',
+            },
+            maxWidth: {
+                'container': '1716px',
             },
             borderRadius: {
                 pill: '9999px',

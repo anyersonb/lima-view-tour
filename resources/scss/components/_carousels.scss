@@ -1,0 +1,37 @@
+// Owl Carousel — branding Lima View Tours
+.owl-carousel {
+    .owl-item { padding: 4px 2px; }
+
+    &.owl-tours .item,
+    &.owl-experiences .item,
+    &.owl-related .item { height: 100%; }
+
+    .owl-nav {
+        @apply flex items-center gap-3 mt-8 justify-center;
+
+        button.owl-prev,
+        button.owl-next {
+            @apply w-11 h-11 rounded-full bg-orange-500 text-white grid place-items-center transition;
+            font-size: 1.5rem;
+            line-height: 1;
+
+            &:hover { @apply bg-orange-600; }
+            &.disabled { @apply bg-cream-200 text-teal-800/40; }
+        }
+    }
+
+    .owl-dots {
+        @apply flex items-center justify-center gap-2 mt-5;
+
+        button.owl-dot {
+            @apply transition;
+            span { @apply block w-2 h-2 rounded-full bg-teal-800/20; transition: all .25s ease; }
+            &.active span { @apply bg-orange-500 w-6; }
+        }
+    }
+}
+
+// Hero ratings avatars overlap
+.hero-avatars span {
+    box-shadow: 0 0 0 2px rgba(255,255,255,.85);
+}

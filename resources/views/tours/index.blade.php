@@ -101,7 +101,7 @@
 {{-- ───────── GRID DE TOURS ───────── --}}
 <section class="bg-white py-16 lg:py-20" id="catalogo">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">CATÁLOGO</p>
                 <h2 class="mt-2 font-display text-3xl md:text-4xl text-teal-800 leading-tight">Todos nuestros {{ $cat ? 'tours en ' . ucfirst($cat) : 'tours' }}</h2>
@@ -121,7 +121,7 @@
                     </a>
                 @endforeach
             </div>
-        </header>
+        </div>
 
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($cardData as $tour)
@@ -243,10 +243,10 @@
 {{-- ───────── ¿POR QUÉ RESERVAR CON NOSOTROS? ───────── --}}
 <section class="bg-white py-16 lg:py-20">
     <div class="container mx-auto px-5 lg:px-10">
-        <header class="text-center max-w-2xl mx-auto mb-12">
+        <div class="text-center max-w-2xl mx-auto mb-12">
             <h2 class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">¿Por qué reservar con nosotros?</h2>
             <p class="mt-3 text-teal-800/70 text-sm">Cuatro razones para confiarnos tu próxima aventura por Perú.</p>
-        </header>
+        </div>
 
         <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             @foreach ([

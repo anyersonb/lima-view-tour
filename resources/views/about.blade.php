@@ -101,7 +101,7 @@
     <div class="container mx-auto px-5 lg:px-10 grid gap-10 lg:grid-cols-2 items-start"
          x-data="{ tab: 'servicio' }">
         <div class="lg:sticky lg:top-24">
-            {!! $brujula !!}
+            <x-icon-compass class="w-12 h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
             <h2 class="mt-4 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
                 Vive la cultura<br>local
             </h2>
