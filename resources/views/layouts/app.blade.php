@@ -2,12 +2,30 @@
     $locale = app()->getLocale();
     $altLocale = $locale === 'es' ? 'en' : 'es';
     $pathWithoutLocale = ltrim(preg_replace('#^/?(es|en)(/|$)#', '', request()->path()), '/');
+    $settings = $siteSettings ?? [];
+
+    $siteName = $settings['site_name'] ?? __('seo.site_name');
+    $defaultTitle = $settings['seo_default_title'] ?? __('seo.default_title');
+    $defaultDescription = $settings['seo_default_description'] ?? __('seo.default_description');
+    $defaultOgImage = $settings['seo_og_image'] ?? null;
+
     $title = trim($__env->yieldContent('title'));
     $description = trim($__env->yieldContent('description'));
-    if ($title === '') { $title = __('seo.default_title'); }
-    if ($description === '') { $description = __('seo.default_description'); }
+    if ($title === '') { $title = $defaultTitle; }
+    if ($description === '') { $description = $defaultDescription; }
+
     $ogImage = trim($__env->yieldContent('og_image'));
-    if ($ogImage === '') { $ogImage = asset('images/og-default.jpg'); }
+    if ($ogImage === '') {
+        $ogImage = $defaultOgImage
+            ? (\Illuminate\Support\Str::startsWith($defaultOgImage, ['http', '/']) ? $defaultOgImage : asset($defaultOgImage))
+            : asset('assets/banners/banner-hero.jpg');
+    }
+
+    $gaId = $settings['seo_google_analytics_id'] ?? null;
+    $gtmId = $settings['seo_gtm_id'] ?? null;
+    $fbPixel = $settings['seo_facebook_pixel'] ?? null;
+    $googleVerify = $settings['seo_google_site_verification'] ?? null;
+    $bingVerify = $settings['seo_bing_site_verification'] ?? null;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="ltr">
@@ -18,9 +36,18 @@
 
     <title>{{ $title }}</title>
     <meta name="description" content="{{ $description }}">
-    <meta name="robots" content="index,follow,max-image-preview:large">
-    <meta name="theme-color" content="#0ea5e9">
-    <meta name="author" content="{{ __('seo.site_name') }}">
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    <meta name="theme-color" content="#15474B">
+    <meta name="author" content="{{ $siteName }}">
+    @isset($settings['seo_default_keywords'])
+        <meta name="keywords" content="{{ $settings['seo_default_keywords'] }}">
+    @endisset
+    @if ($googleVerify)
+        <meta name="google-site-verification" content="{{ $googleVerify }}">
+    @endif
+    @if ($bingVerify)
+        <meta name="msvalidate.01" content="{{ $bingVerify }}">
+    @endif
 
     <link rel="canonical" href="{{ url()->current() }}">
     <link rel="alternate" hreflang="es" href="{{ url('/es/' . $pathWithoutLocale) }}">
@@ -30,7 +57,7 @@
     <meta property="og:type" content="website">
     <meta property="og:locale" content="{{ $locale === 'es' ? 'es_PE' : 'en_US' }}">
     <meta property="og:locale:alternate" content="{{ $locale === 'es' ? 'en_US' : 'es_PE' }}">
-    <meta property="og:site_name" content="{{ __('seo.site_name') }}">
+    <meta property="og:site_name" content="{{ $siteName }}">
     <meta property="og:title" content="{{ $title }}">
     <meta property="og:description" content="{{ $description }}">
     <meta property="og:url" content="{{ url()->current() }}">
@@ -55,11 +82,40 @@
     <x-jsonld />
     @stack('schema')
 
+    @if ($gtmId)
+        <script>
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
+        </script>
+    @endif
+
+    @if ($gaId)
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '{{ $gaId }}', { anonymize_ip: true });
+        </script>
+    @endif
+
+    @if ($fbPixel)
+        <script>
+            !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '{{ $fbPixel }}');
+            fbq('track', 'PageView');
+        </script>
+        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ $fbPixel }}&ev=PageView&noscript=1"/></noscript>
+    @endif
+
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
 </head>
 <body class="bg-white">
-    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:bg-brand-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
+    @if ($gtmId)
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ $gtmId }}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    @endif
+
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:bg-orange-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
         {{ __('nav.skip_to_content') }}
     </a>
 

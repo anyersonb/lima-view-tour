@@ -7,9 +7,20 @@
 
     &[data-variant="transparent"] {
         @apply bg-transparent text-white;
+
+        .site-header__cart { @apply bg-orange-500; }
     }
 }
 
+.site-header__bar {
+    min-height: 88px;
+}
+
 .site-header__nav-link {
-    @apply uppercase tracking-wide text-sm font-semibold hover:text-orange-500 transition-colors;
+    @apply uppercase tracking-wide text-[13px] font-semibold hover:text-orange-400 transition-colors;
+    letter-spacing: 0.06em;
+}
+
+.site-header__cart {
+    min-width: 86px;
 }
