@@ -9,4 +9,5 @@ return [
     'rating' => 'Calificación',
     'reviews' => ':count reseñas',
     'rights_reserved' => 'Todos los derechos reservados',
+    'back_home'       => 'Volver al inicio',
 ];

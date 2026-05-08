@@ -5,6 +5,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TourController;
@@ -71,6 +72,10 @@ Route::prefix('{locale}')
         Route::get('/gracias', fn () => view('gracias'))->name('contact.thanks');
 
         Route::get('/nosotros', fn () => view('about'))->name('about');
+
+        // Legal pages
+        Route::get('/terminos', [PageController::class, 'terms'])->name('legal.terms');
+        Route::get('/privacidad', [PageController::class, 'privacy'])->name('legal.privacy');
     });
 
 // Culqi Webhook — outside locale group, CSRF exempt

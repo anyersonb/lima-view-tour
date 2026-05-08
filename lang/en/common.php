@@ -9,4 +9,5 @@ return [
     'rating' => 'Rating',
     'reviews' => ':count reviews',
     'rights_reserved' => 'All rights reserved',
+    'back_home'       => 'Back to home',
 ];
