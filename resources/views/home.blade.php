@@ -414,7 +414,7 @@
                 NOSOTROS
             </p>
             <h2 class="mt-3 font-display text-4xl lg:text-5xl text-teal-800 leading-tight">
-                Porque reservar con<br>Nosotros es <span class="text-orange-500">la mejor opción</span> en Perú
+                Porque reservar con<br>Nosotros es <span class="text-orange-700">la mejor opción</span> en Perú
             </h2>
             <p class="mt-3 inline-flex items-center gap-2 text-sm text-teal-800/70">
                 <span aria-hidden="true">🦉</span> Tripadvisor
