@@ -52,8 +52,8 @@
                     <li><a href="{{ route('tours.index', ['locale' => $locale]) }}#ica" class="site-footer__link">{{ __('nav.tours_ica') }}</a></li>
                     <li><a href="{{ route('tours.index', ['locale' => $locale]) }}#cusco" class="site-footer__link">{{ __('nav.tours_cusco') }}</a></li>
                     <li><a href="{{ route('contact', ['locale' => $locale]) }}" class="site-footer__link">{{ __('nav.contact') }}</a></li>
-                    <li><a href="{{ url('/' . $locale . '/terminos') }}" class="site-footer__link">{{ __('footer.terms') }}</a></li>
-                    <li><a href="{{ url('/' . $locale . '/privacidad') }}" class="site-footer__link">{{ __('footer.privacy') }}</a></li>
+                    <li><a href="{{ route('legal.terms', ['locale' => $locale]) }}" class="site-footer__link">{{ __('footer.terms') }}</a></li>
+                    <li><a href="{{ route('legal.privacy', ['locale' => $locale]) }}" class="site-footer__link">{{ __('footer.privacy') }}</a></li>
                 </ul>
             </nav>
 
