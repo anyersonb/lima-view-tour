@@ -32,7 +32,7 @@
         <a href="{{ route('home', ['locale' => $locale]) }}" class="btn--primary relative z-10 mt-8">Volver a inicio</a>
     </main>
     <footer class="bg-teal-700 text-white py-8 text-center">
-        <p class="text-sm font-medium tracking-wide">Follow us</p>
+        <p class="text-sm font-medium tracking-wide">{{ __('footer.follow_us') }}</p>
         <ul class="mt-3 inline-flex items-center gap-4">
             <li><a href="#" aria-label="Instagram"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.9.9 1.4.2.5.4 1.1.4 2.2.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.9.7-1.4.9-.5.2-1.1.4-2.2.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.9-.9-1.4-.2-.5-.4-1.1-.4-2.2-.1-1.2-.1-1.6-.1-4.8s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.9-.7 1.4-.9.5-.2 1.1-.4 2.2-.4 1.2-.1 1.6-.1 4.8-.1zm0 5.5a4.3 4.3 0 100 8.6 4.3 4.3 0 000-8.6zm0 7.1a2.8 2.8 0 110-5.6 2.8 2.8 0 010 5.6zm5.5-7.3a1 1 0 11-2 0 1 1 0 012 0z"/></svg></a></li>
             <li><a href="#" aria-label="Facebook" class="text-orange-400"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"/><path fill="#fff" d="M13.4 17.6v-5h1.7l.3-2h-2v-1.3c0-.6.2-1 1-1h1V6.4s-.5-.1-1.5-.1c-1.7 0-2.7 1-2.7 2.7v1.6H9.5v2h1.7v5h2.2z"/></svg></a></li>
