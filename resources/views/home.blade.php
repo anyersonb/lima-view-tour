@@ -194,13 +194,13 @@
                              class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                         @if ($tour['badge'])
                             @php
-                                $bg = match($tour['badgeType']) {
+                                $badgeBg = match($tour['badgeType']) {
                                     'success' => 'bg-state-success',
                                     'error'   => 'bg-state-error',
                                     default   => 'bg-orange-400',
                                 };
                             @endphp
-                            <span class="absolute top-4 left-4 right-4 {{ $bg }} text-white text-[10px] uppercase tracking-[0.15em] font-semibold py-1.5 px-3 rounded-md text-center inline-flex items-center justify-center gap-1.5">
+                            <span class="absolute top-4 left-4 right-4 {{ $badgeBg }} text-white text-[10px] uppercase tracking-[0.15em] font-semibold py-1.5 px-3 rounded-md text-center inline-flex items-center justify-center gap-1.5">
                                 {{ $tour['badge'] }}
                             </span>
                         @endif
