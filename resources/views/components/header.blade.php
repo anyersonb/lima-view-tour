@@ -79,7 +79,7 @@
         </div>
 
         {{-- Cart block (right edge, full-bleed orange) --}}
-        <a href="{{ route('checkout', ['locale' => $locale]) }}"
+        <a href="{{ route('cart.index', ['locale' => $locale]) }}"
            class="site-header__cart hidden lg:flex items-center justify-center bg-orange-500 hover:bg-orange-600 transition-colors px-7"
            aria-label="{{ __('nav.cart') }}">
             <svg class="w-7 h-7 text-white" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@
                     <a href="tel:+51{{ $supportPhone }}" class="text-sm font-semibold">{{ $supportPhone }}</a>
                 </li>
                 <li class="pt-4">
-                    <a href="{{ route('checkout', ['locale' => $locale]) }}" class="btn--primary btn--block">{{ __('nav.cart') }}</a>
+                    <a href="{{ route('cart.index', ['locale' => $locale]) }}" class="btn--primary btn--block">{{ __('nav.cart') }}</a>
                 </li>
             </ul>
         </nav>
