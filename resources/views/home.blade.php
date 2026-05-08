@@ -247,10 +247,10 @@
             <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt="Lima nocturna"
                  class="w-full h-72 lg:h-full object-cover" loading="lazy">
             <div class="p-8 lg:p-10 flex flex-col">
-                <h3 class="font-display text-3xl text-teal-800">Nombre de tour</h3>
+                <h3 class="font-display text-3xl text-teal-800">Tours Culturales</h3>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-orange-700 font-semibold mt-2">CUPOS LIMITADOS</p>
                 <p class="mt-4 text-sm text-teal-800/75 leading-relaxed">
-                    Lorem ipsum dolor sit amet consectetur. Tellus et sollicitudin sagittis. Blandit posuere ornare nisi tristique. Erat in quam ac rhoncus consectetur nulla ornare nunc. Ut non eleifend facilisis odio turpis at non consectetur. Blandit sollicitudin cras mattis faucibus. Nunc id est ac accumsan sodales. Vitae convallis ut in nisi interdum. In sed scelerisque varius faucibus quis. Venenatis blandit nunc ultricies luctus volutpat pulvinar.
+                    Descubre el legado milenario de los incas con visitas guiadas a Machu Picchu, Sacsayhuamán, museos en Lima y centros históricos. Tours pensados para amantes de la historia y el patrimonio peruano.
                 </p>
                 <div class="mt-auto pt-6 flex items-center justify-between">
                     <p class="font-price text-3xl text-teal-800">$200<span class="block text-[11px] uppercase tracking-[0.2em] text-teal-800/60 font-sans">POR PERSONA</span></p>
@@ -300,7 +300,7 @@
                     <div class="p-6">
                         <span class="text-orange-400 text-3xl leading-none" aria-hidden="true">”</span>
                         <blockquote class="mt-2 text-sm text-teal-800/85 leading-relaxed">
-                            Lorem ipsum dolor sit amet consectetur. Dolor semper vehicula sit id nulla nibh senectus sit. Erat aliquet suspendisse purus consequat vestibulum gravida.
+                            Reservamos un tour de cuatro días con Lima View Tours y la experiencia superó todas nuestras expectativas. La guía conocía cada detalle de la historia inca y nos llevó a lugares que no aparecen en las guías turísticas comunes. Volveremos sin duda.
                         </blockquote>
                         <p class="mt-3 text-orange-400 text-sm" aria-hidden="true">★★★★★ <span class="text-teal-800/60">Google</span></p>
                     </div>
@@ -341,14 +341,14 @@
         <p class="text-teal-800/70 inline-flex items-center gap-2 text-sm uppercase tracking-[0.18em] font-semibold">
             <span aria-hidden="true">🦉</span> Tripadvisor
         </p>
-        <blockquote class="mt-6 font-display text-2xl md:text-3xl text-teal-800 leading-snug">
-            “Lorem ipsum dolor sit amet consectetur. Aliquet eget eu tellus libero ornare augue scelerisque eget ac. Velit consequat viverra sed tincidunt lacinia. Aliquam vitae auctor feugiat et suscipit viverra consectetur.”
+        <blockquote class=”mt-6 font-display text-2xl md:text-3xl text-teal-800 leading-snug”>
+            “Reservamos un tour de cuatro días con Lima View Tours y la experiencia superó todas nuestras expectativas. La guía conocía cada detalle de la historia inca y nos llevó a lugares que no aparecen en las guías turísticas comunes. Volveremos sin duda.”
         </blockquote>
-        <figcaption class="mt-6 inline-flex items-center gap-3 text-left">
-            <span class="w-10 h-10 rounded-full bg-cream-200"></span>
-            <span class="leading-tight">
-                <span class="block font-semibold text-teal-800">Valeriy Roberts</span>
-                <span class="block text-xs text-teal-800/60">Ex clienta</span>
+        <figcaption class=”mt-6 inline-flex items-center gap-3 text-left”>
+            <span class=”w-10 h-10 rounded-full bg-cream-200”></span>
+            <span class=”leading-tight”>
+                <span class=”block font-semibold text-teal-800”>Marie &amp; Paul</span>
+                <span class=”block text-xs text-teal-800/60”>Lyon, Francia</span>
             </span>
         </figcaption>
         <div class="mt-8 flex justify-center gap-3">
@@ -379,15 +379,19 @@
         </div>
 
         <div class="owl-carousel owl-theme owl-offers" x-ignore data-owl-offers>
-            @foreach (['Rectangle 19211.jpg','Rectangle 19212.jpg','Rectangle 19214.jpg'] as $img)
+            @foreach ([
+                ['img' => 'Rectangle 19211.jpg', 'title' => 'Machu Picchu 4 días',          'desc' => 'Tren Vistadome, hotel 4 estrellas en Aguas Calientes, guía bilingüe y entradas incluidas. Salidas todos los lunes y jueves.'],
+                ['img' => 'Rectangle 19212.jpg', 'title' => 'Huacachina + Paracas Full Day','desc' => 'Tour clásico desde Lima: oasis, sandboarding, Reserva Nacional de Paracas y degustación de pisco. Almuerzo incluido.'],
+                ['img' => 'Rectangle 19214.jpg', 'title' => 'Cusco Mágico 5 días',          'desc' => 'Valle Sagrado, Sacsayhuamán, Maras-Moray, mercado de Pisac y Machu Picchu. Pequeños grupos de máximo 8 personas.'],
+            ] as $offer)
                 <article class="item relative rounded-2xl overflow-hidden min-h-[26rem] flex">
-                    <img src="{{ asset('assets/banners/' . $img) }}" alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+                    <img src="{{ asset('assets/banners/' . $offer['img']) }}" alt="{{ $offer['title'] }}" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black/80"></div>
                     <div class="relative w-full p-6 flex flex-col text-center">
                         <span class="self-start bg-white/95 text-teal-800 text-[11px] font-semibold uppercase tracking-wide rounded-md px-3 py-1">$200 / Por persona</span>
                         <div class="mt-auto pb-2">
-                            <h3 class="font-display text-2xl">10% de dscto haciendo tu reserva</h3>
-                            <p class="mt-3 text-sm text-white/85 leading-relaxed">Lorem ipsum dolor sit amet consectetur. Elit nibh dolor et turpis tempus. Urna aliquet lacus faucibus facilisis phasellus.</p>
+                            <h3 class="font-display text-2xl">{{ $offer['title'] }}</h3>
+                            <p class="mt-3 text-sm text-white/85 leading-relaxed">{{ $offer['desc'] }}</p>
                             <a href="#" class="mt-4 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider border border-white/70 rounded-pill px-6 py-2.5 hover:bg-white hover:text-teal-800 transition">
                                 Leer más <span aria-hidden="true">›</span>
                             </a>
