@@ -6,7 +6,7 @@
     $firstName = $bookings->first()['customer_name'] ?? 'viajero';
 @endphp
 
-@section('title', '¡Reserva confirmada! — ' . __('seo.site_name'))
+@section('title', __('checkout.thank_you_title') . ' — ' . __('seo.site_name'))
 @section('description', 'Tu reserva en Lima View Tours ha sido confirmada. Recibirás un email con los detalles.')
 
 @push('head')
@@ -29,16 +29,16 @@
             </svg>
         </div>
 
-        <h1 class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">¡Gracias por tu reserva!</h1>
+        <h1 class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">{{ __('checkout.thank_you_title') }}</h1>
 
         @if ($firstRef)
             <p class="mt-4 text-white/85 text-sm md:text-base">
-                Número de referencia: <strong class="text-orange-300 font-mono tracking-widest">{{ $firstRef }}</strong>
+                {{ __('checkout.reference_label') }}: <strong class="text-orange-300 font-mono tracking-widest">{{ $firstRef }}</strong>
             </p>
         @endif
 
         <p class="mt-4 mx-auto max-w-2xl text-sm md:text-base text-white/80">
-            Hemos enviado la confirmación a tu correo electrónico. Revisa también tu carpeta de spam.
+            {{ __('checkout.thank_you_subtitle') }}
         </p>
     </div>
 </section>
@@ -100,7 +100,7 @@
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <a href="{{ route('tours.index', ['locale' => $locale]) }}"
                class="btn--primary text-center">
-                Explorar más tours
+                {{ __('checkout.back_to_tours') }}
             </a>
             <a href="{{ route('home', ['locale' => $locale]) }}"
                class="inline-flex items-center justify-center gap-2 rounded-pill border-2 border-teal-800/30 text-teal-800 px-6 py-3 text-sm font-semibold hover:border-teal-800 transition">

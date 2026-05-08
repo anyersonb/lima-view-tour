@@ -4,7 +4,7 @@
     $locale = app()->getLocale();
 @endphp
 
-@section('title', 'Pago seguro — ' . __('seo.site_name'))
+@section('title', __('checkout.title') . ' — ' . __('seo.site_name'))
 @section('description', 'Completa tu pago de forma segura con tarjeta de crédito o débito. Lima View Tours.')
 
 @push('head')
@@ -29,7 +29,7 @@
         </nav>
     </div>
     <div class="container mx-auto px-5 lg:px-10 py-16 md:py-20 text-center">
-        <h1 class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">Pago seguro</h1>
+        <h1 class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">{{ __('checkout.title') }}</h1>
         <p class="mt-4 mx-auto max-w-2xl text-sm md:text-base text-white/85">
             Completa tus datos y paga con tarjeta de crédito o débito de forma segura con Culqi.
         </p>
@@ -76,7 +76,7 @@
                         {{-- Name --}}
                         <div class="md:col-span-2">
                             <label for="customer_name" class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">
-                                Nombre completo <span class="text-state-error">*</span>
+                                {{ __('checkout.customer_name') }} <span class="text-state-error">*</span>
                             </label>
                             <input type="text"
                                    id="customer_name"
@@ -93,7 +93,7 @@
                         {{-- Email --}}
                         <div>
                             <label for="customer_email" class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">
-                                Correo electrónico <span class="text-state-error">*</span>
+                                {{ __('checkout.customer_email') }} <span class="text-state-error">*</span>
                             </label>
                             <input type="email"
                                    id="customer_email"
@@ -110,7 +110,7 @@
                         {{-- Phone --}}
                         <div>
                             <label for="customer_phone" class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">
-                                Teléfono (Perú) <span class="text-state-error">*</span>
+                                {{ __('checkout.customer_phone') }} <span class="text-state-error">*</span>
                             </label>
                             <input type="tel"
                                    id="customer_phone"
@@ -127,7 +127,7 @@
                         {{-- Travel date --}}
                         <div class="md:col-span-2">
                             <label for="travel_date" class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">
-                                Fecha de viaje <span class="text-state-error">*</span>
+                                {{ __('checkout.travel_date') }} <span class="text-state-error">*</span>
                             </label>
                             <input type="date"
                                    id="travel_date"
@@ -152,7 +152,7 @@
                             Pagar con tarjeta — ${{ number_format($total, 2) }} USD
                         </button>
                         <p class="mt-3 text-[11px] text-center text-teal-800/55">
-                            Aceptamos VISA, Mastercard y AmEx &nbsp;·&nbsp; Pago 100% seguro
+                            Aceptamos VISA, Mastercard y AmEx &nbsp;·&nbsp; {{ __('checkout.secure_payment') }}
                         </p>
                     </div>
                 </form>
@@ -160,7 +160,7 @@
 
             {{-- Order summary sidebar --}}
             <aside class="bg-white rounded-2xl p-6 lg:p-7 shadow-sm lg:sticky lg:top-24">
-                <h3 class="font-display text-xl text-teal-800">Resumen del pedido</h3>
+                <h3 class="font-display text-xl text-teal-800">{{ __('checkout.order_summary') }}</h3>
 
                 <ul class="mt-5 space-y-3 text-sm border-b border-teal-800/10 pb-5">
                     @foreach ($items as $item)
@@ -180,19 +180,19 @@
 
                 <dl class="mt-5 space-y-3 text-sm">
                     <div class="flex justify-between">
-                        <dt class="text-teal-800/70">Subtotal</dt>
+                        <dt class="text-teal-800/70">{{ __('checkout.subtotal') }}</dt>
                         <dd class="font-semibold text-teal-800">${{ number_format($subtotal, 2) }}</dd>
                     </div>
                     @if ($discount > 0)
                         <div class="flex justify-between">
-                            <dt class="text-teal-800/70">Descuento{{ $couponCode ? ' (' . $couponCode . ')' : '' }}</dt>
+                            <dt class="text-teal-800/70">{{ __('checkout.discount') }}{{ $couponCode ? ' (' . $couponCode . ')' : '' }}</dt>
                             <dd class="font-semibold text-state-success">−${{ number_format($discount, 2) }}</dd>
                         </div>
                     @endif
                 </dl>
 
                 <div class="mt-5 pt-5 border-t border-teal-800/10 flex justify-between items-baseline">
-                    <span class="text-sm uppercase tracking-wide text-teal-800/70 font-semibold">Total a pagar</span>
+                    <span class="text-sm uppercase tracking-wide text-teal-800/70 font-semibold">{{ __('checkout.total') }}</span>
                     <span class="font-price text-3xl text-teal-800">
                         ${{ number_format($total, 2) }}<span class="text-xs text-teal-800/55 ml-1">USD</span>
                     </span>
