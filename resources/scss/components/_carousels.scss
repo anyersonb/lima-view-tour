@@ -35,3 +35,17 @@
 .hero-avatars span {
     box-shadow: 0 0 0 2px rgba(255,255,255,.85);
 }
+
+// No-JS fallback: render carousel items as a responsive grid
+// so content remains accessible without JavaScript.
+.no-js .owl-carousel {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: 1.5rem;
+
+    // Owl injects these wrappers at runtime; in no-JS they are absent,
+    // so we target .item directly.
+    .item {
+        height: 100%;
+    }
+}

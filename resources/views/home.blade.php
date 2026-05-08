@@ -23,34 +23,55 @@
     $brujula = '<svg viewBox="0 0 64 64" class="w-12 h-12 text-teal-700" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="14"/><path d="M32 14 L34 30 L50 32 L34 34 L32 50 L30 34 L14 32 L30 30 Z" fill="currentColor" opacity=".15" stroke="none"/><path d="M32 16v3M32 45v3M16 32h3M45 32h3"/></svg>';
 
     $featuredTours = $featuredTours ?? collect();
-    $regions = $regions ?? collect();
-    $testimonials = $testimonials ?? collect();
-    $offers = $offers ?? collect();
-    $st = $siteSettings ?? [];
+    $toursIca      = $toursIca      ?? collect();
+    $toursLima     = $toursLima     ?? collect();
+    $toursCusco    = $toursCusco    ?? collect();
+    $regions       = $regions       ?? collect();
+    $testimonials  = $testimonials  ?? collect();
+    $offers        = $offers        ?? collect();
+    $st            = $siteSettings  ?? [];
 
-    if ($featuredTours->isEmpty()) {
-        $featuredTours = collect([
-            (object)['title' => 'Tour de día Completo al Oasis de Huacachina + Islas Ballestas', 'price_before' => 125, 'price' => 100, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19210.jpg', 'slug' => 'huacachina-paracas-full-day'],
-            (object)['title' => 'Full Day Lima Ancestral, Colonial y Moderna', 'price_before' => 125, 'price' => 100, 'badge_text' => '5 CUPOS DE 20', 'badge_type' => 'error', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19211.jpg', 'slug' => 'lima-ancestral-colonial'],
-            (object)['title' => 'Líneas de Nazca + Oasis de Huacachina e Islas Ballestas', 'price_before' => 250, 'price' => 220, 'badge_text' => 'MÁS RESERVADO', 'badge_type' => 'success', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19212.jpg', 'slug' => 'nazca-huacachina-2-dias'],
-            (object)['title' => 'Full day a las Líneas de Nazca', 'price_before' => 350, 'price' => 300, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19214.jpg', 'slug' => 'nazca-full-day'],
-        ]);
-    }
+    // Static fallback cards shown when a DB collection is empty.
+    $staticFeatured = collect([
+        (object)['title' => 'Tour de día Completo al Oasis de Huacachina + Islas Ballestas', 'price_before' => 125, 'price' => 100, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19210.jpg', 'slug' => 'huacachina-paracas-full-day'],
+        (object)['title' => 'Full Day Lima Ancestral, Colonial y Moderna', 'price_before' => 125, 'price' => 100, 'badge_text' => '5 CUPOS DE 20', 'badge_type' => 'error', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19211.jpg', 'slug' => 'lima-ancestral-colonial'],
+        (object)['title' => 'Líneas de Nazca + Oasis de Huacachina e Islas Ballestas', 'price_before' => 250, 'price' => 220, 'badge_text' => 'MÁS RESERVADO', 'badge_type' => 'success', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19212.jpg', 'slug' => 'nazca-huacachina-2-dias'],
+        (object)['title' => 'Full day a las Líneas de Nazca', 'price_before' => 350, 'price' => 300, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19214.jpg', 'slug' => 'nazca-full-day'],
+    ]);
 
-    // Adaptador retro-compatible para los snippets que usan $tours[]
-    $tours = $featuredTours->map(fn ($t) => [
-        'title' => is_object($t) ? $t->title : $t['title'],
-        'before' => is_object($t) ? ($t->price_before ?? null) : ($t['price_before'] ?? null),
-        'now' => is_object($t) ? $t->price : $t['price'],
-        'badge' => is_object($t) ? ($t->badge_text ?? null) : ($t['badge_text'] ?? null),
-        'badgeType' => is_object($t) ? ($t->badge_type ?? 'warn') : ($t['badge_type'] ?? 'warn'),
-        'rating' => is_object($t) ? $t->rating : $t['rating'],
-        'reviews' => is_object($t) ? ($t->reviews_count ?? 0) : ($t['reviews_count'] ?? 0),
-        'img' => is_object($t)
-            ? (\Illuminate\Support\Str::contains($t->cover_image ?? '', '/') ? basename($t->cover_image) : ($t->cover_image ?? 'banner-hero.jpg'))
-            : (\Illuminate\Support\Str::contains($t['cover_image'] ?? '', '/') ? basename($t['cover_image']) : ($t['cover_image'] ?? 'banner-hero.jpg')),
-        'slug' => is_object($t) ? ($t->slug ?? '') : ($t['slug'] ?? ''),
-    ])->all();
+    if ($featuredTours->isEmpty()) { $featuredTours = $staticFeatured; }
+    if ($toursIca->isEmpty())      { $toursIca      = $staticFeatured; }
+    if ($toursLima->isEmpty())     { $toursLima      = $staticFeatured; }
+    if ($toursCusco->isEmpty())    { $toursCusco     = $staticFeatured; }
+
+    /**
+     * Normalize a collection (Eloquent models or plain objects) into a flat
+     * array of view-friendly scalars understood by the tour-card partial.
+     */
+    $normalizeTours = static function (\Illuminate\Support\Collection $collection): array {
+        return $collection->map(static function ($t): array {
+            return [
+                'title'     => is_object($t) ? $t->title                                         : $t['title'],
+                'before'    => is_object($t) ? ($t->price_before ?? null)                        : ($t['price_before'] ?? null),
+                'now'       => is_object($t) ? $t->price                                         : $t['price'],
+                'badge'     => is_object($t) ? ($t->badge_text ?? null)                          : ($t['badge_text'] ?? null),
+                'badgeType' => is_object($t) ? ($t->badge_type ?? 'warn')                        : ($t['badge_type'] ?? 'warn'),
+                'rating'    => is_object($t) ? $t->rating                                        : $t['rating'],
+                'reviews'   => is_object($t) ? ($t->reviews_count ?? 0)                         : ($t['reviews_count'] ?? 0),
+                'img'       => is_object($t)
+                    ? (\Illuminate\Support\Str::contains($t->cover_image ?? '', '/') ? basename($t->cover_image) : ($t->cover_image ?? 'banner-hero.jpg'))
+                    : (\Illuminate\Support\Str::contains($t['cover_image'] ?? '', '/') ? basename($t['cover_image']) : ($t['cover_image'] ?? 'banner-hero.jpg')),
+                'slug'      => is_object($t) ? ($t->slug ?? '')                                  : ($t['slug'] ?? ''),
+            ];
+        })->all();
+    };
+
+    $toursCarousels = [
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Tours más Comprados', 'bg' => 'bg-cream-100', 'items' => $normalizeTours($featuredTours)],
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Ica',     'bg' => 'bg-cream-100', 'items' => $normalizeTours($toursIca)],
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Lima',    'bg' => 'bg-cream-100', 'items' => $normalizeTours($toursLima)],
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Cusco',   'bg' => 'bg-cream-100', 'items' => $normalizeTours($toursCusco)],
+    ];
 @endphp
 
 @section('content')
@@ -120,39 +141,36 @@
     </div>
 </section>
 
-{{-- ───────── TOUR CAROUSELS (3 destinos) ───────── --}}
-@foreach ([
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Tours más Comprados', 'bg' => 'bg-cream-100'],
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Ica', 'bg' => 'bg-cream-100'],
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Lima', 'bg' => 'bg-cream-100'],
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Cusco', 'bg' => 'bg-cream-100'],
-] as $sectionIdx => $section)
-<section class="{{ $section['bg'] }} py-16 lg:py-20">
+{{-- ───────── TOUR CAROUSELS (featured + 3 destinos) ───────── --}}
+@foreach ($toursCarousels as $sectionIdx => $section)
+<section class="{{ $section['bg'] }} py-16 lg:py-20" aria-labelledby="carousel-{{ $sectionIdx }}-title">
     <div class="container mx-auto px-5 lg:px-10">
         <div class="flex items-center gap-4 md:gap-5 mb-8 md:mb-10">
             <x-icon-compass class="w-12 h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">{{ $section['eyebrow'] }}</p>
-                <h2 class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight mt-1">{{ $section['title'] }}</h2>
+                <h2 id="carousel-{{ $sectionIdx }}-title" class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight mt-1">{{ $section['title'] }}</h2>
             </div>
         </div>
 
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-2">
-            @foreach (array_slice($tours, 0, 2) as $i => $tour)
-                <article class="tour-card bg-white rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,40%)]">
-                    <div class="p-6 flex flex-col">
-                        <span class="text-[11px] uppercase tracking-[0.2em] text-orange-500 font-semibold">CUPOS LIMITADOS</span>
-                        <h3 class="font-display text-2xl text-teal-800 leading-snug mt-1">{{ $tour['title'] }}</h3>
+        <div class="owl-carousel owl-theme owl-tours-wide" data-owl-tours-wide x-ignore>
+            @foreach ($section['items'] as $i => $tour)
+                <article class="item tour-card bg-white rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,40%)] h-full">
+                    <div class="p-5 md:p-6 flex flex-col">
+                        @if ($tour['badge'])
+                            <span class="text-[11px] uppercase tracking-[0.2em] text-orange-500 font-semibold">{{ $tour['badge'] }}</span>
+                        @endif
+                        <h3 class="font-display text-xl md:text-2xl text-teal-800 leading-snug mt-1">{{ $tour['title'] }}</h3>
                         <p class="mt-3 flex items-center gap-2 text-sm text-teal-800/80">
                             <span class="font-semibold">{{ $tour['rating'] }}</span>
-                            <span aria-hidden="true" class="text-orange-400 tracking-tight">★★★★★</span>
+                            <span aria-hidden="true" class="text-orange-400 tracking-tight">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                             <span class="text-teal-800/60 text-xs">( {{ $tour['reviews'] }} Comentarios )</span>
                         </p>
 
                         <ul class="mt-4 grid grid-cols-4 gap-2 text-[10px] text-teal-800/70 text-center">
                             @foreach (['Español/Inglés','Full Day','Tour Grupal','Recojo y retorno'] as $feat)
                                 <li class="flex flex-col items-center gap-1">
-                                    <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700">
+                                    <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
                                     </span>
                                     <span>{{ $feat }}</span>
@@ -168,43 +186,27 @@
                                     <span><span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60">Ahora</span> <span class="font-price text-2xl text-state-error">${{ $tour['now'] }}</span></span>
                                 </p>
                             </div>
-                            <a href="#" class="btn--primary btn--block mt-4">Reservar tour</a>
+                            <a href="{{ $tour['slug'] ? route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) : '#' }}" class="btn--primary btn--block mt-4">Reservar tour</a>
                         </div>
                     </div>
-                    <div class="relative">
+                    <div class="relative min-h-[14rem] sm:min-h-0">
                         <img src="{{ asset('assets/banners/' . $tour['img']) }}" alt="{{ $tour['title'] }}"
                              class="absolute inset-0 w-full h-full object-cover" loading="lazy">
                         @if ($tour['badge'])
                             @php
-                                $bg = match($tour['badgeType']) {
+                                $badgeBg = match($tour['badgeType']) {
                                     'success' => 'bg-state-success',
-                                    'error' => 'bg-state-error',
-                                    default => 'bg-orange-400',
+                                    'error'   => 'bg-state-error',
+                                    default   => 'bg-orange-400',
                                 };
                             @endphp
-                            <span class="absolute top-4 left-4 right-4 {{ $bg }} text-white text-[10px] uppercase tracking-[0.15em] font-semibold py-1.5 px-3 rounded-md text-center inline-flex items-center justify-center gap-1.5">
+                            <span class="absolute top-4 left-4 right-4 {{ $badgeBg }} text-white text-[10px] uppercase tracking-[0.15em] font-semibold py-1.5 px-3 rounded-md text-center inline-flex items-center justify-center gap-1.5">
                                 {{ $tour['badge'] }}
                             </span>
                         @endif
                     </div>
                 </article>
             @endforeach
-        </div>
-
-        <div class="mt-10 flex items-center justify-between">
-            <ul class="flex items-center gap-2" aria-label="Paginación">
-                @for ($d=0; $d<5; $d++)
-                    <li class="w-2 h-2 rounded-full {{ $d===0 ? 'bg-orange-500' : 'bg-teal-800/20' }}"></li>
-                @endfor
-            </ul>
-            <div class="flex gap-3">
-                <button type="button" class="w-11 h-11 rounded-full bg-orange-500 text-white grid place-items-center hover:bg-orange-600" aria-label="Anterior">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <button type="button" class="w-11 h-11 rounded-full bg-orange-500 text-white grid place-items-center hover:bg-orange-600" aria-label="Siguiente">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </button>
-            </div>
         </div>
     </div>
 </section>
@@ -266,7 +268,7 @@
             </div>
         </div>
 
-        <div class="owl-carousel owl-theme owl-experiences" data-owl-experiences>
+        <div class="owl-carousel owl-theme owl-experiences" x-ignore data-owl-experiences>
             @foreach (['Rectangle 19216.jpg','Rectangle 19217.jpg','Rectangle 19218.jpg','Rectangle 19219.jpg'] as $i => $img)
                 <article class="item bg-white rounded-2xl overflow-hidden shadow-sm">
                     <img src="{{ asset('assets/banners/' . $img) }}" alt="Experiencia turística en {{ ['Lima', 'Cusco', 'Ica', 'Paracas'][$i] ?? 'Perú' }}" class="w-full h-56 object-cover" loading="lazy">
@@ -288,7 +290,7 @@
 <section class="bg-cream-100 pb-14 md:pb-16 lg:pb-20" aria-labelledby="home-testimonials-title">
     <h2 id="home-testimonials-title" class="sr-only">Testimonios de clientes</h2>
     <div class="container mx-auto px-5 lg:px-10 grid gap-6 lg:grid-cols-[1fr_1fr_minmax(0,1.05fr)] items-stretch">
-        <div class="lg:col-span-2 owl-carousel owl-theme owl-testimonials" data-owl-testimonials>
+        <div class="lg:col-span-2 owl-carousel owl-theme owl-testimonials" x-ignore data-owl-testimonials>
             @foreach ([['Sara Fernández','Spain'],['Rebeca Figueroa','Colombia'],['Liam Carter','USA'],['Ana Suárez','México']] as [$name,$country])
                 <figure class="item bg-white rounded-2xl overflow-hidden flex flex-col h-full">
                     <div class="p-6">
@@ -372,7 +374,7 @@
             </div>
         </div>
 
-        <div class="owl-carousel owl-theme owl-offers" data-owl-offers>
+        <div class="owl-carousel owl-theme owl-offers" x-ignore data-owl-offers>
             @foreach (['Rectangle 19211.jpg','Rectangle 19212.jpg','Rectangle 19214.jpg'] as $img)
                 <article class="item relative rounded-2xl overflow-hidden min-h-[26rem] flex">
                     <img src="{{ asset('assets/banners/' . $img) }}" alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy">

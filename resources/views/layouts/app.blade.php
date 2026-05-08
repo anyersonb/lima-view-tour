@@ -28,9 +28,10 @@
     $bingVerify = $settings['seo_bing_site_verification'] ?? null;
 @endphp
 <!DOCTYPE html>
-<html lang="{{ $locale }}" dir="ltr">
+<html lang="{{ $locale }}" dir="ltr" class="no-js">
 <head>
     <meta charset="UTF-8">
+    <script>document.documentElement.classList.remove('no-js');document.documentElement.classList.add('js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
@@ -133,48 +134,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js" defer></script>
-    <script defer>
-        document.addEventListener('DOMContentLoaded', function () {
-            const initOwl = function () {
-                if (typeof jQuery === 'undefined' || typeof jQuery.fn.owlCarousel === 'undefined') { return setTimeout(initOwl, 80); }
-                const $ = jQuery;
-
-                $('[data-owl-tours]').owlCarousel({
-                    loop: true, margin: 24, nav: true, dots: true, autoplay: true, autoplayHoverPause: true, autoplayTimeout: 5500, smartSpeed: 700,
-                    navText: ['<span aria-label="Anterior">&lsaquo;</span>', '<span aria-label="Siguiente">&rsaquo;</span>'],
-                    responsive: { 0: { items: 1 }, 640: { items: 2 }, 1024: { items: 3 }, 1536: { items: 4 } },
-                });
-
-                $('[data-owl-experiences]').owlCarousel({
-                    loop: true, margin: 24, nav: false, dots: true, autoplay: true, autoplayTimeout: 6000, smartSpeed: 700,
-                    responsive: { 0: { items: 1 }, 640: { items: 2 }, 1024: { items: 3 }, 1536: { items: 4 } },
-                });
-
-                $('[data-owl-testimonials]').owlCarousel({
-                    loop: true, margin: 20, nav: true, dots: true, autoplay: true, autoplayTimeout: 6500, smartSpeed: 700,
-                    navText: ['<span aria-label="Anterior">&lsaquo;</span>', '<span aria-label="Siguiente">&rsaquo;</span>'],
-                    responsive: { 0: { items: 1 }, 640: { items: 2 }, 1024: { items: 3 }, 1280: { items: 4 } },
-                });
-
-                $('[data-owl-offers]').owlCarousel({
-                    loop: true, margin: 24, nav: true, dots: true, autoplay: true, autoplayTimeout: 6500, smartSpeed: 700,
-                    navText: ['<span aria-label="Anterior">&lsaquo;</span>', '<span aria-label="Siguiente">&rsaquo;</span>'],
-                    responsive: { 0: { items: 1 }, 768: { items: 2 }, 1024: { items: 3 } },
-                });
-
-                $('[data-owl-related]').owlCarousel({
-                    loop: true, margin: 20, nav: false, dots: true, autoplay: false, smartSpeed: 600,
-                    responsive: { 0: { items: 1 }, 640: { items: 2 }, 1024: { items: 3 }, 1536: { items: 4 } },
-                });
-
-                $('[data-owl-gallery]').owlCarousel({
-                    loop: true, margin: 12, nav: true, dots: false, items: 1,
-                    navText: ['<span aria-label="Anterior">&lsaquo;</span>', '<span aria-label="Siguiente">&rsaquo;</span>'],
-                });
-            };
-            initOwl();
-        });
-    </script>
 
     @stack('scripts')
 </body>
