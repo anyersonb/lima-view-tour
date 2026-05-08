@@ -16,7 +16,15 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap')
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 // Newsletter (sin locale)
-Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
+    ->middleware('throttle:newsletter')
+    ->name('newsletter.subscribe');
+
+Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])
+    ->name('newsletter.confirm');
+
+Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
+    ->name('newsletter.unsubscribe');
 
 // Redirección por idioma del navegador
 Route::get('/', function () {
@@ -57,7 +65,9 @@ Route::prefix('{locale}')
         Route::get('/checkout/gracias', [CheckoutController::class, 'thanks'])->name('checkout.thanks');
 
         Route::get('/contacto', [ContactController::class, 'show'])->name('contact');
-        Route::post('/contacto', [ContactController::class, 'submit'])->name('contact.submit');
+        Route::post('/contacto', [ContactController::class, 'submit'])
+            ->middleware('throttle:contact')
+            ->name('contact.submit');
         Route::get('/gracias', fn () => view('gracias'))->name('contact.thanks');
 
         Route::get('/nosotros', fn () => view('about'))->name('about');

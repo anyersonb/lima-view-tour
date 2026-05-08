@@ -25,9 +25,13 @@
             <p class="text-[11px] uppercase tracking-[0.25em] text-orange-500 font-semibold">{{ $eyebrow }}</p>
             <h2 id="{{ $id }}-title" class="mt-2 font-display text-3xl text-teal-800 leading-tight">{{ $title }}</h2>
             <p class="mt-3 text-sm text-teal-800/75 leading-relaxed">{{ $description }}</p>
-            <form action="#" class="mt-5 space-y-3">
+            <form action="{{ route('newsletter.subscribe') }}" method="post" class="mt-5 space-y-3">
                 @csrf
-                <input type="email" required placeholder="Tu correo electrónico"
+                {{-- Honeypot: must remain empty; bots fill it automatically --}}
+                <input type="text" name="website" tabindex="-1" autocomplete="off"
+                       style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
+                       aria-hidden="true">
+                <input type="email" name="email" required placeholder="Tu correo electrónico"
                        class="w-full rounded-pill border border-teal-800/20 px-5 py-3 text-sm focus:border-orange-400 focus:ring-orange-400">
                 <button type="submit" class="btn--primary btn--block">Suscribirme</button>
             </form>

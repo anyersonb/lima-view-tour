@@ -9,8 +9,12 @@
             </h2>
         </div>
 
-        <form action="#" method="post" class="space-y-3">
+        <form action="{{ route('newsletter.subscribe') }}" method="post" class="space-y-3">
             @csrf
+            {{-- Honeypot: must remain empty; bots fill it automatically --}}
+            <input type="text" name="website" tabindex="-1" autocomplete="off"
+                   style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
+                   aria-hidden="true">
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="block">
                     <span class="sr-only">{{ __('footer.newsletter_name') }}</span>

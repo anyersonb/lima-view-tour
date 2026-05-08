@@ -41,6 +41,10 @@
         {{-- Form --}}
         <form action="{{ route('contact.submit', ['locale' => $locale]) }}" method="post" class="bg-white rounded-2xl p-7 lg:p-10 shadow-sm">
             @csrf
+            {{-- Honeypot: must remain empty; bots fill it automatically --}}
+            <input type="text" name="website" tabindex="-1" autocomplete="off"
+                   style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
+                   aria-hidden="true">
             <header class="flex items-center gap-4 mb-6">
                 <span class="w-12 h-12 rounded-full border border-teal-800/20 grid place-items-center text-teal-700">
                     <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="3"/></svg>
