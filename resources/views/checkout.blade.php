@@ -233,7 +233,7 @@
                         </span>
                     </div>
 
-                    <a href="#" data-checkout-pending
+                    <a href="{{ route('checkout.pay', ['locale' => $locale]) }}"
                        class="btn--primary btn--block mt-6">Pasar por caja</a>
                     <p class="mt-3 text-[11px] text-center text-teal-800/55">Aceptamos VISA, Mastercard, AmEx y PayPal</p>
                 </aside>
