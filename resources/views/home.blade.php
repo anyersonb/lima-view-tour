@@ -268,7 +268,7 @@
             </div>
         </div>
 
-        <div class="owl-carousel owl-theme owl-experiences" data-owl-experiences>
+        <div class="owl-carousel owl-theme owl-experiences" x-ignore data-owl-experiences>
             @foreach (['Rectangle 19216.jpg','Rectangle 19217.jpg','Rectangle 19218.jpg','Rectangle 19219.jpg'] as $i => $img)
                 <article class="item bg-white rounded-2xl overflow-hidden shadow-sm">
                     <img src="{{ asset('assets/banners/' . $img) }}" alt="Experiencia turística en {{ ['Lima', 'Cusco', 'Ica', 'Paracas'][$i] ?? 'Perú' }}" class="w-full h-56 object-cover" loading="lazy">
@@ -290,7 +290,7 @@
 <section class="bg-cream-100 pb-14 md:pb-16 lg:pb-20" aria-labelledby="home-testimonials-title">
     <h2 id="home-testimonials-title" class="sr-only">Testimonios de clientes</h2>
     <div class="container mx-auto px-5 lg:px-10 grid gap-6 lg:grid-cols-[1fr_1fr_minmax(0,1.05fr)] items-stretch">
-        <div class="lg:col-span-2 owl-carousel owl-theme owl-testimonials" data-owl-testimonials>
+        <div class="lg:col-span-2 owl-carousel owl-theme owl-testimonials" x-ignore data-owl-testimonials>
             @foreach ([['Sara Fernández','Spain'],['Rebeca Figueroa','Colombia'],['Liam Carter','USA'],['Ana Suárez','México']] as [$name,$country])
                 <figure class="item bg-white rounded-2xl overflow-hidden flex flex-col h-full">
                     <div class="p-6">
@@ -374,7 +374,7 @@
             </div>
         </div>
 
-        <div class="owl-carousel owl-theme owl-offers" data-owl-offers>
+        <div class="owl-carousel owl-theme owl-offers" x-ignore data-owl-offers>
             @foreach (['Rectangle 19211.jpg','Rectangle 19212.jpg','Rectangle 19214.jpg'] as $img)
                 <article class="item relative rounded-2xl overflow-hidden min-h-[26rem] flex">
                     <img src="{{ asset('assets/banners/' . $img) }}" alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
