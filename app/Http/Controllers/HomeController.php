@@ -4,20 +4,115 @@ namespace App\Http\Controllers;
 
 use App\Models\Offer;
 use App\Models\Region;
-use App\Models\Setting;
 use App\Models\Testimonial;
 use App\Models\Tour;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
     public function index(): View
     {
-        return view('home', [
-            'featuredTours' => Tour::published()->featured()->ordered()->limit(4)->get(),
-            'regions' => Region::active()->orderBy('order')->get(),
-            'testimonials' => Testimonial::active()->featured()->orderBy('order')->limit(4)->get(),
-            'offers' => Offer::active()->orderBy('order')->limit(3)->get(),
-        ]);
+        $featuredTours = $this->fetchFeaturedTours();
+        $toursIca = $this->fetchToursByRegion('Ica');
+        $toursLima = $this->fetchToursByRegion('Lima');
+        $toursCusco = $this->fetchToursByRegion('Cusco');
+        $regions = $this->fetchRegions();
+        $testimonials = $this->fetchTestimonials();
+        $offers = $this->fetchOffers();
+
+        return view('home', compact(
+            'featuredTours',
+            'toursIca',
+            'toursLima',
+            'toursCusco',
+            'regions',
+            'testimonials',
+            'offers',
+        ));
+    }
+
+    // ─── Private query helpers ────────────────────────────────────────────────
+
+    private function fetchFeaturedTours(): \Illuminate\Support\Collection
+    {
+        try {
+            return Tour::published()
+                ->featured()
+                ->ordered()
+                ->limit(8)
+                ->get();
+        } catch (\Throwable $e) {
+            Log::error('HomeController: failed to fetch featured tours', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return collect();
+        }
+    }
+
+    /**
+     * Fetch published tours whose region name (name_es) matches the given
+     * destination string. Uses whereHas so no new migration is required.
+     *
+     * @param  non-empty-string  $regionName  e.g. 'Ica', 'Lima', 'Cusco'
+     */
+    private function fetchToursByRegion(string $regionName): \Illuminate\Support\Collection
+    {
+        try {
+            return Tour::published()
+                ->ordered()
+                ->whereHas('region', static function ($query) use ($regionName): void {
+                    $query->where('name_es', $regionName);
+                })
+                ->limit(8)
+                ->get();
+        } catch (\Throwable $e) {
+            Log::error('HomeController: failed to fetch tours by region', [
+                'region' => $regionName,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return collect();
+        }
+    }
+
+    private function fetchRegions(): \Illuminate\Support\Collection
+    {
+        try {
+            return Region::active()->orderBy('order')->get();
+        } catch (\Throwable $e) {
+            Log::error('HomeController: failed to fetch regions', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return collect();
+        }
+    }
+
+    private function fetchTestimonials(): \Illuminate\Support\Collection
+    {
+        try {
+            return Testimonial::active()->featured()->orderBy('order')->limit(4)->get();
+        } catch (\Throwable $e) {
+            Log::error('HomeController: failed to fetch testimonials', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return collect();
+        }
+    }
+
+    private function fetchOffers(): \Illuminate\Support\Collection
+    {
+        try {
+            return Offer::active()->orderBy('order')->limit(3)->get();
+        } catch (\Throwable $e) {
+            Log::error('HomeController: failed to fetch offers', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return collect();
+        }
     }
 }

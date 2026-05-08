@@ -23,34 +23,55 @@
     $brujula = '<svg viewBox="0 0 64 64" class="w-12 h-12 text-teal-700" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="14"/><path d="M32 14 L34 30 L50 32 L34 34 L32 50 L30 34 L14 32 L30 30 Z" fill="currentColor" opacity=".15" stroke="none"/><path d="M32 16v3M32 45v3M16 32h3M45 32h3"/></svg>';
 
     $featuredTours = $featuredTours ?? collect();
-    $regions = $regions ?? collect();
-    $testimonials = $testimonials ?? collect();
-    $offers = $offers ?? collect();
-    $st = $siteSettings ?? [];
+    $toursIca      = $toursIca      ?? collect();
+    $toursLima     = $toursLima     ?? collect();
+    $toursCusco    = $toursCusco    ?? collect();
+    $regions       = $regions       ?? collect();
+    $testimonials  = $testimonials  ?? collect();
+    $offers        = $offers        ?? collect();
+    $st            = $siteSettings  ?? [];
 
-    if ($featuredTours->isEmpty()) {
-        $featuredTours = collect([
-            (object)['title' => 'Tour de día Completo al Oasis de Huacachina + Islas Ballestas', 'price_before' => 125, 'price' => 100, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19210.jpg', 'slug' => 'huacachina-paracas-full-day'],
-            (object)['title' => 'Full Day Lima Ancestral, Colonial y Moderna', 'price_before' => 125, 'price' => 100, 'badge_text' => '5 CUPOS DE 20', 'badge_type' => 'error', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19211.jpg', 'slug' => 'lima-ancestral-colonial'],
-            (object)['title' => 'Líneas de Nazca + Oasis de Huacachina e Islas Ballestas', 'price_before' => 250, 'price' => 220, 'badge_text' => 'MÁS RESERVADO', 'badge_type' => 'success', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19212.jpg', 'slug' => 'nazca-huacachina-2-dias'],
-            (object)['title' => 'Full day a las Líneas de Nazca', 'price_before' => 350, 'price' => 300, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19214.jpg', 'slug' => 'nazca-full-day'],
-        ]);
-    }
+    // Static fallback cards shown when a DB collection is empty.
+    $staticFeatured = collect([
+        (object)['title' => 'Tour de día Completo al Oasis de Huacachina + Islas Ballestas', 'price_before' => 125, 'price' => 100, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19210.jpg', 'slug' => 'huacachina-paracas-full-day'],
+        (object)['title' => 'Full Day Lima Ancestral, Colonial y Moderna', 'price_before' => 125, 'price' => 100, 'badge_text' => '5 CUPOS DE 20', 'badge_type' => 'error', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19211.jpg', 'slug' => 'lima-ancestral-colonial'],
+        (object)['title' => 'Líneas de Nazca + Oasis de Huacachina e Islas Ballestas', 'price_before' => 250, 'price' => 220, 'badge_text' => 'MÁS RESERVADO', 'badge_type' => 'success', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19212.jpg', 'slug' => 'nazca-huacachina-2-dias'],
+        (object)['title' => 'Full day a las Líneas de Nazca', 'price_before' => 350, 'price' => 300, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19214.jpg', 'slug' => 'nazca-full-day'],
+    ]);
 
-    // Adaptador retro-compatible para los snippets que usan $tours[]
-    $tours = $featuredTours->map(fn ($t) => [
-        'title' => is_object($t) ? $t->title : $t['title'],
-        'before' => is_object($t) ? ($t->price_before ?? null) : ($t['price_before'] ?? null),
-        'now' => is_object($t) ? $t->price : $t['price'],
-        'badge' => is_object($t) ? ($t->badge_text ?? null) : ($t['badge_text'] ?? null),
-        'badgeType' => is_object($t) ? ($t->badge_type ?? 'warn') : ($t['badge_type'] ?? 'warn'),
-        'rating' => is_object($t) ? $t->rating : $t['rating'],
-        'reviews' => is_object($t) ? ($t->reviews_count ?? 0) : ($t['reviews_count'] ?? 0),
-        'img' => is_object($t)
-            ? (\Illuminate\Support\Str::contains($t->cover_image ?? '', '/') ? basename($t->cover_image) : ($t->cover_image ?? 'banner-hero.jpg'))
-            : (\Illuminate\Support\Str::contains($t['cover_image'] ?? '', '/') ? basename($t['cover_image']) : ($t['cover_image'] ?? 'banner-hero.jpg')),
-        'slug' => is_object($t) ? ($t->slug ?? '') : ($t['slug'] ?? ''),
-    ])->all();
+    if ($featuredTours->isEmpty()) { $featuredTours = $staticFeatured; }
+    if ($toursIca->isEmpty())      { $toursIca      = $staticFeatured; }
+    if ($toursLima->isEmpty())     { $toursLima      = $staticFeatured; }
+    if ($toursCusco->isEmpty())    { $toursCusco     = $staticFeatured; }
+
+    /**
+     * Normalize a collection (Eloquent models or plain objects) into a flat
+     * array of view-friendly scalars understood by the tour-card partial.
+     */
+    $normalizeTours = static function (\Illuminate\Support\Collection $collection): array {
+        return $collection->map(static function ($t): array {
+            return [
+                'title'     => is_object($t) ? $t->title                                         : $t['title'],
+                'before'    => is_object($t) ? ($t->price_before ?? null)                        : ($t['price_before'] ?? null),
+                'now'       => is_object($t) ? $t->price                                         : $t['price'],
+                'badge'     => is_object($t) ? ($t->badge_text ?? null)                          : ($t['badge_text'] ?? null),
+                'badgeType' => is_object($t) ? ($t->badge_type ?? 'warn')                        : ($t['badge_type'] ?? 'warn'),
+                'rating'    => is_object($t) ? $t->rating                                        : $t['rating'],
+                'reviews'   => is_object($t) ? ($t->reviews_count ?? 0)                         : ($t['reviews_count'] ?? 0),
+                'img'       => is_object($t)
+                    ? (\Illuminate\Support\Str::contains($t->cover_image ?? '', '/') ? basename($t->cover_image) : ($t->cover_image ?? 'banner-hero.jpg'))
+                    : (\Illuminate\Support\Str::contains($t['cover_image'] ?? '', '/') ? basename($t['cover_image']) : ($t['cover_image'] ?? 'banner-hero.jpg')),
+                'slug'      => is_object($t) ? ($t->slug ?? '')                                  : ($t['slug'] ?? ''),
+            ];
+        })->all();
+    };
+
+    $toursCarousels = [
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Tours más Comprados', 'bg' => 'bg-cream-100', 'items' => $normalizeTours($featuredTours)],
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Ica',     'bg' => 'bg-cream-100', 'items' => $normalizeTours($toursIca)],
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Lima',    'bg' => 'bg-cream-100', 'items' => $normalizeTours($toursLima)],
+        ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Cusco',   'bg' => 'bg-cream-100', 'items' => $normalizeTours($toursCusco)],
+    ];
 @endphp
 
 @section('content')
@@ -120,25 +141,20 @@
     </div>
 </section>
 
-{{-- ───────── TOUR CAROUSELS (3 destinos) ───────── --}}
-@foreach ([
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Tours más Comprados', 'bg' => 'bg-cream-100'],
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Ica', 'bg' => 'bg-cream-100'],
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Lima', 'bg' => 'bg-cream-100'],
-    ['eyebrow' => 'ENJOY WORLD-CLASS STAY EXPERIENCE', 'title' => 'Nuestros Destinos en Cusco', 'bg' => 'bg-cream-100'],
-] as $sectionIdx => $section)
-<section class="{{ $section['bg'] }} py-16 lg:py-20">
+{{-- ───────── TOUR CAROUSELS (featured + 3 destinos) ───────── --}}
+@foreach ($toursCarousels as $sectionIdx => $section)
+<section class="{{ $section['bg'] }} py-16 lg:py-20" aria-labelledby="carousel-{{ $sectionIdx }}-title">
     <div class="container mx-auto px-5 lg:px-10">
         <div class="flex items-center gap-4 md:gap-5 mb-8 md:mb-10">
             <x-icon-compass class="w-12 h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
             <div>
                 <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">{{ $section['eyebrow'] }}</p>
-                <h2 class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight mt-1">{{ $section['title'] }}</h2>
+                <h2 id="carousel-{{ $sectionIdx }}-title" class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight mt-1">{{ $section['title'] }}</h2>
             </div>
         </div>
 
-        <div class="owl-carousel owl-theme owl-tours-wide" data-owl-tours-wide>
-            @foreach ($tours as $i => $tour)
+        <div class="owl-carousel owl-theme owl-tours-wide" data-owl-tours-wide x-ignore>
+            @foreach ($section['items'] as $i => $tour)
                 <article class="item tour-card bg-white rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,40%)] h-full">
                     <div class="p-5 md:p-6 flex flex-col">
                         @if ($tour['badge'])
@@ -180,8 +196,8 @@
                             @php
                                 $bg = match($tour['badgeType']) {
                                     'success' => 'bg-state-success',
-                                    'error' => 'bg-state-error',
-                                    default => 'bg-orange-400',
+                                    'error'   => 'bg-state-error',
+                                    default   => 'bg-orange-400',
                                 };
                             @endphp
                             <span class="absolute top-4 left-4 right-4 {{ $bg }} text-white text-[10px] uppercase tracking-[0.15em] font-semibold py-1.5 px-3 rounded-md text-center inline-flex items-center justify-center gap-1.5">
