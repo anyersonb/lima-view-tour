@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
@@ -37,7 +38,16 @@ Route::prefix('{locale}')
         Route::get('/tours/detalle/{slug}', [TourController::class, 'show'])->name('tours.show');
         Route::get('/buscar', [TourController::class, 'search'])->name('tours.results');
 
-        Route::get('/checkout', fn () => view('checkout'))->name('checkout');
+        // Cart routes (Fase 2)
+        Route::get('/carrito', [CartController::class, 'index'])->name('cart.index');
+        Route::post('/carrito/agregar', [CartController::class, 'store'])->name('cart.store');
+        Route::post('/carrito/cupon', [CartController::class, 'applyCoupon'])->name('cart.coupon');
+        Route::delete('/carrito/vaciar', [CartController::class, 'clear'])->name('cart.clear');
+        Route::patch('/carrito/{rowId}', [CartController::class, 'updateItem'])->name('cart.update');
+        Route::delete('/carrito/{rowId}', [CartController::class, 'destroy'])->name('cart.destroy');
+
+        // Legacy /checkout alias → redirect 301 to cart.index
+        Route::get('/checkout', fn (string $locale) => redirect()->route('cart.index', ['locale' => $locale], 301))->name('checkout');
 
         Route::get('/contacto', [ContactController::class, 'show'])->name('contact');
         Route::post('/contacto', [ContactController::class, 'submit'])->name('contact.submit');
