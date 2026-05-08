@@ -62,7 +62,9 @@ Route::prefix('{locale}')
 
         // Checkout Phase 3 — payment flow
         Route::get('/checkout/pago', [CheckoutController::class, 'showPaymentForm'])->name('checkout.pay');
-        Route::post('/checkout/procesar', [CheckoutController::class, 'processPayment'])->name('checkout.process');
+        Route::post('/checkout/procesar', [CheckoutController::class, 'processPayment'])
+            ->middleware('throttle:checkout')
+            ->name('checkout.process');
         Route::get('/checkout/gracias', [CheckoutController::class, 'thanks'])->name('checkout.thanks');
 
         Route::get('/contacto', [ContactController::class, 'show'])->name('contact');
