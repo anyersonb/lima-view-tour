@@ -114,37 +114,49 @@
                     <span class="text-xs uppercase tracking-[0.2em] font-semibold">Reservar online</span>
                     <span class="text-[10px] uppercase tracking-wider opacity-90">Cancelación gratuita</span>
                 </div>
-                <form action="{{ route('checkout', ['locale' => $locale]) }}" method="get" class="p-6 space-y-4">
+                @php
+                    $tourId    = is_array($tour) ? null : $tour->id;
+                    $tourPrice = is_array($tour) ? $tour['now'] : (float) $tour->price;
+                    $tourBefore = is_array($tour) ? $tour['before'] : (float) ($tour->price_before ?? $tour->price);
+                @endphp
+                <form action="{{ $tourId ? route('cart.store', ['locale' => $locale]) : '#' }}"
+                      method="POST" class="p-6 space-y-4">
+                    @csrf
+                    @if ($tourId)
+                        <input type="hidden" name="tour_id" value="{{ $tourId }}">
+                    @endif
+
                     <div class="flex items-baseline gap-2">
-                        <p class="text-xs text-teal-800/60 line-through">${{ $tour['before'] }}</p>
-                        <p class="font-price text-4xl text-teal-800">${{ $tour['now'] }}</p>
+                        <p class="text-xs text-teal-800/60 line-through">${{ number_format($tourBefore, 0) }}</p>
+                        <p class="font-price text-4xl text-teal-800">${{ number_format($tourPrice, 0) }}</p>
                         <span class="text-xs text-teal-800/60 uppercase tracking-wide">USD / persona</span>
                     </div>
 
                     <label class="block">
                         <span class="text-xs uppercase tracking-wide text-teal-800/70">Fecha del tour</span>
-                        <input type="date" name="fecha" required
+                        <input type="date" name="travel_date" required
+                               min="{{ date('Y-m-d') }}"
                                class="mt-1 w-full rounded-pill border border-teal-800/15 px-5 py-3 text-sm focus:border-orange-400 focus:ring-orange-400">
                     </label>
 
                     <div class="grid grid-cols-2 gap-3">
                         <label class="block">
                             <span class="text-xs uppercase tracking-wide text-teal-800/70">Adultos</span>
-                            <select name="adultos" class="mt-1 w-full rounded-pill border border-teal-800/15 px-5 py-3 text-sm focus:border-orange-400 focus:ring-orange-400">
-                                @for ($i=1;$i<=10;$i++)<option>{{ $i }}</option>@endfor
+                            <select name="adults" class="mt-1 w-full rounded-pill border border-teal-800/15 px-5 py-3 text-sm focus:border-orange-400 focus:ring-orange-400">
+                                @for ($i=1;$i<=20;$i++)<option value="{{ $i }}">{{ $i }}</option>@endfor
                             </select>
                         </label>
                         <label class="block">
                             <span class="text-xs uppercase tracking-wide text-teal-800/70">Niños</span>
-                            <select name="ninos" class="mt-1 w-full rounded-pill border border-teal-800/15 px-5 py-3 text-sm focus:border-orange-400 focus:ring-orange-400">
-                                @for ($i=0;$i<=10;$i++)<option>{{ $i }}</option>@endfor
+                            <select name="children" class="mt-1 w-full rounded-pill border border-teal-800/15 px-5 py-3 text-sm focus:border-orange-400 focus:ring-orange-400">
+                                @for ($i=0;$i<=20;$i++)<option value="{{ $i }}">{{ $i }}</option>@endfor
                             </select>
                         </label>
                     </div>
 
                     <div class="border-t border-teal-800/10 pt-4 flex items-center justify-between text-sm">
                         <span class="text-teal-800/70">Total estimado</span>
-                        <span class="font-price text-2xl text-teal-800">${{ $tour['now'] }}</span>
+                        <span class="font-price text-2xl text-teal-800">${{ number_format($tourPrice, 0) }}</span>
                     </div>
 
                     <button type="submit" class="btn--primary btn--block">Reservar ahora</button>
