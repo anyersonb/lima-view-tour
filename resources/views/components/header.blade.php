@@ -1,7 +1,8 @@
 @php
     $locale = app()->getLocale();
     $variant = $variant ?? 'solid'; // 'solid' | 'transparent'
-    $supportPhone = '190010088';
+    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
+    $supportPhone = $contactPhone;
     $regions = ['lima', 'ica', 'cusco'];
 @endphp
 
@@ -49,7 +50,7 @@
             <div class="hidden lg:flex items-center gap-3 shrink-0">
                 <x-lang-switcher />
 
-                <a href="tel:+51{{ $supportPhone }}"
+                <a href="tel:{{ str_replace([' ', '+'], '', $contactPhone) }}"
                    class="flex items-center gap-2.5 border border-white/40 rounded-pill pl-2 pr-4 py-1.5">
                     <span class="w-9 h-9 rounded-full border border-white/40 grid place-items-center shrink-0">
                         <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">

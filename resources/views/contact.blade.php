@@ -3,7 +3,11 @@
 @section('title', 'Contáctanos — ' . __('seo.site_name'))
 @section('description', 'Estamos aquí para resolver tus dudas. Contáctanos y planifica tu próxima aventura por Perú.')
 
-@php $locale = app()->getLocale(); @endphp
+@php
+    $locale = app()->getLocale();
+    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
+    $contactPhoneTel = str_replace([' ', '+'], '', $contactPhone);
+@endphp
 
 @section('content')
 
@@ -93,7 +97,7 @@
     <div class="container mx-auto px-5 lg:px-10 grid gap-10 md:grid-cols-3 text-center">
         @foreach ([
             ['email','Email','Respondemos en menos de 24 horas','RESERVAS@LIMAVIEWTOURS.COM','mailto:reservas@limaviewtours.com'],
-            ['phone','Teléfono','Atención de lunes a domingo de 8 AM a 8 PM','+51 999 888 777','tel:+51999888777'],
+            ['phone','Teléfono','Atención de lunes a domingo de 8 AM a 8 PM',$contactPhone,'tel:' . $contactPhoneTel],
             ['pin','Oficina','Visítanos en nuestra sede','AV. JOSÉ PARDO 620, MIRAFLORES, LIMA 15074, PERÚ','https://maps.google.com/?q=Av.+José+Pardo+620,+Miraflores,+Lima'],
         ] as [$icon,$title,$line1,$value,$href])
             <div>

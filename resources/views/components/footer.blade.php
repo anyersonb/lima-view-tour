@@ -1,4 +1,7 @@
-@php $locale = app()->getLocale(); @endphp
+@php
+    $locale = app()->getLocale();
+    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
+@endphp
 <footer class="site-footer" role="contentinfo">
     {{-- Newsletter band --}}
     <section aria-labelledby="newsletter-title" class="container mx-auto py-14 grid gap-10 lg:grid-cols-2 items-center">
@@ -66,7 +69,7 @@
                     </p>
                     <p class="flex items-center gap-2">
                         <svg class="w-4 h-4 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
-                        <a href="tel:+51935542384" class="hover:text-orange-400">+51 935 542 384</a>
+                        <a href="tel:{{ str_replace([' ', '+'], '', $contactPhone) }}" class="hover:text-orange-400">{{ $contactPhone }}</a>
                     </p>
                     <p class="flex items-center gap-2">
                         <svg class="w-4 h-4 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

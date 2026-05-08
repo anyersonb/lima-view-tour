@@ -6,6 +6,7 @@
     $itinerary = $tour->{"itinerary_{$locale}"} ?? $tour->itinerary_es ?? [];
     $includes  = $tour->{"includes_{$locale}"}  ?? $tour->includes_es  ?? [];
     $excludes  = $tour->{"excludes_{$locale}"}  ?? $tour->excludes_es  ?? [];
+    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
 @endphp
 
 @section('title', $tour->title . ' — ' . __('seo.site_name'))
@@ -301,10 +302,10 @@
             <div class="bg-teal-700 text-white rounded-2xl p-6">
                 <h3 class="font-display text-lg">¿Necesitas ayuda?</h3>
                 <p class="mt-2 text-sm text-white/85">Nuestro equipo te asesora 24/7 antes y durante tu reserva.</p>
-                <a href="tel:+51999888777" class="mt-4 inline-flex items-center gap-2 rounded-pill bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold transition">
-                    Llamar al +51 999 888 777
+                <a href="tel:{{ str_replace([' ', '+'], '', $contactPhone) }}" class="mt-4 inline-flex items-center gap-2 rounded-pill bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold transition">
+                    Llamar al {{ $contactPhone }}
                 </a>
-                <a href="https://wa.me/51999888777" class="mt-3 inline-flex items-center gap-2 rounded-pill border border-white/40 hover:bg-white/10 px-5 py-2.5 text-sm font-semibold transition">
+                <a href="https://wa.me/{{ str_replace([' ', '+'], '', $contactPhone) }}" class="mt-3 inline-flex items-center gap-2 rounded-pill border border-white/40 hover:bg-white/10 px-5 py-2.5 text-sm font-semibold transition">
                     Chatear por WhatsApp
                 </a>
             </div>
