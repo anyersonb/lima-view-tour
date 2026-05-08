@@ -31,4 +31,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'culqi' => [
+        'public_key'     => env('CULQI_PUBLIC_KEY'),
+        'secret_key'     => env('CULQI_SECRET_KEY'),
+        'webhook_secret' => env('CULQI_WEBHOOK_SECRET'),
+        'api_url'        => env('CULQI_API_URL', 'https://api.culqi.com/v2'),
+        'env'            => env('CULQI_ENV', 'sandbox'),
+    ],
+
 ];
