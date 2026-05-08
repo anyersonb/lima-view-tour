@@ -81,7 +81,7 @@
             </label>
             <label class="mt-5 flex items-start gap-2 text-xs text-teal-800/75">
                 <input type="checkbox" required class="mt-0.5 rounded border-teal-800/30 text-orange-500 focus:ring-orange-400">
-                <span>Acepto la <a href="#" class="text-orange-500 underline">política de privacidad</a> y los <a href="#" class="text-orange-500 underline">términos y condiciones</a></span>
+                <span>Acepto la <a href="#" class="text-orange-700 underline hover:text-orange-600">política de privacidad</a> y los <a href="#" class="text-orange-700 underline hover:text-orange-600">términos y condiciones</a></span>
             </label>
             <button type="submit" class="btn--primary mt-6">Enviar mensaje</button>
         </form>
@@ -92,9 +92,9 @@
 <section class="bg-white py-14">
     <div class="container mx-auto px-5 lg:px-10 grid gap-10 md:grid-cols-3 text-center">
         @foreach ([
-            ['email','Email','We will reply within 2 working days','HELLO@FLOW.COM','mailto:hello@flow.com'],
-            ['phone','Phone','We are available Monday-Friday from 8 AM until 5 PM','(239) 555-0108','tel:+12395550108'],
-            ['pin','HQ Office','Visit us in our office','3891 RANCHVIEW DR. RICHARDSON, CALIFORNIA 62639','#'],
+            ['email','Email','Respondemos en menos de 24 horas','RESERVAS@LIMAVIEWTOURS.COM','mailto:reservas@limaviewtours.com'],
+            ['phone','Teléfono','Atención de lunes a domingo de 8 AM a 8 PM','+51 999 888 777','tel:+51999888777'],
+            ['pin','Oficina','Visítanos en nuestra sede','AV. JOSÉ PARDO 620, MIRAFLORES, LIMA 15074, PERÚ','https://maps.google.com/?q=Av.+José+Pardo+620,+Miraflores,+Lima'],
         ] as [$icon,$title,$line1,$value,$href])
             <div>
                 <span class="mx-auto w-12 h-12 rounded-full bg-cream-100 grid place-items-center text-teal-700 mb-3">
@@ -106,7 +106,7 @@
                 </span>
                 <h3 class="font-display text-xl text-teal-800">{{ $title }}</h3>
                 <p class="mt-2 text-xs text-teal-800/70 max-w-xs mx-auto">{{ $line1 }}</p>
-                <a href="{{ $href }}" class="mt-2 inline-block text-orange-500 text-sm font-semibold tracking-wide">{{ $value }}</a>
+                <a href="{{ $href }}" class="mt-2 inline-block text-orange-700 text-sm font-semibold tracking-wide hover:text-orange-600">{{ $value }}</a>
             </div>
         @endforeach
     </div>

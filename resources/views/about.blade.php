@@ -117,17 +117,20 @@
                     ['calidad','Calidad'],
                     ['propio','Propio'],
                 ] as [$id,$label])
-                    <button type="button" role="tab"
-                            :aria-selected="tab === '{{ $id }}'"
+                    <button type="button"
+                            role="tab"
+                            id="tab-{{ $id }}"
+                            aria-controls="panel-{{ $id }}"
+                            :aria-selected="tab === '{{ $id }}' ? 'true' : 'false'"
                             @click="tab = '{{ $id }}'"
-                            class="px-6 py-3 rounded-pill text-sm font-semibold uppercase tracking-wide transition border"
-                            :class="tab === '{{ $id }}' ? 'bg-orange-500 text-white border-orange-500' : 'bg-cream-100 text-teal-800 border-teal-800/10 hover:border-orange-400'">
+                            class="px-6 py-3 rounded-pill text-sm font-semibold uppercase tracking-wide transition border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
+                            :class="tab === '{{ $id }}' ? 'bg-orange-700 text-white border-orange-700' : 'bg-cream-100 text-teal-800 border-teal-800/10 hover:border-orange-700'">
                         {{ $label }}
                     </button>
                 @endforeach
             </div>
 
-            <div role="tabpanel" x-show="tab === 'servicio'" x-cloak x-transition>
+            <div role="tabpanel" id="panel-servicio" aria-labelledby="tab-servicio" x-show="tab === 'servicio'" x-cloak x-transition>
                 <article class="bg-cream-100 rounded-2xl p-7 lg:p-8">
                     <h3 class="font-display text-2xl text-teal-800">Servicio que se nota</h3>
                     <p class="mt-3 text-teal-800/80 leading-relaxed text-sm">
@@ -135,7 +138,7 @@
                     </p>
                 </article>
             </div>
-            <div role="tabpanel" x-show="tab === 'calidad'" x-cloak x-transition>
+            <div role="tabpanel" id="panel-calidad" aria-labelledby="tab-calidad" x-show="tab === 'calidad'" x-cloak x-transition>
                 <article class="bg-cream-100 rounded-2xl p-7 lg:p-8">
                     <h3 class="font-display text-2xl text-teal-800">Calidad sin atajos</h3>
                     <p class="mt-3 text-teal-800/80 leading-relaxed text-sm">
@@ -143,7 +146,7 @@
                     </p>
                 </article>
             </div>
-            <div role="tabpanel" x-show="tab === 'propio'" x-cloak x-transition>
+            <div role="tabpanel" id="panel-propio" aria-labelledby="tab-propio" x-show="tab === 'propio'" x-cloak x-transition>
                 <article class="bg-cream-100 rounded-2xl p-7 lg:p-8">
                     <h3 class="font-display text-2xl text-teal-800">Operación propia</h3>
                     <p class="mt-3 text-teal-800/80 leading-relaxed text-sm">

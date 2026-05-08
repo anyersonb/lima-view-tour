@@ -158,7 +158,7 @@
                 <article class="item tour-card bg-white rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,40%)] h-full">
                     <div class="p-5 md:p-6 flex flex-col">
                         @if ($tour['badge'])
-                            <span class="text-[11px] uppercase tracking-[0.2em] text-orange-500 font-semibold">{{ $tour['badge'] }}</span>
+                            <span class="text-[11px] uppercase tracking-[0.2em] text-orange-700 font-semibold">{{ $tour['badge'] }}</span>
                         @endif
                         <h3 class="font-display text-xl md:text-2xl text-teal-800 leading-snug mt-1">{{ $tour['title'] }}</h3>
                         <p class="mt-3 flex items-center gap-2 text-sm text-teal-800/80">
@@ -230,21 +230,25 @@
                 ['cul','EXPERIENCIAS CULINARIAS'],
                 ['oth','OTROS'],
             ] as [$id,$label])
-                <button type="button" role="tab" :aria-selected="tab === '{{ $id }}'"
+                <button type="button"
+                        role="tab"
+                        id="home-tab-{{ $id }}"
+                        aria-controls="home-panel-{{ $id }}"
+                        :aria-selected="tab === '{{ $id }}' ? 'true' : 'false'"
                         @click="tab = '{{ $id }}'"
-                        class="py-3 text-sm font-semibold uppercase tracking-wide transition"
-                        :class="tab === '{{ $id }}' ? 'text-orange-500 border-b-2 border-orange-500' : 'text-teal-800/60 hover:text-teal-800'">
+                        class="py-3 text-sm font-semibold uppercase tracking-wide transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
+                        :class="tab === '{{ $id }}' ? 'text-orange-700 border-b-2 border-orange-700' : 'text-teal-800/60 hover:text-teal-800'">
                     {{ $label }}
                 </button>
             @endforeach
         </div>
 
-        <article class="grid gap-6 lg:grid-cols-2 bg-cream-100 rounded-2xl overflow-hidden">
+        <article role="tabpanel" id="home-panel-cult" aria-labelledby="home-tab-cult" class="grid gap-6 lg:grid-cols-2 bg-cream-100 rounded-2xl overflow-hidden">
             <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt="Lima nocturna"
                  class="w-full h-72 lg:h-full object-cover" loading="lazy">
             <div class="p-8 lg:p-10 flex flex-col">
                 <h3 class="font-display text-3xl text-teal-800">Nombre de tour</h3>
-                <p class="text-[11px] uppercase tracking-[0.2em] text-orange-500 font-semibold mt-2">CUPOS LIMITADOS</p>
+                <p class="text-[11px] uppercase tracking-[0.2em] text-orange-700 font-semibold mt-2">CUPOS LIMITADOS</p>
                 <p class="mt-4 text-sm text-teal-800/75 leading-relaxed">
                     Lorem ipsum dolor sit amet consectetur. Tellus et sollicitudin sagittis. Blandit posuere ornare nisi tristique. Erat in quam ac rhoncus consectetur nulla ornare nunc. Ut non eleifend facilisis odio turpis at non consectetur. Blandit sollicitudin cras mattis faucibus. Nunc id est ac accumsan sodales. Vitae convallis ut in nisi interdum. In sed scelerisque varius faucibus quis. Venenatis blandit nunc ultricies luctus volutpat pulvinar.
                 </p>
