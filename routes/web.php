@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TourController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 // SEO automático
@@ -49,9 +51,19 @@ Route::prefix('{locale}')
         // Legacy /checkout alias → redirect 301 to cart.index
         Route::get('/checkout', fn (string $locale) => redirect()->route('cart.index', ['locale' => $locale], 301))->name('checkout');
 
+        // Checkout Phase 3 — payment flow
+        Route::get('/checkout/pago', [CheckoutController::class, 'showPaymentForm'])->name('checkout.pay');
+        Route::post('/checkout/procesar', [CheckoutController::class, 'processPayment'])->name('checkout.process');
+        Route::get('/checkout/gracias', [CheckoutController::class, 'thanks'])->name('checkout.thanks');
+
         Route::get('/contacto', [ContactController::class, 'show'])->name('contact');
         Route::post('/contacto', [ContactController::class, 'submit'])->name('contact.submit');
         Route::get('/gracias', fn () => view('gracias'))->name('contact.thanks');
 
         Route::get('/nosotros', fn () => view('about'))->name('about');
     });
+
+// Culqi Webhook — outside locale group, CSRF exempt
+Route::post('/webhooks/culqi', [WebhookController::class, 'culqi'])
+    ->name('webhooks.culqi')
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
