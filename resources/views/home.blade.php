@@ -81,42 +81,62 @@
     <div class="absolute inset-0 -z-10">
         <img src="{{ asset('assets/banners/banner-hero.jpg') }}" alt=""
              class="w-full h-full object-cover" loading="eager" fetchpriority="high">
-        <div class="absolute inset-0 bg-gradient-to-b from-teal-900/30 via-teal-900/40 to-teal-900/65"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-teal-900/20 via-teal-900/45 to-teal-900/70"></div>
     </div>
 
-    <div class="container mx-auto px-5 lg:px-10 pt-16 lg:pt-24 pb-32 lg:pb-40 text-center max-w-5xl">
-        <p class="inline-flex items-center gap-3 text-sm font-medium">
-            <span class="font-semibold">4.8</span>
+    <div class="container mx-auto px-5 lg:px-10 pt-16 lg:pt-24 pb-32 lg:pb-44 text-center max-w-5xl">
+        {{-- Eyebrow — solo visible en desktop --}}
+        <p class="hidden md:block text-[11px] uppercase tracking-[0.25em] font-semibold opacity-90 mb-6">
+            ¡Reserva tu experiencia ahora y empieza el viaje de tu vida!
+        </p>
+
+        {{-- Rating strip --}}
+        <p class="inline-flex items-center gap-2 text-sm font-medium md:hidden">
             <span class="flex gap-0.5 text-orange-400" aria-hidden="true">
                 <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
             </span>
-            <span class="hidden sm:inline-flex -space-x-2 ml-2" aria-hidden="true">
+            <span class="inline-flex -space-x-2" aria-hidden="true">
                 @for ($i=1;$i<=5;$i++)
                     <span class="w-6 h-6 rounded-full ring-2 ring-white/80 bg-cream-200/80 inline-block"></span>
                 @endfor
             </span>
-            <span class="ml-2">+2000 Clientes han probado nuestros tours</span>
+            <span class="font-semibold">4.8</span>
+            <span class="text-white/80">+2000 Clientes ya probaron nuestros tours</span>
         </p>
 
-        <h1 id="hero-title" class="mt-6 font-display font-normal text-5xl md:text-6xl lg:text-7xl leading-[1.05]">
+        <h1 id="hero-title" class="mt-4 md:mt-0 font-display font-normal text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05]">
             Descubre la magia de Perú,<br>un viaje que transforma
         </h1>
 
-        <p class="mt-6 mx-auto max-w-2xl text-base md:text-lg text-white/85">
+        {{-- Rating strip desktop --}}
+        <p class="hidden md:inline-flex items-center gap-3 text-sm font-medium mt-5">
+            <span class="font-semibold">4.8</span>
+            <span class="flex gap-0.5 text-orange-400" aria-hidden="true">
+                <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+            </span>
+            <span class="inline-flex -space-x-2 ml-1" aria-hidden="true">
+                @for ($i=1;$i<=5;$i++)
+                    <span class="w-6 h-6 rounded-full ring-2 ring-white/80 bg-cream-200/80 inline-block"></span>
+                @endfor
+            </span>
+            <span class="ml-1">+2000 Clientes han probado nuestros tours</span>
+        </p>
+
+        <p class="mt-5 md:mt-6 mx-auto max-w-2xl text-sm md:text-base lg:text-lg text-white/85 hidden md:block">
             Vive una aventura inolvidable por los destinos más impresionantes del Perú. Desde Machu Picchu hasta la Huacachina, nuestros tours están diseñados para que disfrutes lo mejor del país con seguridad, comodidad y guías expertos.
         </p>
 
         <form action="{{ route('tours.index', ['locale' => $locale]) }}" method="get"
-              class="home-hero__search mt-10 mx-auto max-w-3xl bg-white text-teal-800 rounded-pill shadow-2xl flex items-center gap-2 p-2">
-            <label class="flex-1 flex items-center gap-3 px-4">
-                <svg class="w-5 h-5 text-teal-700/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+              class="home-hero__search mt-8 md:mt-10 mx-auto max-w-3xl bg-white text-teal-800 rounded-pill shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center gap-0 p-2">
+            <label class="flex-1 flex items-center gap-3 px-4 py-1 sm:py-0">
+                <svg class="w-5 h-5 text-teal-700/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
                     <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/>
                 </svg>
                 <span class="sr-only">{{ __('common.search') }}</span>
                 <input type="search" name="q" placeholder="¿A dónde quieres ir?"
-                       class="w-full bg-transparent border-0 focus:ring-0 placeholder:text-teal-700/50 text-base">
+                       class="w-full bg-transparent border-0 focus:ring-0 placeholder:text-teal-700/50 text-sm sm:text-base py-2">
             </label>
-            <button type="submit" class="btn--primary !py-3.5 !px-8">
+            <button type="submit" class="btn--primary !py-3.5 !px-7 !text-sm !rounded-pill w-full sm:w-auto">
                 Reservar tour
             </button>
         </form>
@@ -153,57 +173,71 @@
             </div>
         </div>
 
-        <div class="owl-carousel owl-theme owl-tours-wide" data-owl-tours-wide x-ignore>
+        <div class="owl-carousel owl-theme" data-owl-tours-wide x-ignore>
             @foreach ($section['items'] as $i => $tour)
-                <article class="item tour-card bg-white rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,40%)] h-full">
-                    <div class="p-5 md:p-6 flex flex-col">
+                @php
+                    $reservedYesterday = $tour['reservedYesterday'] ?? rand(3, 8);
+                @endphp
+                <article class="item tour-card bg-cream-100 rounded-2xl shadow-sm overflow-hidden flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,46%)] h-full">
+                    {{-- Info panel --}}
+                    <div class="p-5 lg:p-6 flex flex-col order-2 lg:order-1">
                         @if ($tour['badge'])
-                            <span class="text-[11px] uppercase tracking-[0.2em] text-orange-700 font-semibold">{{ $tour['badge'] }}</span>
+                            <span class="text-[11px] uppercase tracking-[0.2em] text-state-error font-semibold">{{ $tour['badge'] }}</span>
                         @endif
-                        <h3 class="font-display text-xl md:text-2xl text-teal-800 leading-snug mt-1">{{ $tour['title'] }}</h3>
-                        <p class="mt-3 flex items-center gap-2 text-sm text-teal-800/80">
+                        <h3 class="font-display text-xl lg:text-2xl text-teal-700 leading-snug mt-1">{{ $tour['title'] }}</h3>
+                        <p class="mt-2 flex items-center gap-2 text-sm text-teal-800/80">
                             <span class="font-semibold">{{ $tour['rating'] }}</span>
                             <span aria-hidden="true" class="text-orange-400 tracking-tight">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                             <span class="text-teal-800/60 text-xs">( {{ $tour['reviews'] }} Comentarios )</span>
                         </p>
 
                         <ul class="mt-4 grid grid-cols-4 gap-2 text-[10px] text-teal-800/70 text-center">
-                            @foreach (['Español/Inglés','Full Day','Tour Grupal','Recojo y retorno'] as $feat)
+                            @foreach ([
+                                ['Español/Inglés', '<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802"/>'],
+                                ['Full Day', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>'],
+                                ['Tour Grupal', '<path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>'],
+                                ['Recojo y retorno', '<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>'],
+                            ] as [$feat, $iconPath])
                                 <li class="flex flex-col items-center gap-1">
                                     <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">{!! $iconPath !!}</svg>
                                     </span>
                                     <span>{{ $feat }}</span>
                                 </li>
                             @endforeach
                         </ul>
 
-                        <div class="mt-auto pt-5">
+                        <div class="mt-auto pt-4">
                             <div class="rounded-lg border border-teal-800/15 overflow-hidden">
-                                <p class="bg-teal-700 text-white text-[10px] tracking-[0.2em] uppercase text-center py-1.5">PRECIO POR PERSONA</p>
-                                <p class="flex items-center justify-around py-3 text-sm">
-                                    <span><span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60">Antes</span> <span class="font-price text-base text-teal-800/60 line-through">${{ $tour['before'] }}</span></span>
-                                    <span><span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60">Ahora</span> <span class="font-price text-2xl text-state-error">${{ $tour['now'] }}</span></span>
-                                </p>
+                                <p class="bg-teal-700 text-white text-[10px] tracking-[0.2em] uppercase text-center py-1.5 font-semibold">PRECIO POR PERSONA</p>
+                                <div class="flex items-center justify-around py-3 px-2">
+                                    <div class="text-center">
+                                        <p class="text-[10px] tracking-[0.15em] uppercase text-teal-800/55 font-semibold">Antes</p>
+                                        <p class="font-price text-base text-teal-800/50 line-through">${{ number_format((float)$tour['before'], 0) }}</p>
+                                    </div>
+                                    <div class="w-px h-8 bg-teal-800/10"></div>
+                                    <div class="text-center">
+                                        <p class="text-[10px] tracking-[0.15em] uppercase text-teal-800/55 font-semibold">Ahora</p>
+                                        <p class="font-price text-2xl text-state-error">${{ number_format((float)$tour['now'], 0) }}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <a href="{{ $tour['slug'] ? route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) : '#' }}" class="btn--primary btn--block mt-4">Reservar tour</a>
+                            <a href="{{ $tour['slug'] ? route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) : '#' }}"
+                               class="btn--primary btn--block mt-3 !text-sm">Reservar tour</a>
                         </div>
                     </div>
-                    <div class="relative min-h-[14rem] sm:min-h-0">
+
+                    {{-- Imagen --}}
+                    <div class="relative min-h-[12rem] lg:min-h-0 order-1 lg:order-2">
                         <img src="{{ asset('assets/banners/' . $tour['img']) }}" alt="{{ $tour['title'] }}"
-                             class="absolute inset-0 w-full h-full object-cover" loading="lazy">
-                        @if ($tour['badge'])
-                            @php
-                                $badgeBg = match($tour['badgeType']) {
-                                    'success' => 'bg-state-success',
-                                    'error'   => 'bg-state-error',
-                                    default   => 'bg-orange-400',
-                                };
-                            @endphp
-                            <span class="absolute top-4 left-4 right-4 {{ $badgeBg }} text-white text-[10px] uppercase tracking-[0.15em] font-semibold py-1.5 px-3 rounded-md text-center inline-flex items-center justify-center gap-1.5">
-                                {{ $tour['badge'] }}
-                            </span>
-                        @endif
+                             class="absolute inset-0 w-full h-full object-cover" loading="lazy"
+                             width="480" height="360">
+                        <span class="absolute top-3 right-3 bg-yellow-300 text-teal-800 text-[11px] uppercase tracking-[0.12em] font-semibold py-1.5 pl-2 pr-3 rounded-full inline-flex items-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5 text-state-error" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M13.5 0c2 4 6 6 6 11a7.5 7.5 0 11-15 0c0-3 1.5-5 3-7 .5 2 2 3 3 3-1-3 0-5 3-7z"/>
+                            </svg>
+                            Se reservó {{ $reservedYesterday }} veces ayer
+                        </span>
                     </div>
                 </article>
             @endforeach
@@ -223,13 +257,25 @@
             </div>
         </div>
 
+        @php
+            $tourTypeTabs = [
+                ['cult', 'TOURS CULTURALES', 'Tours Culturales', 'Rectangle 19215.jpg', 'CUPOS LIMITADOS',
+                    'Descubre el legado milenario de los incas con visitas guiadas a Machu Picchu, Sacsayhuamán, museos en Lima y centros históricos. Tours pensados para amantes de la historia y el patrimonio peruano.',
+                    200],
+                ['adv', 'TOURS DE AVENTURA', 'Tours de Aventura', 'Rectangle 19219.jpg', 'CUPOS LIMITADOS',
+                    'Sandboarding en Huacachina, trekking a Machu Picchu, tirolesa en el Valle Sagrado y kayak en las Islas Ballestas. Adrenalina y naturaleza en un solo viaje para los más intrépidos.',
+                    250],
+                ['cul', 'EXPERIENCIAS CULINARIAS', 'Experiencias Culinarias', 'Rectangle 19211.jpg', 'TOUR DEGUSTACIÓN',
+                    'Recorrido por la gastronomía peruana premiada mundialmente: ceviche en Barranco, pisco sour en bares históricos, cooking class con chefs locales y mercados tradicionales.',
+                    180],
+                ['oth', 'OTROS', 'Otras experiencias', 'Rectangle 19216.jpg', 'NUEVO',
+                    'Tours fotográficos, observación de aves, retiros wellness en el Valle Sagrado y experiencias místicas con chamanes andinos. Diseñados para quienes buscan algo diferente.',
+                    220],
+            ];
+        @endphp
+
         <div role="tablist" class="border-b border-teal-800/15 flex flex-wrap gap-x-8 gap-y-2 mb-8">
-            @foreach ([
-                ['cult','TOURS CULTURALES'],
-                ['adv','TOURS DE AVENTURA'],
-                ['cul','EXPERIENCIAS CULINARIAS'],
-                ['oth','OTROS'],
-            ] as [$id,$label])
+            @foreach ($tourTypeTabs as [$id, $label])
                 <button type="button"
                         role="tab"
                         id="home-tab-{{ $id }}"
@@ -243,21 +289,29 @@
             @endforeach
         </div>
 
-        <article role="tabpanel" id="home-panel-cult" aria-labelledby="home-tab-cult" class="grid gap-6 lg:grid-cols-2 bg-cream-100 rounded-2xl overflow-hidden">
-            <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt="Lima nocturna"
-                 class="w-full h-72 lg:h-full object-cover" loading="lazy">
-            <div class="p-8 lg:p-10 flex flex-col">
-                <h3 class="font-display text-3xl text-teal-800">Tours Culturales</h3>
-                <p class="text-[11px] uppercase tracking-[0.2em] text-orange-700 font-semibold mt-2">CUPOS LIMITADOS</p>
-                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed">
-                    Descubre el legado milenario de los incas con visitas guiadas a Machu Picchu, Sacsayhuamán, museos en Lima y centros históricos. Tours pensados para amantes de la historia y el patrimonio peruano.
-                </p>
-                <div class="mt-auto pt-6 flex items-center justify-between">
-                    <p class="font-price text-3xl text-teal-800">$200<span class="block text-[11px] uppercase tracking-[0.2em] text-teal-800/60 font-sans">POR PERSONA</span></p>
-                    <a href="#" class="btn--primary">Reservar tour</a>
+        @foreach ($tourTypeTabs as [$id, $label, $title, $img, $eyebrow, $desc, $price])
+            <article role="tabpanel"
+                     id="home-panel-{{ $id }}"
+                     aria-labelledby="home-tab-{{ $id }}"
+                     x-show="tab === '{{ $id }}'"
+                     x-transition.opacity.duration.300ms
+                     class="grid gap-6 lg:grid-cols-2 bg-cream-100 rounded-2xl overflow-hidden">
+                <img src="{{ asset('assets/banners/' . $img) }}" alt="{{ $title }}"
+                     class="w-full h-72 lg:h-full object-cover" loading="lazy">
+                <div class="p-8 lg:p-10 flex flex-col">
+                    <h3 class="font-display text-3xl text-teal-800">{{ $title }}</h3>
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-orange-700 font-semibold mt-2">{{ $eyebrow }}</p>
+                    <p class="mt-4 text-sm text-teal-800/75 leading-relaxed">{{ $desc }}</p>
+                    <div class="mt-auto pt-6 flex items-center justify-between gap-4">
+                        <div>
+                            <p class="font-price text-3xl text-teal-800">${{ $price }}</p>
+                            <p class="text-[10px] uppercase tracking-[0.2em] text-teal-800/60 font-sans">POR PERSONA</p>
+                        </div>
+                        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary shrink-0">Reservar tour</a>
+                    </div>
                 </div>
-            </div>
-        </article>
+            </article>
+        @endforeach
     </div>
 </section>
 
@@ -405,10 +459,10 @@
 
 {{-- ───────── PORQUE RESERVAR CON NOSOTROS ───────── --}}
 <section class="bg-white py-16 lg:py-20">
-    <div class="container mx-auto px-5 lg:px-10 grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] items-center">
-        <div class="grid grid-cols-2 gap-4">
-            <img src="{{ asset('assets/images/personas.png') }}" alt="" class="w-full h-80 object-cover rounded-2xl" loading="lazy">
-            <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt="" class="w-full h-80 object-cover rounded-2xl translate-y-8" loading="lazy">
+    <div class="container mx-auto px-5 lg:px-10 grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] items-center">
+        <div class="grid grid-cols-2 gap-4 relative">
+            <img src="{{ asset('assets/images/personas.png') }}" alt="Equipo Lima View Tours con turistas" class="w-full h-72 md:h-80 object-cover rounded-2xl shadow-sm" loading="lazy" width="400" height="320">
+            <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt="Turistas disfrutando experiencia en Perú" class="w-full h-72 md:h-80 object-cover rounded-2xl shadow-sm translate-y-8 md:translate-y-10" loading="lazy" width="400" height="320">
         </div>
         <div>
             <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold inline-flex items-center gap-2">
@@ -433,20 +487,24 @@
     </div>
 
     <div class="bg-teal-700 text-white mt-16 py-14">
-        <div class="container mx-auto px-5 lg:px-10 grid gap-y-10 gap-x-12 sm:grid-cols-2 lg:grid-cols-2">
+        <div class="container mx-auto px-5 lg:px-10 grid gap-y-10 gap-x-16 sm:grid-cols-2">
             @foreach ([
                 ['Experiencias Únicas', 'Nuestra empresa se distingue por ofrecer experiencias únicas y vibrantes que trascienden lo ordinario.'],
                 ['Responsabilidad y turismo sostenible', 'Nuestro distintivo espiral, que parte de un punto central, simboliza nuestra conexión con el presente y el vibrante pasado de Perú.'],
-                ['Diversos paquetes', 'En nuestra agencia encontrarás una amplia variedad de paquetes de viaje diseñados para todos los gustos.'],
-                ['Guías profesionales', 'Nuestras guías, apasionados expertos locales, no sólo te llevan a destinos fascinantes, sino que te sumergen en las épocas y eventos históricos.'],
+                ['Diversos paquetes', 'En nuestra agencia encontrarás una amplia variedad de paquetes de viaje diseñados para todos los gustos y presupuestos.'],
+                ['Guías profesionales', 'Nuestros guías, apasionados expertos locales, no solo te llevan a destinos fascinantes, sino que te sumergen en la historia y cultura del Perú.'],
             ] as [$title, $desc])
                 <div class="flex gap-5">
-                    <span class="w-12 h-12 rounded-full border border-white/40 grid place-items-center shrink-0">
-                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg>
+                    <span class="w-12 h-12 rounded-full border border-white/30 grid place-items-center shrink-0 mt-0.5">
+                        <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                            <circle cx="12" cy="12" r="8"/>
+                            <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.2"/>
+                            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                        </svg>
                     </span>
                     <div>
-                        <h3 class="font-display text-2xl">{{ $title }}</h3>
-                        <p class="mt-2 text-sm text-white/80 leading-relaxed">{{ $desc }}</p>
+                        <h3 class="font-display text-xl lg:text-2xl leading-snug">{{ $title }}</h3>
+                        <p class="mt-2 text-sm text-white/75 leading-relaxed">{{ $desc }}</p>
                     </div>
                 </div>
             @endforeach

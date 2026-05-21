@@ -35,7 +35,7 @@ function initOwl() {
                 '<span aria-label="Siguiente">›</span>',
             ],
             responsive: {
-                0: { items: 1 },
+                0: { items: 1, margin: 0 },
                 1024: { items: 2 },
             },
         });
@@ -59,7 +59,7 @@ function initOwl() {
                 '<span aria-label="Siguiente">›</span>',
             ],
             responsive: {
-                0: { items: 1 },
+                0: { items: 1, margin: 0 },
                 640: { items: 2 },
                 1024: { items: 3 },
                 1536: { items: 4 },
@@ -80,7 +80,7 @@ function initOwl() {
             autoplayTimeout: 6000,
             smartSpeed: 700,
             responsive: {
-                0: { items: 1 },
+                0: { items: 1, margin: 0 },
                 640: { items: 2 },
                 1024: { items: 3 },
                 1536: { items: 4 },
@@ -105,7 +105,7 @@ function initOwl() {
                 '<span aria-label="Siguiente">›</span>',
             ],
             responsive: {
-                0: { items: 1 },
+                0: { items: 1, margin: 0 },
                 640: { items: 2 },
                 1024: { items: 3 },
                 1280: { items: 4 },
@@ -130,7 +130,7 @@ function initOwl() {
                 '<span aria-label="Siguiente">›</span>',
             ],
             responsive: {
-                0: { items: 1 },
+                0: { items: 1, margin: 0 },
                 768: { items: 2 },
                 1024: { items: 3 },
             },
@@ -149,7 +149,7 @@ function initOwl() {
             autoplay: false,
             smartSpeed: 600,
             responsive: {
-                0: { items: 1 },
+                0: { items: 1, margin: 0 },
                 640: { items: 2 },
                 1024: { items: 3 },
                 1536: { items: 4 },
