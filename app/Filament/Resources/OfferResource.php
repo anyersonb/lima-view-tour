@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OfferResource\Pages;
 use App\Filament\Resources\OfferResource\RelationManagers;
 use App\Models\Offer;
+use App\Support\ImagePath;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -70,7 +71,8 @@ class OfferResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('title_en')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('image'),
+                Tables\Columns\ImageColumn::make('image')
+                    ->getStateUsing(fn ($record) => ImagePath::url($record->image)),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
                     ->sortable(),

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PageResource\Pages;
 use App\Filament\Resources\PageResource\RelationManagers;
 use App\Models\Page;
+use App\Support\ImagePath;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -74,12 +75,14 @@ class PageResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('title_en')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('hero_image'),
+                Tables\Columns\ImageColumn::make('hero_image')
+                    ->getStateUsing(fn ($record) => ImagePath::url($record->hero_image)),
                 Tables\Columns\TextColumn::make('seo_title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('seo_description')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('seo_image'),
+                Tables\Columns\ImageColumn::make('seo_image')
+                    ->getStateUsing(fn ($record) => ImagePath::url($record->seo_image)),
                 Tables\Columns\IconColumn::make('is_published')
                     ->boolean(),
                 Tables\Columns\IconColumn::make('show_in_sitemap')

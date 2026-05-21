@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use App\Support\ImagePath;
 
 class Tour extends Model
 {
@@ -101,9 +102,16 @@ class Tour extends Model
 
     public function getCoverUrlAttribute(): string
     {
-        return $this->cover_image
-            ? (Str::startsWith($this->cover_image, ['http', '/']) ? $this->cover_image : asset('storage/' . $this->cover_image))
-            : asset('assets/banners/banner-hero.jpg');
+        return ImagePath::url($this->cover_image) ?? asset('assets/banners/banner-hero.jpg');
+    }
+
+    public function getGalleryUrlsAttribute(): array
+    {
+        $g = $this->gallery ?? [];
+        if (! is_array($g) || count($g) === 0) {
+            return [$this->cover_url];
+        }
+        return array_values(array_filter(array_map(fn ($p) => ImagePath::url($p), $g)));
     }
 
     public function getRouteKeyName(): string

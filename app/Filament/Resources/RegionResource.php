@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RegionResource\Pages;
 use App\Filament\Resources\RegionResource\RelationManagers;
 use App\Models\Region;
+use App\Support\ImagePath;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -71,7 +72,8 @@ class RegionResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name_en')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('hero_image'),
+                Tables\Columns\ImageColumn::make('hero_image')
+                    ->getStateUsing(fn ($record) => ImagePath::url($record->hero_image)),
                 Tables\Columns\TextColumn::make('eyebrow_es')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('eyebrow_en')
@@ -85,7 +87,8 @@ class RegionResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('seo_description')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('seo_image'),
+                Tables\Columns\ImageColumn::make('seo_image')
+                    ->getStateUsing(fn ($record) => ImagePath::url($record->seo_image)),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

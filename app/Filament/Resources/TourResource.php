@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TourResource\Pages;
 use App\Models\Tour;
+use App\Support\ImagePath;
 use Filament\Forms;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Form;
@@ -165,7 +166,7 @@ class TourResource extends Resource
             ->defaultSort('order')
             ->columns([
                 Tables\Columns\ImageColumn::make('cover_image')
-                    ->disk('public')
+                    ->getStateUsing(fn ($record) => ImagePath::url($record->cover_image))
                     ->square()
                     ->size(60)
                     ->label(''),
