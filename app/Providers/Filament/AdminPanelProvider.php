@@ -62,7 +62,6 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                'throttle:filament-login',
             ])
             ->authMiddleware([
                 Authenticate::class,

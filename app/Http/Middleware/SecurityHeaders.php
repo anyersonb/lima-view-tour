@@ -15,22 +15,48 @@ class SecurityHeaders
      * Meta Pixel (Facebook), and Cloudflare CDN assets already used in
      * the app. Update this list if new third-party scripts are added.
      */
-    private const CSP = "default-src 'self'; "
-        ."script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+    private const CSP_BASE = [
+        'default-src' => "'self'",
+        'script-src'  => "'self' 'unsafe-inline' 'unsafe-eval' "
             ."https://checkout.culqi.com https://js.culqi.com "
             ."https://cdnjs.cloudflare.com "
             ."https://www.googletagmanager.com https://www.google-analytics.com "
-            ."https://connect.facebook.net; "
-        ."style-src 'self' 'unsafe-inline' "
-            ."https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
-        ."font-src 'self' https://fonts.gstatic.com data:; "
-        ."img-src 'self' data: https: blob:; "
-        ."frame-src https://*.culqi.com https://www.googletagmanager.com; "
-        ."connect-src 'self' https://api.culqi.com "
-            ."https://www.google-analytics.com; "
-        ."object-src 'none'; "
-        ."base-uri 'self'; "
-        ."form-action 'self' https://checkout.culqi.com;";
+            ."https://connect.facebook.net",
+        'style-src'   => "'self' 'unsafe-inline' "
+            ."https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+        'font-src'    => "'self' https://fonts.gstatic.com data:",
+        'img-src'     => "'self' data: https: blob:",
+        'frame-src'   => "https://*.culqi.com https://www.googletagmanager.com",
+        'connect-src' => "'self' https://api.culqi.com "
+            ."https://www.google-analytics.com",
+        'object-src'  => "'none'",
+        'base-uri'    => "'self'",
+        'form-action' => "'self' https://checkout.culqi.com",
+    ];
+
+    /**
+     * Build CSP string. In non-production env, allow Vite dev server origins
+     * so HMR / @vite assets load without being blocked.
+     */
+    private function buildCsp(): string
+    {
+        $csp = self::CSP_BASE;
+
+        if (! app()->environment('production')) {
+            $viteHttp = 'http://localhost:5173 http://127.0.0.1:5173';
+            $viteWs   = 'ws://localhost:5173 ws://127.0.0.1:5173';
+            $csp['script-src']  .= ' '.$viteHttp;
+            $csp['style-src']   .= ' '.$viteHttp;
+            $csp['connect-src'] .= ' '.$viteHttp.' '.$viteWs;
+        }
+
+        $parts = [];
+        foreach ($csp as $directive => $value) {
+            $parts[] = "{$directive} {$value}";
+        }
+
+        return implode('; ', $parts).';';
+    }
 
     /**
      * Handle an incoming request and inject security headers in the response.
@@ -47,7 +73,7 @@ class SecurityHeaders
             'Permissions-Policy',
             'camera=(), microphone=(), geolocation=()'
         );
-        $response->headers->set('Content-Security-Policy', self::CSP);
+        $response->headers->set('Content-Security-Policy', $this->buildCsp());
 
         // HSTS only when explicitly forced (production) or the connection is already secure
         if (config('app.force_https', false) || $request->isSecure()) {
