@@ -4,7 +4,7 @@
 @endphp
 <footer class="site-footer" role="contentinfo">
     {{-- Newsletter band --}}
-    <section aria-labelledby="newsletter-title" class="container mx-auto py-14 grid gap-10 lg:grid-cols-2 items-center">
+    <section aria-labelledby="newsletter-title" class="container mx-auto px-5 lg:px-10 py-14 grid gap-10 lg:grid-cols-2 items-center">
         <div>
             <p class="text-sm text-white/75">{{ __('footer.newsletter_eyebrow') }}</p>
             <h2 id="newsletter-title" class="mt-3 text-white font-display text-2xl md:text-3xl lg:text-4xl leading-snug">
@@ -23,16 +23,16 @@
                     <span class="sr-only">{{ __('footer.newsletter_name') }}</span>
                     <input type="text" name="name" required
                            placeholder="{{ __('footer.newsletter_name') }}"
-                           class="w-full rounded-pill bg-transparent border border-white/30 text-white placeholder-white/50 px-5 py-3 focus:border-orange-400 focus:ring-orange-400">
+                           class="w-full rounded-pill bg-white/10 border border-white/25 text-white placeholder-white/50 px-5 py-3.5 text-sm focus:border-orange-400 focus:ring-orange-400 focus:ring-1 focus:outline-none">
                 </label>
                 <label class="block">
                     <span class="sr-only">{{ __('footer.newsletter_email') }}</span>
                     <input type="email" name="email" required
                            placeholder="{{ __('footer.newsletter_email') }}"
-                           class="w-full rounded-pill bg-transparent border border-white/30 text-white placeholder-white/50 px-5 py-3 focus:border-orange-400 focus:ring-orange-400">
+                           class="w-full rounded-pill bg-white/10 border border-white/25 text-white placeholder-white/50 px-5 py-3.5 text-sm focus:border-orange-400 focus:ring-orange-400 focus:ring-1 focus:outline-none">
                 </label>
             </div>
-            <button type="submit" class="btn--primary btn--block">
+            <button type="submit" class="btn--primary btn--block !text-sm !py-4 !rounded-pill">
                 {{ __('footer.newsletter_submit') }}
             </button>
         </form>
@@ -42,7 +42,9 @@
     <div class="border-t border-white/10">
         <div class="container mx-auto py-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             <section aria-labelledby="footer-brand">
-                <h3 id="footer-brand" class="font-display text-2xl text-white">LIMA <span class="text-base block tracking-[0.3em]">VIEW TOURS</span></h3>
+                <a href="{{ route('home', ['locale' => $locale]) }}" aria-label="Lima View Tours — Inicio" class="inline-flex items-center gap-3">
+                    <img src="{{ asset('assets/logos/logotipo.png') }}" alt="Lima View Tours" class="h-14 w-auto">
+                </a>
                 <p class="mt-4 text-sm leading-relaxed text-white/75">{{ __('footer.brand_description') }}</p>
             </section>
 
@@ -88,12 +90,34 @@
                 </ul>
 
                 <h3 class="site-footer__heading mt-6">{{ __('footer.methods_of_payment') }}</h3>
-                <ul class="mt-3 flex items-center gap-2 flex-wrap text-xs">
-                    <li class="bg-white/95 text-teal-700 rounded px-2 py-1 font-semibold">VISA</li>
-                    <li class="bg-white/95 text-teal-700 rounded px-2 py-1 font-semibold">Mastercard</li>
-                    <li class="bg-white/95 text-teal-700 rounded px-2 py-1 font-semibold">AmEx</li>
-                    <li class="bg-white/95 text-teal-700 rounded px-2 py-1 font-semibold">PayPal</li>
-                    <li class="bg-white/95 text-teal-700 rounded px-2 py-1 font-semibold">Culqi</li>
+                <ul class="mt-3 flex items-center gap-2 flex-wrap" aria-label="Métodos de pago aceptados">
+                    {{-- Visa --}}
+                    <li class="bg-white rounded px-2 py-1">
+                        <svg class="h-4 w-auto" aria-label="Visa" role="img" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <text x="0" y="16" font-family="Arial" font-size="14" font-weight="bold" fill="#1A1F71">VISA</text>
+                        </svg>
+                    </li>
+                    {{-- PayPal --}}
+                    <li class="bg-white rounded px-2 py-1">
+                        <svg class="h-4 w-auto" aria-label="PayPal" role="img" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <text x="0" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#003087">Pay</text>
+                            <text x="22" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#009cde">Pal</text>
+                        </svg>
+                    </li>
+                    {{-- Mastercard --}}
+                    <li class="bg-white rounded px-2 py-1 flex items-center gap-0.5">
+                        <span class="w-4 h-4 rounded-full bg-[#EB001B] inline-block" aria-hidden="true"></span>
+                        <span class="w-4 h-4 rounded-full bg-[#F79E1B] inline-block -ml-2" aria-hidden="true"></span>
+                        <span class="sr-only">Mastercard</span>
+                    </li>
+                    {{-- American Express --}}
+                    <li class="bg-[#2E77BC] text-white rounded px-2 py-1">
+                        <span class="text-[9px] font-bold tracking-tight leading-none">AMEX</span>
+                    </li>
+                    {{-- Culqi/Niubiz --}}
+                    <li class="bg-white rounded px-2 py-1">
+                        <span class="text-[9px] font-bold text-teal-700 tracking-tight leading-none">CULQI</span>
+                    </li>
                 </ul>
             </section>
         </div>

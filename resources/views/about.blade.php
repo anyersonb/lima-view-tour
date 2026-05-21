@@ -11,107 +11,119 @@
 @section('content')
 
 {{-- ───────── HERO ───────── --}}
-<section class="relative isolate text-white">
+<section class="relative isolate text-white min-h-[70vh] flex flex-col justify-end" aria-labelledby="about-hero-title">
     <div class="absolute inset-0 -z-10">
-        <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt="" class="w-full h-full object-cover" loading="eager" fetchpriority="high">
-        <div class="absolute inset-0 bg-gradient-to-b from-teal-900/40 via-teal-900/45 to-teal-900/65"></div>
+        <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt=""
+             class="w-full h-full object-cover object-center" loading="eager" fetchpriority="high"
+             width="1440" height="900">
+        <div class="absolute inset-0 bg-gradient-to-b from-teal-900/30 via-teal-900/40 to-teal-900/70"></div>
     </div>
     <div class="container mx-auto px-5 lg:px-10">
-        <nav aria-label="Breadcrumb" class="pt-6 text-xs text-white/80">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">Inicio</a> &gt; <span>Nosotros</span>
+        <nav aria-label="Breadcrumb" class="py-5 text-xs text-white/75">
+            <ol class="flex items-center gap-1.5">
+                <li><a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400 transition-colors">Inicio</a></li>
+                <li aria-hidden="true" class="text-white/50">/</li>
+                <li aria-current="page">Nosotros</li>
+            </ol>
         </nav>
     </div>
-    <div class="container mx-auto px-5 lg:px-10 pt-12 pb-28 md:pb-36 text-center max-w-4xl">
-        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold opacity-90">SOBRE NOSOTROS</p>
-        <h1 class="mt-4 font-display font-normal text-4xl md:text-5xl lg:text-6xl leading-[1.1]">
-            Somos planificadores profesionales<br>para tus vacaciones
+    <div class="container mx-auto px-5 lg:px-10 pb-20 md:pb-28 lg:pb-32">
+        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold text-white/80">SOBRE NOSOTROS</p>
+        <h1 id="about-hero-title" class="mt-3 font-display font-normal text-4xl md:text-5xl lg:text-6xl leading-[1.1] max-w-3xl">
+            Somos planificadores profesionales<br class="hidden md:block"> para tus vacaciones
         </h1>
-        <p class="mt-6 mx-auto max-w-2xl text-sm md:text-base text-white/85">
+        <p class="mt-5 max-w-2xl text-sm md:text-base text-white/85 leading-relaxed">
             Más de una década organizando experiencias auténticas por los destinos más emblemáticos del Perú. Nuestro compromiso: viajar contigo y dejar huella positiva.
         </p>
-        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-8">Ver tours</a>
+        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-7">Ver más</a>
     </div>
 </section>
 
 {{-- ───────── ¿POR QUÉ RESERVAR + GALERÍA? ───────── --}}
-<section class="bg-white py-16 lg:py-20">
-    <div class="container mx-auto px-5 lg:px-10 grid gap-12 lg:grid-cols-2 items-start">
+<section class="bg-white py-16 lg:py-20" aria-labelledby="about-why-title">
+    <div class="container mx-auto px-5 lg:px-10 grid gap-12 lg:grid-cols-2 items-center">
         <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold inline-flex items-center gap-2">
-                <span class="w-9 h-9 rounded-full border border-teal-800/20 grid place-items-center">
-                    <svg class="w-5 h-5 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/></svg>
-                </span>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/60 font-semibold inline-flex items-center gap-2 mb-3">
+                <x-icon-compass class="w-8 h-8 text-teal-700" />
                 NOSOTROS
             </p>
-            <h2 class="mt-3 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
+            <h2 id="about-why-title" class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
                 ¿Por qué reservar<br>con nosotros?
             </h2>
-            <p class="mt-5 text-teal-800/80 leading-relaxed">
+            <p class="mt-5 text-teal-800/75 leading-relaxed text-sm md:text-base">
                 En Lima View Tours diseñamos experiencias para conectar a nuestros viajeros con la riqueza histórica, gastronómica y natural del Perú. Cada itinerario está pensado al detalle: transporte cómodo, guías locales certificados y aliados confiables.
             </p>
-            <p class="mt-4 text-teal-800/80 leading-relaxed">
+            <p class="mt-4 text-teal-800/75 leading-relaxed text-sm md:text-base">
                 Apostamos por un turismo responsable que respeta a las comunidades y al medio ambiente. Nuestro símbolo —la espiral— representa el viaje desde el centro hacia nuevas perspectivas.
             </p>
             <a href="{{ route('contact', ['locale' => $locale]) }}" class="btn--primary mt-7">Contáctanos</a>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-            <img src="{{ asset('assets/banners/Rectangle 19216.jpg') }}" alt="" class="w-full h-44 md:h-56 object-cover rounded-2xl shadow-sm" loading="lazy">
-            <img src="{{ asset('assets/banners/Rectangle 19217.jpg') }}" alt="" class="w-full h-44 md:h-56 object-cover rounded-2xl shadow-sm translate-y-6" loading="lazy">
-            <img src="{{ asset('assets/banners/Rectangle 19218.jpg') }}" alt="" class="w-full h-44 md:h-56 object-cover rounded-2xl shadow-sm" loading="lazy">
-            <img src="{{ asset('assets/banners/Rectangle 19219.jpg') }}" alt="" class="w-full h-44 md:h-56 object-cover rounded-2xl shadow-sm translate-y-6" loading="lazy">
+            <img src="{{ asset('assets/banners/Rectangle 19216.jpg') }}" alt="Lima nocturna" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
+            <img src="{{ asset('assets/banners/Rectangle 19217.jpg') }}" alt="Machu Picchu" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
+            <img src="{{ asset('assets/banners/Rectangle 19218.jpg') }}" alt="Cusco colonial" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
+            <img src="{{ asset('assets/banners/Rectangle 19219.jpg') }}" alt="Huacachina oasis" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
         </div>
     </div>
 </section>
 
 {{-- ───────── STATS BAND ───────── --}}
 <section class="bg-teal-700 text-white" aria-labelledby="about-stats-title">
-    <h2 id="about-stats-title" class="sr-only">Nuestras cifras</h2>
-    <div class="container mx-auto px-5 lg:px-10 py-12 grid grid-cols-2 md:grid-cols-4 gap-y-8 text-center divide-y md:divide-y-0 md:divide-x divide-white/10">
+    <h2 id="about-stats-title" class="sr-only">Quiénes somos</h2>
+    <div class="container mx-auto px-5 lg:px-10 py-12 grid grid-cols-2 md:grid-cols-4 gap-y-8 md:gap-y-0 text-center">
         @foreach ([
             ['Misión', 'Brindar experiencias memorables que conecten al viajero con la cultura peruana.'],
             ['Visión', 'Ser la agencia referente de turismo responsable y experiencial en Perú.'],
             ['Valores', 'Pasión, respeto, integridad y compromiso con cada viajero y comunidad.'],
             ['Equipo', 'Guías locales certificados, planificadores y operadores con vocación de servicio.'],
-        ] as [$title, $desc])
-            <div class="px-6">
-                <h3 class="font-display text-2xl">{{ $title }}</h3>
-                <p class="mt-2 text-sm text-white/80 leading-relaxed max-w-[16rem] mx-auto">{{ $desc }}</p>
+        ] as $idx => [$title, $desc])
+            <div class="px-5 lg:px-8 {{ $idx > 0 ? 'border-l border-white/15' : '' }} flex flex-col items-center">
+                <h3 class="font-display text-2xl lg:text-3xl text-white">{{ $title }}</h3>
+                <p class="mt-3 text-sm text-white/75 leading-relaxed max-w-[14rem]">{{ $desc }}</p>
             </div>
         @endforeach
     </div>
 </section>
 
 {{-- ───────── BANNER LIMA VIEW TOURS ───────── --}}
-<section class="relative isolate text-white">
+<section class="relative isolate text-white min-h-[22rem] flex items-center" aria-labelledby="about-banner-title">
     <div class="absolute inset-0 -z-10">
-        <img src="{{ asset('assets/banners/Rectangle 19214.jpg') }}" alt="" class="w-full h-full object-cover" loading="lazy">
-        <div class="absolute inset-0 bg-teal-900/55"></div>
+        <img src="{{ asset('assets/banners/Rectangle 19214.jpg') }}" alt=""
+             class="w-full h-full object-cover object-center" loading="lazy"
+             width="1440" height="600">
+        <div class="absolute inset-0 bg-teal-900/60"></div>
     </div>
-    <div class="container mx-auto px-5 lg:px-10 py-24 md:py-32 text-center">
-        <h2 class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">Somos<br>Lima View Tours</h2>
-        <p class="mt-5 mx-auto max-w-2xl text-sm md:text-base text-white/85">
-            Transformamos cada viaje en una experiencia que conecta tu presente con el legado vibrante del Perú.
-        </p>
+    <div class="container mx-auto px-5 lg:px-10 py-20 md:py-28 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
+        <div>
+            <h2 id="about-banner-title" class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">
+                Somos<br>Lima View<br>Tours
+            </h2>
+        </div>
+        <div>
+            <p class="mt-6 lg:mt-0 text-sm md:text-base text-white/85 leading-relaxed max-w-xl">
+                Transformamos cada viaje en una experiencia que conecta tu presente con el legado vibrante del Perú. Somos más que una agencia: somos tus compañeros de aventura.
+            </p>
+        </div>
     </div>
 </section>
 
 {{-- ───────── VIVE LA CULTURA LOCAL (TABS) ───────── --}}
-<section class="bg-white py-16 lg:py-20">
-    <div class="container mx-auto px-5 lg:px-10 grid gap-10 lg:grid-cols-2 items-start"
+<section class="bg-white py-16 lg:py-20" aria-labelledby="about-cultura-title">
+    <div class="container mx-auto px-5 lg:px-10 grid gap-10 lg:gap-16 lg:grid-cols-2 items-start"
          x-data="{ tab: 'servicio' }">
-        <div class="lg:sticky lg:top-24">
+        <div class="lg:sticky lg:top-28">
             <x-icon-compass class="w-12 h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
-            <h2 class="mt-4 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
+            <h2 id="about-cultura-title" class="mt-4 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
                 Vive la cultura<br>local
             </h2>
-            <p class="mt-4 text-teal-800/80 max-w-md leading-relaxed">
+            <p class="mt-4 text-teal-800/75 max-w-md leading-relaxed text-sm md:text-base">
                 Cada experiencia se construye sobre tres pilares fundamentales: servicio cálido, calidad sin compromisos y operación propia que asegura la mejor experiencia.
             </p>
         </div>
 
         <div>
-            <div role="tablist" class="flex gap-2 mb-6">
+            <div role="tablist" aria-label="Pilares de servicio" class="flex flex-wrap gap-2 mb-6">
                 @foreach ([
                     ['servicio','Servicio'],
                     ['calidad','Calidad'],
@@ -121,39 +133,36 @@
                             role="tab"
                             id="tab-{{ $id }}"
                             aria-controls="panel-{{ $id }}"
-                            :aria-selected="tab === '{{ $id }}' ? 'true' : 'false'"
+                            :aria-selected="tab === '{{ $id }}'"
                             @click="tab = '{{ $id }}'"
-                            class="px-6 py-3 rounded-pill text-sm font-semibold uppercase tracking-wide transition border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-700"
-                            :class="tab === '{{ $id }}' ? 'bg-orange-700 text-white border-orange-700' : 'bg-cream-100 text-teal-800 border-teal-800/10 hover:border-orange-700'">
+                            class="px-6 py-2.5 rounded-pill text-sm font-semibold uppercase tracking-wider transition-all border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+                            :class="tab === '{{ $id }}'
+                                ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                                : 'bg-cream-100 text-teal-800 border-transparent hover:bg-cream-200'">
                         {{ $label }}
                     </button>
                 @endforeach
             </div>
 
-            <div role="tabpanel" id="panel-servicio" aria-labelledby="tab-servicio" x-show="tab === 'servicio'" x-cloak x-transition>
-                <article class="bg-cream-100 rounded-2xl p-7 lg:p-8">
-                    <h3 class="font-display text-2xl text-teal-800">Servicio que se nota</h3>
-                    <p class="mt-3 text-teal-800/80 leading-relaxed text-sm">
-                        Atención personalizada antes, durante y después del viaje. Nuestro equipo está disponible 24/7 para resolver cualquier inquietud y asegurar que cada detalle salga como lo soñaste.
-                    </p>
-                </article>
-            </div>
-            <div role="tabpanel" id="panel-calidad" aria-labelledby="tab-calidad" x-show="tab === 'calidad'" x-cloak x-transition>
-                <article class="bg-cream-100 rounded-2xl p-7 lg:p-8">
-                    <h3 class="font-display text-2xl text-teal-800">Calidad sin atajos</h3>
-                    <p class="mt-3 text-teal-800/80 leading-relaxed text-sm">
-                        Trabajamos con aliados certificados, vehículos modernos, hospedajes verificados y guías oficiales. Sin sorpresas: lo que ves en el itinerario es lo que vives.
-                    </p>
-                </article>
-            </div>
-            <div role="tabpanel" id="panel-propio" aria-labelledby="tab-propio" x-show="tab === 'propio'" x-cloak x-transition>
-                <article class="bg-cream-100 rounded-2xl p-7 lg:p-8">
-                    <h3 class="font-display text-2xl text-teal-800">Operación propia</h3>
-                    <p class="mt-3 text-teal-800/80 leading-relaxed text-sm">
-                        Diseñamos y operamos nuestros propios tours. Eso nos permite controlar la calidad de extremo a extremo y garantizar la mejor relación experiencia-precio del mercado.
-                    </p>
-                </article>
-            </div>
+            @foreach ([
+                ['servicio','Servicio que se nota','Atención personalizada antes, durante y después del viaje. Nuestro equipo está disponible 24/7 para resolver cualquier inquietud y asegurar que cada detalle salga como lo soñaste.'],
+                ['calidad','Calidad sin atajos','Trabajamos con aliados certificados, vehículos modernos, hospedajes verificados y guías oficiales. Sin sorpresas: lo que ves en el itinerario es lo que vives.'],
+                ['propio','Operación propia','Diseñamos y operamos nuestros propios tours. Eso nos permite controlar la calidad de extremo a extremo y garantizar la mejor relación experiencia-precio del mercado.'],
+            ] as [$id,$heading,$body])
+                <div role="tabpanel"
+                     id="panel-{{ $id }}"
+                     aria-labelledby="tab-{{ $id }}"
+                     x-show="tab === '{{ $id }}'"
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0">
+                    <article class="bg-cream-100 rounded-2xl p-7 lg:p-9">
+                        <h3 class="font-display text-2xl lg:text-3xl text-teal-800">{{ $heading }}</h3>
+                        <p class="mt-3 text-teal-800/75 leading-relaxed text-sm md:text-base">{{ $body }}</p>
+                    </article>
+                </div>
+            @endforeach
         </div>
     </div>
 </section>

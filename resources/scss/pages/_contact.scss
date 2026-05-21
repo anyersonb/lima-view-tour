@@ -1,0 +1,26 @@
+// Contact page — Lima View Tours
+
+// Collage irregular de 4 fotos
+.contact-collage {
+    position: relative;
+    height: 34rem;
+
+    @media (min-width: theme('screens.lg')) {
+        height: 38rem;
+    }
+
+    img {
+        @apply absolute object-cover rounded-2xl shadow-md;
+    }
+}
+
+// Form inputs — pill shape consistente
+.contact-form input[type="text"],
+.contact-form input[type="email"],
+.contact-form input[type="tel"] {
+    @apply rounded-pill;
+}
+
+.contact-form textarea {
+    @apply rounded-2xl;
+}

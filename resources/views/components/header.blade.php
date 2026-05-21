@@ -53,13 +53,12 @@
                 <a href="tel:{{ str_replace([' ', '+'], '', $contactPhone) }}"
                    class="flex items-center gap-2.5 border border-white/40 rounded-pill pl-2 pr-4 py-1.5">
                     <span class="w-9 h-9 rounded-full border border-white/40 grid place-items-center shrink-0">
-                        <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 18v-6a9 9 0 0118 0v6"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 19a2 2 0 01-2 2h-1v-7h3v5zM3 19a2 2 0 002 2h1v-7H3v5z"/>
+                        <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
                         </svg>
                     </span>
                     <span class="leading-tight text-left">
-                        <span class="block font-semibold tracking-wide">{{ $supportPhone }}</span>
+                        <span class="block font-semibold tracking-wide text-sm">{{ $supportPhone }}</span>
                         <span class="block text-[10px] uppercase tracking-[0.15em] opacity-80">{{ __('nav.support_center') }}</span>
                     </span>
                 </a>

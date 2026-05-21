@@ -1,0 +1,29 @@
+// About page — Lima View Tours
+
+// Hero: fondo ocupa al menos 70vh, texto alineado a la parte inferior
+.about-hero {
+    min-height: 70vh;
+}
+
+// Stats band: dividers solo en md+, en mobile aplanados en 2 columnas
+.about-stats-grid {
+    @apply grid grid-cols-2 md:grid-cols-4;
+
+    > div:first-child {
+        @apply border-l-0;
+    }
+
+    @media (max-width: theme('screens.md')) {
+        > div:nth-child(odd) { @apply border-l-0; }
+        > div:nth-child(even) { @apply border-l border-white/15; }
+        > div:nth-child(3),
+        > div:nth-child(4) { @apply border-t border-white/15 pt-8; }
+    }
+}
+
+// Collage fotos — galería 2x2 escalonada
+.about-gallery {
+    > img:nth-child(even) {
+        @apply translate-y-8 md:translate-y-10;
+    }
+}
