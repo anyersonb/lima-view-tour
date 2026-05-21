@@ -15,6 +15,15 @@ a {
     @apply transition-colors;
 }
 
+details > summary {
+    list-style: none;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::marker { content: ''; }
+
+.tour-accordion details + details { @apply mt-3; }
+.tour-accordion details > summary:hover { @apply bg-cream-100/40; }
+
 :focus-visible {
     @apply outline-none ring-2 ring-offset-2 ring-orange-500;
 }

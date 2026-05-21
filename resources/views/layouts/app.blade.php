@@ -37,7 +37,11 @@
 
     <title>{{ $title }}</title>
     <meta name="description" content="{{ $description }}">
-    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    @if (env('NOINDEX', false))
+        <meta name="robots" content="noindex,nofollow">
+    @else
+        <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    @endif
     <meta name="theme-color" content="#15474B">
     <meta name="author" content="{{ $siteName }}">
     @isset($settings['seo_default_keywords'])
