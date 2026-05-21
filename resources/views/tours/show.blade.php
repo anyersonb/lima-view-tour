@@ -6,7 +6,15 @@
     $itinerary = $tour->{"itinerary_{$locale}"} ?? $tour->itinerary_es ?? [];
     $includes  = $tour->{"includes_{$locale}"}  ?? $tour->includes_es  ?? [];
     $excludes  = $tour->{"excludes_{$locale}"}  ?? $tour->excludes_es  ?? [];
+    $recommendations = $tour->{"recommendations_{$locale}"} ?? $tour->recommendations_es ?? null;
+    $notes = $tour->{"notes_{$locale}"} ?? $tour->notes_es ?? null;
     $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
+
+    $recommendationLines = $recommendations
+        ? array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $recommendations))))
+        : ['Llevar protector solar SPF50+', 'Lentes de sol y sombrero', 'Ropa cómoda y zapatillas', 'Cámara fotográfica', 'Agua embotellada', 'Documento de identidad'];
+
+    $notesText = $notes ?: 'El recorrido marítimo a las Islas Ballestas puede sufrir cambios o cancelaciones por condiciones climáticas. En caso de cancelación se reembolsa el ítem correspondiente o se reagenda la salida sin costo.';
 @endphp
 
 @section('title', $tour->title . ' — ' . __('seo.site_name'))
@@ -53,9 +61,7 @@
 {{-- ───────── GALLERY + BOOKING SIDEBAR ───────── --}}
 <section class="bg-white pb-10">
     @php
-        $galleryUrls = $gallery
-            ? array_map(fn($i) => \Illuminate\Support\Str::startsWith($i, ['http','/']) ? $i : asset('storage/' . $i), $gallery)
-            : [$tour->cover_url];
+        $galleryUrls = $tour->gallery_urls;
         $totalImgs = count($galleryUrls);
     @endphp
     <div class="container mx-auto px-5 lg:px-10 grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]"
@@ -179,88 +185,142 @@
 </section>
 
 {{-- ───────── DESCRIPCIÓN + ITINERARIO + INCLUYE ───────── --}}
-<section class="bg-white pb-16 lg:pb-20" x-data="{ open: 0 }" aria-label="Detalle del tour">
+<section class="bg-white pb-16 lg:pb-20" aria-label="Detalle del tour">
     <div class="container mx-auto px-5 lg:px-10 grid gap-12 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <div>
-            <h2 class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Descripción</h2>
-            <div class="bg-cream-100 rounded-b-2xl p-6 lg:p-8 text-sm text-teal-800/85 leading-relaxed space-y-4">
-                {!! nl2br(e($tour->description)) !!}
-            </div>
+        <div class="tour-accordion space-y-3">
+            {{-- Descripción --}}
+            <details class="acc-item group bg-white border border-teal-800/15 rounded-2xl shadow-sm overflow-hidden" open>
+                <summary class="flex items-center gap-3 px-6 py-4 cursor-pointer list-none">
+                    <span class="w-9 h-9 rounded-full bg-cream-100 grid place-items-center text-teal-700 shrink-0" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                    </span>
+                    <h2 class="font-semibold text-teal-800 flex-1 text-base">Descripción</h2>
+                    <span class="acc-toggle w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700 transition-transform group-open:rotate-45" aria-hidden="true">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    </span>
+                </summary>
+                <div class="px-6 pb-6 text-sm text-teal-800/85 leading-relaxed space-y-3">
+                    {!! nl2br(e($tour->description)) !!}
+                </div>
+            </details>
 
             @if (count($itinerary) > 0)
-                <h2 class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Itinerario</h2>
-                <div class="bg-cream-100 rounded-b-2xl divide-y divide-teal-800/10">
-                    @foreach ($itinerary as $i => $step)
-                        @php
-                            $hour  = is_array($step) ? ($step['hour']  ?? ($step[0] ?? '')) : '';
-                            $title = is_array($step) ? ($step['title'] ?? ($step[1] ?? '')) : (string) $step;
-                            $desc  = is_array($step) ? ($step['desc']  ?? ($step[2] ?? '')) : '';
-                        @endphp
-                        <article>
-                            <button type="button" @click="open = (open === {{ $i }} ? -1 : {{ $i }})"
-                                    class="w-full flex items-center gap-5 px-6 py-4 text-left"
-                                    :aria-expanded="open === {{ $i }} ? 'true' : 'false'">
-                                @if ($hour)
-                                    <span class="font-price text-2xl text-orange-500 w-24 shrink-0" aria-hidden="true">{{ $hour }}</span>
-                                @endif
-                                <h3 class="font-semibold text-teal-800 flex-1 text-base">{{ $title }}</h3>
-                                <svg class="w-4 h-4 text-teal-800/60 transition-transform" :class="open === {{ $i }} ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                            </button>
-                            <div x-show="open === {{ $i }}" x-cloak x-transition class="px-6 pb-5 -mt-1 pl-[7.75rem] text-sm text-teal-800/80 leading-relaxed">
-                                {{ $desc }}
-                            </div>
-                        </article>
-                    @endforeach
-                </div>
+                {{-- Itinerario --}}
+                <details class="acc-item group bg-white border border-teal-800/15 rounded-2xl shadow-sm overflow-hidden">
+                    <summary class="flex items-center gap-3 px-6 py-4 cursor-pointer list-none">
+                        <span class="w-9 h-9 rounded-full bg-cream-100 grid place-items-center text-teal-700 shrink-0" aria-hidden="true">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+                        </span>
+                        <h2 class="font-semibold text-teal-800 flex-1 text-base">Itinerario</h2>
+                        <span class="acc-toggle w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700 transition-transform group-open:rotate-45" aria-hidden="true">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        </span>
+                    </summary>
+                    <div class="px-6 pb-6">
+                        <ol class="relative border-l-2 border-orange-300/60 ml-2 space-y-4 pl-5">
+                            @foreach ($itinerary as $i => $step)
+                                @php
+                                    $hour  = is_array($step) ? ($step['hour']  ?? ($step[0] ?? '')) : '';
+                                    $title = is_array($step) ? ($step['title'] ?? ($step[1] ?? '')) : (string) $step;
+                                    $desc  = is_array($step) ? ($step['desc']  ?? ($step[2] ?? '')) : '';
+                                @endphp
+                                <li class="relative">
+                                    <span class="absolute -left-[1.65rem] top-1 w-3 h-3 rounded-full bg-orange-500 ring-4 ring-orange-500/15" aria-hidden="true"></span>
+                                    @if ($hour)
+                                        <span class="font-price text-lg text-orange-600 mr-2">{{ $hour }}</span>
+                                    @endif
+                                    <span class="font-semibold text-teal-800">{{ $title }}</span>
+                                    @if ($desc)
+                                        <p class="mt-1 text-sm text-teal-800/75 leading-relaxed">{{ $desc }}</p>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ol>
+                    </div>
+                </details>
             @endif
 
-            <h2 class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Recomendaciones</h2>
-            <div class="bg-cream-100 rounded-b-2xl p-6 lg:p-8 text-sm text-teal-800/85 leading-relaxed">
-                <ul class="grid sm:grid-cols-2 gap-y-2 gap-x-8 list-disc list-inside">
-                    <li>Llevar protector solar SPF50+</li>
-                    <li>Lentes de sol y sombrero</li>
-                    <li>Ropa cómoda y zapatillas</li>
-                    <li>Cámara fotográfica</li>
-                    <li>Agua embotellada</li>
-                    <li>Documento de identidad</li>
-                </ul>
-            </div>
-
-            @if (count($includes) > 0 || count($excludes) > 0)
-                <div class="mt-10 grid md:grid-cols-2 gap-6">
-                    @if (count($includes) > 0)
-                        <div>
-                            <h2 class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Incluye</h2>
-                            <ul class="bg-cream-100 rounded-b-2xl p-6 text-sm text-teal-800/85 space-y-2">
-                                @foreach ($includes as $item)
-                                    <li class="flex gap-2">
-                                        <span class="text-state-success" aria-hidden="true">&#10003;</span>
-                                        {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-                    @if (count($excludes) > 0)
-                        <div>
-                            <h2 class="bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">No incluye</h2>
-                            <ul class="bg-cream-100 rounded-b-2xl p-6 text-sm text-teal-800/85 space-y-2">
-                                @foreach ($excludes as $item)
-                                    <li class="flex gap-2">
-                                        <span class="text-state-error" aria-hidden="true">&#10007;</span>
-                                        {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+            {{-- Recomendaciones --}}
+            <details class="acc-item group bg-white border border-teal-800/15 rounded-2xl shadow-sm overflow-hidden">
+                <summary class="flex items-center gap-3 px-6 py-4 cursor-pointer list-none">
+                    <span class="w-9 h-9 rounded-full bg-cream-100 grid place-items-center text-teal-700 shrink-0" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.32.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.32-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+                    </span>
+                    <h2 class="font-semibold text-teal-800 flex-1 text-base">Recomendaciones</h2>
+                    <span class="acc-toggle w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700 transition-transform group-open:rotate-45" aria-hidden="true">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    </span>
+                </summary>
+                <div class="px-6 pb-6 text-sm text-teal-800/85 leading-relaxed">
+                    <ul class="grid sm:grid-cols-2 gap-y-2 gap-x-8 list-disc list-inside marker:text-orange-500">
+                        @foreach ($recommendationLines as $rec)
+                            <li>{{ $rec }}</li>
+                        @endforeach
+                    </ul>
                 </div>
+            </details>
+
+            @if (count($includes) > 0)
+                {{-- Servicios incluidos --}}
+                <details class="acc-item group bg-white border border-teal-800/15 rounded-2xl shadow-sm overflow-hidden">
+                    <summary class="flex items-center gap-3 px-6 py-4 cursor-pointer list-none">
+                        <span class="w-9 h-9 rounded-full bg-state-success/10 grid place-items-center text-state-success shrink-0" aria-hidden="true">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                        </span>
+                        <h2 class="font-semibold text-teal-800 flex-1 text-base">Servicios incluidos</h2>
+                        <span class="acc-toggle w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700 transition-transform group-open:rotate-45" aria-hidden="true">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        </span>
+                    </summary>
+                    <ul class="px-6 pb-6 text-sm text-teal-800/85 space-y-2">
+                        @foreach ($includes as $item)
+                            <li class="flex gap-2">
+                                <span class="text-state-success" aria-hidden="true">&#10003;</span>
+                                {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </details>
             @endif
 
-            <h2 class="mt-10 bg-teal-700 text-white rounded-t-2xl px-6 py-3 text-sm font-semibold uppercase tracking-wider">Notas importantes</h2>
-            <div class="bg-cream-100 rounded-b-2xl p-6 lg:p-8 text-sm text-teal-800/85 leading-relaxed">
-                <p>El recorrido marítimo a las Islas Ballestas puede sufrir cambios o cancelaciones por condiciones climáticas. En caso de cancelación se reembolsa el ítem correspondiente o se reagenda la salida sin costo.</p>
-            </div>
+            @if (count($excludes) > 0)
+                {{-- Servicios no incluidos --}}
+                <details class="acc-item group bg-white border border-teal-800/15 rounded-2xl shadow-sm overflow-hidden">
+                    <summary class="flex items-center gap-3 px-6 py-4 cursor-pointer list-none">
+                        <span class="w-9 h-9 rounded-full bg-state-error/10 grid place-items-center text-state-error shrink-0" aria-hidden="true">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </span>
+                        <h2 class="font-semibold text-teal-800 flex-1 text-base">Servicios no incluidos</h2>
+                        <span class="acc-toggle w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700 transition-transform group-open:rotate-45" aria-hidden="true">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        </span>
+                    </summary>
+                    <ul class="px-6 pb-6 text-sm text-teal-800/85 space-y-2">
+                        @foreach ($excludes as $item)
+                            <li class="flex gap-2">
+                                <span class="text-state-error" aria-hidden="true">&#10007;</span>
+                                {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </details>
+            @endif
+
+            {{-- Notas importantes --}}
+            <details class="acc-item group bg-white border border-teal-800/15 rounded-2xl shadow-sm overflow-hidden">
+                <summary class="flex items-center gap-3 px-6 py-4 cursor-pointer list-none">
+                    <span class="w-9 h-9 rounded-full bg-orange-400/15 grid place-items-center text-orange-600 shrink-0" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                    </span>
+                    <h2 class="font-semibold text-teal-800 flex-1 text-base">Notas importantes</h2>
+                    <span class="acc-toggle w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700 transition-transform group-open:rotate-45" aria-hidden="true">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                    </span>
+                </summary>
+                <div class="px-6 pb-6 text-sm text-teal-800/85 leading-relaxed">
+                    {!! nl2br(e($notesText)) !!}
+                </div>
+            </details>
         </div>
 
         {{-- Información lateral --}}
