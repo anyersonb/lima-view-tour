@@ -142,7 +142,7 @@
                         </button>
                     @endif
                     <img :src="gallery[active]" alt="{{ $tour->title }}"
-                         class="max-h-[70vh] max-w-full object-contain rounded-xl shadow-2xl">
+                         class="w-auto h-auto max-w-[min(100%,1400px)] max-h-full object-contain rounded-xl shadow-2xl">
                 </div>
 
                 {{-- Strip de thumbnails --}}

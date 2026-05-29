@@ -65,13 +65,13 @@
 
     {{-- ── ZONA SUPERIOR: IMAGEN ── --}}
     <div class="relative shrink-0">
-        <a href="{{ $url }}" tabindex="-1" aria-hidden="true">
+        <a href="{{ $url }}" tabindex="-1" aria-hidden="true" class="block aspect-[4/3] bg-cream-100">
             <img src="{{ $imgSrc }}"
                  alt="{{ $altText }}"
-                 class="w-full h-64 md:h-72 object-cover"
+                 class="w-full h-full object-cover object-center"
                  loading="lazy"
                  width="640"
-                 height="288">
+                 height="480">
         </a>
 
         {{-- Badge superior-izquierdo: ESCUDO COLGANTE con estrella arriba + texto abajo --}}
