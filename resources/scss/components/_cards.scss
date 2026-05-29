@@ -1,3 +1,10 @@
 .tour-card {
     @apply bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-slate-100;
+
+    // Escudo colgante "MÁS VENDIDO / BEST SELLER / TOP EXPERIENCIA / NATURALEZA ÚNICA"
+    &__shield {
+        clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
+        border-bottom-left-radius: 2px;
+        border-bottom-right-radius: 2px;
+    }
 }

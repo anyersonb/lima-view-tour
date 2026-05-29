@@ -17,13 +17,13 @@ function initOwl() {
 
     const $ = jQuery;
 
-    // Tours wide (2 columnas en ≥1024) — máximo visible: 2
+    // Tours wide (4 columnas en ≥1280) — máximo visible: 4
     $('[data-owl-tours-wide]').each(function () {
         const $el = $(this);
-        const shouldLoop = resolveLoop($el, 2);
+        const shouldLoop = resolveLoop($el, 4);
         $el.owlCarousel({
             loop: shouldLoop,
-            margin: 24,
+            margin: 20,
             nav: true,
             dots: true,
             autoplay: shouldLoop,
@@ -35,8 +35,10 @@ function initOwl() {
                 '<span aria-label="Siguiente">›</span>',
             ],
             responsive: {
-                0: { items: 1, margin: 0 },
-                1024: { items: 2 },
+                0:    { items: 1, margin: 0 },
+                640:  { items: 2 },
+                1024: { items: 3 },
+                1280: { items: 4 },
             },
         });
     });
