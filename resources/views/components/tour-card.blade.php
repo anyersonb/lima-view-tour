@@ -34,10 +34,8 @@
         $pct = (int) round((1 - ((float)$now / (float)$before)) * 100);
     }
 
-    // Texto del escudo: si no hay badge explícito pero isMasVendido, usar "MÁS VENDIDO"
-    $shieldText = $badge ?: ($isMasVendido ? 'MÁS VENDIDO' : null);
-
-    // Dividir texto del escudo en 2 líneas (máx) para que entre en el escudo
+    // Texto del escudo
+    $shieldText = $badge ?: ($isMasVendido ? 'BEST SELLER' : null);
     $shieldLines = [];
     if ($shieldText) {
         $words = preg_split('/\s+/', trim($shieldText));
@@ -54,7 +52,6 @@
         }
     }
 
-    // Color del escudo: default verde teal-800 (mockup). Override opcional por badgeType.
     $shieldBg = match ($badgeType) {
         'warn'    => 'bg-orange-600',
         'error'   => 'bg-state-error',
@@ -64,39 +61,37 @@
     };
 @endphp
 
-<article class="tour-card flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5 h-full">
+<article class="tour-card flex flex-col bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5 h-full">
 
     {{-- ── ZONA SUPERIOR: IMAGEN ── --}}
     <div class="relative shrink-0">
         <a href="{{ $url }}" tabindex="-1" aria-hidden="true">
             <img src="{{ $imgSrc }}"
                  alt="{{ $altText }}"
-                 class="w-full h-52 object-cover"
+                 class="w-full h-64 md:h-72 object-cover"
                  loading="lazy"
-                 width="480"
-                 height="208">
+                 width="640"
+                 height="288">
         </a>
 
-        {{-- Badge superior-izquierdo: ESCUDO COLGANTE (MÁS VENDIDO, BEST SELLER, TOP EXPERIENCIA…) --}}
+        {{-- Badge superior-izquierdo: ESCUDO COLGANTE con estrella arriba + texto abajo --}}
         @if (! empty($shieldLines))
-            <div class="tour-card__shield {{ $shieldBg }} text-white absolute -top-1 left-4 z-10 w-[86px] flex flex-col items-center justify-start pt-2.5 pb-4 px-1.5 shadow-lg">
-                <p class="text-[10px] font-bold uppercase leading-[1.15] tracking-[0.05em] text-center">
+            <div class="tour-card__shield {{ $shieldBg }} text-white absolute -top-1 left-4 z-10 w-[88px] flex flex-col items-center justify-start pt-2.5 pb-5 px-1.5 shadow-lg">
+                <svg class="w-4 h-4 text-yellow-400 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <p class="mt-1.5 text-[11px] font-bold uppercase leading-[1.15] tracking-[0.05em] text-center">
                     @foreach ($shieldLines as $line)
                         {{ $line }}@if (! $loop->last)<br>@endif
                     @endforeach
                 </p>
-                <span class="mt-1.5 w-6 h-6 rounded-full bg-yellow-400/95 grid place-items-center shadow-sm ring-2 ring-white/10">
-                    <svg class="w-3.5 h-3.5 text-teal-900" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                </span>
             </div>
         @endif
 
-        {{-- Badge superior-derecho: OFERTA ESPECIAL (crema con texto verde + ícono etiqueta) --}}
+        {{-- Badge OFERTA ESPECIAL (crema con icono etiqueta verde + -% rojo) --}}
         @if ($pct)
-            <span class="absolute top-3 right-3 inline-flex items-center gap-1.5 bg-white text-teal-800 text-[10px] font-bold uppercase tracking-[0.08em] px-2.5 py-1.5 rounded-lg shadow-md ring-1 ring-teal-800/10">
-                <svg class="w-3 h-3 text-teal-700 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <span class="absolute top-4 right-16 inline-flex items-center gap-1.5 bg-white text-teal-800 text-xs font-bold uppercase tracking-[0.06em] px-3 py-2 rounded-xl shadow-md ring-1 ring-teal-800/10">
+                <svg class="w-3.5 h-3.5 text-teal-700 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 005.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 00-2.122-.879H5.25zM6.375 7.5a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" clip-rule="evenodd"/>
                 </svg>
                 <span>OFERTA ESPECIAL</span>
@@ -104,10 +99,22 @@
             </span>
         @endif
 
-        {{-- Pill de ubicación — dorada flotante sobre el borde inferior de la imagen --}}
+        {{-- Botón Favorito (corazón) --}}
+        <button type="button"
+                x-data="{ liked: false }" @click.prevent="liked = !liked"
+                class="absolute top-4 right-4 w-11 h-11 rounded-full bg-white grid place-items-center shadow-md ring-1 ring-teal-800/10 transition hover:bg-cream-50"
+                aria-label="Agregar a favoritos">
+            <svg class="w-5 h-5 transition" :class="liked ? 'text-state-error' : 'text-teal-800/70'"
+                 fill="currentColor" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"
+                 :fill="liked ? 'currentColor' : 'none'">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+            </svg>
+        </button>
+
+        {{-- Pill de ubicación: blanca con sombra --}}
         @if ($locationLabel)
-            <span class="absolute bottom-0 left-4 translate-y-1/2 inline-flex items-center gap-1.5 bg-amber-500 text-white text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full shadow-md">
-                <svg class="w-3.5 h-3.5 text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <span class="absolute bottom-4 left-4 inline-flex items-center gap-2 bg-white text-teal-800 text-xs font-semibold uppercase tracking-[0.14em] px-4 py-2 rounded-full shadow-md ring-1 ring-teal-800/5">
+                <svg class="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.667 3.5-8.077A8 8 0 003 11.25c0 3.41 1.556 6.064 3.5 8.077a19.58 19.58 0 002.683 2.282 16.975 16.975 0 001.144.742zM12 13.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd"/>
                 </svg>
                 {{ $locationLabel }}
@@ -116,134 +123,117 @@
     </div>
 
     {{-- ── ZONA INFERIOR: CONTENIDO ── --}}
-    <div class="flex flex-col flex-1 p-5 {{ $locationLabel ? 'pt-7' : '' }}">
+    <div class="flex flex-col flex-1 p-6">
 
         {{-- Título --}}
-        <h3 class="font-display text-lg text-teal-800 leading-snug">
+        <h3 class="font-display text-2xl text-teal-800 leading-tight">
             <a href="{{ $url }}" class="hover:text-orange-500 transition-colors">
                 {{ $title }}
             </a>
         </h3>
 
-        {{-- Subtítulo / categoría --}}
+        {{-- Subtítulo opcional --}}
         @if ($subtitle)
-            <p class="mt-0.5 text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ $subtitle }}</p>
+            <p class="mt-1 text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ $subtitle }}</p>
         @endif
 
-        {{-- Rating --}}
+        {{-- Rating con reseñas --}}
         @if ($rating)
-            <p class="mt-2 flex items-center gap-1.5 text-sm">
-                <span class="text-orange-400 tracking-tight leading-none" aria-hidden="true">★★★★★</span>
-                <span class="font-semibold text-teal-800 text-xs">{{ $rating }}</span>
-                <span class="text-teal-800/55 text-xs">({{ number_format((int)$reviews) }})</span>
+            <p class="mt-3 flex items-center gap-2 text-sm">
+                <span class="text-orange-400 text-lg leading-none tracking-tight" aria-hidden="true">★★★★★</span>
+                <span class="font-semibold text-teal-800">{{ $rating }}</span>
+                <span class="text-teal-800/55">·</span>
+                <span class="text-teal-800/55">{{ number_format((int)$reviews) }} reseñas</span>
             </p>
         @endif
 
-        {{-- Descripción corta --}}
-        @if ($description)
-            <p class="mt-2 text-xs text-teal-800/70 leading-relaxed line-clamp-2">{{ $description }}</p>
-        @endif
-
-        {{-- Grid de features: 5 columnas (la última con highlight crema) --}}
-        <ul class="mt-4 grid grid-cols-5 gap-x-1 gap-y-2 text-[9px] text-teal-800/65 text-center">
-
-            {{-- Duración --}}
-            <li class="flex flex-col items-center gap-1 px-0.5">
-                <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+        {{-- Lista vertical de features --}}
+        <ul class="mt-5 space-y-3 text-sm">
+            <li class="flex items-start gap-3">
+                <span class="w-9 h-9 rounded-full grid place-items-center text-teal-700 shrink-0" aria-hidden="true">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </span>
-                <span class="leading-tight uppercase tracking-[0.06em]">{{ $duration ?? 'Full Day' }}</span>
+                <span>
+                    <span class="block font-semibold text-teal-800">{{ $duration ?? 'Full Day' }}</span>
+                    <span class="block text-xs text-teal-800/60">Duración del tour</span>
+                </span>
             </li>
-
-            {{-- Recojo --}}
-            <li class="flex flex-col items-center gap-1 px-0.5">
-                <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+            <li class="flex items-start gap-3">
+                <span class="w-9 h-9 rounded-full grid place-items-center text-teal-700 shrink-0" aria-hidden="true">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
                     </svg>
                 </span>
-                <span class="leading-tight uppercase tracking-[0.06em]">{{ $pickup !== null ? ($pickup ? 'Recojo incluido' : 'Sin recojo') : 'Recojo incluido' }}</span>
+                <span>
+                    <span class="block font-semibold text-teal-800">{{ $pickup !== null ? ($pickup ? 'Recojo incluido' : 'Sin recojo') : 'Recojo incluido' }}</span>
+                    <span class="block text-xs text-teal-800/60">Desde tu hotel</span>
+                </span>
             </li>
-
-            {{-- Idiomas --}}
-            <li class="flex flex-col items-center gap-1 px-0.5">
-                <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802"/>
+            <li class="flex items-start gap-3">
+                <span class="w-9 h-9 rounded-full grid place-items-center text-teal-700 shrink-0" aria-hidden="true">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>
                     </svg>
                 </span>
-                <span class="leading-tight uppercase tracking-[0.06em]">{{ $language }}</span>
-            </li>
-
-            {{-- Salidas --}}
-            <li class="flex flex-col items-center gap-1 px-0.5">
-                <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
-                    </svg>
+                <span>
+                    <span class="block font-semibold text-teal-800">{{ $language }}</span>
+                    <span class="block text-xs text-teal-800/60">Guía bilingüe</span>
                 </span>
-                <span class="leading-tight uppercase tracking-[0.06em]">{{ $dailyDepartures !== null ? ($dailyDepartures ? 'Salidas diarias' : 'Salidas fijas') : 'Salidas diarias' }}</span>
             </li>
-
-            {{-- Cancelación gratuita (highlight crema) --}}
             @if ($freeCancellation !== false)
-                <li class="flex flex-col items-center gap-1 px-0.5 py-1.5 bg-cream-100 rounded-lg border border-teal-800/10 -mx-0.5">
-                    <span class="w-8 h-8 rounded-full border border-teal-700/30 grid place-items-center text-teal-700" aria-hidden="true">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                <li class="flex items-start gap-3">
+                    <span class="w-9 h-9 rounded-full grid place-items-center text-teal-700 shrink-0" aria-hidden="true">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
                         </svg>
                     </span>
-                    <span class="leading-tight uppercase tracking-[0.06em] font-semibold">Cancelación<br>gratuita</span>
+                    <span>
+                        <span class="block font-semibold text-teal-800">Cancelación gratuita</span>
+                        <span class="block text-xs text-teal-800/60">Hasta 24h antes del tour</span>
+                    </span>
                 </li>
             @endif
         </ul>
 
-        {{-- Precios — sin borde exterior, solo divisor central --}}
-        <div class="mt-4">
-            <div class="flex items-stretch divide-x divide-teal-800/15">
+        {{-- Precio + CTA en grid 2 columnas --}}
+        <div class="mt-6 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-3 items-stretch">
+            {{-- Caja crema con precio --}}
+            <div class="bg-cream-100 rounded-2xl px-4 py-3 flex flex-col justify-center">
                 @if ($before)
-                    <div class="flex-1 text-center py-2 px-2">
+                    <div class="flex items-baseline gap-2">
                         <p class="text-[10px] tracking-[0.15em] uppercase text-teal-800/55 font-semibold">Antes</p>
-                        <p class="font-price text-base text-teal-800/50 line-through mt-0.5">{{ $currency }} {{ number_format((float)$before, 0) }}</p>
-                    </div>
-                    <div class="flex-1 text-center py-2 px-2">
-                        <p class="text-[10px] tracking-[0.15em] uppercase text-teal-800/55 font-semibold">Ahora</p>
-                        <p class="font-price text-2xl text-state-error leading-tight mt-0.5 font-semibold">{{ $currency }} {{ number_format((float)$now, 0) }}</p>
-                    </div>
-                @else
-                    <div class="flex-1 text-center py-2 px-2">
-                        <p class="text-[10px] tracking-[0.15em] uppercase text-teal-800/55 font-semibold">Precio</p>
-                        <p class="font-price text-2xl text-teal-800 leading-tight mt-0.5 font-semibold">{{ $currency }} {{ number_format((float)$now, 0) }}</p>
+                        <p class="font-price text-sm text-teal-800/50 line-through">{{ $currency }}{{ number_format((float)$before, 0) }}</p>
                     </div>
                 @endif
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                    <span class="inline-block bg-amber-100 text-teal-800 text-[9px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded">Desde</span>
+                </div>
+                <p class="font-price text-3xl text-teal-800 font-semibold leading-tight mt-1">{{ $currency }}{{ number_format((float)$now, 0) }}</p>
+                <p class="text-[11px] text-teal-800/60 mt-0.5">por persona
+                    @if ($pct)
+                        <span class="inline-flex items-center gap-1 ml-1 text-teal-700">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 005.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 00-2.122-.879H5.25z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-semibold">{{ $pct }}% DTO.</span>
+                        </span>
+                    @endif
+                </p>
             </div>
+
+            {{-- Botón Reservar ahora --}}
+            <a href="{{ $url }}" class="bg-teal-800 hover:bg-teal-700 active:bg-teal-900 text-white rounded-2xl px-4 py-3 flex items-center justify-center gap-3 font-semibold text-sm transition shadow-md">
+                <svg class="w-5 h-5 text-orange-400 shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
+                </svg>
+                <span>Reservar ahora</span>
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                </svg>
+            </a>
         </div>
-
-        {{-- CTA --}}
-        <a href="{{ $url }}" class="btn--card-cta btn--block mt-3 !text-sm">
-            Reservar ahora
-        </a>
-
     </div>
 </article>
-
-{{--
-=======================================================================
-TODO — Campos pendientes en el modelo Tour (requieren migración backend):
-=======================================================================
-1. is_mas_vendido  boolean  default false
-   Actualmente se usa is_featured como proxy. Crear campo dedicado si
-   el negocio quiere distinguir "más vendido" de "destacado".
-
-2. discount_pct    tinyInteger unsigned nullable
-   Actualmente se calcula en runtime desde price_before/price.
-   Opcionalmente persistir para evitar el cálculo y permitir override.
-
-3. pickup_included boolean  default true
-4. daily_departures boolean  default true
-5. free_cancellation boolean  default true
-6. location_label  string nullable
-=======================================================================
---}}

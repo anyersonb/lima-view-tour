@@ -17,10 +17,10 @@ function initOwl() {
 
     const $ = jQuery;
 
-    // Tours wide (4 columnas en ≥1280) — máximo visible: 4
+    // Tours wide (3 columnas en ≥1024) — máximo visible: 3
     $('[data-owl-tours-wide]').each(function () {
         const $el = $(this);
-        const shouldLoop = resolveLoop($el, 4);
+        const shouldLoop = resolveLoop($el, 3);
         $el.owlCarousel({
             loop: shouldLoop,
             margin: 20,
@@ -37,7 +37,7 @@ function initOwl() {
             responsive: {
                 0:    { items: 1, margin: 0 },
                 640:  { items: 2 },
-                1024: { items: 4 },
+                1024: { items: 3 },
             },
         });
     });
