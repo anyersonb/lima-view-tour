@@ -214,3 +214,53 @@ Carga en `resources/views/layouts/app.blade.php` con `<link rel="stylesheet" hre
 - Extraer tokens (colores, tipografía, spacing) y mapearlos a `tailwind.config.js`
 - Bajar specs de componentes antes de maquetar
 - Verificar nombres de capas/componentes para mantener consistencia con clases CSS
+
+## Despliegue a producción (`https://limaviewtours.com/limaprogramacion/`)
+
+El sitio vive como subcarpeta del dominio principal (que sirve WordPress).
+**El cliente ya autorizó que cualquier cambio de código se publique automáticamente al staging tras validar local.**
+
+### FTP de deploy
+- Host: `ftp.limaviewtours.com:21` (FTP plano — el certificado FTPS no coincide con el host)
+- Usuario: `limaweb@limaviewtours.com` / pass: `limaweb@limaviewtours.com`
+- Este user NO está chrooted: ve el home completo. **No usar `limaprogramacion@…`** — ese está chrooted a un dir no web-accessible.
+
+### Procedimiento de redeploy
+1. Si tocaste SCSS/JS: `npm run build` (genera nuevos hashes en `public/build/assets/`).
+2. Subir lo que cambió (mismo path local → remoto):
+   - Blade: `resources/views/**`
+   - PHP: `app/**`, `routes/**`, `config/**`
+   - Assets compilados: `public/build/assets/<nuevo>.{css,js}` + `public/build/manifest.json`
+3. Borrar assets viejos en `public/build/assets/` (los hashes anteriores) para no acumular.
+4. **Borrar caches en server (paso obligatorio):**
+   - `storage/framework/views/*.php` (todos, conservando `.gitignore`)
+   - `bootstrap/cache/{packages,services,config}.php` si tocaste providers/config
+   - Si no se borran aparece `Target class [translator] does not exist`.
+5. Verificar con MCP Playwright sobre `https://limaviewtours.com/limaprogramacion/es?fresh=<n>`.
+
+### Parches críticos para subcarpeta — NO BORRAR
+Estos overrides hacen que Laravel funcione bajo `/limaprogramacion/` sin ser un subdomain:
+
+| Archivo | Propósito |
+|---|---|
+| `/public_html/.htaccess` (WP root) | Bloque `# BEGIN Lima View Tours` al inicio con `RewriteRule ^limaprogramacion(/\|$) - [L]` para que las reglas de WP no capturen las requests del Laravel |
+| `/limaprogramacion/.htaccess` (Laravel root) | Reescribe `^(.*)$ public/$1 [L]` + bloquea `app\|bootstrap\|config\|database\|lang\|resources\|routes\|tests\|vendor` (NO `storage` — rompe `public/storage/*`) |
+| `public/index.php` | Tras el check de maintenance: strip del prefijo `/limaprogramacion` del `REQUEST_URI` + set `$_SERVER['LIMA_SUBFOLDER'] = true` |
+| `app/Providers/AppServiceProvider.php` → `boot()` | Si `LIMA_SUBFOLDER` está set: `URL::forceRootUrl('https://limaviewtours.com/limaprogramacion')`, `URL::forceScheme('https')`, override de `livewire.asset_url` apuntando al archivo completo (`livewire.js` o `livewire.min.js` según `APP_DEBUG`), `livewire.update_uri`, y `filesystems.disks.public.url` para que `Storage::url()` emita el prefijo |
+
+### Trampas ya pisadas
+- El zip `lima-deploy.zip` (creado con `composer install --no-dev`) al extraerse en server re-trae `public/hot` (Vite dev marker → assets apuntan a `localhost:5173`). **Borrarlo siempre**.
+- Imágenes públicas deben vivir en `public/storage/tours/`, NO en `storage/app/public/tours/` (no es web-accessible sin symlink y `storage:link` requiere CLI). Si caen en el path interno, moverlas con FTP `RNFR/RNTO`.
+- Subcarpeta + Apache: si bloquean `storage` en el `.htaccess` raíz, las imágenes devuelven 403 aunque existan.
+- **Galería de detalle de tour** (`tours/show.blade.php`): el grid debe ser `grid-cols-4 grid-rows-2` (8 celdas exactas) para acomodar 1 botón principal `col-span-2 row-span-2` + 4 thumbnails. Con `grid-cols-3` (6 celdas) el grid añade una 3ª fila implícita y aplasta el botón principal.
+
+### DB de producción
+- `limaview_limaprogramacion` / user `limaview_limaprogramacion` / pass `limaview_limaprogramacion` (host local en el servidor).
+- Acceso externo MySQL no habilitado: para SQL one-shot usar phpMyAdmin desde cPanel.
+- Las tablas Laravel relevantes: `tours`, `bookings`, `regions`, `categories`, `testimonials`, `offers`, `pages`, `settings`, `newsletter_subscribers`, `users`, `password_reset_tokens`, `failed_jobs`, `personal_access_tokens`, `sessions`, `migrations`. Cualquier `wp_*` es basura — se importó por error con el dump WP completo y puede dropearse.
+
+### Migración WP → Laravel (snapshot 2026-05-29)
+- Origen: DB `limaview_newlima` (WooCommerce + WC Bookings + Elementor + WP Rocket).
+- 16 productos (`wp_posts.post_type='product'`) + 29 órdenes (`wp_wc_orders`) migrados.
+- Imágenes (143/154) copiadas de `wp-content/uploads/YYYY/MM/` a `public/storage/tours/`.
+- Scripts: `database/scripts/migrate_from_wp.php` (lee WP, inserta en Laravel, exporta manifest de imágenes) + `database/scripts/dump_migration_tables.php` (genera SQL portable). El manifest queda en `storage/app/wp_migration/image_manifest.txt`.
