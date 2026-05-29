@@ -59,8 +59,8 @@
                 'rating'    => is_object($t) ? $t->rating                                        : $t['rating'],
                 'reviews'   => is_object($t) ? ($t->reviews_count ?? 0)                         : ($t['reviews_count'] ?? 0),
                 'img'       => is_object($t)
-                    ? (\Illuminate\Support\Str::contains($t->cover_image ?? '', '/') ? basename($t->cover_image) : ($t->cover_image ?? 'banner-hero.jpg'))
-                    : (\Illuminate\Support\Str::contains($t['cover_image'] ?? '', '/') ? basename($t['cover_image']) : ($t['cover_image'] ?? 'banner-hero.jpg')),
+                    ? (\App\Support\ImagePath::url($t->cover_image ?? null) ?? asset('assets/banners/banner-hero.jpg'))
+                    : (\App\Support\ImagePath::url($t['cover_image'] ?? null) ?? asset('assets/banners/banner-hero.jpg')),
                 'slug'      => is_object($t) ? ($t->slug ?? '')                                  : ($t['slug'] ?? ''),
             ];
         })->all();
@@ -175,71 +175,20 @@
 
         <div class="owl-carousel owl-theme" data-owl-tours-wide x-ignore>
             @foreach ($section['items'] as $i => $tour)
-                @php
-                    $reservedYesterday = $tour['reservedYesterday'] ?? rand(3, 8);
-                @endphp
-                <article class="item tour-card bg-cream-100 rounded-2xl shadow-sm overflow-hidden flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,46%)] h-full">
-                    {{-- Info panel --}}
-                    <div class="p-5 lg:p-6 flex flex-col order-2 lg:order-1">
-                        @if ($tour['badge'])
-                            <span class="text-[11px] uppercase tracking-[0.2em] text-state-error font-semibold">{{ $tour['badge'] }}</span>
-                        @endif
-                        <h3 class="font-display text-xl lg:text-2xl text-teal-700 leading-snug mt-1">{{ $tour['title'] }}</h3>
-                        <p class="mt-2 flex items-center gap-2 text-sm text-teal-800/80">
-                            <span class="font-semibold">{{ $tour['rating'] }}</span>
-                            <span aria-hidden="true" class="text-orange-400 tracking-tight">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                            <span class="text-teal-800/60 text-xs">( {{ $tour['reviews'] }} Comentarios )</span>
-                        </p>
-
-                        <ul class="mt-4 grid grid-cols-4 gap-2 text-[10px] text-teal-800/70 text-center">
-                            @foreach ([
-                                ['Español/Inglés', '<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802"/>'],
-                                ['Full Day', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>'],
-                                ['Tour Grupal', '<path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>'],
-                                ['Recojo y retorno', '<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>'],
-                            ] as [$feat, $iconPath])
-                                <li class="flex flex-col items-center gap-1">
-                                    <span class="w-8 h-8 rounded-full border border-teal-800/20 grid place-items-center text-teal-700" aria-hidden="true">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">{!! $iconPath !!}</svg>
-                                    </span>
-                                    <span>{{ $feat }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
-
-                        <div class="mt-auto pt-4">
-                            <div class="rounded-lg border border-teal-800/15 overflow-hidden">
-                                <p class="bg-teal-700 text-white text-[10px] tracking-[0.2em] uppercase text-center py-1.5 font-semibold">PRECIO POR PERSONA</p>
-                                <div class="flex items-center justify-around py-3 px-2">
-                                    <div class="text-center">
-                                        <p class="text-[10px] tracking-[0.15em] uppercase text-teal-800/55 font-semibold">Antes</p>
-                                        <p class="font-price text-base text-teal-800/50 line-through">${{ number_format((float)$tour['before'], 0) }}</p>
-                                    </div>
-                                    <div class="w-px h-8 bg-teal-800/10"></div>
-                                    <div class="text-center">
-                                        <p class="text-[10px] tracking-[0.15em] uppercase text-teal-800/55 font-semibold">Ahora</p>
-                                        <p class="font-price text-2xl text-state-error">${{ number_format((float)$tour['now'], 0) }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <a href="{{ $tour['slug'] ? route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) : '#' }}"
-                               class="btn--primary btn--block mt-3 !text-sm">Reservar tour</a>
-                        </div>
-                    </div>
-
-                    {{-- Imagen --}}
-                    <div class="relative min-h-[12rem] lg:min-h-0 order-1 lg:order-2">
-                        <img src="{{ asset('assets/banners/' . $tour['img']) }}" alt="{{ $tour['title'] }}"
-                             class="absolute inset-0 w-full h-full object-cover" loading="lazy"
-                             width="480" height="360">
-                        <span class="absolute top-3 right-3 bg-yellow-300 text-teal-800 text-[11px] uppercase tracking-[0.12em] font-semibold py-1.5 pl-2 pr-3 rounded-full inline-flex items-center gap-1.5 shadow-sm">
-                            <svg class="w-3.5 h-3.5 text-state-error" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M13.5 0c2 4 6 6 6 11a7.5 7.5 0 11-15 0c0-3 1.5-5 3-7 .5 2 2 3 3 3-1-3 0-5 3-7z"/>
-                            </svg>
-                            Se reservó {{ $reservedYesterday }} veces ayer
-                        </span>
-                    </div>
-                </article>
+                <div class="item h-full">
+                    <x-tour-card
+                        :title="$tour['title']"
+                        :slug="$tour['slug']"
+                        :img="$tour['img']"
+                        :before="$tour['before']"
+                        :now="$tour['now']"
+                        :rating="$tour['rating']"
+                        :reviews="$tour['reviews']"
+                        :badge="$tour['badge']"
+                        :badge-type="$tour['badgeType']"
+                        currency="US$"
+                    />
+                </div>
             @endforeach
         </div>
     </div>
