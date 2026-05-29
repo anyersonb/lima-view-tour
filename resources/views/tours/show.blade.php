@@ -80,9 +80,9 @@
          @keydown.arrow-right.window="lightbox && next()">
         {{-- Galería --}}
         <div>
-            <div class="grid grid-cols-3 grid-rows-2 gap-3 h-[26rem] md:h-[30rem]">
+            <div class="grid grid-cols-4 grid-rows-2 gap-3 h-[26rem] md:h-[30rem]">
                 <button type="button" @click="open(active)"
-                        class="col-span-2 row-span-2 rounded-2xl overflow-hidden group cursor-zoom-in">
+                        class="col-span-2 row-span-2 block w-full h-full rounded-2xl overflow-hidden group cursor-zoom-in">
                     <img :src="gallery[active] || {{ json_encode($galleryUrls[0] ?? $tour->cover_url) }}"
                          alt="{{ $tour->title }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.02]" loading="eager">
                 </button>
@@ -90,7 +90,7 @@
                     @foreach (array_slice($galleryUrls, 1, 4) as $i => $imgUrl)
                         <button type="button"
                                 @click="{{ $i === 3 ? 'open(' . ($i + 1) . ')' : 'active = ' . ($i + 1) }}"
-                                class="rounded-2xl overflow-hidden relative group cursor-pointer">
+                                class="block w-full h-full rounded-2xl overflow-hidden relative group cursor-pointer">
                             <img src="{{ $imgUrl }}" alt="" class="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy">
                             @if ($i === 3 && $totalImgs > 5)
                                 <span class="absolute inset-0 bg-teal-900/65 grid place-items-center text-white font-semibold text-sm gap-2 flex-col">
