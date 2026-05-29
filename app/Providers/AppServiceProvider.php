@@ -34,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
             config([
                 'livewire.asset_url'  => "/limaprogramacion/livewire/{$jsFile}",
                 'livewire.update_uri' => '/limaprogramacion/livewire/update',
+                // The public disk URL is derived from APP_URL at filesystems.php config-load
+                // time, before forceRootUrl runs. Override it explicitly so Storage::url()
+                // emits the correct /limaprogramacion/storage/... prefix.
+                'filesystems.disks.public.url' => 'https://limaviewtours.com/limaprogramacion/storage',
             ]);
         }
     }

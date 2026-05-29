@@ -65,20 +65,44 @@
         $totalImgs = count($galleryUrls);
     @endphp
     <div class="container mx-auto px-5 lg:px-10 grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]"
-         x-data="{ active: 0 }">
+         x-data="{
+             gallery: {{ json_encode($galleryUrls) }},
+             active: 0,
+             lightbox: false,
+             showAll: false,
+             open(i) { this.active = i ?? this.active; this.lightbox = true; document.body.style.overflow = 'hidden'; },
+             close() { this.lightbox = false; this.showAll = false; document.body.style.overflow = ''; },
+             prev() { this.active = (this.active - 1 + this.gallery.length) % this.gallery.length; },
+             next() { this.active = (this.active + 1) % this.gallery.length; }
+         }"
+         @keydown.escape.window="lightbox && close()"
+         @keydown.arrow-left.window="lightbox && prev()"
+         @keydown.arrow-right.window="lightbox && next()">
         {{-- Galería --}}
         <div>
             <div class="grid grid-cols-3 grid-rows-2 gap-3 h-[26rem] md:h-[30rem]">
-                <div class="col-span-2 row-span-2 rounded-2xl overflow-hidden">
-                    <img :src="{{ json_encode($galleryUrls) }}[active] || {{ json_encode($galleryUrls[0] ?? $tour->cover_url) }}"
-                         alt="{{ $tour->title }}" class="w-full h-full object-cover" loading="eager">
-                </div>
+                <button type="button" @click="open(active)"
+                        class="col-span-2 row-span-2 rounded-2xl overflow-hidden group cursor-zoom-in">
+                    <img :src="gallery[active] || {{ json_encode($galleryUrls[0] ?? $tour->cover_url) }}"
+                         alt="{{ $tour->title }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.02]" loading="eager">
+                </button>
                 @if ($totalImgs > 1)
                     @foreach (array_slice($galleryUrls, 1, 4) as $i => $imgUrl)
-                        <button type="button" @click="active = {{ $i + 1 }}" class="rounded-2xl overflow-hidden relative group">
+                        <button type="button"
+                                @click="{{ $i === 3 ? 'open(' . ($i + 1) . ')' : 'active = ' . ($i + 1) }}"
+                                class="rounded-2xl overflow-hidden relative group cursor-pointer">
                             <img src="{{ $imgUrl }}" alt="" class="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy">
-                            @if ($i === 3)
-                                <span class="absolute inset-0 bg-teal-900/60 grid place-items-center text-white font-semibold text-sm">Ver fotos +</span>
+                            @if ($i === 3 && $totalImgs > 5)
+                                <span class="absolute inset-0 bg-teal-900/65 grid place-items-center text-white font-semibold text-sm gap-2 flex-col">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                                    </svg>
+                                    Ver fotos ({{ $totalImgs }})
+                                </span>
+                            @elseif ($i === 3)
+                                <span class="absolute inset-0 bg-teal-900/35 grid place-items-center text-white font-semibold text-sm opacity-0 group-hover:opacity-100 transition">
+                                    Ver fotos +
+                                </span>
                             @endif
                         </button>
                     @endforeach
@@ -90,6 +114,59 @@
                         </div>
                     @endfor
                 @endif
+            </div>
+
+            {{-- ── LIGHTBOX ── --}}
+            <div x-show="lightbox" x-cloak
+                 x-transition.opacity.duration.200ms
+                 class="fixed inset-0 z-[60] bg-teal-900/95 flex flex-col"
+                 @click.self="close()">
+                {{-- Topbar --}}
+                <div class="flex items-center justify-between px-5 py-4 text-white">
+                    <span class="text-sm">
+                        <span x-text="active + 1"></span> / {{ $totalImgs }}
+                    </span>
+                    <button type="button" @click="close()" class="p-2 rounded-full hover:bg-white/10 transition" aria-label="Cerrar">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Stage --}}
+                <div class="relative flex-1 grid place-items-center px-4 md:px-12">
+                    @if ($totalImgs > 1)
+                        <button type="button" @click="prev()" class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white" aria-label="Anterior">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <button type="button" @click="next()" class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white" aria-label="Siguiente">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    @endif
+                    <img :src="gallery[active]" alt="{{ $tour->title }}"
+                         class="max-h-[70vh] max-w-full object-contain rounded-xl shadow-2xl">
+                </div>
+
+                {{-- Strip de thumbnails --}}
+                <div class="px-5 pb-5 pt-3">
+                    <div class="flex flex-wrap justify-center gap-2 max-w-5xl mx-auto">
+                        <template x-for="(img, i) in (showAll ? gallery : gallery.slice(0, 8))" :key="i">
+                            <button type="button" @click="active = i"
+                                    class="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden ring-2 transition flex-shrink-0"
+                                    :class="active === i ? 'ring-orange-400 opacity-100' : 'ring-transparent opacity-60 hover:opacity-100'">
+                                <img :src="img" alt="" class="w-full h-full object-cover" loading="lazy">
+                            </button>
+                        </template>
+                        @if ($totalImgs > 8)
+                            <button type="button" x-show="!showAll" @click="showAll = true"
+                                    class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wide transition">
+                                Ver más ({{ $totalImgs - 8 }})
+                            </button>
+                            <button type="button" x-show="showAll" @click="showAll = false"
+                                    class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wide transition">
+                                Ver menos
+                            </button>
+                        @endif
+                    </div>
+                </div>
             </div>
 
             <h1 class="mt-6 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
