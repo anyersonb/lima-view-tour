@@ -20,6 +20,14 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
     require $maintenance;
 }
 
+// Subfolder deployment: strip "/limaprogramacion" prefix so Laravel routes
+// match. AppServiceProvider reads LIMA_SUBFOLDER to force the root URL and
+// patch Livewire's asset/update URIs (its defaults don't honor forceRootUrl).
+if (! empty($_SERVER['REQUEST_URI']) && str_starts_with($_SERVER['REQUEST_URI'], '/limaprogramacion')) {
+    $_SERVER['REQUEST_URI'] = substr($_SERVER['REQUEST_URI'], strlen('/limaprogramacion')) ?: '/';
+    $_SERVER['LIMA_SUBFOLDER'] = true;
+}
+
 /*
 |--------------------------------------------------------------------------
 | Register The Auto Loader
