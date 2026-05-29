@@ -54,12 +54,13 @@
         }
     }
 
-    // Mapa de color del escudo según badgeType
+    // Color del escudo: default verde teal-800 (mockup). Override opcional por badgeType.
     $shieldBg = match ($badgeType) {
         'warn'    => 'bg-orange-600',
         'error'   => 'bg-state-error',
         'info'    => 'bg-teal-600',
-        default   => 'bg-teal-800', // success
+        'gold'    => 'bg-amber-600',
+        default   => 'bg-teal-800',
     };
 @endphp
 
@@ -78,15 +79,17 @@
 
         {{-- Badge superior-izquierdo: ESCUDO COLGANTE (MÁS VENDIDO, BEST SELLER, TOP EXPERIENCIA…) --}}
         @if (! empty($shieldLines))
-            <div class="tour-card__shield {{ $shieldBg }} text-white absolute top-0 left-3 z-10 w-[68px] flex flex-col items-center justify-start pt-2 pb-3 px-1 shadow-md">
-                <svg class="w-3.5 h-3.5 text-yellow-300 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                <p class="mt-1 text-[8.5px] font-bold uppercase leading-[1.15] tracking-[0.04em] text-center">
+            <div class="tour-card__shield {{ $shieldBg }} text-white absolute -top-1 left-4 z-10 w-[86px] flex flex-col items-center justify-start pt-2.5 pb-4 px-1.5 shadow-lg">
+                <p class="text-[10px] font-bold uppercase leading-[1.15] tracking-[0.05em] text-center">
                     @foreach ($shieldLines as $line)
                         {{ $line }}@if (! $loop->last)<br>@endif
                     @endforeach
                 </p>
+                <span class="mt-1.5 w-6 h-6 rounded-full bg-yellow-400/95 grid place-items-center shadow-sm ring-2 ring-white/10">
+                    <svg class="w-3.5 h-3.5 text-teal-900" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </span>
             </div>
         @endif
 
@@ -103,7 +106,7 @@
 
         {{-- Pill de ubicación — dorada flotante sobre el borde inferior de la imagen --}}
         @if ($locationLabel)
-            <span class="absolute bottom-0 left-4 translate-y-1/2 inline-flex items-center gap-1.5 bg-orange-500 text-white text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full shadow-md">
+            <span class="absolute bottom-0 left-4 translate-y-1/2 inline-flex items-center gap-1.5 bg-amber-500 text-white text-[11px] font-semibold uppercase tracking-[0.12em] px-3 py-1.5 rounded-full shadow-md">
                 <svg class="w-3.5 h-3.5 text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.667 3.5-8.077A8 8 0 003 11.25c0 3.41 1.556 6.064 3.5 8.077a19.58 19.58 0 002.683 2.282 16.975 16.975 0 001.144.742zM12 13.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd"/>
                 </svg>
@@ -219,7 +222,7 @@
         </div>
 
         {{-- CTA --}}
-        <a href="{{ $url }}" class="btn--primary btn--block mt-3 !text-sm tracking-[0.15em] uppercase">
+        <a href="{{ $url }}" class="btn--card-cta btn--block mt-3 !text-sm">
             Reservar ahora
         </a>
 

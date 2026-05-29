@@ -44,3 +44,8 @@
 .btn--block {
     @apply w-full;
 }
+
+.btn--card-cta {
+    @include btn-base;
+    @apply bg-teal-800 text-white hover:bg-teal-700 active:bg-teal-900 tracking-[0.18em];
+}

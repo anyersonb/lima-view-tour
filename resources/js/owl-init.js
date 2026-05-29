@@ -37,8 +37,7 @@ function initOwl() {
             responsive: {
                 0:    { items: 1, margin: 0 },
                 640:  { items: 2 },
-                1024: { items: 3 },
-                1280: { items: 4 },
+                1024: { items: 4 },
             },
         });
     });
