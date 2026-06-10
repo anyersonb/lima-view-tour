@@ -1,0 +1,17 @@
+{
+  "name": "Lima View Tours",
+  "short_name": "LVTours",
+  "description": "Tours y excursiones desde Lima: Huacachina, Islas Ballestas, Paracas y más.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#15474B",
+  "icons": [
+    {
+      "src": "/assets/logos/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

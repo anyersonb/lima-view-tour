@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle: brand teal -->
+  <circle cx="16" cy="16" r="16" fill="#15474B"/>
+  <!-- Letter "L" in brand orange -->
+  <text x="7" y="23" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#F97316">L</text>
+  <!-- Letter "V" in white -->
+  <text x="16" y="23" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff">V</text>
+</svg>
