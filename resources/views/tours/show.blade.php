@@ -390,8 +390,8 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
                             </svg>
                             <span class="text-xs font-bold text-teal-800">Ahorras US${{ number_format($savings, 0) }}</span>
                         </span>
-                        <button type="button"
-                                onclick="document.getElementById('sticky-reservar')?.click()"
+                        <button type="submit"
+                                form="form-reservar"
                                 class="inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-semibold text-sm rounded-full py-2.5 px-5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
                             Reservar ahora
                             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
@@ -443,8 +443,8 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
                         </div>
                     </div>
                 </div>
-                <button type="button"
-                        onclick="document.getElementById('sticky-reservar')?.click()"
+                <button type="submit"
+                        form="form-reservar"
                         class="mt-4 w-full inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-semibold text-sm rounded-full py-3.5 px-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
                     Reservar ahora
                     <span class="w-6 h-6 rounded-full bg-orange-500 grid place-items-center shrink-0" aria-hidden="true">
@@ -957,6 +957,18 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
     </div>{{-- /max-w-3xl --}}
 </section>
 
+{{-- Form oculto POST → cart.store (corrige HTTP 405 del botón sticky) --}}
+<form id="form-reservar"
+      method="POST"
+      action="{{ route('cart.store', ['locale' => $locale]) }}"
+      class="hidden">
+    @csrf
+    <input type="hidden" name="tour_id"     value="{{ $tour->id }}">
+    <input type="hidden" name="adults"      value="1">
+    <input type="hidden" name="children"    value="0">
+    <input type="hidden" name="travel_date" value="{{ now()->addDays(7)->format('Y-m-d') }}">
+</form>
+
 {{-- ─────────── 12. STICKY FOOTER CTA ─────────── --}}
 <div class="fixed bottom-0 inset-x-0 z-40 bg-white shadow-2xl ring-1 ring-teal-800/10 sticky-bar">
     <div class="container mx-auto px-4 sm:px-5">
@@ -981,8 +993,8 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
             </div>
             {{-- CTA --}}
             <button id="sticky-reservar"
-                    type="button"
-                    onclick="window.location.href='{{ route('cart.store', ['locale' => $locale]) }}'"
+                    type="submit"
+                    form="form-reservar"
                     class="shrink-0 inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-semibold text-sm rounded-full py-3 px-5 lg:px-7 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
                 Reservar ahora
                 <span class="w-7 h-7 rounded-full bg-orange-500 grid place-items-center shrink-0" aria-hidden="true">

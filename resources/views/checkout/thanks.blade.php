@@ -85,11 +85,20 @@
                         <span>
                             Referencia: <strong class="font-mono text-teal-800">{{ $booking['reference'] }}</strong>
                         </span>
+                        @php
+                            $isPaid = ($booking['payment_status'] ?? 'pending') === 'paid';
+                        @endphp
                         <span class="inline-flex items-center gap-1">
                             Estado:
-                            <span class="inline-block rounded-full bg-state-success/10 text-state-success px-2 py-0.5 font-semibold uppercase tracking-wide text-[10px]">
-                                Confirmada
-                            </span>
+                            @if ($isPaid)
+                                <span class="inline-block rounded-full bg-state-success/10 text-state-success px-2 py-0.5 font-semibold uppercase tracking-wide text-[10px]">
+                                    Confirmada
+                                </span>
+                            @else
+                                <span class="inline-block rounded-full bg-orange-100 text-orange-600 px-2 py-0.5 font-semibold uppercase tracking-wide text-[10px]">
+                                    Pendiente de pago
+                                </span>
+                            @endif
                         </span>
                     </div>
                 </article>

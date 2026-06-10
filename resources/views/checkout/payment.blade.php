@@ -367,7 +367,17 @@
             return;
         }
 
-        Culqi.open();
+        // Leer el timing elegido por el usuario desde el radio del DOM
+        const timingRadio = form.querySelector('input[name="payment_timing_ui"]:checked');
+        const timing      = timingRadio ? timingRadio.value : 'now';
+
+        if (timing === 'later') {
+            // Reservar y pagar después: envío directo sin abrir Culqi
+            form.submit();
+        } else {
+            // Pagar ahora con tarjeta: abre el modal de Culqi
+            Culqi.open();
+        }
     });
 
     // Culqi callback — receives the token after card tokenisation

@@ -53,7 +53,11 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Process the payment: create booking(s), charge via Culqi, send confirmation email.
+     * Process the payment: create booking(s), charge via Culqi (if paying now),
+     * send confirmation email, redirect to thanks page.
+     *
+     * payment_timing=now  → full Culqi charge flow (existing behavior, unchanged)
+     * payment_timing=later → bookings created as pending/pay_later, no charge
      */
     public function processPayment(ProcessPaymentRequest $request): RedirectResponse
     {
@@ -71,9 +75,10 @@ class CheckoutController extends Controller
             $validated     = $request->validated();
             $total         = $this->cart->total();
             $totalCentavos = (int) round($total * 100);
+            $payingNow     = ($validated['payment_timing'] === 'now');
 
-            // Create one Booking per cart item with payment_status=pending
-            $bookings = $items->map(function (array $item) use ($validated, $locale): Booking {
+            // Create one Booking per cart item
+            $bookings = $items->map(function (array $item) use ($validated, $locale, $payingNow): Booking {
                 return Booking::create([
                     'tour_id'             => $item['tour_id'],
                     'tour_title_snapshot' => $item['title_snapshot'],
@@ -88,48 +93,65 @@ class CheckoutController extends Controller
                     'currency'            => 'USD',
                     'status'              => 'pending',
                     'payment_status'      => 'pending',
-                    'payment_method'      => 'culqi',
+                    'payment_method'      => $payingNow ? 'culqi' : 'pay_later',
                     'locale'              => $locale,
                 ]);
             });
 
-            // Attempt Culqi charge
-            $chargeData = $this->payment->createCharge([
-                'amount'      => $totalCentavos,
-                'currency_code' => 'USD',
-                'email'       => $validated['customer_email'],
-                'source_id'   => $validated['culqi_token'],
-                'antifraud_details' => [
-                    'first_name' => explode(' ', $validated['customer_name'])[0] ?? $validated['customer_name'],
-                    'last_name'  => implode(' ', array_slice(explode(' ', $validated['customer_name']), 1)) ?: '-',
-                    'phone_number' => preg_replace('/\D/', '', $validated['customer_phone']),
-                ],
-                'metadata' => [
-                    'booking_references' => $bookings->pluck('reference')->implode(','),
-                    'locale'             => $locale,
-                ],
-            ]);
-
-            $chargeId = $chargeData['id'];
-
-            // Mark all bookings as paid
-            $bookings->each(function (Booking $booking) use ($chargeId): void {
-                $booking->update([
-                    'payment_status'    => 'paid',
-                    'status'            => 'confirmed',
-                    'payment_reference' => $chargeId,
+            if ($payingNow) {
+                // ── Flujo pago inmediato: cobrar con Culqi ──────────────────
+                $chargeData = $this->payment->createCharge([
+                    'amount'        => $totalCentavos,
+                    'currency_code' => 'USD',
+                    'email'         => $validated['customer_email'],
+                    'source_id'     => $validated['culqi_token'],
+                    'antifraud_details' => [
+                        'first_name'   => explode(' ', $validated['customer_name'])[0] ?? $validated['customer_name'],
+                        'last_name'    => implode(' ', array_slice(explode(' ', $validated['customer_name']), 1)) ?: '-',
+                        'phone_number' => preg_replace('/\D/', '', $validated['customer_phone']),
+                    ],
+                    'metadata' => [
+                        'booking_references' => $bookings->pluck('reference')->implode(','),
+                        'locale'             => $locale,
+                    ],
                 ]);
-            });
 
-            // Send confirmation email (queued via sync in testing, queue in production)
-            Mail::to($validated['customer_email'])
-                ->send(new BookingConfirmed($bookings, $validated['customer_email']));
+                $chargeId = $chargeData['id'];
 
-            Log::info('checkout.process_payment.success', [
-                'charge_id' => $chargeId,
-                'email'     => $validated['customer_email'],
-                'bookings'  => $bookings->pluck('reference')->all(),
-            ]);
+                // Mark all bookings as paid and confirmed
+                $bookings->each(function (Booking $booking) use ($chargeId): void {
+                    $booking->update([
+                        'payment_status'    => 'paid',
+                        'status'            => 'confirmed',
+                        'payment_reference' => $chargeId,
+                    ]);
+                });
+
+                Log::info('checkout.process_payment.success', [
+                    'charge_id' => $chargeId,
+                    'email'     => $validated['customer_email'],
+                    'bookings'  => $bookings->pluck('reference')->all(),
+                ]);
+            } else {
+                // ── Flujo pagar después: reservas pendientes, sin cobro ─────
+                Log::info('checkout.process_payment.pay_later', [
+                    'email'    => $validated['customer_email'],
+                    'bookings' => $bookings->pluck('reference')->all(),
+                ]);
+            }
+
+            // Send confirmation email (applies to both flows).
+            // Un fallo de correo (servidor caído/mal configurado) NO debe abortar la
+            // reserva ya creada: se registra y el cliente igual llega a la confirmación.
+            try {
+                Mail::to($validated['customer_email'])
+                    ->send(new BookingConfirmed($bookings, $validated['customer_email']));
+            } catch (\Throwable $mailEx) {
+                Log::warning('checkout.confirmation_email.failed', [
+                    'email'   => $validated['customer_email'],
+                    'message' => $mailEx->getMessage(),
+                ]);
+            }
 
             // Clear cart and store booking references in session
             $this->cart->clear();
@@ -137,6 +159,7 @@ class CheckoutController extends Controller
             $request->session()->put('last_bookings', $bookings->toArray());
 
             return redirect()->route('checkout.thanks', ['locale' => $locale]);
+
         } catch (\Throwable $e) {
             Log::error('checkout.process_payment.error', [
                 'message' => $e->getMessage(),
