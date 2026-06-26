@@ -1,15 +1,26 @@
 .site-header {
-    @apply sticky top-0 z-50 transition-colors;
+    @apply fixed top-0 inset-x-0 z-50 transition-all duration-300;
 
     &[data-variant="solid"] {
-        @apply bg-teal-700 text-white;
+        @apply bg-teal-700 text-white shadow-md;
     }
 
     &[data-variant="transparent"] {
         @apply bg-transparent text-white;
 
+        &.is-scrolled {
+            @apply bg-teal-700/95 shadow-lg;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
         .site-header__cart { @apply bg-orange-500; }
     }
+}
+
+// Compensar el fixed header: las páginas con solid header necesitan padding-top
+body:has(.site-header[data-variant="solid"]) {
+    padding-top: 88px;
 }
 
 .site-header__bar {

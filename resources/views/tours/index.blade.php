@@ -50,7 +50,7 @@
             'duration' => is_object($t) ? ($t->duration ?? '') : ($t['duration'] ?? ''),
             'lang' => is_object($t) ? ($t->language ?? '') : ($t['language'] ?? ''),
             'group' => is_object($t) ? ($t->group_type ?? '') : ($t['group_type'] ?? ''),
-            'img' => $img ? (\Illuminate\Support\Str::startsWith($img, ['http', '/']) ? $img : asset($img)) : asset('assets/banners/banner-hero.jpg'),
+            'img' => \App\Support\ImagePath::url($img) ?? asset('assets/banners/banner-hero.jpg'),
             'slug' => is_object($t) ? ($t->slug ?? '') : ($t['slug'] ?? ''),
         ];
     });
@@ -123,54 +123,44 @@
             </div>
         </div>
 
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {{-- MOBILE (<640): cards horizontales tipo lista --}}
+        <div class="flex flex-col gap-4 sm:hidden">
             @foreach ($cardData as $tour)
-                <article class="group bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5 flex flex-col">
-                    <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) }}" class="relative block">
-                        <img src="{{ $tour['img'] }}" alt="{{ $tour['title'] }}"
-                             class="w-full h-52 object-cover transition-transform group-hover:scale-105" loading="lazy">
-                        @php
-                            $badgeColor = match ($tour['badgeType']) {
-                                'error' => 'bg-state-error text-white',
-                                'success' => 'bg-state-success text-white',
-                                default => 'bg-orange-500 text-white',
-                            };
-                        @endphp
-                        @if ($tour['badge'])
-                            <span class="absolute top-3 left-3 {{ $badgeColor }} text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded">
-                                {{ $tour['badge'] }}
-                            </span>
-                        @endif
-                    </a>
+                <x-tour-card-row
+                    :title="$tour['title']"
+                    :slug="$tour['slug']"
+                    :img="$tour['img']"
+                    :before="$tour['before']"
+                    :now="$tour['now']"
+                    :rating="$tour['rating']"
+                    :reviews="$tour['reviews']"
+                    :duration="$tour['duration']"
+                    :language="$tour['lang']"
+                    :badge="$tour['badge']"
+                    :badge-type="$tour['badgeType']"
+                    :location-label="$cat ? ucfirst($cat) : null"
+                    currency="US$"
+                />
+            @endforeach
+        </div>
 
-                    <div class="p-5 flex flex-col flex-1">
-                        <div class="flex items-center gap-2 text-xs text-teal-800/70">
-                            <span class="text-orange-400" aria-hidden="true">&#9733;</span>
-                            <span class="font-semibold text-teal-800">{{ $tour['rating'] }}</span>
-                            <span>({{ $tour['reviews'] }} reseñas)</span>
-                        </div>
-
-                        <h3 class="mt-3 font-display text-lg text-teal-800 leading-snug">
-                            <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) }}" class="hover:text-orange-500 transition-colors">
-                                {{ $tour['title'] }}
-                            </a>
-                        </h3>
-
-                        <ul class="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-teal-800/65">
-                            <li>&#128100; {{ $tour['lang'] }}</li>
-                            <li>&#9202; {{ $tour['duration'] }}</li>
-                            <li>&#128101; {{ $tour['group'] }}</li>
-                        </ul>
-
-                        <div class="mt-auto pt-5 flex items-end justify-between">
-                            <div>
-                                <p class="text-xs text-teal-800/60 line-through">${{ $tour['before'] }}</p>
-                                <p class="font-price text-2xl text-teal-800 leading-none">${{ $tour['now'] }}<span class="text-[10px] uppercase tracking-[0.2em] text-teal-800/60 font-sans block mt-1">POR PERSONA</span></p>
-                            </div>
-                            <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour['slug']]) }}" class="btn--primary !py-2.5 !px-5 text-xs">Reservar</a>
-                        </div>
-                    </div>
-                </article>
+        {{-- TABLET / DESKTOP (≥640): grid de cards verticales --}}
+        <div class="hidden sm:grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach ($cardData as $tour)
+                <x-tour-card
+                    :title="$tour['title']"
+                    :slug="$tour['slug']"
+                    :img="$tour['img']"
+                    :before="$tour['before']"
+                    :now="$tour['now']"
+                    :rating="$tour['rating']"
+                    :reviews="$tour['reviews']"
+                    :duration="$tour['duration']"
+                    :language="$tour['lang']"
+                    :badge="$tour['badge']"
+                    :badge-type="$tour['badgeType']"
+                    currency="US$"
+                />
             @endforeach
         </div>
 

@@ -14,3 +14,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Line-clamp: fuera de @layer para garantizar cascade después de utilities ── */
+.clamp-1, .clamp-2, .clamp-3 {
+    overflow: hidden;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical;
+}
+.clamp-1 { -webkit-line-clamp: 1; }
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }

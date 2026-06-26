@@ -7,7 +7,10 @@
 @endphp
 
 <header class="site-header" data-variant="{{ $variant }}" role="banner"
-        x-data="{ open: false, lang: false, regions: { lima: false, ica: false, cusco: false } }">
+        x-data="{ open: false, lang: false, regions: { lima: false, ica: false, cusco: false }, scrolled: false }"
+        x-init="scrolled = window.scrollY > 40"
+        @scroll.window.passive="scrolled = window.scrollY > 40"
+        :class="{ 'is-scrolled': scrolled }">
     <div class="site-header__bar flex items-stretch">
         <div class="flex-1 flex items-center gap-5 pl-5 lg:pl-10 pr-3">
             {{-- Logo --}}
