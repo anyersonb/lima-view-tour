@@ -47,6 +47,9 @@ Route::prefix('{locale}')
             ->where('categoria', 'lima|ica|cusco')
             ->name('tours.category');
         Route::get('/tours/detalle/{slug}', [TourController::class, 'show'])->name('tours.show');
+        Route::post('/tours/detalle/{slug}/resena', [TourController::class, 'storeReview'])
+            ->middleware('throttle:6,1')
+            ->name('tours.review.store');
         Route::get('/buscar', [TourController::class, 'search'])->name('tours.results');
 
         // Cart routes (Fase 2)

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Region;
 use App\Models\Testimonial;
 use App\Models\Tour;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -47,7 +48,49 @@ class TourController extends Controller
             'tour' => $tour,
             'related' => $related,
             'testimonials' => Testimonial::active()->featured()->orderBy('order')->limit(4)->get(),
+            'tourReviews' => $tour->testimonials()
+                ->where('is_active', true)
+                ->latest()
+                ->get(),
         ]);
+    }
+
+    /**
+     * Guarda una reseña enviada por el visitante (caja estilo WooCommerce).
+     * Queda is_active=false (pendiente) hasta que un admin la apruebe en Filament → Testimonios.
+     */
+    public function storeReview(Request $request, string $locale, string $slug): RedirectResponse
+    {
+        $tour = Tour::published()->where('slug', $slug)->firstOrFail();
+
+        $data = $request->validate([
+            'rating'  => ['required', 'integer', 'between:1,5'],
+            'name'    => ['required', 'string', 'max:120'],
+            'email'   => ['required', 'email', 'max:160'],
+            'comment' => ['required', 'string', 'min:10', 'max:2000'],
+            // Honeypot anti-spam: debe venir vacío
+            'website' => ['nullable', 'size:0'],
+        ], [], [
+            'rating'  => 'puntuación',
+            'name'    => 'nombre',
+            'email'   => 'correo',
+            'comment' => 'valoración',
+        ]);
+
+        Testimonial::create([
+            'tour_id'     => $tour->id,
+            'name'        => $data['name'],
+            'quote_es'    => $data['comment'],
+            'rating'      => $data['rating'],
+            'source'      => 'Web',
+            'is_active'   => false, // pendiente de moderación
+            'is_featured' => false,
+        ]);
+
+        return redirect()
+            ->route('tours.show', ['locale' => $locale, 'slug' => $slug])
+            ->with('review_status', '¡Gracias! Tu reseña fue enviada y se publicará tras ser revisada.')
+            ->withFragment('reviews');
     }
 
     public function search(Request $request): View

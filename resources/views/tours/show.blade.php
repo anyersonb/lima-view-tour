@@ -487,6 +487,30 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-comment b { font-size: 13px; }
 .m-comment .m-date { float: right; color: #777; font-size: 11px; font-weight: 500; }
 .m-comment p { font-size: 12px; margin: 5px 0 0; line-height: 1.35; }
+/* ── Caja de reseñas (form estilo WooCommerce adaptado al diseño) ── */
+.m-review-flash { margin: 12px 0; padding: 11px 13px; background: #eaf6ee; border: 1px solid #bfe3cc; border-radius: 10px; color: #176a3d; font-size: 12.5px; font-weight: 700; }
+.m-reviews-empty { font-size: 12.5px; color: #6b7077; margin: 12px 0 0; }
+.m-review-form-wrap { margin-top: 14px; border: 1px solid var(--m-line); border-radius: 14px; overflow: hidden; background: #fff; }
+.m-review-toggle { display: flex; align-items: center; gap: 8px; padding: 13px 15px; cursor: pointer; font-weight: 800; font-size: 13px; color: var(--m-green); background: #f4f8f4; list-style: none; }
+.m-review-toggle::-webkit-details-marker { display: none; }
+.m-review-toggle .chev { margin-left: auto; transition: transform .25s ease; }
+.m-review-form-wrap[open] .m-review-toggle .chev { transform: rotate(180deg); }
+.m-review-form { padding: 14px 15px 16px; }
+.m-review-form .fld { margin-bottom: 11px; }
+.m-review-form label { display: block; font-size: 11px; font-weight: 800; color: #465e68; text-transform: uppercase; letter-spacing: .2px; margin-bottom: 5px; }
+.m-review-form label .req { color: #e13b2f; }
+.m-review-form textarea, .m-review-form input[type="text"], .m-review-form input[type="email"] {
+  width: 100%; border: 1px solid #d7dad9; border-radius: 10px; background: #fff; padding: 9px 11px; font-size: 13px; color: #29404a; font-family: inherit; outline: none;
+}
+.m-review-form textarea:focus, .m-review-form input:focus { border-color: var(--m-green); box-shadow: 0 0 0 2px rgba(8,59,49,.10); }
+.m-review-form textarea { min-height: 84px; resize: vertical; }
+.m-rate-stars { display: inline-flex; gap: 4px; font-size: 26px; line-height: 1; cursor: pointer; }
+.m-rate-stars span { color: #d8dcd8; transition: color .12s ease; }
+.m-rate-stars span.on { color: #ffb000; }
+.m-review-hint { font-size: 10.5px; color: #8a8f95; margin-top: 4px; }
+.m-review-errors { background: #fdecea; border: 1px solid #f5c6c0; color: #c0392b; border-radius: 9px; padding: 9px 11px; font-size: 12px; margin-bottom: 11px; font-weight: 600; }
+.m-review-submit { width: 100%; background: var(--m-green); color: #fff; border: none; border-radius: 22px; padding: 12px; font-size: 13px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 18px rgba(7,59,47,.18); }
+.m-review-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .m-outline-btn { display: block; border: 1px solid #222; border-radius: 20px; text-align: center; padding: 10px; margin: 12px 40px 4px; text-decoration: none; color: #111; font-weight: 900; font-size: 13px; }
 
 /* Rec cards mobile */
@@ -1037,11 +1061,13 @@ if (!empty($itinerary)) {
             </div>
         </div>
 
-        {{-- 8. OPINIONES --}}
-        <div style="padding:18px 20px;">
+        {{-- 8. OPINIONES / RESEÑAS (caja estilo WooCommerce, dinámica) --}}
+        <div id="reviews" style="padding:18px 20px;">
             <div class="m-h2">
                 <h2>Opiniones de nuestros viajeros</h2>
-                <a href="#">Ver todas</a>
+                @if ($tourReviews->count() > 0)
+                    <span style="font-size:12px;color:#6b7077;font-weight:800;">{{ $tourReviews->count() }} {{ $tourReviews->count() === 1 ? 'valoración' : 'valoraciones' }}</span>
+                @endif
             </div>
             <div class="m-review-cards">
                 <div class="m-platform">
@@ -1059,31 +1085,71 @@ if (!empty($itinerary)) {
                     <a href="#">Ver en Tripadvisor →</a>
                 </div>
             </div>
-            @if(($testimonials?->count() ?? 0) > 0)
-                @php $avatarColors = ['bg-teal-700','bg-orange-500','bg-teal-600','bg-amber-600']; @endphp
-                @foreach ($testimonials->take(2) as $tIdx => $testimonial)
-                    @php
-                        $tName   = $testimonial->author_name ?? $testimonial->name ?? 'Viajero';
-                        $tDate   = $testimonial->created_at ? \Carbon\Carbon::parse($testimonial->created_at)->translatedFormat('j M Y') : '';
-                        $tText   = $testimonial->{"quote_$locale"} ?? $testimonial->quote_es ?? $testimonial->{"content_$locale"} ?? $testimonial->content_es ?? $testimonial->content ?? '';
-                        $tAvatar = $testimonial->avatar_url ?? null;
-                    @endphp
-                    <div class="m-comment">
-                        @if ($tAvatar)
-                            <img src="{{ $tAvatar }}" alt="{{ $tName }}" loading="lazy" width="38" height="38">
-                        @else
-                            <div style="width:38px;height:38px;border-radius:50%;background:#15474b;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;flex-shrink:0;" aria-hidden="true">{{ mb_strtoupper(mb_substr($tName,0,1,'UTF-8'),'UTF-8') }}</div>
-                        @endif
-                        <div>
-                            <b>{{ $tName }} <span class="m-verified" aria-label="Verificado">✓</span></b>
-                            @if ($tDate)<span class="m-date">{{ $tDate }}</span>@endif
-                            <div class="m-stars">★★★★★</div>
-                            @if ($tText)<p>{{ \Illuminate\Support\Str::limit($tText, 120) }}</p>@endif
-                        </div>
-                    </div>
-                @endforeach
+
+            @if (session('review_status'))
+                <div class="m-review-flash">{{ session('review_status') }}</div>
             @endif
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="m-outline-btn">Ver todas las opiniones →</a>
+
+            {{-- Lista de reseñas del tour --}}
+            @forelse ($tourReviews as $rev)
+                @php
+                    $rName   = $rev->name ?: 'Viajero';
+                    $rDate   = $rev->created_at ? \Carbon\Carbon::parse($rev->created_at)->translatedFormat('j \d\e F, Y') : '';
+                    $rText   = $rev->{"quote_$locale"} ?: $rev->quote_es;
+                    $rRating = max(1, min(5, (int) round($rev->rating)));
+                @endphp
+                <div class="m-comment">
+                    <div style="width:38px;height:38px;border-radius:50%;background:#15474b;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex-shrink:0;" aria-hidden="true">{{ mb_strtoupper(mb_substr($rName,0,1,'UTF-8'),'UTF-8') }}</div>
+                    <div>
+                        <b>{{ $rName }} <span class="m-verified" aria-label="Verificado">✓</span></b>
+                        @if ($rDate)<span class="m-date">{{ $rDate }}</span>@endif
+                        <div class="m-stars" aria-label="Valorado con {{ $rRating }} de 5">{{ str_repeat('★', $rRating) }}<span style="color:#d8dcd8;">{{ str_repeat('★', 5 - $rRating) }}</span></div>
+                        @if ($rText)<p>{{ $rText }}</p>@endif
+                    </div>
+                </div>
+            @empty
+                <p class="m-reviews-empty">Sé el primero en dejar una reseña de este tour.</p>
+            @endforelse
+
+            {{-- Formulario "Añade una valoración" (crea reseña pendiente de aprobación) --}}
+            <details class="m-review-form-wrap" {{ ($errors->any() || session('review_status')) ? 'open' : '' }}>
+                <summary class="m-review-toggle">
+                    <span aria-hidden="true">✍️</span> Añade una valoración
+                    <span class="chev" aria-hidden="true">⌄</span>
+                </summary>
+                <form method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="m-review-form"
+                      x-data="{ rating: {{ (int) old('rating', 0) }} }">
+                    @csrf
+                    @if ($errors->any())
+                        <div class="m-review-errors">{{ $errors->first() }}</div>
+                    @endif
+                    <div class="fld">
+                        <label>Tu puntuación <span class="req">*</span></label>
+                        <div class="m-rate-stars" role="radiogroup" aria-label="Puntuación">
+                            <template x-for="n in 5" :key="n">
+                                <span :class="{ 'on': n <= rating }" @click="rating = n" role="radio" :aria-checked="n === rating" :aria-label="`${n} estrellas`">★</span>
+                            </template>
+                        </div>
+                        <input type="hidden" name="rating" :value="rating">
+                    </div>
+                    <div class="fld">
+                        <label for="rev-comment">Tu reseña <span class="req">*</span></label>
+                        <textarea id="rev-comment" name="comment" required minlength="10" maxlength="2000">{{ old('comment') }}</textarea>
+                    </div>
+                    <div class="fld">
+                        <label for="rev-name">Nombre <span class="req">*</span></label>
+                        <input id="rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name">
+                    </div>
+                    <div class="fld">
+                        <label for="rev-email">Correo electrónico <span class="req">*</span></label>
+                        <input id="rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email">
+                        <div class="m-review-hint">No se publicará. Solo para verificar tu reseña.</div>
+                    </div>
+                    {{-- Honeypot anti-spam --}}
+                    <input class="m-review-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+                    <button type="submit" class="m-review-submit">Enviar reseña</button>
+                </form>
+            </details>
         </div>
 
         {{-- 9. OTROS VIAJEROS TAMBIÉN RESERVARON — rec-cards --}}
