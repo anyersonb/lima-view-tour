@@ -391,8 +391,9 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
   box-sizing: border-box;
 }
 .m-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.m-total { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd8ce; margin-top: 1px; padding-top: 8px; color: #51626c; font-size: 12px; }
-.m-total strong { font-family: Georgia, serif; font-size: 17px; color: #0a3240; }
+.m-total { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 11px 13px; background: linear-gradient(180deg,#f3f7ef 0%,#e9f3e4 100%); border: 1px solid #d4e3cf; border-radius: 12px; color: #2d5a3d; font-size: 13px; font-weight: 800; }
+.m-total strong { font-family: Georgia, serif; font-size: 23px; line-height: 1; color: #0a3240; font-weight: 800; }
+.m-total .m-total-sub { display: block; font-size: 10px; font-weight: 600; color: #5f7466; letter-spacing: .2px; margin-top: 2px; }
 .m-cta { margin-top: 8px; background: #dc9343; color: #fff; border-radius: 20px; text-align: center; padding: 10px 8px; font-size: 12px; font-weight: 900; letter-spacing: .12px; cursor: pointer; border: none; width: 100%; display: block; }
 .m-foot { margin-top: 7px; text-align: center; color: #7d8b93; font-size: 9.5px; }
 
@@ -460,12 +461,19 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-stop p { margin: 2px 0 0; color: #4c4f54; font-size: 12px; line-height: 1.25; }
 
 /* Info list accordion mobile */
-.m-info-list { display: flex; flex-direction: column; border: 1px solid var(--m-line); border-radius: 11px; overflow: hidden; }
-.m-info-item { display: grid; grid-template-columns: 42px 1fr 16px; gap: 10px; align-items: center; padding: 15px 14px; border-bottom: 1px solid var(--m-line); cursor: pointer; }
-.m-info-item:last-child { border-bottom: 0; }
-.m-info-ico { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #f5f7f5; color: var(--m-green); font-size: 19px; }
-.m-info-item b { font-size: 13px; }
-.m-info-item p { font-size: 12px; color: #555; margin: 2px 0 0; line-height: 1.25; }
+.m-info-list { display: flex; flex-direction: column; border: 1px solid var(--m-line); border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+.m-info-list details { border-bottom: 1px solid var(--m-line); }
+.m-info-list details:last-child { border-bottom: 0; }
+.m-info-item { display: grid; grid-template-columns: 44px 1fr 18px; gap: 12px; align-items: center; padding: 15px 15px; cursor: pointer; transition: background .2s ease; list-style: none; }
+.m-info-item:hover { background: #fafbfa; }
+.m-info-list details[open] > .m-info-item { background: #f1f7f1; }
+.m-info-list details[open] > .m-info-item b { color: var(--m-green); }
+.m-info-ico { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #eef3ee; color: var(--m-green); font-size: 20px; }
+.m-info-item b { font-size: 14px; color: #14201c; font-weight: 800; }
+.m-info-item p { font-size: 12px; color: #6b7077; margin: 2px 0 0; line-height: 1.3; }
+.m-info-list details > div { font-size: 13px !important; color: #444 !important; line-height: 1.6 !important; }
+.m-info-list details > div > div { padding: 3px 0; border-bottom: 1px dashed #eee; }
+.m-info-list details > div > div:last-child { border-bottom: 0; }
 
 /* Review cards mobile */
 .m-review-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -866,7 +874,11 @@ if (!empty($itinerary)) {
                     </div>
                     {{-- Total --}}
                     <div class="m-total">
-                        <span>Total estimado</span>
+                        <span>Total estimado
+                            <span class="m-total-sub"
+                                  x-text="`${$store.booking.adults} adulto${$store.booking.adults>1?'s':''}` + ($store.booking.children>0 ? ` + ${$store.booking.children} niño${$store.booking.children>1?'s':''}` : '') + ` × US$${price}`">
+                            </span>
+                        </span>
                         <strong>US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
                     </div>
                     {{-- CTA --}}
