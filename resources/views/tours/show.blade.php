@@ -1788,13 +1788,18 @@ if (!empty($itinerary)) {
                 </div>
             </div>
 
-            {{-- Reviews individuales — solo si hay testimonios reales --}}
-            @if(($testimonials?->count() ?? 0) > 0)
+            {{-- Flash de envío --}}
+            @if (session('review_status'))
+                <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold px-4 py-3">{{ session('review_status') }}</div>
+            @endif
+
+            {{-- Reviews individuales del tour --}}
+            @if($tourReviews->count() > 0)
             <div class="space-y-3">
                 @php
                 $avatarColors = ['bg-teal-700', 'bg-orange-500', 'bg-teal-600', 'bg-amber-600', 'bg-cyan-700'];
                 @endphp
-                @foreach ($testimonials as $tIdx => $testimonial)
+                @foreach ($tourReviews as $tIdx => $testimonial)
                     @php
                         $tName     = $testimonial->author_name ?? $testimonial->name ?? 'Viajero';
                         $tDate     = $testimonial->created_at ? \Carbon\Carbon::parse($testimonial->created_at)->translatedFormat('j M Y') : '';
@@ -1840,7 +1845,50 @@ if (!empty($itinerary)) {
                     </div>
                 @endforeach
             </div>
+            @else
+                <p class="text-sm text-teal-800/55">Sé el primero en dejar una reseña de este tour.</p>
             @endif
+
+            {{-- Formulario "Añade una valoración" (desktop) — crea reseña pendiente de aprobación --}}
+            <div class="mt-5 pt-5 border-t border-teal-800/10" x-data="{ open: {{ ($errors->any() || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
+                <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-teal-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Añade una valoración
+                    <svg class="w-4 h-4 transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <form x-show="open" x-cloak method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="mt-4 space-y-3">
+                    @csrf
+                    @if ($errors->any())
+                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first() }}</div>
+                    @endif
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Tu puntuación *</label>
+                        <div class="flex gap-1 text-2xl leading-none cursor-pointer">
+                            <template x-for="n in 5" :key="n">
+                                <span @click="rating = n" :class="n <= rating ? 'text-orange-400' : 'text-teal-800/20'">★</span>
+                            </template>
+                        </div>
+                        <input type="hidden" name="rating" :value="rating">
+                    </div>
+                    <div>
+                        <label for="d-rev-comment" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Tu reseña *</label>
+                        <textarea id="d-rev-comment" name="comment" required minlength="10" maxlength="2000" rows="4" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">{{ old('comment') }}</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="d-rev-name" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Nombre *</label>
+                            <input id="d-rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
+                        </div>
+                        <div>
+                            <label for="d-rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Correo *</label>
+                            <input id="d-rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
+                            <p class="text-[10px] text-teal-800/45 mt-1">No se publicará.</p>
+                        </div>
+                    </div>
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-bold text-sm rounded-full py-2.5 px-6 transition-colors">Enviar reseña</button>
+                </form>
+            </div>
         </section>
 
         {{-- ══════════════════════════════════════

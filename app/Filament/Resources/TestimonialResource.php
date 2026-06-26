@@ -57,46 +57,63 @@ class TestimonialResource extends Resource
                     ->numeric()
                     ->default(0),
                 Forms\Components\Select::make('tour_id')
-                    ->relationship('tour', 'id'),
+                    ->label('Tour')
+                    ->relationship('tour', 'title_es')
+                    ->searchable()
+                    ->preload(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Autor')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('country')
+                Tables\Columns\TextColumn::make('quote_es')
+                    ->label('Comentario')
+                    ->limit(60)
+                    ->wrap()
+                    ->tooltip(fn ($state) => $state)
                     ->searchable(),
-                Tables\Columns\TextColumn::make('avatar')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('tour.title_es')
+                    ->label('Tour')
+                    ->limit(28)
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('rating')
+                    ->label('★')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('source')
+                    ->label('Origen')
+                    ->badge()
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_featured')
-                    ->boolean(),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('order')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('tour.id')
-                    ->numeric()
-                    ->sortable(),
+                    ->label('Destacado')
+                    ->boolean()
+                    ->toggleable(),
+                Tables\Columns\ToggleColumn::make('is_active')
+                    ->label('Aprobado'),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Enviado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Estado')
+                    ->placeholder('Todos')
+                    ->trueLabel('Aprobados')
+                    ->falseLabel('Pendientes'),
+                Tables\Filters\SelectFilter::make('source')
+                    ->label('Origen')
+                    ->options([
+                        'Web' => 'Web (enviadas por usuarios)',
+                        'Google' => 'Google',
+                        'Tripadvisor' => 'Tripadvisor',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
