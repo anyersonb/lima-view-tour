@@ -54,6 +54,10 @@ class Settings extends Page implements HasForms
                         TextInput::make('contact_address_en')->label('Dirección (EN)'),
                         TextInput::make('contact_hours_es')->label('Horarios (ES)'),
                         TextInput::make('contact_hours_en')->label('Horarios (EN)'),
+                        TextInput::make('booking_notification_email')
+                            ->email()
+                            ->label('Email para avisos de reserva')
+                            ->helperText('Cada vez que entre una nueva reserva, se enviará un aviso a esta dirección. Si se deja vacío se usará el correo remitente configurado en el servidor.'),
                     ]),
                     Tabs\Tab::make('Redes sociales')->icon('heroicon-o-share')->schema([
                         TextInput::make('social_instagram')->prefix('https://')->label('Instagram'),

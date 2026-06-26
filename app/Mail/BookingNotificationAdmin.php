@@ -10,27 +10,23 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 
-class BookingConfirmed extends Mailable
+class BookingNotificationAdmin extends Mailable
 {
     use Queueable, SerializesModels;
 
     /**
-     * @param Collection $bookings  Collection of Booking model instances
-     * @param string     $toEmail   Customer email address
+     * @param Collection $bookings     Collection of Booking model instances
+     * @param string     $paymentTiming  'now' | 'later'
      */
     public function __construct(
         public readonly Collection $bookings,
-        public readonly string $toEmail
+        public readonly string $paymentTiming
     ) {}
 
     public function envelope(): Envelope
     {
-        // Detect locale from the first booking; fallback to app locale
-        $locale = $this->bookings->first()?->locale ?? app()->getLocale();
-
-        $subject = $locale === 'en'
-            ? 'Booking Confirmation — Lima View Tours'
-            : 'Confirmación de reserva — Lima View Tours';
+        $references = $this->bookings->pluck('reference')->implode(', ');
+        $subject    = "[Nueva reserva] {$references} — Lima View Tours";
 
         return new Envelope(subject: $subject);
     }
@@ -38,10 +34,10 @@ class BookingConfirmed extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.bookings.confirmed',
+            markdown: 'emails.bookings.admin-notification',
             with: [
-                'bookings' => $this->bookings,
-                'locale'   => $this->bookings->first()?->locale ?? app()->getLocale(),
+                'bookings'      => $this->bookings,
+                'paymentTiming' => $this->paymentTiming,
             ]
         );
     }

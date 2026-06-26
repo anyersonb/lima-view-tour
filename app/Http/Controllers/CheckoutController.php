@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProcessPaymentRequest;
 use App\Mail\BookingConfirmed;
+use App\Mail\BookingNotificationAdmin;
+use App\Models\Setting;
 use App\Models\Booking;
 use App\Services\CartService;
 use App\Services\PaymentService;
@@ -77,9 +79,16 @@ class CheckoutController extends Controller
             $totalCentavos = (int) round($total * 100);
             $payingNow     = ($validated['payment_timing'] === 'now');
 
+            // Las columnas pickup_* pueden no existir todavía en algunos entornos
+            // (migración pendiente). Solo las incluimos si están presentes para
+            // no romper la creación de la reserva.
+            $hasPickupColumns = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'pickup_point');
+            $pickupPoint  = $request->input('pickup_point');
+            $pickupDetail = $request->input('pickup_detail');
+
             // Create one Booking per cart item
-            $bookings = $items->map(function (array $item) use ($validated, $locale, $payingNow): Booking {
-                return Booking::create([
+            $bookings = $items->map(function (array $item) use ($validated, $locale, $payingNow, $hasPickupColumns, $pickupPoint, $pickupDetail): Booking {
+                $attrs = [
                     'tour_id'             => $item['tour_id'],
                     'tour_title_snapshot' => $item['title_snapshot'],
                     'customer_name'       => $validated['customer_name'],
@@ -95,7 +104,14 @@ class CheckoutController extends Controller
                     'payment_status'      => 'pending',
                     'payment_method'      => $payingNow ? 'culqi' : 'pay_later',
                     'locale'              => $locale,
-                ]);
+                ];
+
+                if ($hasPickupColumns) {
+                    $attrs['pickup_point']  = $pickupPoint;
+                    $attrs['pickup_detail'] = $pickupDetail;
+                }
+
+                return Booking::create($attrs);
             });
 
             if ($payingNow) {
@@ -140,16 +156,39 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            // Send confirmation email (applies to both flows).
-            // Un fallo de correo (servidor caído/mal configurado) NO debe abortar la
-            // reserva ya creada: se registra y el cliente igual llega a la confirmación.
+            // Send confirmation email to the customer (applies to both flows).
+            // Un fallo de correo NO debe abortar la reserva ya creada.
             try {
                 Mail::to($validated['customer_email'])
                     ->send(new BookingConfirmed($bookings, $validated['customer_email']));
+
+                Log::info('checkout.confirmation_email.sent', [
+                    'email'    => $validated['customer_email'],
+                    'bookings' => $bookings->pluck('reference')->all(),
+                ]);
             } catch (\Throwable $mailEx) {
                 Log::warning('checkout.confirmation_email.failed', [
                     'email'   => $validated['customer_email'],
                     'message' => $mailEx->getMessage(),
+                ]);
+            }
+
+            // Send internal admin notification.
+            // Destination: 'booking_notification_email' setting, fallback to mail.from.address.
+            try {
+                $adminEmail = Setting::get('booking_notification_email')
+                    ?: config('mail.from.address');
+
+                Mail::to($adminEmail)
+                    ->send(new BookingNotificationAdmin($bookings, $validated['payment_timing']));
+
+                Log::info('checkout.admin_notification_email.sent', [
+                    'admin_email' => $adminEmail,
+                    'bookings'    => $bookings->pluck('reference')->all(),
+                ]);
+            } catch (\Throwable $adminMailEx) {
+                Log::warning('checkout.admin_notification_email.failed', [
+                    'message' => $adminMailEx->getMessage(),
                 ]);
             }
 

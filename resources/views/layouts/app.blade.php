@@ -75,6 +75,7 @@
     <meta name="twitter:description" content="{{ $description }}">
     <meta name="twitter:image" content="{{ $ogImage }}">
 
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
@@ -128,7 +129,7 @@
         {{ __('nav.skip_to_content') }}
     </a>
 
-    <x-header />
+    <x-header :variant="trim($__env->yieldContent('header_variant')) ?: 'solid'" />
 
     <main id="main" role="main">
         @yield('content')

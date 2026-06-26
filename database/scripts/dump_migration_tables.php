@@ -13,14 +13,19 @@ $pdo = new PDO('mysql:host=127.0.0.1;dbname=lima_tours;charset=utf8mb4', 'root',
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
 ]);
 
-$tables = ['tours', 'bookings'];
-
 echo "SET NAMES utf8mb4;\n";
 echo "SET FOREIGN_KEY_CHECKS=0;\n\n";
 
+// Wipe child first, then parent. DELETE (not TRUNCATE) so phpMyAdmin respects
+// the FK_CHECKS toggle even when it runs each statement as its own transaction.
+echo "DELETE FROM `bookings`;\n";
+echo "DELETE FROM `tours`;\n\n";
+
+// Insert order: parent (tours) before child (bookings).
+$tables = ['tours', 'bookings'];
+
 foreach ($tables as $tbl) {
     echo "-- ─────── {$tbl} ───────\n";
-    echo "TRUNCATE TABLE `{$tbl}`;\n\n";
 
     $rows = $pdo->query("SELECT * FROM `{$tbl}`")->fetchAll();
     if (! $rows) continue;

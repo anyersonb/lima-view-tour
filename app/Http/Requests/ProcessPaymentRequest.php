@@ -36,6 +36,10 @@ class ProcessPaymentRequest extends FormRequest
             'customer_phone' => ['required', 'string', 'regex:/^(\+51)?9\d{8}$/'],
             'travel_date'    => ['required', 'date', 'after:today'],
 
+            // Pickup information (optional but captured when provided)
+            'pickup_point'   => ['nullable', 'string', 'max:100'],
+            'pickup_detail'  => ['nullable', 'string', 'max:255'],
+
             // Only required when the customer is paying now with a card
             'culqi_token'    => ['nullable', 'string', 'required_if:payment_timing,now'],
         ];

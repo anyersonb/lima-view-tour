@@ -88,6 +88,15 @@ class BookingResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('payment_reference')
                     ->maxLength(255),
+                // Campos pickup solo si la migración ya creó las columnas
+                ...(\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'pickup_point') ? [
+                    Forms\Components\TextInput::make('pickup_point')
+                        ->label('Punto de recogida (zona)')
+                        ->maxLength(100),
+                    Forms\Components\TextInput::make('pickup_detail')
+                        ->label('Detalle de recogida (hotel/dirección)')
+                        ->maxLength(255),
+                ] : []),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('locale')
@@ -139,6 +148,12 @@ class BookingResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('payment_reference')
                     ->searchable(),
+                ...(\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'pickup_point') ? [
+                    Tables\Columns\TextColumn::make('pickup_point')
+                        ->label('Recogida')
+                        ->searchable()
+                        ->toggleable(isToggledHiddenByDefault: true),
+                ] : []),
                 Tables\Columns\TextColumn::make('locale')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
