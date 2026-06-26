@@ -486,7 +486,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
   box-shadow: 0 4px 10px rgba(0,0,0,.15);
 }
 .m-rec-main { padding-right: 4px; border-right: 1px solid #e7e2d9; }
-.m-rec-main h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: 15px; line-height: 1.1; color: #12323a; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.m-rec-main h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: 18px; line-height: 1.05; color: #12323a; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .m-rec-duration { font-size: 12px; color: #d98c27; font-weight: 700; margin: 0 0 6px; }
 .m-rec-bullets { display: grid; gap: 5px; }
 .m-rec-bullets div { font-size: 11px; color: #23424a; display: flex; align-items: center; gap: 6px; }
@@ -584,6 +584,18 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 
 } /* end @media max-width: 767px */
 </style>
+@endpush
+
+@push('scripts')
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('booking', {
+            adults: 1,
+            children: 0,
+            date: @json(now()->addDays(7)->format('Y-m-d')),
+        });
+    });
+</script>
 @endpush
 
 @section('content')
@@ -773,10 +785,8 @@ if (!empty($itinerary)) {
             {{-- 3. COMPACT BOOKING --}}
             <div id="seccion-reserva" class="m-compact"
                  x-data="{
-                     adults: 1,
-                     children: 0,
                      price: window.__lvtPrice || 0,
-                     get total() { return ((this.adults + this.children) * this.price).toFixed(0); }
+                     get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); }
                  }">
                 <div class="m-compact-head">
                     <span>Reserva online</span>
@@ -802,9 +812,7 @@ if (!empty($itinerary)) {
                         <span class="m-label">Fecha del tour</span>
                         <div class="m-input-row">
                             <input type="date"
-                                   name="travel_date"
-                                   form="form-reservar"
-                                   value="{{ now()->addDays(7)->format('Y-m-d') }}"
+                                   x-model="$store.booking.date"
                                    min="{{ now()->addDay()->format('Y-m-d') }}"
                                    aria-label="Fecha del tour"
                                    style="border:none;background:transparent;font-size:12px;color:#29404a;width:100%;outline:none;">
@@ -816,17 +824,17 @@ if (!empty($itinerary)) {
                         <div class="m-field">
                             <span class="m-label">Adultos</span>
                             <div class="m-input-row">
-                                <button type="button" @click="adults = Math.max(1, adults - 1)" aria-label="Menos adultos" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
-                                <span x-text="adults">1</span>
-                                <button type="button" @click="adults++" aria-label="Más adultos" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
+                                <button type="button" @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)" aria-label="Menos adultos" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
+                                <span x-text="$store.booking.adults">1</span>
+                                <button type="button" @click="$store.booking.adults++" aria-label="Más adultos" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
                             </div>
                         </div>
                         <div class="m-field">
                             <span class="m-label">Niños</span>
                             <div class="m-input-row">
-                                <button type="button" @click="children = Math.max(0, children - 1)" aria-label="Menos niños" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
-                                <span x-text="children">0</span>
-                                <button type="button" @click="children++" aria-label="Más niños" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
+                                <button type="button" @click="$store.booking.children = Math.max(0, $store.booking.children - 1)" aria-label="Menos niños" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
+                                <span x-text="$store.booking.children">0</span>
+                                <button type="button" @click="$store.booking.children++" aria-label="Más niños" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
                             </div>
                         </div>
                     </div>
@@ -1198,7 +1206,8 @@ if (!empty($itinerary)) {
             </div>
 
             {{-- ── Tarjeta de reserva compacta (visible en mobile y tablet; en desktop sigue aquí también) ── --}}
-            <div id="seccion-reserva" class="booking-compact-card mt-4">
+            <div id="seccion-reserva-desktop" class="booking-compact-card mt-4"
+                 x-data="{ price: window.__lvtPrice || 0, get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); } }">
                 {{-- Cabecera --}}
                 <div class="booking-compact-head">
                     <span class="text-white text-xs font-semibold tracking-wide">Reserva online</span>
@@ -1239,10 +1248,9 @@ if (!empty($itinerary)) {
                     <div>
                         <label for="compact-date" class="block text-[11px] font-semibold text-teal-800 mb-1">Fecha del tour</label>
                         <div class="relative">
-                            <input type="date" id="compact-date" name="travel_date"
-                                   form="form-reservar"
+                            <input type="date" id="compact-date"
+                                   x-model="$store.booking.date"
                                    class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
-                                   value="{{ now()->addDays(7)->format('Y-m-d') }}"
                                    min="{{ now()->addDay()->format('Y-m-d') }}"
                                    aria-label="Seleccionar fecha del tour">
                         </div>
@@ -1253,10 +1261,10 @@ if (!empty($itinerary)) {
                         <div>
                             <label for="compact-adults" class="block text-[11px] font-semibold text-teal-800 mb-1">Adultos</label>
                             <div class="relative">
-                                <select id="compact-adults" name="adults" form="form-reservar"
+                                <select id="compact-adults" x-model.number="$store.booking.adults"
                                         class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-700">
                                     @for ($n = 1; $n <= 10; $n++)
-                                        <option value="{{ $n }}" @if($n === 1) selected @endif>{{ $n }}</option>
+                                        <option value="{{ $n }}">{{ $n }}</option>
                                     @endfor
                                 </select>
                                 <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-800/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
@@ -1265,10 +1273,10 @@ if (!empty($itinerary)) {
                         <div>
                             <label for="compact-children" class="block text-[11px] font-semibold text-teal-800 mb-1">Niños</label>
                             <div class="relative">
-                                <select id="compact-children" name="children" form="form-reservar"
+                                <select id="compact-children" x-model.number="$store.booking.children"
                                         class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-700">
                                     @for ($n = 0; $n <= 8; $n++)
-                                        <option value="{{ $n }}" @if($n === 0) selected @endif>{{ $n }}</option>
+                                        <option value="{{ $n }}">{{ $n }}</option>
                                     @endfor
                                 </select>
                                 <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-800/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
@@ -1279,7 +1287,7 @@ if (!empty($itinerary)) {
                     {{-- Total estimado --}}
                     <div class="flex items-center justify-between bg-cream-100 rounded-xl px-3 py-2">
                         <span class="text-xs font-semibold text-teal-800">Total estimado</span>
-                        <strong class="font-price text-lg font-bold text-teal-800">US${{ number_format((float)$tour->price, 0) }}</strong>
+                        <strong class="font-price text-lg font-bold text-teal-800">US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
                     </div>
 
                     {{-- CTA Reservar --}}
@@ -1817,9 +1825,13 @@ if (!empty($itinerary)) {
 <form id="form-reservar"
       method="POST"
       action="{{ route('cart.store', ['locale' => $locale]) }}"
-      class="hidden">
+      class="hidden" x-data>
     @csrf
     <input type="hidden" name="tour_id" value="{{ $tour->id }}">
+    {{-- Campos canónicos: única fuente de verdad = $store.booking (sincronizado por mobile y desktop) --}}
+    <input type="hidden" name="travel_date" :value="$store.booking.date">
+    <input type="hidden" name="adults" :value="$store.booking.adults">
+    <input type="hidden" name="children" :value="$store.booking.children">
 </form>
 
 {{-- ─────────── BARRA FLOTANTE BOTTOM mobile — diseño mockup exacto ─────────── --}}
