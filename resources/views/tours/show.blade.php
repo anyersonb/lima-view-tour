@@ -610,7 +610,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 }
 
 /* Padding inferior del contenido mobile para la barra flotante */
-.m-content-wrap { padding-bottom: 90px; }
+.m-content-wrap { padding-bottom: 16px; }
 
 } /* end @media max-width: 767px */
 </style>
@@ -671,7 +671,7 @@ if (!empty($itinerary)) {
     window.__lvtGallery = {!! json_encode($galleryUrls, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!};
     window.__lvtPrice   = {{ (float)$tour->price }};
 </script>
-<section class="bg-cream-100 pb-32 md:pb-28"
+<section class="bg-cream-100 pb-6 md:pb-28"
          x-data="{
              gallery: window.__lvtGallery || [],
              active: 0,
@@ -1877,42 +1877,8 @@ if (!empty($itinerary)) {
 </form>
 
 {{-- ─────────── BARRA FLOTANTE BOTTOM mobile — diseño mockup exacto ─────────── --}}
-<div class="md:hidden m-floating-bar" role="complementary" aria-label="Reserva rápida">
-    <div class="m-bar-inner">
-        <div class="m-booking-strip">
-            {{-- Columna izquierda: descuento + precio antes --}}
-            <div class="m-bs-col left">
-                @if ($hasOffer && $discountPct > 0)
-                    <div class="m-bs-discount">
-                        <span aria-hidden="true">🏷️</span>
-                        <span>{{ $discountPct }}% DESCUENTO</span>
-                    </div>
-                    <div class="m-bs-before">
-                        <span class="lbl">ANTES</span>
-                        <span class="old">US${{ number_format((float)$tour->price_before, 0) }}</span>
-                    </div>
-                @else
-                    <div style="font-size:9px;font-weight:900;color:#465e68;letter-spacing:.3px;text-transform:uppercase;">Desde</div>
-                @endif
-            </div>
-            {{-- Columna centro: AHORA + precio + por persona --}}
-            <div class="m-bs-col center">
-                @if ($hasOffer)
-                    <div class="m-bs-now">AHORA</div>
-                @endif
-                <div class="m-bs-price">US${{ number_format((float)$tour->price, 0) }}</div>
-                <div class="m-bs-person"><span aria-hidden="true">👤</span><span>por persona</span></div>
-            </div>
-            {{-- Columna derecha: botón --}}
-            <div class="m-bs-col right">
-                <a href="#seccion-reserva" class="m-bs-btn" aria-label="Ir a reservar">
-                    <span>Ver tour</span>
-                    <span class="m-bs-arrow" aria-hidden="true">→</span>
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
+{{-- Banner flotante mobile retirado: dentro de la propia interna el CTA "Ver tour" no aplica
+     (el usuario ya está en el tour). La reserva se hace en la card "Reserva online" de arriba. --}}
 
 {{-- ─────────── STICKY FOOTER desktop (md+) ─────────── --}}
 <div class="hidden md:block fixed bottom-0 inset-x-0 z-40 bg-white shadow-2xl ring-1 ring-teal-800/10 sticky-bar">
