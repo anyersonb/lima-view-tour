@@ -84,6 +84,16 @@
                 $title = mb_strtoupper(mb_substr($title, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($title, 1, null, 'UTF-8');
             }
 
+            // Normalizar hora a formato 24h sin am/pm (ej. "1:00 pm" → "13:00", "4:00 am" → "04:00")
+            if (!empty($time) && preg_match('/^(\d{1,2}):(\d{2})\s*(am|pm)?/iu', $time, $tm)) {
+                $h = (int) $tm[1];
+                $min = $tm[2];
+                $mer = mb_strtolower($tm[3] ?? '');
+                if ($mer === 'pm' && $h < 12) { $h += 12; }
+                if ($mer === 'am' && $h === 12) { $h = 0; }
+                $time = sprintf('%02d:%02d', $h, $min);
+            }
+
             // Mapear icono por palabra clave (título + descripción)
             $iconSource   = mb_strtolower($title . ' ' . $rawDesc, 'UTF-8');
             $explicitIcon = $step['icon'] ?? '';
@@ -211,10 +221,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 /* ── Barra flotante bottom v2 ── */
 .sticky-bar-v2 { padding-bottom: env(safe-area-inset-bottom, 0); }
 
-/* Ocultar header global del sitio en la vista de tour mobile */
-@media (max-width: 767px) {
-  .site-header { display: none !important; }
-}
+/* El header global del sitio se mantiene como en el resto del sitio (no se oculta) */
 
 /* ════════════════════════════════════════
    MOBILE SHOW — estilos exclusivos <768px
@@ -302,6 +309,15 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-subitem.safe .m-ico { color: #79d39e; }
 .m-subitem.urgent .m-ico { color: #ff9d5c; }
 .m-divider { width: 1px; height: 14px; background: rgba(255,255,255,.22); }
+.m-hero-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(0,0,0,.38); color: #fff; font-size: 22px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.m-hero-nav.prev { left: 12px; }
+.m-hero-nav.next { right: 12px; }
 .m-counter {
   position: absolute;
   z-index: 2;
@@ -425,7 +441,13 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
   background: var(--m-green);
 }
 .m-stop:last-child::before { display: none; }
-.m-time { font-weight: 900; font-size: 13px; color: #131313; }
+.m-time {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 12px; color: var(--m-green);
+  background: #eef3ef; border: 1px solid #d8e5d5; border-radius: 8px;
+  padding: 3px 0; margin-top: 1px; letter-spacing: .3px;
+  font-variant-numeric: tabular-nums;
+}
 .m-dot {
   width: 12px;
   height: 12px;
@@ -645,6 +667,8 @@ if (!empty($itinerary)) {
          x-data="{
              gallery: window.__lvtGallery || [],
              active: 0,
+             heroTouchX: 0,
+             expActive: 0,
              lightbox: false,
              showAll: false,
              adults: 1,
@@ -664,16 +688,18 @@ if (!empty($itinerary)) {
          HERO MOBILE (< md) — diseño mockup exacto
     ══════════════════════════════════════ --}}
     <div class="md:hidden">
-        <div class="m-hero" style="background: url('{{ addslashes($galleryUrls[0] ?? $tour->cover_url) }}') center/cover no-repeat;">
-            {{-- Topbar: back / logo / tel + menu --}}
-            <div class="m-topbar">
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}" aria-label="Volver" style="font-size:28px;color:#fff;text-decoration:none;line-height:1;">‹</a>
-                <div class="m-logo">LIMA VIEW<span>TOURS</span></div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <a href="tel:{{ $contactPhone }}" aria-label="Llamar" style="color:#fff;font-size:20px;text-decoration:none;">☏</a>
-                    <button type="button" aria-label="Menú" style="background:none;border:none;color:#fff;font-size:25px;cursor:pointer;padding:0;line-height:1;">☰</button>
+        <div class="m-hero"
+             style="background: url('{{ addslashes($galleryUrls[0] ?? $tour->cover_url) }}') center/cover no-repeat;"
+             :style="`background: url('${gallery[active]}') center/cover no-repeat`"
+             @touchstart="heroTouchX = $event.changedTouches[0].clientX"
+             @touchend="(() => { const dx = $event.changedTouches[0].clientX - heroTouchX; if (gallery.length > 1 && Math.abs(dx) > 40) { dx < 0 ? next() : prev(); } })()">
+            {{-- Flechas de navegación del slider (solo si hay más de 1 imagen) --}}
+            <template x-if="gallery.length > 1">
+                <div>
+                    <button type="button" class="m-hero-nav prev" @click.stop="prev()" aria-label="Foto anterior">‹</button>
+                    <button type="button" class="m-hero-nav next" @click.stop="next()" aria-label="Foto siguiente">›</button>
                 </div>
-            </div>
+            </template>
             {{-- Badges abajo izquierda --}}
             <div class="m-hero-badges">
                 <div class="m-main-badge">
@@ -687,8 +713,8 @@ if (!empty($itinerary)) {
                 </div>
             </div>
             {{-- Contador galería abajo derecha --}}
-            <button type="button" class="m-counter" @click="open(0)" aria-label="Ver galería">
-                ▣ 1/{{ $totalImgs }}
+            <button type="button" class="m-counter" @click="open(active)" aria-label="Ver galería">
+                ▣ <span x-text="active + 1">1</span>/{{ $totalImgs }}
             </button>
         </div>
     </div>
@@ -872,7 +898,9 @@ if (!empty($itinerary)) {
                 <h2>¿Qué vivirás en este tour?</h2>
                 <a href="#m-itinerary">Ver más</a>
             </div>
-            <div class="m-exp-row">
+            @php $expCount = count($highlightsFromItinerary); @endphp
+            <div class="m-exp-row" x-ref="expRow"
+                 @scroll.debounce.40ms="expActive = Math.round($el.scrollLeft / ($el.scrollWidth / {{ $expCount }}))">
                 @foreach ($highlightsFromItinerary as $k => $hl)
                 <div class="m-exp">
                     <img src="{{ $hl['img'] }}" alt="{{ $hl['title'] ?: $tour->title }}" loading="lazy" width="86" height="94">
@@ -882,8 +910,10 @@ if (!empty($itinerary)) {
                 @endforeach
             </div>
             <div class="m-dots">
-                @for ($d = 0; $d < count($highlightsFromItinerary); $d++)
-                    <span class="{{ $d === 0 ? 'active' : '' }}">●</span>
+                @for ($d = 0; $d < $expCount; $d++)
+                    <span :class="{ 'active': expActive === {{ $d }} }"
+                          @click="$refs.expRow.scrollTo({ left: {{ $d }} * ($refs.expRow.scrollWidth / {{ $expCount }}), behavior: 'smooth' })"
+                          style="cursor:pointer;">●</span>
                 @endfor
             </div>
         </div>
