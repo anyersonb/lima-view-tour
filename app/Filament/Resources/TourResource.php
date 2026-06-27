@@ -58,11 +58,49 @@ class TourResource extends Resource
                                     Forms\Components\TextInput::make('return_time')->label('Hora retorno')->placeholder('10:30 PM'),
                                     Forms\Components\TextInput::make('max_capacity')->numeric()->label('Capacidad máxima'),
                                 ]),
-                                Forms\Components\Grid::make(3)->schema([
-                                    Forms\Components\TextInput::make('price')->required()->numeric()->prefix('$')->label('Precio actual'),
-                                    Forms\Components\TextInput::make('price_before')->numeric()->prefix('$')->label('Precio antes'),
-                                    Forms\Components\TextInput::make('currency')->required()->maxLength(3)->default('USD'),
-                                ]),
+                                Forms\Components\Section::make('Precios y oferta')
+                                    ->description('Configura el precio y, opcionalmente, activa una oferta especial.')
+                                    ->icon('heroicon-o-tag')
+                                    ->schema([
+                                        Forms\Components\Grid::make(3)->schema([
+                                            Forms\Components\TextInput::make('price')
+                                                ->required()
+                                                ->numeric()
+                                                ->prefix('$')
+                                                ->label('Precio actual (AHORA)')
+                                                ->helperText('Es el precio que paga el cliente.')
+                                                ->reactive(),
+                                            Forms\Components\TextInput::make('price_before')
+                                                ->numeric()
+                                                ->prefix('$')
+                                                ->label('Precio antes (oferta)')
+                                                ->helperText('Escribe aquí el precio original (más alto que el actual) para activar la OFERTA ESPECIAL con su % de descuento automático. Déjalo VACÍO si el tour NO tiene oferta.')
+                                                ->reactive(),
+                                            Forms\Components\TextInput::make('currency')
+                                                ->required()
+                                                ->maxLength(3)
+                                                ->default('USD')
+                                                ->label('Moneda'),
+                                        ]),
+                                        Forms\Components\Placeholder::make('discount_preview')
+                                            ->label('Vista previa del descuento')
+                                            ->content(function (Forms\Get $get): string {
+                                                $price = (float) $get('price');
+                                                $priceBefore = (float) $get('price_before');
+
+                                                if ($priceBefore <= 0 || $price <= 0) {
+                                                    return '— Sin oferta activa (precio antes vacío).';
+                                                }
+
+                                                if ($priceBefore <= $price) {
+                                                    return '⚠ Sin oferta: el precio antes debe ser MAYOR que el precio actual.';
+                                                }
+
+                                                $discount = round((1 - $price / $priceBefore) * 100);
+
+                                                return "✔ OFERTA ESPECIAL -{$discount}% activa — el card mostrará \"ANTES US\${$priceBefore}\" tachado y \"AHORA US\${$price}\".";
+                                            }),
+                                    ]),
                                 Forms\Components\Grid::make(2)->schema([
                                     Forms\Components\TextInput::make('badge_text')->label('Texto del badge')->placeholder('CUPOS LIMITADOS'),
                                     Forms\Components\Select::make('badge_type')->label('Tipo de badge')->options([
@@ -182,6 +220,18 @@ class TourResource extends Resource
                 Tables\Columns\TextColumn::make('price')
                     ->money('USD')->sortable()
                     ->label('Precio'),
+                Tables\Columns\IconColumn::make('has_offer')
+                    ->label('Oferta')
+                    ->getStateUsing(fn ($record): bool => filled($record->price_before) && (float) $record->price_before > (float) $record->price)
+                    ->boolean()
+                    ->trueIcon('heroicon-o-tag')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->tooltip(fn ($record): string => filled($record->price_before) && (float) $record->price_before > (float) $record->price
+                        ? 'OFERTA ESPECIAL -' . round((1 - (float) $record->price / (float) $record->price_before) * 100) . '%'
+                        : 'Sin oferta'
+                    ),
                 Tables\Columns\TextColumn::make('rating')
                     ->numeric(decimalPlaces: 1)->sortable()
                     ->label('★'),

@@ -31,6 +31,15 @@
     }
 }
 
+// Ocultar barra de scroll en carruseles scroll-snap (track .scrollbar-hide)
+.scrollbar-hide {
+    -ms-overflow-style: none;   // IE/Edge
+    scrollbar-width: none;      // Firefox
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;              // Chrome/Safari/Edge Chromium
+}
+
 // Hero ratings avatars overlap
 .hero-avatars span {
     box-shadow: 0 0 0 2px rgba(255,255,255,.85);

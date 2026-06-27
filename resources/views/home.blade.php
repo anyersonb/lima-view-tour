@@ -253,7 +253,7 @@
 
 
 {{-- ============================================================
-     SECCIÓN 2 — MÁS COMPRADOS
+     SECCIÓN 2 — MÁS COMPRADOS (carrusel compacto con peek)
      ============================================================ --}}
 <section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="bestseller-title">
     <div class="container mx-auto max-w-7xl lg:px-5">
@@ -262,110 +262,159 @@
         <div class="text-center mb-8">
             <p class="text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">NUESTROS TOURS</p>
             <h2 id="bestseller-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800">Más Comprados</h2>
+            {!! $sep !!}
         </div>
 
-        {{-- Card única mobile + grid desktop --}}
-        <div class="lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start max-w-5xl mx-auto">
+        @php
+            $mcTours = $featuredTours->count() >= 4
+                ? $normalizeTours($featuredTours->take(8))
+                : $normalizeTours($staticFeatured);
+            $mcCount = count($mcTours);
+        @endphp
 
-            {{-- Tour card --}}
-            <article class="bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5">
+        {{-- Carrusel Alpine scroll-snap (mismo patrón que sección 2B) --}}
+        <div x-data="{
+                current: 0,
+                total: {{ $mcCount }},
+                nav(dir) {
+                    let el = document.getElementById('mc-carousel');
+                    let cx = el.getBoundingClientRect().left + el.clientWidth / 2;
+                    let cur = 0, bd = Infinity;
+                    [...el.children].forEach((ch, i) => {
+                        let r = ch.getBoundingClientRect();
+                        let d = Math.abs((r.left + r.width / 2) - cx);
+                        if (d < bd) { bd = d; cur = i; }
+                    });
+                    this.goTo(Math.min(Math.max(cur + dir, 0), this.total - 1));
+                },
+                goTo(i) {
+                    let el = document.getElementById('mc-carousel');
+                    let c = el.children[i];
+                    if (!c) return;
+                    let target = el.scrollLeft + c.getBoundingClientRect().left - el.getBoundingClientRect().left - (el.clientWidth - c.clientWidth) / 2;
+                    target = Math.max(0, Math.min(target, el.scrollWidth - el.clientWidth));
+                    this.current = i;
+                    // Snap mandatory cancela el scroll suave programático: lo apagamos durante la animación.
+                    el.style.scrollSnapType = 'none';
+                    el.scrollTo({ left: target, behavior: 'smooth' });
+                    // Fallback fiable: si el suave no progresó (motion reducido / headless), saltar; luego restaurar snap.
+                    clearTimeout(this._snapT);
+                    this._snapT = setTimeout(() => {
+                        if (Math.abs(el.scrollLeft - target) > 4) el.scrollTo({ left: target, behavior: 'instant' });
+                        el.style.scrollSnapType = 'x mandatory';
+                    }, 420);
+                }
+             }" class="relative">
 
-                {{-- Imagen + badges --}}
-                <div class="relative">
-                    <a href="{{ $btUrl }}" tabindex="-1" aria-hidden="true" class="block aspect-[4/3] bg-cream-100">
-                        <img src="{{ $btImg }}"
-                             alt="Tour de día completo al Oasis de Huacachina + Islas Ballestas"
-                             class="w-full h-full object-cover object-center" loading="lazy">
-                    </a>
+            {{-- Track --}}
+            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2
+                        scrollbar-hide px-[12vw] sm:px-[18vw] md:px-[26vw]
+                        lg:px-0 lg:overflow-x-visible lg:grid lg:grid-cols-3 lg:gap-6"
+                 id="mc-carousel"
+                 @scroll.debounce.100ms="
+                     let el = $el;
+                     let cx = el.getBoundingClientRect().left + el.clientWidth / 2;
+                     let best = 0, bestD = Infinity;
+                     [...el.children].forEach((ch, i) => {
+                         let r = ch.getBoundingClientRect();
+                         let d = Math.abs((r.left + r.width / 2) - cx);
+                         if (d < bestD) { bestD = d; best = i; }
+                     });
+                     current = best;
+                 ">
 
-                    {{-- BEST SELLER ribbon --}}
-                    <div class="absolute -top-1 left-4 z-10 bg-teal-800 text-white w-[84px] flex flex-col items-center justify-start pt-2.5 pb-5 px-1.5 shadow-lg"
-                         style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);">
-                        <svg class="w-4 h-4 text-yellow-400 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
-                        <p class="mt-1.5 text-[11px] font-bold uppercase leading-[1.15] tracking-[0.05em] text-center">BEST<br>SELLER</p>
+                @foreach ($mcTours as $i => $mct)
+                    <div class="shrink-0 w-[76vw] sm:w-[64vw] md:w-[48vw] lg:w-auto snap-center">
+                        <x-tour-card
+                            :title="$mct['title']"
+                            :slug="$mct['slug']"
+                            :img="$mct['img']"
+                            :before="$mct['before']"
+                            :now="$mct['now']"
+                            :badge="$mct['badge']"
+                            :badgeType="$mct['badgeType']"
+                            :rating="$mct['rating']"
+                            :reviews="$mct['reviews']"
+                            :isMasVendido="true"
+                            :pickup="true"
+                        />
                     </div>
-
-                    {{-- OFERTA ESPECIAL pill --}}
-                    <span class="absolute top-4 right-4 inline-flex items-center gap-1.5 bg-white text-teal-800 text-[11px] font-bold uppercase tracking-[0.05em] pl-3 pr-1.5 py-1.5 rounded-full shadow-md ring-1 ring-teal-800/10">
-                        <svg class="w-3.5 h-3.5 text-teal-700 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 005.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 00-2.122-.879H5.25zM6.375 7.5a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" clip-rule="evenodd"/>
-                        </svg>
-                        <span>OFERTA ESPECIAL</span>
-                        <span class="bg-state-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-20%</span>
-                    </span>
-                </div>
-
-                {{-- Contenido --}}
-                <div class="px-5 pt-5 pb-5">
-                    <h3 class="font-display text-[26px] text-teal-800 leading-[1.1] tracking-tight">
-                        <a href="{{ $btUrl }}" class="hover:text-orange-500 transition-colors">Tour de día completo al Oasis de Huacachina + Islas Ballestas</a>
-                    </h3>
-
-                    <p class="mt-3 flex items-center gap-2 text-sm">
-                        <span class="text-orange-400 text-lg leading-none tracking-tight" aria-hidden="true">★★★★★</span>
-                        <span class="font-semibold text-teal-800 ml-1">4.6</span>
-                        <span class="text-teal-800/55">·</span>
-                        <span class="text-teal-800/55">30 reseñas</span>
-                    </p>
-
-                    <ul class="mt-5 space-y-2.5">
-                        @foreach ([
-                            ['M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z', 'Full Day', 'Duración del tour: 14 horas aprox.'],
-                            ['M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12', 'Recojo incluido', 'Desde tu hotel'],
-                            ['M12 21a9 9 0 100-18 9 9 0 000 18zM3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18', 'Español / Inglés', 'Guía bilingüe'],
-                            ['M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z', 'Cancelación gratuita', 'Hasta 24h antes del tour'],
-                        ] as [$fPath, $fLabel, $fDesc])
-                            <li class="flex items-center gap-2.5 bg-cream-100 rounded-2xl ring-1 ring-teal-800/5 py-3 px-3.5 min-h-[52px]">
-                                <span class="w-10 h-10 rounded-full bg-white shadow-sm grid place-items-center shrink-0 text-teal-800" aria-hidden="true">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $fPath }}"/>
-                                    </svg>
-                                </span>
-                                <span class="font-bold text-teal-800 text-[13px] shrink-0 leading-tight">{{ $fLabel }}</span>
-                                <span class="w-px h-5 bg-teal-800/15 shrink-0"></span>
-                                <span class="text-xs text-teal-800/60 leading-snug min-w-0 flex-1">{{ $fDesc }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
-
-                    {{-- Precio + CTA --}}
-                    <div class="mt-6 flex items-center gap-3 justify-between">
-                        {{-- Descuento pill + precio anterior --}}
-                        <div class="flex items-center gap-2.5 flex-wrap">
-                            <span class="inline-flex items-center bg-orange-500 text-white text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full whitespace-nowrap">
-                                20% DTO.
-                            </span>
-                            <span class="font-price text-sm text-teal-800/45 line-through">US$125</span>
-                        </div>
-                        {{-- Precio actual --}}
-                        <span class="font-price text-2xl text-teal-800 font-bold leading-none whitespace-nowrap">US$100</span>
-                        {{-- CTA --}}
-                        <a href="{{ $btUrl }}"
-                           class="bg-teal-900 hover:bg-teal-950 active:bg-teal-950 text-white rounded-full pl-5 pr-1.5 py-1.5 inline-flex items-center gap-2 font-semibold text-sm transition shadow-md shrink-0">
-                            <span class="whitespace-nowrap">Reservar</span>
-                            <span class="w-8 h-8 rounded-full bg-orange-500 grid place-items-center shrink-0">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                                </svg>
-                            </span>
-                        </a>
-                    </div>
-                </div>
-            </article>
-
-            {{-- Desktop: columna derecha con descripción extendida o carousel de tours adicionales --}}
-            <div class="hidden lg:flex flex-col justify-center gap-6 pl-4">
-                <p class="text-sm text-teal-800/60 uppercase tracking-[0.18em] font-semibold">Tours en Lima, Ica y Cusco</p>
-                <h3 class="font-display text-4xl text-teal-800 leading-tight">Los tours más reservados por nuestros viajeros</h3>
-                <p class="text-teal-800/75 leading-relaxed">Explora nuestras experiencias más populares. Cada tour está diseñado para que vivas Perú de manera auténtica, cómoda y segura.</p>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-                   class="self-start inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-6 py-3 font-semibold text-sm uppercase tracking-wider transition">
-                    Ver todos los tours
-                    <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                </a>
+                @endforeach
             </div>
+
+            {{-- Flechas laterales sobre la card (mobile/tablet; desktop usa grid 3-col) --}}
+            <button type="button"
+                    class="grid lg:hidden absolute left-0 top-[20%] -translate-y-1/2
+                           w-11 h-11 rounded-full bg-white shadow-lg ring-1 ring-teal-800/10
+                           place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-20"
+                    @click="nav(-1)" aria-label="Tour anterior">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button type="button"
+                    class="grid lg:hidden absolute right-0 top-[20%] -translate-y-1/2
+                           w-11 h-11 rounded-full bg-white shadow-lg ring-1 ring-teal-800/10
+                           place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-20"
+                    @click="nav(1)" aria-label="Siguiente tour">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+
+            {{-- Controles inferiores: flecha + dots + flecha (mobile/tablet) --}}
+            <div class="mt-5 flex items-center justify-center gap-3 lg:hidden">
+                <button type="button" @click="nav(-1)" aria-label="Tour anterior"
+                        class="w-8 h-8 rounded-full bg-white shadow ring-1 ring-teal-800/10 grid place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div class="flex items-center gap-2" aria-hidden="true">
+                    @for ($i = 0; $i < $mcCount; $i++)
+                        <button type="button" @click="goTo({{ $i }})"
+                                class="transition-all duration-200 rounded-full"
+                                :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
+                                :aria-label="'Ir a tour {{ $i + 1 }}'"></button>
+                    @endfor
+                </div>
+                <button type="button" @click="nav(1)" aria-label="Siguiente tour"
+                        class="w-8 h-8 rounded-full bg-white shadow ring-1 ring-teal-800/10 grid place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+
+            {{-- Hint deslizar: mano tap + flechas punteadas (mobile/tablet) --}}
+            <div class="mt-4 flex flex-col items-center gap-1 lg:hidden" aria-hidden="true">
+                <div class="flex items-center gap-2">
+                    <svg class="w-11 h-3.5 text-orange-500" viewBox="0 0 56 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <line x1="54" y1="8" x2="15" y2="8" stroke-dasharray="4 4" stroke-linecap="round"/>
+                        <path d="M20 3 L13 8 L20 13" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" class="text-teal-800" d="M9 12.2V5a1.5 1.5 0 013 0v5.5h.4V6.5a1.5 1.5 0 013 0v4h.4V8.5a1.5 1.5 0 013 0V15a5 5 0 01-5 5h-1.5a4 4 0 01-3-1.36l-3.3-3.8a1.6 1.6 0 012.32-2.2L9 14.4V12.2z"/>
+                        <path fill="none" stroke="currentColor" class="text-orange-500" stroke-width="1.5" stroke-linecap="round" d="M8 3.4 6.9 1.9M12 2.6V0.9M16 3.4l1.1-1.5"/>
+                    </svg>
+                    <svg class="w-11 h-3.5 text-orange-500" viewBox="0 0 56 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <line x1="2" y1="8" x2="41" y2="8" stroke-dasharray="4 4" stroke-linecap="round"/>
+                        <path d="M36 3 L43 8 L36 13" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <p class="text-teal-800 font-semibold text-base leading-tight">Desliza para ver más tours</p>
+                <p class="text-xs text-teal-800/55 leading-tight">Descubre nuestras mejores experiencias</p>
+            </div>
+        </div>
+
+        {{-- Link ver todos (mobile, centrado debajo del hint) --}}
+        <div class="mt-6 text-center lg:hidden">
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}"
+               class="inline-flex items-center gap-2 text-teal-800 hover:text-orange-500 transition text-sm font-semibold uppercase tracking-wider">
+                Ver todos los tours
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+            </a>
+        </div>
+
+        {{-- Link ver todos (desktop, alineado a la derecha) --}}
+        <div class="hidden lg:flex justify-end mt-6">
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}"
+               class="inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-6 py-3 font-semibold text-sm uppercase tracking-wider transition">
+                Ver todos los tours
+                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+            </a>
         </div>
     </div>
 </section>
@@ -520,41 +569,68 @@
           ];
         @endphp
 
-        {{-- Mobile: stack vertical | Desktop: grid 3 col --}}
-        <div class="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6">
+        {{-- Banners horizontales apilados (uno por fila) --}}
+        <div class="space-y-5">
             @foreach ($destinos as $destino)
-                <article class="bg-white rounded-3xl shadow-sm ring-1 ring-teal-800/5 overflow-hidden">
-                    {{-- Imagen con badge --}}
-                    <div class="relative h-48 lg:h-52">
-                        <img src="{{ asset('assets/banners/' . $destino['img']) }}"
-                             alt="{{ $destino['title'] }}"
-                             class="absolute inset-0 w-full h-full object-cover" loading="lazy">
-                        <span class="absolute top-3 left-3 inline-flex items-center gap-2 bg-teal-800 text-white text-[9px] font-bold uppercase tracking-wider pl-1.5 pr-3 py-1 rounded-full">
-                            <span class="w-6 h-6 rounded-full bg-orange-500/20 grid place-items-center text-orange-300 shrink-0">
-                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <article class="relative block w-full rounded-3xl overflow-hidden shadow-md min-h-[280px] lg:min-h-0 lg:aspect-[16/7]">
+                    {{-- Imagen de fondo --}}
+                    <img src="{{ asset('assets/banners/' . $destino['img']) }}"
+                         alt="{{ $destino['title'] }}"
+                         class="absolute inset-0 w-full h-full object-cover object-center"
+                         loading="lazy"
+                         width="1280" height="560">
+
+                    {{-- Overlay degradado teal: izquierda opaco → derecha transparente --}}
+                    <div class="absolute inset-0"
+                         style="background: linear-gradient(to right, rgba(10,35,38,0.92) 0%, rgba(10,35,38,0.75) 40%, rgba(10,35,38,0.25) 75%, transparent 100%);"></div>
+                    {{-- Refuerzo extra en mobile (toda la superficie) --}}
+                    <div class="absolute inset-0 md:hidden"
+                         style="background: rgba(10,35,38,0.45);"></div>
+
+                    {{-- Contenido sobre imagen --}}
+                    <div class="relative z-10 h-full flex items-center px-6 md:px-10 lg:px-14 py-8 max-w-xl">
+                        <div>
+                            {{-- Icono circular borde dorado --}}
+                            <div class="w-14 h-14 rounded-full border-2 border-amber-400 bg-teal-900/60 grid place-items-center mb-4 shadow-md">
+                                <svg class="w-7 h-7 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $destino['iconPath'] }}"/>
                                 </svg>
+                            </div>
+
+                            {{-- Badge --}}
+                            <span class="inline-block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-300 mb-2">
+                                {{ $destino['badge'] }}
                             </span>
-                            {{ $destino['badge'] }}
-                        </span>
-                    </div>
-                    {{-- Texto --}}
-                    <div class="relative p-5 overflow-hidden">
-                        <h3 class="font-display text-2xl text-teal-800 leading-tight">{{ $destino['title'] }}</h3>
-                        <p class="mt-3 text-sm text-teal-800/75 leading-relaxed max-w-[85%]">{{ $destino['desc'] }}</p>
-                        <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-                           class="mt-5 inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-5 py-3 font-semibold text-xs uppercase tracking-wider transition">
-                            VER TOURS
-                            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                        </a>
-                        {{-- Decoración arquitectónica --}}
-                        <svg class="absolute -right-3 bottom-0 w-28 h-28 text-orange-300/35 pointer-events-none" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                            {!! $destino['deco'] !!}
-                        </svg>
+
+                            {{-- Título --}}
+                            <h3 class="font-display text-2xl md:text-3xl lg:text-4xl text-white leading-tight">
+                                {{ $destino['title'] }}
+                            </h3>
+
+                            {{-- Descripción --}}
+                            <p class="mt-3 text-sm text-white/80 leading-relaxed max-w-sm">
+                                {{ $destino['desc'] }}
+                            </p>
+
+                            {{-- CTA outline dorado --}}
+                            <a href="{{ route('tours.index', ['locale' => $locale]) }}"
+                               class="mt-5 inline-flex items-center gap-2 border border-amber-400 text-amber-300 hover:bg-amber-400/10 rounded-full px-5 py-2.5 font-semibold text-xs uppercase tracking-wider transition">
+                                VER TOURS
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                            </a>
+                        </div>
                     </div>
                 </article>
             @endforeach
         </div>
+
+        {{-- Cierre: línea experiencias auténticas --}}
+        <p class="mt-8 text-center text-sm text-teal-800/70 flex items-center justify-center gap-2 flex-wrap">
+            <svg class="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/>
+            </svg>
+            Experiencias auténticas, memorias inolvidables. Viaja con <span class="text-amber-600 font-semibold ml-1">Lima View Tours.</span>
+        </p>
     </div>
 </section>
 
@@ -942,27 +1018,27 @@
 {{-- ============================================================
      SECCIÓN 8 — VERIFICADO Y RECOMENDADO
      ============================================================ --}}
-<section class="relative bg-cream-100 px-5 pt-10 pb-12 lg:py-20 overflow-hidden" aria-labelledby="reco-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+<section class="relative bg-cream-100 px-5 pt-12 pb-14 lg:py-20 overflow-hidden" aria-labelledby="reco-title">
+    <div class="container mx-auto max-w-5xl lg:px-5">
 
-        {{-- Eyebrow pill --}}
-        <div class="flex items-center justify-center gap-3 mb-8" aria-hidden="true">
-            <span class="h-px flex-1 bg-orange-400/40 max-w-[80px]"></span>
+        {{-- Eyebrow pill centrado --}}
+        <div class="flex items-center justify-center gap-3 mb-10">
+            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
             <span class="inline-flex items-center gap-2 border border-teal-800 rounded-full px-4 py-1.5 bg-teal-800 shadow-sm">
                 <svg class="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M12 1.5L14.5 8H21l-5.5 4 2 6.5L12 14.5 6.5 18.5l2-6.5L3 8h6.5z"/>
                 </svg>
                 <span class="text-[10px] uppercase tracking-[0.18em] text-white font-bold">VERIFICADO Y RECOMENDADO POR</span>
             </span>
-            <span class="h-px flex-1 bg-orange-400/40 max-w-[80px]"></span>
+            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
         </div>
 
-        {{-- Layout: badge + texto (mobile: stack, desktop: 2 col) --}}
-        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+        {{-- Bloque hero: medallón + texto centrados en mobile, 2 col en desktop --}}
+        <div class="flex flex-col items-center gap-8 lg:flex-row lg:gap-16 lg:items-center mb-14">
 
             {{-- Medallón SVG "Best Tours in Lima" --}}
-            <div class="flex justify-center mb-10 lg:mb-0">
-                <div class="relative w-44 h-44 lg:w-56 lg:h-56 drop-shadow-2xl" aria-hidden="true">
+            <div class="flex justify-center shrink-0">
+                <div class="relative w-48 h-48 lg:w-60 lg:h-60 drop-shadow-2xl" aria-hidden="true">
                     <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
                         <defs>
                             <linearGradient id="goldRing" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1047,9 +1123,9 @@
             </div>
 
             {{-- Texto + card premio --}}
-            <div class="text-center lg:text-left">
+            <div class="text-center lg:text-left flex-1">
                 <p class="text-xs text-teal-800/70 uppercase tracking-[0.18em] font-semibold">Estamos recomendados por</p>
-                <h2 id="reco-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
+                <h2 id="reco-title" class="mt-2 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
                     <em class="not-italic text-amber-700 italic">Best Tours in Lima</em>
                 </h2>
                 <div class="mt-3 flex items-center justify-center lg:justify-start gap-2" aria-hidden="true">
@@ -1057,32 +1133,37 @@
                     <svg class="w-3 h-3 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
                     <span class="h-px w-8 bg-orange-500/50"></span>
                 </div>
-                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed">
+                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed max-w-md mx-auto lg:mx-0">
                     Una de las mejores empresas que brindan experiencias turísticas verificadas.
                 </p>
 
                 {{-- Card premio --}}
-                <div class="mt-6 bg-white rounded-2xl ring-1 ring-orange-400/30 shadow-sm p-5 flex items-center gap-4 text-left">
-                    <span class="w-14 h-14 rounded-full bg-orange-50 grid place-items-center shrink-0 ring-1 ring-orange-400/40">
+                <div class="mt-6 bg-white rounded-2xl ring-1 ring-orange-400/30 shadow-sm p-5 flex items-start gap-4 text-left max-w-md mx-auto lg:mx-0">
+                    <span class="w-14 h-14 rounded-full bg-orange-50 grid place-items-center shrink-0 ring-1 ring-orange-400/40 mt-0.5">
                         <svg class="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
                     </span>
                     <div>
                         <p class="font-bold text-teal-800 text-sm uppercase tracking-tight leading-tight">GANAMOS EL PREMIO<br>DE VERIFICACIÓN</p>
-                        <p class="mt-1 text-xs text-teal-800/70 leading-snug">para los mejores tours y empresas que brindan experiencias de alta calidad en Lima.</p>
+                        <p class="mt-1.5 text-xs text-teal-800/70 leading-snug">para los mejores tours y empresas que brindan experiencias de alta calidad en Lima.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- ¿Por qué somos recomendados? --}}
-        <div class="mt-12 lg:mt-16">
-            <div class="flex items-center justify-center gap-3 mb-8" aria-hidden="true">
-                <span class="h-px flex-1 bg-orange-400/40 max-w-[80px]"></span>
-                <span class="text-[10px] uppercase tracking-[0.18em] text-teal-800 font-bold">¿POR QUÉ SOMOS RECOMENDADOS?</span>
-                <span class="h-px flex-1 bg-orange-400/40 max-w-[80px]"></span>
-            </div>
+        {{-- Divider decorativo --}}
+        <div class="flex items-center gap-3 my-10" aria-hidden="true">
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+        </div>
 
-            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {{-- ¿Por qué somos recomendados? --}}
+        <div>
+            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-6">
+                ¿Por qué somos recomendados?
+            </h3>
+
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
                 @php
                   $recoItems = [
                     ['Calidad Verificada',           'Operadores evaluados bajo estrictos estándares de calidad.',           'shield'],
@@ -1092,8 +1173,8 @@
                   ];
                 @endphp
                 @foreach ($recoItems as [$rTitle, $rDesc, $rIcon])
-                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-4 text-center">
-                        <span class="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-teal-800 grid place-items-center mx-auto mb-3">
+                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-5 lg:p-6 text-center">
+                        <span class="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-teal-800 grid place-items-center mx-auto mb-4">
                             <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                                 @if ($rIcon === 'shield')
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
@@ -1113,15 +1194,20 @@
             </div>
         </div>
 
-        {{-- Y también nos recomiendan --}}
-        <div class="mt-10 lg:mt-14">
-            <div class="flex items-center justify-center gap-3 mb-6" aria-hidden="true">
-                <span class="h-px flex-1 bg-orange-400/40 max-w-[80px]"></span>
-                <span class="text-[10px] uppercase tracking-[0.18em] text-teal-800 font-bold">Y TAMBIÉN NOS RECOMIENDAN</span>
-                <span class="h-px flex-1 bg-orange-400/40 max-w-[80px]"></span>
-            </div>
+        {{-- Divider decorativo --}}
+        <div class="flex items-center gap-3 my-10" aria-hidden="true">
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+        </div>
 
-            <div class="grid grid-cols-3 gap-3 lg:gap-6 max-w-2xl mx-auto lg:max-w-3xl">
+        {{-- Y también nos recomiendan --}}
+        <div>
+            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-6">
+                Y también nos recomiendan
+            </h3>
+
+            <div class="grid grid-cols-3 gap-4 lg:gap-6 max-w-2xl mx-auto lg:max-w-3xl">
 
                 {{-- Viator --}}
                 <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-4 lg:p-6 text-center">
