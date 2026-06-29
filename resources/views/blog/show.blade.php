@@ -198,9 +198,10 @@
                 <h2 id="related-label" class="font-display text-2xl md:text-3xl text-teal-800 mb-8">
                     {{ $L('Artículos relacionados', 'Related articles', 'Artigos relacionados') }}
                 </h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="related-slider" style="display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 14px;scrollbar-width:thin;">
                     @foreach ($related as $rel)
-                        <article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                        <article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
+                                 style="flex:0 0 270px;max-width:270px;scroll-snap-align:start;">
                             <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $rel->slug]) }}"
                                class="block aspect-[16/9] overflow-hidden bg-cream-200" tabindex="-1" aria-hidden="true">
                                 @if ($rel->cover_image)
@@ -216,13 +217,13 @@
                                     </div>
                                 @endif
                             </a>
-                            <div class="p-5 flex flex-col flex-1">
+                            <div class="p-4 flex flex-col flex-1">
                                 @if ($rel->category)
                                     <span class="inline-block self-start mb-2 px-3 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
                                         {{ $rel->category }}
                                     </span>
                                 @endif
-                                <h3 class="font-display text-lg text-teal-800 leading-snug mb-2 line-clamp-2">
+                                <h3 class="font-display text-base text-teal-800 leading-snug mb-2 line-clamp-2">
                                     <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $rel->slug]) }}"
                                        class="hover:text-orange-600 transition-colors">
                                         {{ $rel->title }}
