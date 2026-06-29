@@ -18,7 +18,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Password;
+use App\Mail\AccountCredentials;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -361,9 +362,10 @@ class CheckoutController extends Controller
 
     /**
      * Returns the customer_id to attach to new bookings.
-     * If a customer is logged in, use their id.
-     * Otherwise, find by email or create a new guest account (no password yet),
-     * then send an activation link via the password broker.
+     * - Logged-in customers: use their existing id.
+     * - Existing email (no session): reuse without sending any email.
+     * - New email: create an account with a generated temporary password
+     *   and send the credentials via email (AccountCredentials mailable).
      */
     private function resolveCustomerId(array $customer, string $locale): int
     {
@@ -379,21 +381,26 @@ class CheckoutController extends Controller
             return $existing->id;
         }
 
-        // New guest customer — no password yet
+        // Generate a readable temporary password (10 chars, no symbols, no ambiguous chars).
+        // Str::password() is available since Laravel 10.x.
+        $plain = Str::password(10, letters: true, numbers: true, symbols: false, spaces: false);
+
+        // Create the new guest customer — the 'hashed' cast on Customer::$password
+        // automatically bcrypts the plain string on assignment.
         $guestCustomer = Customer::create([
-            'name'   => $customer['customer_name'],
-            'email'  => $customer['customer_email'],
-            'phone'  => $customer['customer_phone'] ?? null,
-            'locale' => $locale,
+            'name'     => $customer['customer_name'],
+            'email'    => $customer['customer_email'],
+            'phone'    => $customer['customer_phone'] ?? null,
+            'locale'   => $locale,
+            'password' => $plain,
         ]);
 
-        // Send "activate your account" reset link
+        // Send credentials email. Failure is non-fatal: log a warning and continue.
         try {
-            Password::broker('customers')->sendResetLink(
-                ['email' => $guestCustomer->email]
-            );
+            Mail::to($guestCustomer->email)
+                ->send(new AccountCredentials($guestCustomer, $plain, $locale));
         } catch (\Throwable $ex) {
-            Log::warning('checkout.guest_activate_email.failed', [
+            Log::warning('checkout.guest_credentials_email.failed', [
                 'email'   => $guestCustomer->email,
                 'message' => $ex->getMessage(),
             ]);

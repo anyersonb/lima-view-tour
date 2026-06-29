@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\ContactAcknowledgement;
 use App\Mail\ContactReceived;
 use App\Models\ContactLead;
+use App\Models\Page;
 use App\Models\Setting;
 use App\Services\RecaptchaService;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,9 @@ class ContactController extends Controller
 {
     public function show(): View
     {
-        return view('contact');
+        $page = Page::where('slug', 'contacto')->first();
+
+        return view('contact', compact('page'));
     }
 
     public function submit(string $locale, Request $request, RecaptchaService $recaptcha): RedirectResponse

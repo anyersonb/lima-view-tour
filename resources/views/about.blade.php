@@ -6,6 +6,11 @@
 @php
     $locale = app()->getLocale();
     $brujula = '<svg viewBox="0 0 64 64" class="w-12 h-12 text-teal-700" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="14"/><path d="M32 14 L34 30 L50 32 L34 34 L32 50 L30 34 L14 32 L30 30 Z" fill="currentColor" opacity=".15" stroke="none"/><path d="M32 16v3M32 45v3M16 32h3M45 32h3"/></svg>';
+    // Blocks from CMS — all keys fall back to hardcoded assets when empty
+    $b = $page?->blocks ?? [];
+    $mediaUrl = fn (?string $path): ?string => $path
+        ? \Illuminate\Support\Facades\Storage::disk('media')->url($path)
+        : null;
 @endphp
 
 @section('content')
@@ -13,7 +18,7 @@
 {{-- ───────── HERO ───────── --}}
 <section class="relative isolate text-white min-h-[70vh] flex flex-col justify-end" aria-labelledby="about-hero-title">
     <div class="absolute inset-0 -z-10">
-        <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt=""
+        <img src="{{ $mediaUrl($b['img_hero'] ?? null) ?? asset('assets/banners/Rectangle 19215.jpg') }}" alt=""
              class="w-full h-full object-cover object-center" loading="eager" fetchpriority="high"
              width="1440" height="900">
         <div class="absolute inset-0 bg-gradient-to-b from-teal-900/30 via-teal-900/40 to-teal-900/70"></div>
@@ -28,12 +33,12 @@
         </nav>
     </div>
     <div class="container mx-auto px-5 lg:px-10 pb-20 md:pb-28 lg:pb-32">
-        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold text-white/80">SOBRE NOSOTROS</p>
+        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold text-white/80">{{ $b['hero_eyebrow_'.$locale] ?? 'SOBRE NOSOTROS' }}</p>
         <h1 id="about-hero-title" class="mt-3 font-display font-normal text-4xl md:text-5xl lg:text-6xl leading-[1.1] max-w-3xl">
-            Somos planificadores profesionales<br class="hidden md:block"> para tus vacaciones
+            {{ $b['hero_title_'.$locale] ?? 'Somos planificadores profesionales para tus vacaciones' }}
         </h1>
         <p class="mt-5 max-w-2xl text-sm md:text-base text-white/85 leading-relaxed">
-            Más de una década organizando experiencias auténticas por los destinos más emblemáticos del Perú. Nuestro compromiso: viajar contigo y dejar huella positiva.
+            {{ $b['hero_lead_'.$locale] ?? 'Más de una década organizando experiencias auténticas por los destinos más emblemáticos del Perú. Nuestro compromiso: viajar contigo y dejar huella positiva.' }}
         </p>
         <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-7">Ver más</a>
     </div>
@@ -51,7 +56,7 @@
                 ¿Por qué reservar<br>con nosotros?
             </h2>
             <p class="mt-5 text-teal-800/75 leading-relaxed text-sm md:text-base">
-                En Lima View Tours diseñamos experiencias para conectar a nuestros viajeros con la riqueza histórica, gastronómica y natural del Perú. Cada itinerario está pensado al detalle: transporte cómodo, guías locales certificados y aliados confiables.
+                {{ $b['why_intro_'.$locale] ?? 'En Lima View Tours diseñamos experiencias para conectar a nuestros viajeros con la riqueza histórica, gastronómica y natural del Perú. Cada itinerario está pensado al detalle: transporte cómodo, guías locales certificados y aliados confiables.' }}
             </p>
             <p class="mt-4 text-teal-800/75 leading-relaxed text-sm md:text-base">
                 Apostamos por un turismo responsable que respeta a las comunidades y al medio ambiente. Nuestro símbolo —la espiral— representa el viaje desde el centro hacia nuevas perspectivas.
@@ -60,10 +65,10 @@
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-            <img src="{{ asset('assets/banners/Rectangle 19216.jpg') }}" alt="Lima nocturna" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
-            <img src="{{ asset('assets/banners/Rectangle 19217.jpg') }}" alt="Machu Picchu" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
-            <img src="{{ asset('assets/banners/Rectangle 19218.jpg') }}" alt="Cusco colonial" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
-            <img src="{{ asset('assets/banners/Rectangle 19219.jpg') }}" alt="Huacachina oasis" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid1'] ?? null) ?? asset('assets/banners/Rectangle 19216.jpg') }}" alt="Lima nocturna" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid2'] ?? null) ?? asset('assets/banners/Rectangle 19217.jpg') }}" alt="Machu Picchu" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid3'] ?? null) ?? asset('assets/banners/Rectangle 19218.jpg') }}" alt="Cusco colonial" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid4'] ?? null) ?? asset('assets/banners/Rectangle 19219.jpg') }}" alt="Huacachina oasis" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
         </div>
     </div>
 </section>
@@ -89,7 +94,7 @@
 {{-- ───────── BANNER LIMA VIEW TOURS ───────── --}}
 <section class="relative isolate text-white min-h-[22rem] flex items-center" aria-labelledby="about-banner-title">
     <div class="absolute inset-0 -z-10">
-        <img src="{{ asset('assets/banners/Rectangle 19214.jpg') }}" alt=""
+        <img src="{{ $mediaUrl($b['img_banner_cta'] ?? null) ?? asset('assets/banners/Rectangle 19214.jpg') }}" alt=""
              class="w-full h-full object-cover object-center" loading="lazy"
              width="1440" height="600">
         <div class="absolute inset-0 bg-teal-900/60"></div>
@@ -211,7 +216,7 @@
         </div>
 
         <article class="relative rounded-2xl overflow-hidden text-white min-h-[28rem]">
-            <img src="{{ asset('assets/banners/Rectangle 19211.jpg') }}" alt=""
+            <img src="{{ $mediaUrl($b['img_testimonios'] ?? null) ?? asset('assets/banners/Rectangle 19211.jpg') }}" alt=""
                  class="absolute inset-0 w-full h-full object-cover" loading="lazy">
             <div class="absolute inset-0 bg-gradient-to-t from-teal-900/85 via-teal-900/40 to-teal-900/20"></div>
             <div class="relative h-full p-8 flex flex-col">

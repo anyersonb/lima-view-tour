@@ -34,9 +34,10 @@ class MediaAssetResource extends Resource
                             ->disk('media')
                             ->directory('biblioteca')
                             ->multiple()
-                            ->acceptedFileTypes(['image/*', 'application/pdf', 'video/mp4'])
+                            // Seguridad: tipos explícitos (sin comodín image/* ni SVG, que es vector XSS)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'video/mp4'])
                             ->maxSize(10240)
-                            ->preserveFilenames()
+                            // Nombres aleatorios (no preserveFilenames): evita sobrescritura y rutas predecibles
                             ->downloadable()
                             ->columnSpanFull()
                             ->visibleOn('create'),

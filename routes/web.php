@@ -105,7 +105,11 @@ Route::prefix('{locale}')
         Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
         Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 
-        Route::get('/nosotros', fn () => view('about'))->name('about');
+        Route::get('/nosotros', function () {
+            $page = \App\Models\Page::where('slug', 'nosotros')->first();
+
+            return view('about', compact('page'));
+        })->name('about');
 
         // Legal pages
         Route::get('/terminos', [PageController::class, 'terms'])->name('legal.terms');

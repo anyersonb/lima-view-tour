@@ -7,6 +7,11 @@
     $locale = app()->getLocale();
     $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
     $contactPhoneTel = str_replace([' ', '+'], '', $contactPhone);
+    // Blocks from CMS — all keys fall back to hardcoded assets when empty
+    $b = $page?->blocks ?? [];
+    $mediaUrl = fn (?string $path): ?string => $path
+        ? \Illuminate\Support\Facades\Storage::disk('media')->url($path)
+        : null;
 @endphp
 
 @section('content')
@@ -14,7 +19,7 @@
 {{-- Hero --}}
 <section class="relative isolate text-white min-h-[55vh] flex flex-col justify-end" aria-labelledby="contact-hero-title">
     <div class="absolute inset-0 -z-10">
-        <img src="{{ asset('assets/banners/Rectangle 19216.jpg') }}" alt=""
+        <img src="{{ $mediaUrl($b['img_hero'] ?? null) ?? asset('assets/banners/Rectangle 19216.jpg') }}" alt=""
              class="w-full h-full object-cover object-center" loading="eager" fetchpriority="high"
              width="1440" height="800">
         <div class="absolute inset-0 bg-gradient-to-b from-teal-900/25 via-teal-900/50 to-teal-900/75"></div>
@@ -29,10 +34,10 @@
         </nav>
     </div>
     <div class="container mx-auto px-5 lg:px-10 pb-16 md:pb-24 text-center">
-        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold text-white/80">RESOLVEMOS TUS DUDAS</p>
-        <h1 id="contact-hero-title" class="mt-3 font-display text-5xl md:text-6xl lg:text-7xl leading-[1.05]">Contáctanos</h1>
+        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold text-white/80">{{ $b['hero_eyebrow_'.$locale] ?? 'RESOLVEMOS TUS DUDAS' }}</p>
+        <h1 id="contact-hero-title" class="mt-3 font-display text-5xl md:text-6xl lg:text-7xl leading-[1.05]">{{ $b['hero_title_'.$locale] ?? 'Contáctanos' }}</h1>
         <p class="mt-5 mx-auto max-w-2xl text-sm md:text-base text-white/85 leading-relaxed">
-            Vive una aventura inolvidable por los destinos más impresionantes del Perú. Desde Machu Picchu hasta la Huacachina, nuestros tours están diseñados para que disfrutes lo mejor del país con seguridad, comodidad y guías expertos.
+            {{ $b['hero_lead_'.$locale] ?? 'Vive una aventura inolvidable por los destinos más impresionantes del Perú. Desde Machu Picchu hasta la Huacachina, nuestros tours están diseñados para que disfrutes lo mejor del país con seguridad, comodidad y guías expertos.' }}
         </p>
     </div>
 </section>
@@ -44,19 +49,19 @@
         {{-- Collage — layout irregular tipo mockup --}}
         <div class="relative h-[30rem] md:h-[34rem] lg:h-[38rem] hidden sm:block" aria-hidden="true">
             {{-- Imagen grande izquierda arriba --}}
-            <img src="{{ asset('assets/banners/Rectangle 19210.jpg') }}" alt=""
+            <img src="{{ $mediaUrl($b['img_collage_1'] ?? null) ?? asset('assets/banners/Rectangle 19210.jpg') }}" alt=""
                  class="absolute top-0 left-0 w-[48%] h-[46%] object-cover rounded-2xl shadow-md"
                  loading="lazy" width="300" height="260">
             {{-- Imagen pequeña centro-arriba --}}
-            <img src="{{ asset('assets/banners/Rectangle 19211.jpg') }}" alt=""
+            <img src="{{ $mediaUrl($b['img_collage_2'] ?? null) ?? asset('assets/banners/Rectangle 19211.jpg') }}" alt=""
                  class="absolute top-[8%] right-0 w-[46%] h-[38%] object-cover rounded-2xl shadow-md"
                  loading="lazy" width="280" height="220">
             {{-- Imagen grande izquierda abajo --}}
-            <img src="{{ asset('assets/images/personas.png') }}" alt=""
+            <img src="{{ $mediaUrl($b['img_collage_3'] ?? null) ?? asset('assets/images/personas.png') }}" alt=""
                  class="absolute bottom-0 left-0 w-[52%] h-[52%] object-cover object-top rounded-2xl shadow-md"
                  loading="lazy" width="320" height="300">
             {{-- Imagen derecha abajo --}}
-            <img src="{{ asset('assets/banners/Rectangle 19212.jpg') }}" alt=""
+            <img src="{{ $mediaUrl($b['img_collage_4'] ?? null) ?? asset('assets/banners/Rectangle 19212.jpg') }}" alt=""
                  class="absolute bottom-[6%] right-0 w-[44%] h-[44%] object-cover rounded-2xl shadow-md"
                  loading="lazy" width="270" height="260">
         </div>
