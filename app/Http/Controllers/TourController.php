@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BlockedDate;
 use App\Models\Region;
 use App\Models\Testimonial;
 use App\Models\Tour;
@@ -45,13 +46,15 @@ class TourController extends Controller
         }
 
         return view('tours.show', [
-            'tour' => $tour,
-            'related' => $related,
-            'testimonials' => Testimonial::active()->featured()->orderBy('order')->limit(4)->get(),
-            'tourReviews' => $tour->testimonials()
+            'tour'          => $tour,
+            'related'       => $related,
+            'testimonials'  => Testimonial::active()->featured()->orderBy('order')->limit(4)->get(),
+            'tourReviews'   => $tour->testimonials()
                 ->where('is_active', true)
                 ->latest()
                 ->get(),
+            'blockedDates'    => BlockedDate::blockedDatesFor($tour->id),
+            'blockedWeekdays' => BlockedDate::blockedWeekdaysFor($tour->id),
         ]);
     }
 

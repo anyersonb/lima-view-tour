@@ -1,10 +1,8 @@
 .tour-card {
     @apply bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow border border-slate-100;
 
-    // Escudo colgante "MÁS VENDIDO / BEST SELLER / TOP EXPERIENCIA / NATURALEZA ÚNICA"
-    &__shield {
-        clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 88%, 0 100%);
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
+    // Badge horizontal "MÁS VENDIDO / BEST SELLER / TOP EXPERIENCIA / NATURALEZA ÚNICA"
+    &__badge {
+        backdrop-filter: saturate(1.1);
     }
 }

@@ -34,7 +34,7 @@ class BookingNotificationAdmin extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.bookings.admin-notification',
+            view: 'emails.bookings.admin-notification',
             with: [
                 'bookings'      => $this->bookings,
                 'paymentTiming' => $this->paymentTiming,

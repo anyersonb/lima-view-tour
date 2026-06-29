@@ -3,6 +3,7 @@ import forms from '@tailwindcss/forms';
 import typography from '@tailwindcss/typography';
 
 export default {
+    darkMode: 'class', // tema claro forzado: 'class' evita que las utilidades dark: se activen por preferencia del SO
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',

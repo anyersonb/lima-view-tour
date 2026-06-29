@@ -19,13 +19,13 @@ class SettingSeeder extends Seeder
 
             // Contacto
             ['key' => 'contact_email', 'value' => 'hola@limaviewtours.com', 'group' => 'contact'],
-            ['key' => 'contact_phone', 'value' => '+51 935 542 384', 'group' => 'contact'],
+            ['key' => 'contact_phone', 'value' => '+51 925 886 725', 'group' => 'contact'],
             ['key' => 'contact_phone_secondary', 'value' => '190010088', 'group' => 'contact'],
             ['key' => 'contact_address_es', 'value' => 'Av. Larcomar 233, Of. 410 — Miraflores, Lima', 'group' => 'contact'],
             ['key' => 'contact_address_en', 'value' => 'Larcomar Ave. 233, Off. 410 — Miraflores, Lima', 'group' => 'contact'],
             ['key' => 'contact_hours_es', 'value' => 'Lun – Vie: 9:00 a.m. – 7:00 p.m.', 'group' => 'contact'],
             ['key' => 'contact_hours_en', 'value' => 'Mon – Fri: 9:00 a.m. – 7:00 p.m.', 'group' => 'contact'],
-            ['key' => 'whatsapp', 'value' => '51935542384', 'group' => 'contact'],
+            ['key' => 'whatsapp', 'value' => '51925886725', 'group' => 'contact'],
 
             // Redes sociales
             ['key' => 'social_instagram', 'value' => 'https://instagram.com/limaviewtours', 'group' => 'social'],

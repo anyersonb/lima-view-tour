@@ -42,4 +42,10 @@ class Offer extends Model
         $locale = app()->getLocale();
         return $this->{"description_{$locale}"} ?: $this->description_es;
     }
+
+    public function getCtaLabelAttribute(): string
+    {
+        $locale = app()->getLocale();
+        return $this->{"cta_label_{$locale}"} ?: $this->cta_label_es;
+    }
 }

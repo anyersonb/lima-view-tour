@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BlogPost;
 use App\Models\Page;
 use App\Models\Region;
 use App\Models\Tour;
@@ -11,17 +12,20 @@ class SitemapController extends Controller
 {
     public function index(): Response
     {
-        $locales = config('app.supported_locales', ['es', 'en']);
+        $locales = config('app.supported_locales', ['es', 'en', 'pt']);
         $base = rtrim(config('app.url'), '/');
 
         $urls = [];
 
         // Static routes
         $staticRoutes = [
-            ['path' => '', 'priority' => '1.0', 'changefreq' => 'daily'],
-            ['path' => '/tours', 'priority' => '0.9', 'changefreq' => 'daily'],
-            ['path' => '/nosotros', 'priority' => '0.7', 'changefreq' => 'monthly'],
-            ['path' => '/contacto', 'priority' => '0.6', 'changefreq' => 'monthly'],
+            ['path' => '',           'priority' => '1.0', 'changefreq' => 'daily'],
+            ['path' => '/tours',     'priority' => '0.9', 'changefreq' => 'daily'],
+            ['path' => '/nosotros',  'priority' => '0.7', 'changefreq' => 'monthly'],
+            ['path' => '/contacto',  'priority' => '0.6', 'changefreq' => 'monthly'],
+            ['path' => '/resenas',   'priority' => '0.6', 'changefreq' => 'weekly'],
+            ['path' => '/terminos',  'priority' => '0.3', 'changefreq' => 'yearly'],
+            ['path' => '/privacidad','priority' => '0.3', 'changefreq' => 'yearly'],
         ];
 
         foreach ($staticRoutes as $r) {
@@ -59,6 +63,31 @@ class SitemapController extends Controller
                     'changefreq' => 'weekly',
                     'image' => $tour->cover_image ? $base . '/' . ltrim($tour->cover_image, '/') : null,
                     'alternates' => collect($locales)->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/tours/detalle/' . $tour->slug])->all(),
+                ];
+            }
+        }
+
+        // Blog index pages (one per locale)
+        foreach ($locales as $locale) {
+            $urls[] = [
+                'loc'        => $base . '/' . $locale . '/blog',
+                'lastmod'    => now()->toAtomString(),
+                'priority'   => '0.7',
+                'changefreq' => 'daily',
+                'alternates' => collect($locales)->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/blog'])->all(),
+            ];
+        }
+
+        // Blog post pages
+        foreach (BlogPost::published()->orderByDesc('updated_at')->get() as $post) {
+            foreach ($locales as $locale) {
+                $urls[] = [
+                    'loc'        => $base . '/' . $locale . '/blog/' . $post->slug,
+                    'lastmod'    => $post->updated_at?->toAtomString() ?? now()->toAtomString(),
+                    'priority'   => '0.6',
+                    'changefreq' => 'weekly',
+                    'image'      => $post->cover_image ? $base . '/storage/' . ltrim($post->cover_image, '/') : null,
+                    'alternates' => collect($locales)->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/blog/' . $post->slug])->all(),
                 ];
             }
         }

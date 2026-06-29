@@ -38,7 +38,7 @@ class BookingConfirmed extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.bookings.confirmed',
+            view: 'emails.bookings.confirmed',
             with: [
                 'bookings' => $this->bookings,
                 'locale'   => $this->bookings->first()?->locale ?? app()->getLocale(),

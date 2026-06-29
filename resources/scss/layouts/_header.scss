@@ -1,37 +1,157 @@
+// ── Tokens de referencia ──────────────────────────────────────────────────
+// teal-800  : #0f3438
+// teal-700  : #15474b
+// teal-900  : #0a2326
+// dorado    : #c8944a
+// amber-400 : #fbbf24
+// orange-500: #e29347
+
 .site-header {
     @apply fixed top-0 inset-x-0 z-50 transition-all duration-300;
 
+    // Variante sólida: fondo teal oscuro
     &[data-variant="solid"] {
-        @apply bg-teal-700 text-white shadow-md;
+        background-color: #0f3438; // teal-800
+        @apply text-white shadow-md;
     }
 
+    // Variante transparente: sobre hero, se vuelve sólida al scroll
     &[data-variant="transparent"] {
         @apply bg-transparent text-white;
 
         &.is-scrolled {
-            @apply bg-teal-700/95 shadow-lg;
+            background-color: rgba(15, 52, 56, 0.95); // teal-800/95
+            @apply shadow-lg;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
-
-        .site-header__cart { @apply bg-orange-500; }
     }
 }
 
-// Compensar el fixed header: las páginas con solid header necesitan padding-top
+// Compensar el fixed header en páginas con variante sólida
 body:has(.site-header[data-variant="solid"]) {
-    padding-top: 88px;
+    padding-top: 72px;
 }
 
+// ── Barra ────────────────────────────────────────────────────────────────
 .site-header__bar {
-    min-height: 88px;
+    min-height: 72px;
 }
 
+// ── Wordmark dorado ───────────────────────────────────────────────────────
+.site-header__wordmark {
+    color: #c8944a; // dorado
+    // Visible en ambas variantes (sólida y transparente) porque el fondo
+    // siempre es oscuro (teal) cuando hay texto.
+}
+
+// ── Divisores verticales delgados ─────────────────────────────────────────
+.site-header__divider {
+    display: block;
+    width: 1px;
+    height: 24px;
+    flex-shrink: 0;
+    background-color: rgba(200, 148, 74, 0.3); // dorado/30
+}
+
+// ── Navegación horizontal (desktop) ───────────────────────────────────────
 .site-header__nav-link {
-    @apply uppercase tracking-wide text-[13px] font-semibold hover:text-orange-400 transition-colors;
-    letter-spacing: 0.06em;
+    @apply text-[15px] font-medium transition-colors;
+    color: inherit;            // blanco del header (fondo siempre teal oscuro)
+    white-space: nowrap;
+    letter-spacing: .2px;
+
+    &:hover { color: theme('colors.orange.400'); }
+    &:focus-visible {
+        outline: 2px solid theme('colors.amber.400');
+        outline-offset: 4px;
+        border-radius: 4px;
+    }
 }
 
-.site-header__cart {
-    min-width: 86px;
+// ── Botón carrito ────────────────────────────────────────────────────────
+.site-header__cart-btn {
+    position: relative;
+    color: inherit; // blanco del header
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+// ── Badge del carrito ────────────────────────────────────────────────────
+.site-header__badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9999px;
+    background-color: #c8944a; // dorado
+    color: #0f3438;             // teal-800 (texto oscuro sobre dorado)
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    pointer-events: none;
+    letter-spacing: 0;
+}
+
+// ── Botón hamburguesa ────────────────────────────────────────────────────
+.site-header__hamburger {
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+// ── Menú / Drawer ────────────────────────────────────────────────────────
+.site-menu {
+    &__row {
+        @apply flex items-center gap-3.5 w-full rounded-2xl px-3 py-3 text-left transition-colors;
+        color: theme('colors.teal.800');
+
+        &:hover { background: theme('colors.cream.100'); }
+        &:focus-visible {
+            outline: 2px solid theme('colors.teal.600');
+            outline-offset: 2px;
+        }
+    }
+
+    &__ico {
+        @apply w-11 h-11 rounded-full grid place-items-center shrink-0;
+        background: theme('colors.cream.100');
+        color: theme('colors.teal.800');
+
+        svg { @apply w-5 h-5; }
+    }
+
+    &__row:hover &__ico { background: #fff; }
+
+    &__txt {
+        @apply flex-1 min-w-0 leading-tight;
+
+        b     { @apply block text-[15px] font-bold; }
+        small { @apply block text-[12px] mt-0.5; color: rgba(15, 52, 56, .55); }
+    }
+
+    &__chev {
+        @apply w-4 h-4 shrink-0;
+        color: theme('colors.orange.500');
+    }
+
+    &__sub {
+        @apply block rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-colors;
+        color: rgba(15, 52, 56, .8);
+
+        &:hover {
+            background: theme('colors.cream.100');
+            color: theme('colors.orange.600');
+        }
+    }
+}
+
+// Bloquear scroll del body cuando el drawer está abierto
+body:has(.site-header.menu-open) {
+    overflow: hidden;
 }

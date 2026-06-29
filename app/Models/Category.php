@@ -41,4 +41,10 @@ class Category extends Model
         $locale = app()->getLocale();
         return $this->{"name_{$locale}"} ?: $this->name_es;
     }
+
+    public function getDescriptionAttribute(): ?string
+    {
+        $locale = app()->getLocale();
+        return $this->{"description_{$locale}"} ?: $this->description_es;
+    }
 }

@@ -33,12 +33,22 @@ class CategoryResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('name_es')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Nombre (Español)'),
                 Forms\Components\TextInput::make('name_en')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Name (English)'),
+                Forms\Components\TextInput::make('name_pt')
+                    ->maxLength(255)
+                    ->label('Nome (Português)'),
                 Forms\Components\Textarea::make('description_es')
+                    ->label('Descripción (Español)')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('description_en')
+                    ->label('Description (English)')
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('description_pt')
+                    ->label('Descrição (Português)')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('icon')
                     ->maxLength(255),

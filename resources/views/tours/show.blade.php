@@ -8,7 +8,7 @@
     $excludes   = $tour->{"excludes_{$locale}"}  ?? $tour->excludes_es  ?? [];
     $recommendations = $tour->{"recommendations_{$locale}"} ?? $tour->recommendations_es ?? null;
     $notes      = $tour->{"notes_{$locale}"}     ?? $tour->notes_es     ?? null;
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
+    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
 
     $recommendationLines = $recommendations
         ? array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $recommendations))))
@@ -415,8 +415,8 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 /* Experience row mobile */
 .m-exp-row { display: flex; gap: 10px; overflow: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
 .m-exp-row::-webkit-scrollbar { display: none; }
-.m-exp { min-width: 86px; scroll-snap-align: start; }
-.m-exp img { width: 86px; height: 94px; border-radius: 8px; object-fit: cover; }
+.m-exp { flex: 0 0 46%; max-width: 46%; scroll-snap-align: start; }
+.m-exp img { width: 100%; height: 120px; border-radius: 10px; object-fit: cover; }
 .m-exp b { font-size: 12px; display: block; margin-top: 6px; }
 .m-exp small { font-size: 11px; color: #555; line-height: 1.15; display: block; }
 .m-dots { text-align: center; color: #c8c8c8; letter-spacing: 7px; margin-top: 8px; }
@@ -468,7 +468,8 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-info-item:hover { background: #fafbfa; }
 .m-info-list details[open] > .m-info-item { background: #f1f7f1; }
 .m-info-list details[open] > .m-info-item b { color: var(--m-green); }
-.m-info-ico { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #eef3ee; color: var(--m-green); font-size: 20px; }
+.m-info-ico { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--m-green); color: #fff; font-size: 20px; }
+.m-info-ico svg { width: 20px; height: 20px; }
 .m-info-item b { font-size: 14px; color: #14201c; font-weight: 800; }
 .m-info-item p { font-size: 12px; color: #6b7077; margin: 2px 0 0; line-height: 1.3; }
 .m-info-list details > div { font-size: 13px !important; color: #444 !important; line-height: 1.6 !important; }
@@ -637,10 +638,86 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-content-wrap { padding-bottom: 16px; }
 
 } /* end @media max-width: 767px */
+
+/* ═══════════════════════════════════════
+   DESKTOP TWO-COLUMN LAYOUT (md+)
+   ═══════════════════════════════════════ */
+@media (min-width: 768px) {
+    .d-two-col {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        gap: 2rem;
+        align-items: start;
+    }
+}
+@media (min-width: 1024px) {
+    .d-two-col { gap: 2.5rem; }
+    .d-sidebar-sticky { position: sticky; top: 6rem; }
+}
+
+/* ── Slider "Otros viajeros también reservaron" (desktop): 2 cards por vista ── */
+.d-related { position: relative; }
+.d-related-track {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding-bottom: .25rem;
+    scrollbar-width: none;
+}
+.d-related-track::-webkit-scrollbar { display: none; }
+.d-related-track > * { flex: 0 0 calc(50% - .5rem); scroll-snap-align: start; min-width: 0; }
+.d-related-nav {
+    position: absolute; top: 38%; transform: translateY(-50%);
+    width: 40px; height: 40px; border-radius: 9999px;
+    background: #fff; color: #15474B;
+    box-shadow: 0 4px 14px rgba(20,62,64,.18);
+    display: grid; place-items: center; cursor: pointer; z-index: 5;
+    border: 1px solid rgba(20,71,75,.1);
+}
+.d-related-nav:hover { background: #15474B; color: #fff; }
+.d-related-nav.prev { left: -14px; }
+.d-related-nav.next { right: -14px; }
+
+/* ── Modo nocturno DESACTIVADO (tema claro forzado; reactivar quitando "and (min-width:99999px)") ── */
+@media (prefers-color-scheme: dark) and (min-width: 99999px) {
+    .booking-compact-card,
+    .booking-compact-body { background: #14302f !important; }
+    .booking-compact-card { box-shadow: 0 2px 16px rgba(0,0,0,.5); }
+}
+
+/* ── Flatpickr brand overrides ── */
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: #15474B !important;
+    border-color: #15474B !important;
+}
+.flatpickr-day:hover,
+.flatpickr-day.prevMonthDay:hover,
+.flatpickr-day.nextMonthDay:hover {
+    background: #15474b22 !important;
+}
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+    color: #b0b0b0 !important;
+    text-decoration: line-through !important;
+    cursor: not-allowed !important;
+}
 </style>
 @endpush
 
+@push('head')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+@endpush
+
 @push('scripts')
+{{-- Blocked-dates data injected from controller --}}
+<script>
+    window.LVT_BLOCKED_DATES    = @json($blockedDates ?? []);
+    window.LVT_BLOCKED_WEEKDAYS = @json($blockedWeekdays ?? []);
+</script>
+
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.store('booking', {
@@ -652,11 +729,83 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 </script>
 @endpush
 
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+@php
+    $fpLocale = match(app()->getLocale()) { 'pt' => 'pt', 'en' => 'en', default => 'es' };
+@endphp
+@if($fpLocale !== 'en')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/{{ $fpLocale }}.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+@endif
+<script>
+(function () {
+    function initFlatpickr() {
+        if (typeof flatpickr === 'undefined') {
+            // Retry until the deferred script has loaded
+            setTimeout(initFlatpickr, 80);
+            return;
+        }
+
+        var blockedDates    = window.LVT_BLOCKED_DATES    || [];
+        var blockedWeekdays = window.LVT_BLOCKED_WEEKDAYS || [];
+        var tomorrow        = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+
+        @if($fpLocale !== 'en')
+        var locale = flatpickr.l10ns['{{ $fpLocale }}'] || flatpickr.l10ns.default;
+        @else
+        var locale = flatpickr.l10ns.default;
+        @endif
+
+        var config = {
+            minDate:    tomorrow,
+            dateFormat: 'Y-m-d',
+            locale:     locale,
+            disable: [
+                // Specific blocked dates
+                ...blockedDates,
+                // Recurring weekdays
+                function (date) {
+                    return blockedWeekdays.includes(date.getDay());
+                }
+            ],
+            onChange: function (selectedDates, dateStr) {
+                // Keep the Alpine store in sync after flatpickr selection
+                if (dateStr && typeof Alpine !== 'undefined') {
+                    Alpine.store('booking').date = dateStr;
+                }
+            }
+        };
+
+        // Initialize on both booking date inputs (mobile + desktop)
+        document.querySelectorAll('[data-booking-date]').forEach(function (el) {
+            // Set initial value from Alpine store if available
+            var initialDate = (typeof Alpine !== 'undefined')
+                ? Alpine.store('booking').date
+                : el.value;
+            config.defaultDate = initialDate || tomorrow;
+            flatpickr(el, config);
+        });
+    }
+
+    // Wait for DOM + Alpine to be ready
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof Alpine !== 'undefined') {
+            initFlatpickr();
+        } else {
+            document.addEventListener('alpine:init', initFlatpickr);
+        }
+    });
+}());
+</script>
+@endpush
+
 @section('content')
 
 {{-- ─────────── BREADCRUMB (solo md+) ─────────── --}}
 <section class="hidden md:block bg-white pt-5 pb-2">
-    <div class="container mx-auto px-5">
+    <div class="container mx-auto max-w-7xl px-5 lg:px-10">
         <nav aria-label="Breadcrumb" class="text-xs text-teal-800/60">
             <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-500 transition-colors">Inicio</a>
             <span class="mx-1" aria-hidden="true">/</span>
@@ -751,54 +900,7 @@ if (!empty($itinerary)) {
         </div>
     </div>
 
-    {{-- ══════════════════════════════════════
-         HERO DESKTOP (md+) — hero existente
-    ══════════════════════════════════════ --}}
-    <div class="hidden md:block md:max-w-3xl xl:max-w-4xl md:mx-auto md:px-4 md:pt-4">
-        <div class="relative md:rounded-3xl overflow-hidden md:h-[420px] lg:h-[520px] bg-teal-800/10">
-            <img :src="gallery[active] || '{{ addslashes($galleryUrls[0] ?? $tour->cover_url) }}'"
-                 alt="{{ $tour->title }}"
-                 class="w-full h-full object-cover"
-                 loading="eager"
-                 width="800" height="520">
-
-            {{-- Badges hero desktop --}}
-            <div class="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                @if ($isMostBooked)
-                    <span class="inline-flex items-center gap-1.5 bg-white/95 text-teal-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
-                        <svg class="w-4 h-4 text-orange-400 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                        </svg>
-                        Más reservado
-                    </span>
-                @endif
-                <span class="inline-flex items-center gap-1.5 bg-teal-800/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Cancelación gratuita
-                </span>
-                <span class="inline-flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
-                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clip-rule="evenodd"/>
-                    </svg>
-                    Últimos cupos
-                </span>
-            </div>
-
-            {{-- Pill contador galería abajo-derecha --}}
-            <button type="button"
-                    @click="open(active)"
-                    class="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 bg-black/55 hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-                    aria-label="Ver galería de fotos">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
-                </svg>
-                <span aria-live="polite"><span x-text="active + 1">1</span> / {{ $totalImgs }}</span>
-            </button>
-        </div>
-    </div>
+    {{-- Hero desktop: ahora se renderiza dentro del grid (columna izquierda). Este div queda vacío intencionalmente. --}}
 
     {{-- ══════════════════════════════════════
          BLOQUE MOBILE (< md) — título, reserva, trust, features, experience, timeline, info, reviews, related, confidence
@@ -870,6 +972,7 @@ if (!empty($itinerary)) {
                         <span class="m-label">Fecha del tour</span>
                         <div class="m-input-row">
                             <input type="date"
+                                   data-booking-date
                                    x-model="$store.booking.date"
                                    min="{{ now()->addDay()->format('Y-m-d') }}"
                                    aria-label="Fecha del tour"
@@ -983,7 +1086,7 @@ if (!empty($itinerary)) {
             <div class="m-info-list">
                 <details id="m-info-desc" class="group">
                     <summary class="m-info-item">
-                        <div class="m-info-ico" style="color:#c76037;" aria-hidden="true">▤</div>
+                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg></div>
                         <div>
                             <b>Descripción</b>
                             <p>{{ \Illuminate\Support\Str::limit(strip_tags($tour->{"description_$locale"} ?? $tour->description_es ?? ''), 60) }}</p>
@@ -996,7 +1099,7 @@ if (!empty($itinerary)) {
                 </details>
                 <details class="group">
                     <summary class="m-info-item">
-                        <div class="m-info-ico" aria-hidden="true">▱</div>
+                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg></div>
                         <div>
                             <b>Itinerario completo</b>
                             <p>Revisa el plan detallado del tour.</p>
@@ -1011,7 +1114,7 @@ if (!empty($itinerary)) {
                 </details>
                 <details class="group">
                     <summary class="m-info-item">
-                        <div class="m-info-ico" style="color:#0a8b4d;" aria-hidden="true">✓</div>
+                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
                         <div>
                             <b>Servicios incluidos</b>
                             <p>Todo lo que está incluido en tu experiencia.</p>
@@ -1032,7 +1135,7 @@ if (!empty($itinerary)) {
                 </details>
                 <details class="group">
                     <summary class="m-info-item">
-                        <div class="m-info-ico" style="color:#d98234;" aria-hidden="true">☼</div>
+                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg></div>
                         <div>
                             <b>Recomendaciones</b>
                             <p>Consejos para que disfrutes al máximo.</p>
@@ -1047,7 +1150,7 @@ if (!empty($itinerary)) {
                 </details>
                 <details class="group">
                     <summary class="m-info-item">
-                        <div class="m-info-ico" style="color:#286fb7;" aria-hidden="true">i</div>
+                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg></div>
                         <div>
                             <b>Notas importantes</b>
                             <p>Lo que debes saber antes de reservar.</p>
@@ -1240,11 +1343,84 @@ if (!empty($itinerary)) {
     </div>{{-- /md:hidden --}}
 
     {{-- ══════════════════════════════════════
-         BLOQUE DESKTOP (md+) — contenido existente
+         BLOQUE DESKTOP (md+) — grid 2 columnas
     ══════════════════════════════════════ --}}
     <div class="hidden md:block">
-    {{-- Contenedor interior para el resto de secciones --}}
-    <div class="max-w-3xl xl:max-w-4xl mx-auto px-4 sm:px-5 pt-5 space-y-5 lg:space-y-6">
+    {{-- Grid principal: columna izquierda (contenido) + columna derecha (reserva sticky) --}}
+    <div class="container mx-auto max-w-7xl px-5 lg:px-10 pt-4 pb-20">
+    <div class="d-two-col">
+
+    {{-- ─── COLUMNA IZQUIERDA ─── --}}
+    <div class="space-y-5 lg:space-y-6 min-w-0">
+
+        {{-- ── HERO GALERÍA DESKTOP ── --}}
+        <div class="relative rounded-2xl overflow-hidden h-[380px] lg:h-[500px] bg-teal-800/10">
+            <img :src="gallery[active] || '{{ addslashes($galleryUrls[0] ?? $tour->cover_url) }}'"
+                 src="{{ $galleryUrls[0] ?? $tour->cover_url }}"
+                 alt="{{ $tour->title }}"
+                 class="w-full h-full object-cover"
+                 loading="eager"
+                 width="900" height="500"
+                 onerror="this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
+
+            {{-- Badges hero desktop --}}
+            <div class="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                @if ($isMostBooked)
+                    <span class="inline-flex items-center gap-1.5 bg-white/95 text-teal-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                        <svg class="w-4 h-4 text-orange-400 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        Más reservado
+                    </span>
+                @endif
+                <span class="inline-flex items-center gap-1.5 bg-teal-800/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Cancelación gratuita
+                </span>
+                <span class="inline-flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clip-rule="evenodd"/></svg>
+                    Últimos cupos
+                </span>
+            </div>
+
+            {{-- Miniaturas abajo (si hay más de 1 imagen) --}}
+            @if ($totalImgs > 1)
+            <div class="absolute bottom-0 inset-x-0 px-4 pb-3 flex gap-2 z-10">
+                @foreach (array_slice($galleryUrls, 0, 5) as $tIdx => $tUrl)
+                    <button type="button"
+                            @click="active = {{ $tIdx }}"
+                            class="w-14 h-10 lg:w-16 lg:h-12 rounded-lg overflow-hidden ring-2 transition shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
+                            :class="active === {{ $tIdx }} ? 'ring-orange-400 opacity-100' : 'ring-transparent opacity-60 hover:opacity-90'"
+                            aria-label="Foto {{ $tIdx + 1 }}">
+                        <img src="{{ $tUrl }}"
+                             alt=""
+                             class="w-full h-full object-cover"
+                             loading="lazy"
+                             onerror="this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
+                    </button>
+                @endforeach
+                @if ($totalImgs > 5)
+                    <button type="button"
+                            @click="open(active)"
+                            class="w-14 h-10 lg:w-16 lg:h-12 rounded-lg overflow-hidden bg-black/60 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-transparent hover:ring-orange-400 transition shrink-0"
+                            aria-label="Ver todas las fotos">
+                        +{{ $totalImgs - 5 }}
+                    </button>
+                @endif
+            </div>
+            @endif
+
+            {{-- Botón galería completa --}}
+            <button type="button"
+                    @click="open(active)"
+                    class="absolute bottom-3 right-3 z-20 inline-flex items-center gap-1.5 bg-black/55 hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+                    :class="{'hidden': {{ $totalImgs }} > 1}"
+                    aria-label="Ver galería de fotos">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
+                </svg>
+                <span aria-live="polite"><span x-text="active + 1">1</span> / {{ $totalImgs }}</span>
+            </button>
+        </div>
 
         {{-- ── LIGHTBOX ── --}}
         <div x-show="lightbox" x-cloak
@@ -1293,7 +1469,7 @@ if (!empty($itinerary)) {
         </div>
 
         {{-- ══════════════════════════════════════
-             2. TÍTULO + RATING + TARJETA RESERVA COMPACTA
+             2. TÍTULO + RATING (columna izquierda)
         ══════════════════════════════════════ --}}
         <section aria-labelledby="tour-title">
             <h1 id="tour-title" class="font-display text-2xl md:text-3xl lg:text-4xl text-teal-800 leading-tight">
@@ -1311,107 +1487,6 @@ if (!empty($itinerary)) {
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                     Verificado
                 </span>
-            </div>
-
-            {{-- ── Tarjeta de reserva compacta (visible en mobile y tablet; en desktop sigue aquí también) ── --}}
-            <div id="seccion-reserva-desktop" class="booking-compact-card mt-4"
-                 x-data="{ price: window.__lvtPrice || 0, get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); } }">
-                {{-- Cabecera --}}
-                <div class="booking-compact-head">
-                    <span class="text-white text-xs font-semibold tracking-wide">Reserva online</span>
-                    <span class="inline-flex items-center gap-1 text-white/80 text-[11px]">
-                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Cancelación gratis
-                    </span>
-                </div>
-                {{-- Cuerpo --}}
-                <div class="booking-compact-body space-y-3">
-                    {{-- Fila precio --}}
-                    <div class="flex items-end gap-4">
-                        @if ($hasOffer)
-                            <div>
-                                <p class="text-[10px] uppercase tracking-widest text-teal-800/50 font-semibold leading-none">ANTES</p>
-                                <p class="font-price text-base text-teal-800/50 line-through leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] uppercase tracking-widest text-orange-500 font-semibold leading-none">AHORA</p>
-                                <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                                <p class="text-[11px] text-teal-800/55 mt-0.5">USD / PERSONA</p>
-                            </div>
-                        @else
-                            <div>
-                                <p class="text-[10px] uppercase tracking-widest text-teal-800/55 font-semibold leading-none">Desde</p>
-                                <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                                <p class="text-[11px] text-teal-800/55 mt-0.5">USD / PERSONA</p>
-                            </div>
-                        @endif
-                        @if ($hasOffer)
-                            <span class="ml-auto inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-600 text-[11px] font-bold px-2 py-1 rounded-lg">
-                                -{{ $discountPct }}%
-                            </span>
-                        @endif
-                    </div>
-
-                    {{-- Campo Fecha --}}
-                    <div>
-                        <label for="compact-date" class="block text-[11px] font-semibold text-teal-800 mb-1">Fecha del tour</label>
-                        <div class="relative">
-                            <input type="date" id="compact-date"
-                                   x-model="$store.booking.date"
-                                   class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
-                                   min="{{ now()->addDay()->format('Y-m-d') }}"
-                                   aria-label="Seleccionar fecha del tour">
-                        </div>
-                    </div>
-
-                    {{-- Mini-grid Adultos / Niños --}}
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label for="compact-adults" class="block text-[11px] font-semibold text-teal-800 mb-1">Adultos</label>
-                            <div class="relative">
-                                <select id="compact-adults" x-model.number="$store.booking.adults"
-                                        class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-700">
-                                    @for ($n = 1; $n <= 10; $n++)
-                                        <option value="{{ $n }}">{{ $n }}</option>
-                                    @endfor
-                                </select>
-                                <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-800/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                            </div>
-                        </div>
-                        <div>
-                            <label for="compact-children" class="block text-[11px] font-semibold text-teal-800 mb-1">Niños</label>
-                            <div class="relative">
-                                <select id="compact-children" x-model.number="$store.booking.children"
-                                        class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-700">
-                                    @for ($n = 0; $n <= 8; $n++)
-                                        <option value="{{ $n }}">{{ $n }}</option>
-                                    @endfor
-                                </select>
-                                <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-800/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Total estimado --}}
-                    <div class="flex items-center justify-between bg-cream-100 rounded-xl px-3 py-2">
-                        <span class="text-xs font-semibold text-teal-800">Total estimado</span>
-                        <strong class="font-price text-lg font-bold text-teal-800">US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
-                    </div>
-
-                    {{-- CTA Reservar --}}
-                    <button type="submit"
-                            form="form-reservar"
-                            class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-sm rounded-full py-3.5 px-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800 uppercase tracking-wide">
-                        RESERVAR
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                    </button>
-
-                    {{-- Pie garantía --}}
-                    <p class="text-center text-[11px] text-teal-800/50">
-                        <svg class="w-3.5 h-3.5 inline-block text-teal-700 mr-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                        Pago seguro · Sin cargos extra
-                    </p>
-                </div>
             </div>
         </section>
 
@@ -1899,16 +1974,9 @@ if (!empty($itinerary)) {
                 <h2 id="related-heading" class="font-display text-base lg:text-lg text-teal-800">Otros viajeros también reservaron</h2>
                 <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">Ver todos</a>
             </div>
-            {{-- Carousel owl en md+; lista vertical en mobile --}}
-            <div class="owl-carousel"
-                 data-owl-related
-                 data-owl-items="1"
-                 data-owl-sm="1"
-                 data-owl-md="2"
-                 data-owl-lg="3"
-                 data-owl-autoplay="false"
-                 data-owl-nav="true"
-                 data-owl-dots="true">
+            {{-- Slider tipo home: 2 cards por vista en desktop --}}
+            <div class="d-related" x-data>
+                <div class="d-related-track" x-ref="relTrack">
                 @foreach ($sidebarTours as $idx => $rel)
                     @php
                         $relSlug    = is_object($rel) ? ($rel->slug ?? '#') : '#';
@@ -1937,6 +2005,17 @@ if (!empty($itinerary)) {
                         />
                     </div>
                 @endforeach
+                </div>
+                @if ($sidebarTours->count() > 2)
+                    <button type="button" class="d-related-nav prev" aria-label="Anterior"
+                            @click="$refs.relTrack.scrollBy({ left: -$refs.relTrack.clientWidth * 0.9, behavior: 'smooth' })">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button type="button" class="d-related-nav next" aria-label="Siguiente"
+                            @click="$refs.relTrack.scrollBy({ left: $refs.relTrack.clientWidth * 0.9, behavior: 'smooth' })">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                @endif
             </div>
         </section>
 
@@ -1973,7 +2052,128 @@ if (!empty($itinerary)) {
             </div>
         </section>
 
-    </div>{{-- /max-w-3xl --}}
+    </div>{{-- /columna izquierda --}}
+
+    {{-- ─── COLUMNA DERECHA — tarjeta de reserva sticky ─── --}}
+    <aside class="hidden md:block d-sidebar-sticky" aria-label="Reserva">
+        <div id="seccion-reserva-desktop" class="booking-compact-card"
+             x-data="{ price: window.__lvtPrice || 0, get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); } }">
+            {{-- Cabecera --}}
+            <div class="booking-compact-head">
+                <span class="text-white text-xs font-semibold tracking-wide">Reserva online</span>
+                <span class="inline-flex items-center gap-1 text-white/80 text-[11px]">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Cancelación gratis
+                </span>
+            </div>
+            {{-- Cuerpo --}}
+            <div class="booking-compact-body space-y-3">
+                {{-- Precio --}}
+                <div class="flex items-end gap-4 flex-wrap">
+                    @if ($hasOffer)
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest text-teal-800/50 font-semibold leading-none">ANTES</p>
+                            <p class="font-price text-base text-teal-800/50 line-through leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest text-orange-500 font-semibold leading-none">AHORA</p>
+                            <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
+                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ por persona</p>
+                        </div>
+                        <span class="ml-auto inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-600 text-[11px] font-bold px-2 py-1 rounded-lg">
+                            -{{ $discountPct }}%
+                        </span>
+                    @else
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest text-teal-800/55 font-semibold leading-none">Desde</p>
+                            <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
+                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ por persona</p>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Campo Fecha --}}
+                <div>
+                    <label for="sb-date" class="block text-[11px] font-semibold text-teal-800 mb-1">Fecha del tour</label>
+                    <input type="date" id="sb-date"
+                           data-booking-date
+                           x-model="$store.booking.date"
+                           class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
+                           min="{{ now()->addDay()->format('Y-m-d') }}"
+                           aria-label="Seleccionar fecha del tour">
+                </div>
+
+                {{-- Adultos --}}
+                <div>
+                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">Adultos</label>
+                    <div class="flex items-center gap-3 rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2">
+                        <button type="button"
+                                @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)"
+                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
+                                aria-label="Reducir adultos">−</button>
+                        <span class="flex-1 text-center text-sm font-bold text-teal-800 tabular-nums" x-text="$store.booking.adults">1</span>
+                        <button type="button"
+                                @click="$store.booking.adults++"
+                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
+                                aria-label="Aumentar adultos">+</button>
+                    </div>
+                </div>
+
+                {{-- Niños --}}
+                <div>
+                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">Niños</label>
+                    <div class="flex items-center gap-3 rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2">
+                        <button type="button"
+                                @click="$store.booking.children = Math.max(0, $store.booking.children - 1)"
+                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
+                                aria-label="Reducir niños">−</button>
+                        <span class="flex-1 text-center text-sm font-bold text-teal-800 tabular-nums" x-text="$store.booking.children">0</span>
+                        <button type="button"
+                                @click="$store.booking.children++"
+                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
+                                aria-label="Aumentar niños">+</button>
+                    </div>
+                </div>
+
+                {{-- Total estimado --}}
+                <div class="flex items-center justify-between bg-cream-100 ring-1 ring-teal-800/10 rounded-xl px-4 py-3">
+                    <div>
+                        <p class="text-xs font-semibold text-teal-800">Total estimado</p>
+                        <p class="text-[10px] text-teal-800/50 mt-0.5"
+                           x-text="`${$store.booking.adults} adulto${$store.booking.adults>1?'s':''}` + ($store.booking.children>0 ? ` + ${$store.booking.children} niño${$store.booking.children>1?'s':''}` : '') + ` × US$${price}`">
+                        </p>
+                    </div>
+                    <strong class="font-price text-2xl font-bold text-teal-800">US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
+                </div>
+
+                {{-- CTA Reservar --}}
+                <button type="submit"
+                        form="form-reservar"
+                        class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-sm rounded-full py-3.5 px-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800 uppercase tracking-wide">
+                    Reservar ahora
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                </button>
+
+                {{-- Badges de confianza --}}
+                <div class="grid grid-cols-2 gap-2 pt-1 border-t border-teal-800/10">
+                    <div class="flex items-center gap-1.5 text-teal-800/70">
+                        <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                        <span class="text-[10px] font-semibold">Cancelación gratuita</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-teal-800/70">
+                        <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+                        <span class="text-[10px] font-semibold">Pago seguro</span>
+                    </div>
+                </div>
+
+                {{-- Pie --}}
+                <p class="text-center text-[11px] text-teal-800/45">Sin cargos extra · Confirmación inmediata</p>
+            </div>
+        </div>
+    </aside>{{-- /columna derecha --}}
+
+    </div>{{-- /md:grid --}}
+    </div>{{-- /container --}}
     </div>{{-- /hidden md:block wrapper --}}
 </section>
 
@@ -1995,7 +2195,7 @@ if (!empty($itinerary)) {
      (el usuario ya está en el tour). La reserva se hace en la card "Reserva online" de arriba. --}}
 
 {{-- ─────────── STICKY FOOTER desktop (md+) ─────────── --}}
-<div class="hidden md:block fixed bottom-0 inset-x-0 z-40 bg-white shadow-2xl ring-1 ring-teal-800/10 sticky-bar">
+<div class="hidden fixed bottom-0 inset-x-0 z-40 bg-white shadow-2xl ring-1 ring-teal-800/10 sticky-bar">
     <div class="container mx-auto px-4 sm:px-5">
         <div class="flex items-center justify-between py-3 gap-4">
             <div class="shrink-0">

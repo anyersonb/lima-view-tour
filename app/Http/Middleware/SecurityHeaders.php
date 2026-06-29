@@ -19,19 +19,26 @@ class SecurityHeaders
         'default-src' => "'self'",
         'script-src'  => "'self' 'unsafe-inline' 'unsafe-eval' "
             ."https://checkout.culqi.com https://js.culqi.com "
+            ."https://www.paypal.com https://*.paypal.com https://*.paypalobjects.com "
             ."https://cdnjs.cloudflare.com "
             ."https://www.googletagmanager.com https://www.google-analytics.com "
-            ."https://connect.facebook.net",
+            ."https://connect.facebook.net "
+            ."https://maps.googleapis.com "
+            ."https://www.google.com https://www.gstatic.com",
         'style-src'   => "'self' 'unsafe-inline' "
             ."https://fonts.googleapis.com https://cdnjs.cloudflare.com",
         'font-src'    => "'self' https://fonts.gstatic.com data:",
         'img-src'     => "'self' data: https: blob:",
-        'frame-src'   => "https://*.culqi.com https://www.googletagmanager.com",
+        'frame-src'   => "https://*.culqi.com https://www.googletagmanager.com "
+            ."https://www.paypal.com https://*.paypal.com "
+            ."https://www.google.com",
         'connect-src' => "'self' https://api.culqi.com "
-            ."https://www.google-analytics.com",
+            ."https://www.paypal.com https://*.paypal.com https://*.paypalobjects.com "
+            ."https://www.google-analytics.com "
+            ."https://maps.googleapis.com https://maps.gstatic.com",
         'object-src'  => "'none'",
         'base-uri'    => "'self'",
-        'form-action' => "'self' https://checkout.culqi.com",
+        'form-action' => "'self' https://checkout.culqi.com https://www.paypal.com https://*.paypal.com",
     ];
 
     /**

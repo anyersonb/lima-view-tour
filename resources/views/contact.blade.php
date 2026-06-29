@@ -5,7 +5,7 @@
 
 @php
     $locale = app()->getLocale();
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
+    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
     $contactPhoneTel = str_replace([' ', '+'], '', $contactPhone);
 @endphp
 
@@ -63,6 +63,7 @@
 
         {{-- Form --}}
         <form action="{{ route('contact.submit', ['locale' => $locale]) }}" method="post"
+              id="form-contact"
               class="bg-white rounded-2xl p-7 lg:p-9 shadow-sm"
               novalidate>
             @csrf
@@ -143,6 +144,8 @@
                     <a href="{{ route('legal.terms', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2 hover:text-orange-500 transition-colors">términos y condiciones</a>
                 </span>
             </label>
+
+            @include('partials.recaptcha', ['recaptchaAction' => 'contact', 'recaptchaFormId' => 'form-contact'])
 
             <button type="submit" class="btn--primary btn--block mt-6 !py-4">Enviar mensaje</button>
         </form>

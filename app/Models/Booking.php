@@ -33,6 +33,11 @@ class Booking extends Model
         return $this->belongsTo(Tour::class);
     }
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
     public function getTotalPaxAttribute(): int
     {
         return (int) $this->adults + (int) $this->children;

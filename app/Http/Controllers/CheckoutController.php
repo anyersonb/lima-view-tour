@@ -5,61 +5,66 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProcessPaymentRequest;
 use App\Mail\BookingConfirmed;
 use App\Mail\BookingNotificationAdmin;
+use App\Models\BlockedDate;
+use App\Models\Customer;
 use App\Models\Setting;
 use App\Models\Booking;
 use App\Services\CartService;
 use App\Services\PaymentService;
+use App\Services\PayPalService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
     public function __construct(
-        private readonly CartService $cart,
-        private readonly PaymentService $payment
+        private readonly CartService    $cart,
+        private readonly PaymentService $payment,
+        private readonly PayPalService  $paypal,
     ) {}
 
     /**
-     * Display the payment form or redirect to cart if empty.
+     * The payment form now lives inside the cart page (3-step flow).
+     * Redirect to cart.index, optionally jumping to the payment step via hash.
      */
     public function showPaymentForm(Request $request): View|RedirectResponse
     {
+        $locale = app()->getLocale();
+
         try {
             $items = $this->cart->items();
 
             if ($items->isEmpty()) {
                 return redirect()
-                    ->route('cart.index', ['locale' => app()->getLocale()])
+                    ->route('cart.index', ['locale' => $locale])
                     ->with('error', __('cart.empty_checkout_redirect'));
             }
 
-            return view('checkout.payment', [
-                'items'          => $items,
-                'subtotal'       => $this->cart->subtotal(),
-                'discount'       => $this->cart->couponDiscount(),
-                'total'          => $this->cart->total(),
-                'couponCode'     => $this->cart->couponCode(),
-                'total_centavos' => (int) round($this->cart->total() * 100),
-                'public_key'     => config('services.culqi.public_key'),
-            ]);
+            return redirect()
+                ->route('cart.index', ['locale' => $locale])
+                ->with('open_step', 'pago');
+
         } catch (\Throwable $e) {
             Log::error('checkout.show_payment_form.error', ['message' => $e->getMessage()]);
 
             return redirect()
-                ->route('cart.index', ['locale' => app()->getLocale()])
+                ->route('cart.index', ['locale' => $locale])
                 ->with('error', 'Ocurrió un error al cargar el formulario de pago.');
         }
     }
 
     /**
-     * Process the payment: create booking(s), charge via Culqi (if paying now),
-     * send confirmation email, redirect to thanks page.
+     * Process a "pay later" booking: creates pending bookings, sends emails,
+     * clears the cart and redirects to the thanks page.
      *
-     * payment_timing=now  → full Culqi charge flow (existing behavior, unchanged)
-     * payment_timing=later → bookings created as pending/pay_later, no charge
+     * The "pay now" flow is handled by paypalCreateOrder + paypalCaptureOrder.
      */
     public function processPayment(ProcessPaymentRequest $request): RedirectResponse
     {
@@ -74,126 +79,43 @@ class CheckoutController extends Controller
                     ->with('error', __('cart.empty_checkout_redirect'));
             }
 
-            $validated     = $request->validated();
-            $total         = $this->cart->total();
-            $totalCentavos = (int) round($total * 100);
-            $payingNow     = ($validated['payment_timing'] === 'now');
+            $validated   = $request->validated();
+            $payingNow   = ($validated['payment_timing'] === 'now');
 
-            // Las columnas pickup_* pueden no existir todavía en algunos entornos
-            // (migración pendiente). Solo las incluimos si están presentes para
-            // no romper la creación de la reserva.
-            $hasPickupColumns = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'pickup_point');
-            $pickupPoint  = $request->input('pickup_point');
-            $pickupDetail = $request->input('pickup_detail');
-
-            // Create one Booking per cart item
-            $bookings = $items->map(function (array $item) use ($validated, $locale, $payingNow, $hasPickupColumns, $pickupPoint, $pickupDetail): Booking {
-                $attrs = [
-                    'tour_id'             => $item['tour_id'],
-                    'tour_title_snapshot' => $item['title_snapshot'],
-                    'customer_name'       => $validated['customer_name'],
-                    'customer_email'      => $validated['customer_email'],
-                    'customer_phone'      => $validated['customer_phone'],
-                    'travel_date'         => $validated['travel_date'],
-                    'adults'              => $item['adults'],
-                    'children'            => $item['children'],
-                    'unit_price'          => $item['unit_price'],
-                    'total_price'         => $item['subtotal'],
-                    'currency'            => 'USD',
-                    'status'              => 'pending',
-                    'payment_status'      => 'pending',
-                    'payment_method'      => $payingNow ? 'culqi' : 'pay_later',
-                    'locale'              => $locale,
-                ];
-
-                if ($hasPickupColumns) {
-                    $attrs['pickup_point']  = $pickupPoint;
-                    $attrs['pickup_detail'] = $pickupDetail;
-                }
-
-                return Booking::create($attrs);
-            });
-
+            // "Pay now" via the old form submission is no longer supported.
+            // The PayPal JS flow handles "now"; only "later" should reach here.
             if ($payingNow) {
-                // ── Flujo pago inmediato: cobrar con Culqi ──────────────────
-                $chargeData = $this->payment->createCharge([
-                    'amount'        => $totalCentavos,
-                    'currency_code' => 'USD',
-                    'email'         => $validated['customer_email'],
-                    'source_id'     => $validated['culqi_token'],
-                    'antifraud_details' => [
-                        'first_name'   => explode(' ', $validated['customer_name'])[0] ?? $validated['customer_name'],
-                        'last_name'    => implode(' ', array_slice(explode(' ', $validated['customer_name']), 1)) ?: '-',
-                        'phone_number' => preg_replace('/\D/', '', $validated['customer_phone']),
-                    ],
-                    'metadata' => [
-                        'booking_references' => $bookings->pluck('reference')->implode(','),
-                        'locale'             => $locale,
-                    ],
-                ]);
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', 'El pago inmediato debe realizarse a través del botón de PayPal.');
+            }
 
-                $chargeId = $chargeData['id'];
+            $customer = [
+                'customer_name'  => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'customer_phone' => $validated['customer_phone'],
+                'travel_date'    => $validated['travel_date'],
+                'pickup_point'   => $request->input('pickup_point'),
+                'pickup_detail'  => $request->input('pickup_detail'),
+            ];
 
-                // Mark all bookings as paid and confirmed
-                $bookings->each(function (Booking $booking) use ($chargeId): void {
-                    $booking->update([
-                        'payment_status'    => 'paid',
-                        'status'            => 'confirmed',
-                        'payment_reference' => $chargeId,
+            // Defense-in-depth: re-verify blocked dates for every cart item
+            $travelDate = $validated['travel_date'];
+            foreach ($items as $item) {
+                if (BlockedDate::isBlocked($travelDate, $item['tour_id'] ?? null)) {
+                    Log::info('checkout.process_payment: blocked date rejected', [
+                        'travel_date' => $travelDate,
+                        'tour_id'     => $item['tour_id'] ?? null,
                     ]);
-                });
 
-                Log::info('checkout.process_payment.success', [
-                    'charge_id' => $chargeId,
-                    'email'     => $validated['customer_email'],
-                    'bookings'  => $bookings->pluck('reference')->all(),
-                ]);
-            } else {
-                // ── Flujo pagar después: reservas pendientes, sin cobro ─────
-                Log::info('checkout.process_payment.pay_later', [
-                    'email'    => $validated['customer_email'],
-                    'bookings' => $bookings->pluck('reference')->all(),
-                ]);
+                    return redirect()
+                        ->route('cart.index', ['locale' => $locale])
+                        ->with('error', __('booking.date_blocked'));
+                }
             }
 
-            // Send confirmation email to the customer (applies to both flows).
-            // Un fallo de correo NO debe abortar la reserva ya creada.
-            try {
-                Mail::to($validated['customer_email'])
-                    ->send(new BookingConfirmed($bookings, $validated['customer_email']));
-
-                Log::info('checkout.confirmation_email.sent', [
-                    'email'    => $validated['customer_email'],
-                    'bookings' => $bookings->pluck('reference')->all(),
-                ]);
-            } catch (\Throwable $mailEx) {
-                Log::warning('checkout.confirmation_email.failed', [
-                    'email'   => $validated['customer_email'],
-                    'message' => $mailEx->getMessage(),
-                ]);
-            }
-
-            // Send internal admin notification.
-            // Destination: 'booking_notification_email' setting, fallback to mail.from.address.
-            try {
-                $adminEmail = Setting::get('booking_notification_email')
-                    ?: config('mail.from.address');
-
-                Mail::to($adminEmail)
-                    ->send(new BookingNotificationAdmin($bookings, $validated['payment_timing']));
-
-                Log::info('checkout.admin_notification_email.sent', [
-                    'admin_email' => $adminEmail,
-                    'bookings'    => $bookings->pluck('reference')->all(),
-                ]);
-            } catch (\Throwable $adminMailEx) {
-                Log::warning('checkout.admin_notification_email.failed', [
-                    'message' => $adminMailEx->getMessage(),
-                ]);
-            }
-
-            // Clear cart and store booking references in session
-            $this->cart->clear();
+            $bookings = $this->finalizeBookings($customer, 'pay_later', null, false);
 
             $request->session()->put('last_bookings', $bookings->toArray());
 
@@ -205,15 +127,113 @@ class CheckoutController extends Controller
                 'email'   => $request->input('customer_email'),
             ]);
 
-            // Mark bookings as failed if they were already created (best effort)
-            if (isset($bookings)) {
-                $bookings->each(fn (Booking $b) => $b->update(['payment_status' => 'failed']));
-            }
-
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'El pago no pudo procesarse: ' . $e->getMessage());
+                ->with('error', 'No pudimos procesar la reserva. Por favor inténtalo de nuevo o contáctanos.');
+        }
+    }
+
+    /**
+     * Creates a PayPal order for the current cart total.
+     * Returns JSON with the PayPal order ID for the JS SDK.
+     */
+    public function paypalCreateOrder(Request $request, string $locale): JsonResponse
+    {
+        try {
+            $items = $this->cart->items();
+
+            if ($items->isEmpty()) {
+                return response()->json(['error' => 'El carrito está vacío.'], 422);
+            }
+
+            // Amount always calculated server-side — never trust the client
+            $total = $this->cart->total();
+
+            $order = $this->paypal->createOrder($total, 'USD', [
+                'locale' => $locale,
+            ]);
+
+            return response()->json(['id' => $order['id']]);
+
+        } catch (\Throwable $e) {
+            Log::error('checkout.paypal_create_order.error', ['message' => $e->getMessage()]);
+
+            return response()->json(['error' => 'No se pudo iniciar el pago. Inténtalo de nuevo.'], 500);
+        }
+    }
+
+    /**
+     * Captures a PayPal order approved by the buyer.
+     * On success, finalizes the bookings and returns a redirect URL.
+     */
+    public function paypalCaptureOrder(Request $request, string $locale): JsonResponse
+    {
+        $validated = $request->validate([
+            'orderID'        => ['required', 'string', 'max:100'],
+            'customer_name'  => ['required', 'string', 'max:255'],
+            'customer_email' => ['required', 'email', 'max:255'],
+            'customer_phone' => ['required', 'string', 'regex:/^\+?\d{7,15}$/'],
+            'travel_date'    => ['required', 'date', 'after:today'],
+            'pickup_point'   => ['nullable', 'string', 'max:100'],
+            'pickup_detail'  => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $items = $this->cart->items();
+
+            if ($items->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'El carrito está vacío.'], 422);
+            }
+
+            // Defense-in-depth: re-verify blocked dates before capturing payment
+            $travelDate = $validated['travel_date'];
+            foreach ($items as $item) {
+                if (BlockedDate::isBlocked($travelDate, $item['tour_id'] ?? null)) {
+                    Log::info('checkout.paypal_capture: blocked date rejected', [
+                        'travel_date' => $travelDate,
+                        'tour_id'     => $item['tour_id'] ?? null,
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => __('booking.date_blocked'),
+                    ], 422);
+                }
+            }
+
+            $captureResponse = $this->paypal->captureOrder($validated['orderID']);
+            $captureId       = $this->paypal->captureId($captureResponse);
+
+            $customer = [
+                'customer_name'  => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'customer_phone' => $validated['customer_phone'],
+                'travel_date'    => $validated['travel_date'],
+                'pickup_point'   => $validated['pickup_point'] ?? null,
+                'pickup_detail'  => $validated['pickup_detail'] ?? null,
+            ];
+
+            $bookings = $this->finalizeBookings($customer, 'paypal', $captureId, true);
+
+            $request->session()->put('last_bookings', $bookings->toArray());
+
+            return response()->json([
+                'success'  => true,
+                'redirect' => route('checkout.thanks', ['locale' => $locale]),
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('checkout.paypal_capture_order.error', [
+                'message'  => $e->getMessage(),
+                'order_id' => $validated['orderID'] ?? null,
+                'email'    => $validated['customer_email'] ?? null,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'El pago no pudo completarse. Por favor inténtalo de nuevo o contáctanos.',
+            ], 500);
         }
     }
 
@@ -227,5 +247,158 @@ class CheckoutController extends Controller
         return view('checkout.thanks', [
             'bookings' => $bookings,
         ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Private helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Creates one Booking per cart item, sends confirmation emails,
+     * clears the cart and returns the collection of created bookings.
+     *
+     * @param  array       $customer         Keys: customer_name, customer_email,
+     *                                       customer_phone, travel_date,
+     *                                       pickup_point, pickup_detail
+     * @param  string      $method           'paypal' | 'pay_later'
+     * @param  string|null $paymentReference PayPal capture ID (null for pay_later)
+     * @param  bool        $paid             true = mark as paid & confirmed
+     * @return Collection<Booking>
+     */
+    private function finalizeBookings(
+        array   $customer,
+        string  $method,
+        ?string $paymentReference,
+        bool    $paid,
+    ): Collection {
+        $locale           = app()->getLocale();
+        $items            = $this->cart->items();
+        $hasPickupColumns = Schema::hasColumn('bookings', 'pickup_point');
+
+        // Resolve customer_id once before the map
+        $customerId = $this->resolveCustomerId($customer, $locale);
+
+        $bookings = $items->map(function (array $item) use (
+            $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $customerId
+        ): Booking {
+            $attrs = [
+                'customer_id'         => $customerId,
+                'tour_id'             => $item['tour_id'],
+                'tour_title_snapshot' => $item['title_snapshot'],
+                'customer_name'       => $customer['customer_name'],
+                'customer_email'      => $customer['customer_email'],
+                'customer_phone'      => $customer['customer_phone'],
+                'travel_date'         => $customer['travel_date'],
+                'adults'              => $item['adults'],
+                'children'            => $item['children'],
+                'unit_price'          => $item['unit_price'],
+                'total_price'         => $item['subtotal'],
+                'currency'            => 'USD',
+                'status'              => $paid ? 'confirmed' : 'pending',
+                'payment_status'      => $paid ? 'paid' : 'pending',
+                'payment_method'      => $method,
+                'payment_reference'   => $paymentReference,
+                'locale'              => $locale,
+            ];
+
+            if ($hasPickupColumns) {
+                $attrs['pickup_point']  = $customer['pickup_point'] ?? null;
+                $attrs['pickup_detail'] = $customer['pickup_detail'] ?? null;
+            }
+
+            return Booking::create($attrs);
+        });
+
+        Log::info('checkout.finalize_bookings', [
+            'method'      => $method,
+            'paid'        => $paid,
+            'reference'   => $paymentReference,
+            'email'       => $customer['customer_email'],
+            'customer_id' => $customerId,
+            'bookings'    => $bookings->pluck('reference')->all(),
+        ]);
+
+        // Send confirmation email to the customer (non-blocking)
+        try {
+            Mail::to($customer['customer_email'])
+                ->send(new BookingConfirmed($bookings, $customer['customer_email']));
+
+            Log::info('checkout.confirmation_email.sent', [
+                'email'    => $customer['customer_email'],
+                'bookings' => $bookings->pluck('reference')->all(),
+            ]);
+        } catch (\Throwable $mailEx) {
+            Log::warning('checkout.confirmation_email.failed', [
+                'email'   => $customer['customer_email'],
+                'message' => $mailEx->getMessage(),
+            ]);
+        }
+
+        // Send internal admin notification (non-blocking)
+        try {
+            $adminEmail = Setting::get('booking_notification_email')
+                ?: config('mail.from.address');
+
+            $paymentTiming = $paid ? 'now' : 'later';
+
+            Mail::to($adminEmail)
+                ->send(new BookingNotificationAdmin($bookings, $paymentTiming));
+
+            Log::info('checkout.admin_notification_email.sent', [
+                'admin_email' => $adminEmail,
+                'bookings'    => $bookings->pluck('reference')->all(),
+            ]);
+        } catch (\Throwable $adminMailEx) {
+            Log::warning('checkout.admin_notification_email.failed', [
+                'message' => $adminMailEx->getMessage(),
+            ]);
+        }
+
+        $this->cart->clear();
+
+        return $bookings;
+    }
+
+    /**
+     * Returns the customer_id to attach to new bookings.
+     * If a customer is logged in, use their id.
+     * Otherwise, find by email or create a new guest account (no password yet),
+     * then send an activation link via the password broker.
+     */
+    private function resolveCustomerId(array $customer, string $locale): int
+    {
+        $loggedIn = auth('customer')->user();
+
+        if ($loggedIn) {
+            return $loggedIn->id;
+        }
+
+        $existing = Customer::where('email', $customer['customer_email'])->first();
+
+        if ($existing) {
+            return $existing->id;
+        }
+
+        // New guest customer — no password yet
+        $guestCustomer = Customer::create([
+            'name'   => $customer['customer_name'],
+            'email'  => $customer['customer_email'],
+            'phone'  => $customer['customer_phone'] ?? null,
+            'locale' => $locale,
+        ]);
+
+        // Send "activate your account" reset link
+        try {
+            Password::broker('customers')->sendResetLink(
+                ['email' => $guestCustomer->email]
+            );
+        } catch (\Throwable $ex) {
+            Log::warning('checkout.guest_activate_email.failed', [
+                'email'   => $guestCustomer->email,
+                'message' => $ex->getMessage(),
+            ]);
+        }
+
+        return $guestCustomer->id;
     }
 }

@@ -24,3 +24,9 @@ yarn-error.log
 vendor.zip
 lima-deploy.zip
 *.zip
+
+# Credenciales / notas internas (contienen secretos: NO subir)
+CLAUDE.md
+
+# Artefactos de automatización del navegador
+/.playwright-mcp

@@ -1,6 +1,6 @@
 @php
     $locale = app()->getLocale();
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 935 542 384');
+    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
 @endphp
 <footer class="site-footer" role="contentinfo">
     {{-- Newsletter band --}}
@@ -12,7 +12,12 @@
             </h2>
         </div>
 
-        <form action="{{ route('newsletter.subscribe') }}" method="post" class="space-y-3">
+        @if (session('newsletter_success'))
+            <p class="mb-3 rounded-2xl bg-emerald-500/20 border border-emerald-300/40 text-white text-sm px-4 py-3" role="status">{{ session('newsletter_success') }}</p>
+        @elseif ($errors->has('email') || $errors->has('name'))
+            <p class="mb-3 rounded-2xl bg-red-500/20 border border-red-300/40 text-white text-sm px-4 py-3" role="alert">{{ $errors->first('email') ?: $errors->first('name') }}</p>
+        @endif
+        <form action="{{ route('newsletter.subscribe') }}" method="post" id="form-newsletter" class="space-y-3">
             @csrf
             {{-- Honeypot: must remain empty; bots fill it automatically --}}
             <input type="text" name="website" tabindex="-1" autocomplete="off"
@@ -32,6 +37,7 @@
                            class="w-full rounded-pill bg-white/10 border border-white/25 text-white placeholder-white/50 px-5 py-3.5 text-sm focus:border-orange-400 focus:ring-orange-400 focus:ring-1 focus:outline-none">
                 </label>
             </div>
+            @include('partials.recaptcha', ['recaptchaAction' => 'newsletter', 'recaptchaFormId' => 'form-newsletter'])
             <button type="submit" class="btn--primary btn--block !text-sm !py-4 !rounded-pill">
                 {{ __('footer.newsletter_submit') }}
             </button>
@@ -43,7 +49,7 @@
         <div class="container mx-auto py-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             <section aria-labelledby="footer-brand">
                 <a href="{{ route('home', ['locale' => $locale]) }}" aria-label="Lima View Tours — Inicio" class="inline-flex items-center gap-3">
-                    <img src="{{ asset('assets/logos/logotipo.png') }}" alt="Lima View Tours" class="h-14 w-auto">
+                    <img src="{{ asset('assets/logos/logo.png') }}" alt="Lima View Tours" class="h-14 w-auto">
                 </a>
                 <p class="mt-4 text-sm leading-relaxed text-white/75">{{ __('footer.brand_description') }}</p>
             </section>
@@ -82,11 +88,18 @@
 
             <section aria-labelledby="footer-follow">
                 <h3 id="footer-follow" class="site-footer__heading">{{ __('footer.follow_us') }}</h3>
+                @php
+                    $sIg = \App\Models\Setting::get('social_instagram');
+                    $sFb = \App\Models\Setting::get('social_facebook');
+                    $sTk = \App\Models\Setting::get('social_tiktok');
+                    $sYt = \App\Models\Setting::get('social_youtube');
+                    $norm = fn ($u) => $u ? (\Illuminate\Support\Str::startsWith($u, ['http://', 'https://']) ? $u : 'https://' . ltrim($u, '/')) : null;
+                @endphp
                 <ul class="mt-4 flex items-center gap-3">
-                    <li><a href="#" aria-label="Instagram" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.9.9 1.4.2.5.4 1.1.4 2.2.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.9.7-1.4.9-.5.2-1.1.4-2.2.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.9-.9-1.4-.2-.5-.4-1.1-.4-2.2-.1-1.2-.1-1.6-.1-4.8s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.9-.7 1.4-.9.5-.2 1.1-.4 2.2-.4 1.2-.1 1.6-.1 4.8-.1zm0 5.5a4.3 4.3 0 100 8.6 4.3 4.3 0 000-8.6zm0 7.1a2.8 2.8 0 110-5.6 2.8 2.8 0 010 5.6zm5.5-7.3a1 1 0 11-2 0 1 1 0 012 0z"/></svg></a></li>
-                    <li><a href="#" aria-label="Facebook" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H8v-2.9h2.4V9.8c0-2.4 1.4-3.7 3.6-3.7 1 0 2.1.2 2.1.2v2.3h-1.2c-1.2 0-1.5.7-1.5 1.5v1.8h2.6l-.4 2.9h-2.2v7A10 10 0 0022 12z"/></svg></a></li>
-                    <li><a href="#" aria-label="TikTok" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M19.6 6.7a4.8 4.8 0 01-2.7-1.7 4.8 4.8 0 01-1-2.7h-3.4v13.4a2.7 2.7 0 11-2.7-2.7c.3 0 .6 0 .9.1V9.6a6.1 6.1 0 00-.9-.1 6.1 6.1 0 106.1 6.1V9.4a8.2 8.2 0 003.7.9V6.7z"/></svg></a></li>
-                    <li><a href="#" aria-label="YouTube" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M23 7s-.2-1.6-.9-2.3c-.9-.9-1.8-.9-2.3-1C16.4 3.5 12 3.5 12 3.5s-4.4 0-7.8.3c-.5 0-1.4 0-2.3 1C1.2 5.4 1 7 1 7S.7 8.9.7 10.8v1.7C.7 14.4 1 16.3 1 16.3s.2 1.6.9 2.3c.9 1 2.1.9 2.7 1 1.9.2 8.4.3 8.4.3s4.4 0 7.8-.3c.5 0 1.4 0 2.3-1 .7-.7.9-2.3.9-2.3s.3-1.9.3-3.8v-1.7C23.3 8.9 23 7 23 7zM9.7 14.7v-6l5.7 3-5.7 3z"/></svg></a></li>
+                    @if ($u = $norm($sIg))<li><a href="{{ $u }}" target="_blank" rel="noopener" aria-label="Instagram" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.9.9 1.4.2.5.4 1.1.4 2.2.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.9.7-1.4.9-.5.2-1.1.4-2.2.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.9-.9-1.4-.2-.5-.4-1.1-.4-2.2-.1-1.2-.1-1.6-.1-4.8s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.9-.7 1.4-.9.5-.2 1.1-.4 2.2-.4 1.2-.1 1.6-.1 4.8-.1zm0 5.5a4.3 4.3 0 100 8.6 4.3 4.3 0 000-8.6zm0 7.1a2.8 2.8 0 110-5.6 2.8 2.8 0 010 5.6zm5.5-7.3a1 1 0 11-2 0 1 1 0 012 0z"/></svg></a></li>@endif
+                    @if ($u = $norm($sFb))<li><a href="{{ $u }}" target="_blank" rel="noopener" aria-label="Facebook" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H8v-2.9h2.4V9.8c0-2.4 1.4-3.7 3.6-3.7 1 0 2.1.2 2.1.2v2.3h-1.2c-1.2 0-1.5.7-1.5 1.5v1.8h2.6l-.4 2.9h-2.2v7A10 10 0 0022 12z"/></svg></a></li>@endif
+                    @if ($u = $norm($sTk))<li><a href="{{ $u }}" target="_blank" rel="noopener" aria-label="TikTok" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M19.6 6.7a4.8 4.8 0 01-2.7-1.7 4.8 4.8 0 01-1-2.7h-3.4v13.4a2.7 2.7 0 11-2.7-2.7c.3 0 .6 0 .9.1V9.6a6.1 6.1 0 00-.9-.1 6.1 6.1 0 106.1 6.1V9.4a8.2 8.2 0 003.7.9V6.7z"/></svg></a></li>@endif
+                    @if ($u = $norm($sYt))<li><a href="{{ $u }}" target="_blank" rel="noopener" aria-label="YouTube" class="site-footer__link"><svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M23 7s-.2-1.6-.9-2.3c-.9-.9-1.8-.9-2.3-1C16.4 3.5 12 3.5 12 3.5s-4.4 0-7.8.3c-.5 0-1.4 0-2.3 1C1.2 5.4 1 7 1 7S.7 8.9.7 10.8v1.7C.7 14.4 1 16.3 1 16.3s.2 1.6.9 2.3c.9 1 2.1.9 2.7 1 1.9.2 8.4.3 8.4.3s4.4 0 7.8-.3c.5 0 1.4 0 2.3-1 .7-.7.9-2.3.9-2.3s.3-1.9.3-3.8v-1.7C23.3 8.9 23 7 23 7zM9.7 14.7v-6l5.7 3-5.7 3z"/></svg></a></li>@endif
                 </ul>
 
                 <h3 class="site-footer__heading mt-6">{{ __('footer.methods_of_payment') }}</h3>

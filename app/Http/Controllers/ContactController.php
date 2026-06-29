@@ -6,6 +6,7 @@ use App\Mail\ContactAcknowledgement;
 use App\Mail\ContactReceived;
 use App\Models\ContactLead;
 use App\Models\Setting;
+use App\Services\RecaptchaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -19,13 +20,20 @@ class ContactController extends Controller
         return view('contact');
     }
 
-    public function submit(string $locale, Request $request): RedirectResponse
+    public function submit(string $locale, Request $request, RecaptchaService $recaptcha): RedirectResponse
     {
         // Honeypot: bots fill hidden fields that real users never see
         if ($request->filled('website')) {
             Log::info('contact.honeypot_triggered', ['ip' => $request->ip()]);
 
             return redirect()->route('contact.thanks', ['locale' => $locale]);
+        }
+
+        // reCAPTCHA verification (no-op when module is disabled)
+        if (! $recaptcha->verify($request->input('recaptcha_token'), 'contact', $request->ip())) {
+            return back()
+                ->withInput()
+                ->withErrors(['recaptcha' => __('recaptcha.failed')]);
         }
 
         $data = $request->validate([

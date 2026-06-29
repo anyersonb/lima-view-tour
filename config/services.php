@@ -39,4 +39,29 @@ return [
         'env'            => env('CULQI_ENV', 'sandbox'),
     ],
 
+    'paypal' => [
+        'client_id'  => env('PAYPAL_CLIENT_ID'),
+        'secret'     => env('PAYPAL_SECRET'),
+        'mode'       => env('PAYPAL_MODE', 'sandbox'), // sandbox|live
+        'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
+    ],
+
+    'google' => [
+        'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
+        'place_id'     => env('GOOGLE_PLACE_ID'),
+    ],
+
+    'tripadvisor' => [
+        'api_key'     => env('TRIPADVISOR_API_KEY'),
+        'location_id' => env('TRIPADVISOR_LOCATION_ID'),
+    ],
+
+    'recaptcha' => [
+        'site_key'   => env('RECAPTCHA_SITE_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+        'version'    => env('RECAPTCHA_VERSION', 'v3'),   // v2 | v3
+        'threshold'  => env('RECAPTCHA_V3_THRESHOLD', 0.5),
+        'enabled'    => env('RECAPTCHA_ENABLED', false),
+    ],
+
 ];

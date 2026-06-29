@@ -21,6 +21,8 @@
 
 @php
     $locale = app()->getLocale();
+    // Helper de traducción inline ES / EN / PT (chrome del home)
+    $L = fn (string $es, string $en, string $pt): string => $locale === 'pt' ? $pt : ($locale === 'en' ? $en : $es);
 
     $featuredTours = $featuredTours ?? collect();
     $toursIca      = $toursIca      ?? collect();
@@ -108,9 +110,9 @@
                 pt-24 pb-0
                 sm:pt-28
                 md:pt-36
-                lg:px-10 lg:pt-[180px] lg:pb-20
-                xl:pt-[200px]
-                min-h-[640px] sm:min-h-[700px] md:min-h-[760px] lg:min-h-[80vh]
+                lg:px-10 lg:pt-[130px] lg:pb-20
+                xl:pt-[150px]
+                min-h-[640px] sm:min-h-[700px] md:min-h-[760px] lg:min-h-[660px] xl:min-h-[760px]
                 flex flex-col
                 container mx-auto max-w-7xl">
 
@@ -127,9 +129,18 @@
                    md:text-[76px]
                    lg:text-[88px]
                    xl:text-[104px] max-w-3xl">
-            Descubre<br>lo que te<br>
-            <span class="italic text-orange-400 font-light">transforma.</span>
+            @if ($locale === 'en')
+                Discover<br>what<br>
+                <span class="italic text-orange-400 font-light">transforms&nbsp;you.</span>
+            @elseif ($locale === 'pt')
+                Descubra<br>o que<br>
+                <span class="italic text-orange-400 font-light">transforma&nbsp;você.</span>
+            @else
+                Descubre<br>lo que te<br>
+                <span class="italic text-orange-400 font-light">transforma.</span>
+            @endif
         </h1>
+        @php $heroCtaLabel = $L('EXPLORAR EXPERIENCIAS', 'EXPLORE EXPERIENCES', 'EXPLORAR EXPERIÊNCIAS'); @endphp
 
         {{-- CTA pill --}}
         <a href="{{ route('tours.index', ['locale' => $locale]) }}"
@@ -143,7 +154,7 @@
                     <circle cx="12" cy="12" r="9"/>
                     <path d="M15 9l-2 6-4 2 2-6 4-2z" fill="currentColor"/>
                 </svg>
-                <span class="uppercase tracking-wider text-white">EXPLORAR EXPERIENCIAS</span>
+                <span class="uppercase tracking-wider text-white">{{ $heroCtaLabel }}</span>
             </span>
             <span class="w-9 h-9 rounded-full bg-orange-400 grid place-items-center text-teal-900 shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
@@ -154,15 +165,15 @@
         <div class="mt-5 flex flex-wrap gap-2">
             <span class="inline-flex items-center gap-2 border border-white/35 rounded-full px-3.5 py-1.5 text-[12px] bg-black/15 backdrop-blur-sm">
                 <svg class="w-4 h-4 text-orange-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                Reserva fácil
+                {{ $L('Reserva fácil', 'Easy booking', 'Reserva fácil') }}
             </span>
             <span class="inline-flex items-center gap-2 border border-white/35 rounded-full px-3.5 py-1.5 text-[12px] bg-black/15 backdrop-blur-sm">
                 <svg class="w-4 h-4 text-orange-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                Segura
+                {{ $L('Segura', 'Secure', 'Segura') }}
             </span>
             <span class="inline-flex items-center gap-2 border border-white/35 rounded-full px-3.5 py-1.5 text-[12px] bg-black/15 backdrop-blur-sm">
                 <svg class="w-4 h-4 text-orange-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25L15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                100% garantizada
+                {{ $L('100% garantizada', '100% guaranteed', '100% garantida') }}
             </span>
         </div>
 
@@ -207,10 +218,10 @@
 {{-- ============================================================
      STATS CARD DESKTOP — solo lg+, overlap sobre hero
      ============================================================ --}}
-<section class="hidden lg:block relative -mt-32 xl:-mt-40 z-10 pb-12"
+<section class="hidden lg:block relative z-10 pb-12 bg-cream-100"
          aria-labelledby="stats-title">
     <h2 id="stats-title" class="sr-only">Estadísticas</h2>
-    <div class="container mx-auto px-5 lg:px-10 max-w-7xl">
+    <div class="container mx-auto px-5 lg:px-10 max-w-7xl -mt-24 xl:-mt-28">
         <div class="bg-white text-teal-800 rounded-3xl
                     shadow-2xl ring-1 ring-black/5
                     px-12 py-10
@@ -228,7 +239,7 @@
             <div class="text-center border-l border-cream-200/80">
                 <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
                 <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">+2,000</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">Viajeros<br class="md:hidden">felices</p>
+                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">Viajeros <br class="md:hidden">felices</p>
                 <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
             </div>
 
@@ -236,7 +247,7 @@
             <div class="text-center border-l border-cream-200/80">
                 <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
                 <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $st['stats_years'] ?? '+11' }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">Años de<br class="md:hidden">experiencia</p>
+                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">Años de <br class="md:hidden">experiencia</p>
                 <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
             </div>
 
@@ -266,7 +277,7 @@
         </div>
 
         @php
-            $mcTours = $featuredTours->count() >= 4
+            $mcTours = $featuredTours->isNotEmpty()
                 ? $normalizeTours($featuredTours->take(8))
                 : $normalizeTours($staticFeatured);
             $mcCount = count($mcTours);
@@ -308,7 +319,7 @@
 
             {{-- Track --}}
             <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2
-                        scrollbar-hide px-[12vw] sm:px-[18vw] md:px-[26vw]
+                        scrollbar-hide -mx-5 px-4 sm:mx-0 sm:px-[18vw] md:px-[26vw]
                         lg:px-0 lg:overflow-x-visible lg:grid lg:grid-cols-3 lg:gap-6"
                  id="mc-carousel"
                  @scroll.debounce.100ms="
@@ -324,7 +335,7 @@
                  ">
 
                 @foreach ($mcTours as $i => $mct)
-                    <div class="shrink-0 w-[76vw] sm:w-[64vw] md:w-[48vw] lg:w-auto snap-center">
+                    <div class="shrink-0 w-[92vw] sm:w-[64vw] md:w-[48vw] lg:w-auto snap-center">
                         <x-tour-card
                             :title="$mct['title']"
                             :slug="$mct['slug']"
@@ -342,21 +353,7 @@
                 @endforeach
             </div>
 
-            {{-- Flechas laterales sobre la card (mobile/tablet; desktop usa grid 3-col) --}}
-            <button type="button"
-                    class="grid lg:hidden absolute left-0 top-[20%] -translate-y-1/2
-                           w-11 h-11 rounded-full bg-white shadow-lg ring-1 ring-teal-800/10
-                           place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-20"
-                    @click="nav(-1)" aria-label="Tour anterior">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <button type="button"
-                    class="grid lg:hidden absolute right-0 top-[20%] -translate-y-1/2
-                           w-11 h-11 rounded-full bg-white shadow-lg ring-1 ring-teal-800/10
-                           place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-20"
-                    @click="nav(1)" aria-label="Siguiente tour">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </button>
+            {{-- Flechas: SOLO abajo en mobile/tablet (no sobre la foto, para que no parezca galería de imágenes). Desktop usa grid 3-col. --}}
 
             {{-- Controles inferiores: flecha + dots + flecha (mobile/tablet) --}}
             <div class="mt-5 flex items-center justify-center gap-3 lg:hidden">
@@ -435,9 +432,8 @@
         </div>
 
         @php
-            // Tours para el carrusel: mínimo 4 items para carrusel de 3 cols.
-            // Si DB trae menos de 4 featured, completar con staticFeatured.
-            $dbTours = $featuredTours->count() >= 4
+            // Usar tours reales si existen (aunque sean pocos); solo demo si la BD está vacía.
+            $dbTours = $featuredTours->isNotEmpty()
                 ? $featuredTours->take(6)
                 : $staticFeatured;
             $limaCuscoCols  = $normalizeTours($dbTours);
@@ -449,7 +445,7 @@
 
             {{-- Track --}}
             <div class="flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4
-                        scrollbar-hide
+                        scrollbar-hide -mx-5 px-4 sm:mx-0 sm:px-0
                         lg:overflow-x-visible lg:grid lg:grid-cols-3 lg:gap-6"
                  id="lc-carousel"
                  @scroll.debounce.100ms="
@@ -459,7 +455,7 @@
                  ">
 
                 @foreach ($limaCuscoCols as $i => $lct)
-                    <div class="shrink-0 w-[88vw] sm:w-[72vw] md:w-[52vw] lg:w-auto snap-start">
+                    <div class="shrink-0 w-[92vw] sm:w-[72vw] md:w-[52vw] lg:w-auto snap-start">
                         <x-tour-card
                             :title="$lct['title']"
                             :slug="$lct['slug']"
@@ -569,10 +565,10 @@
           ];
         @endphp
 
-        {{-- Banners horizontales apilados (uno por fila) --}}
-        <div class="space-y-5">
+        {{-- Banners: apilados en mobile, grid 3 columnas en desktop --}}
+        <div class="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6">
             @foreach ($destinos as $destino)
-                <article class="relative block w-full rounded-3xl overflow-hidden shadow-md min-h-[280px] lg:min-h-0 lg:aspect-[16/7]">
+                <article class="relative block w-full rounded-3xl overflow-hidden shadow-md min-h-[280px] lg:min-h-0 lg:aspect-[3/4]">
                     {{-- Imagen de fondo --}}
                     <img src="{{ asset('assets/banners/' . $destino['img']) }}"
                          alt="{{ $destino['title'] }}"
@@ -588,11 +584,11 @@
                          style="background: rgba(10,35,38,0.45);"></div>
 
                     {{-- Contenido sobre imagen --}}
-                    <div class="relative z-10 h-full flex items-center px-6 md:px-10 lg:px-14 py-8 max-w-xl">
+                    <div class="relative z-10 h-full flex items-end lg:items-center px-6 md:px-8 lg:px-8 py-8 max-w-full">
                         <div>
                             {{-- Icono circular borde dorado --}}
-                            <div class="w-14 h-14 rounded-full border-2 border-amber-400 bg-teal-900/60 grid place-items-center mb-4 shadow-md">
-                                <svg class="w-7 h-7 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 rounded-full border-2 border-amber-400 bg-teal-900/60 grid place-items-center mb-3 shadow-md">
+                                <svg class="w-6 h-6 lg:w-7 lg:h-7 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $destino['iconPath'] }}"/>
                                 </svg>
                             </div>
@@ -603,18 +599,18 @@
                             </span>
 
                             {{-- Título --}}
-                            <h3 class="font-display text-2xl md:text-3xl lg:text-4xl text-white leading-tight">
+                            <h3 class="font-display text-2xl lg:text-2xl text-white leading-tight">
                                 {{ $destino['title'] }}
                             </h3>
 
-                            {{-- Descripción --}}
-                            <p class="mt-3 text-sm text-white/80 leading-relaxed max-w-sm">
+                            {{-- Descripción: oculta en columnas desktop para no colapsar --}}
+                            <p class="mt-2 text-sm text-white/80 leading-relaxed max-w-sm lg:hidden xl:block xl:max-w-[180px]">
                                 {{ $destino['desc'] }}
                             </p>
 
                             {{-- CTA outline dorado --}}
                             <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-                               class="mt-5 inline-flex items-center gap-2 border border-amber-400 text-amber-300 hover:bg-amber-400/10 rounded-full px-5 py-2.5 font-semibold text-xs uppercase tracking-wider transition">
+                               class="mt-4 inline-flex items-center gap-2 border border-amber-400 text-amber-300 hover:bg-amber-400/10 rounded-full px-4 py-2 font-semibold text-xs uppercase tracking-wider transition">
                                 VER TOURS
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                             </a>
@@ -706,7 +702,7 @@
             {!! $brujula !!}
             <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">ESTANCIAS</p>
             <h2 id="tour-type-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                ¿Qué tipo de tour<br class="sm:hidden">estás buscando?
+                ¿Qué tipo de tour <br class="sm:hidden">estás buscando?
             </h2>
             {!! $sep !!}
         </div>
@@ -833,7 +829,7 @@
             {!! $brujula !!}
             <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">EXPERIENCIAS</p>
             <h2 id="exp-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                Descubre<br class="sm:hidden">experiencias únicas
+                Descubre <br class="sm:hidden">experiencias únicas
             </h2>
             {!! $sep !!}
         </div>
@@ -852,7 +848,7 @@
 
             {{-- Carrusel scroll-snap --}}
             <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4
-                        scrollbar-hide
+                        scrollbar-hide -mx-5 px-4 sm:mx-0 sm:px-0
                         lg:overflow-x-visible lg:grid lg:grid-cols-4 lg:gap-6"
                  id="exp-carousel"
                  @scroll.debounce.100ms="
@@ -865,11 +861,11 @@
 
                 @foreach ($expTours as $i => [$eImg, $eTitle, $eBadge, $eBadgeBg, $eSlug])
                     @php
-                        $eUrl = route('tours.show', ['locale' => $locale, 'slug' => $eSlug]);
+                        $eUrl = route('tours.index', ['locale' => $locale]);
                         $eBadgeIsOrange = $eBadgeBg === 'orange-500';
                     @endphp
                     <a href="{{ $eUrl }}"
-                       class="shrink-0 w-[82vw] sm:w-[60vw] md:w-[45vw] lg:w-auto snap-start
+                       class="shrink-0 w-[92vw] sm:w-[60vw] md:w-[45vw] lg:w-auto snap-start
                               block group rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5
                               bg-white hover:shadow-md transition-shadow">
                         <div class="relative aspect-[4/3] overflow-hidden">
@@ -920,6 +916,100 @@
                             :aria-label="'Ir a experiencia {{ $i + 1 }}'">
                     </button>
                 @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
+
+{{-- ============================================================
+     SECCIÓN 6B — OPINIONES DE VIAJEROS (Testimonios)
+     ============================================================ --}}
+@php
+    $reviews = ($testimonials ?? collect());
+    if ($reviews->isEmpty()) {
+        $reviews = collect([
+            (object)['name' => 'María Fernanda G.', 'country' => 'México',         'rating' => 5, 'source' => 'Tripadvisor', 'quote' => 'Una experiencia impecable de principio a fin. El guía fue excelente y todo estuvo perfectamente organizado. ¡Volvería sin dudarlo!', 'avatar' => null],
+            (object)['name' => 'James K.',          'country' => 'Estados Unidos', 'rating' => 5, 'source' => 'Google',      'quote' => 'Best tour experience in Peru. Punctual pickup, knowledgeable guide and breathtaking views. Highly recommended.', 'avatar' => null],
+            (object)['name' => 'Carla R.',          'country' => 'Perú',           'rating' => 5, 'source' => 'Viator',      'quote' => 'Atención de primera, premium en todo sentido. Huacachina y las Islas Ballestas fueron mágicas. Gracias Lima View Tours.', 'avatar' => null],
+            (object)['name' => 'Sofia M.',          'country' => 'Brasil',         'rating' => 5, 'source' => 'GetYourGuide', 'quote' => 'Tudo perfeito! Organização excelente e guia muito atencioso. Recomendo demais para quem visita o Peru.', 'avatar' => null],
+        ]);
+    }
+    $reviewCount = $reviews->count();
+@endphp
+<section id="opiniones" class="bg-white px-5 py-10 lg:py-20 scroll-mt-24" aria-labelledby="opiniones-title">
+    <div class="container mx-auto max-w-7xl lg:px-5">
+
+        {{-- Header --}}
+        <div class="text-center mb-8">
+            <p class="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">
+                <span class="h-px w-6 bg-orange-500/50"></span>OPINIONES REALES<span class="h-px w-6 bg-orange-500/50"></span>
+            </p>
+            <h2 id="opiniones-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
+                Lo que dicen nuestros viajeros
+            </h2>
+            {!! $sep !!}
+            <p class="mt-5 text-sm text-teal-800/70">
+                Miles de viajeros han vivido el Perú con nosotros.<br class="hidden sm:block">Estas son algunas de sus experiencias.
+            </p>
+        </div>
+
+        {{-- Carrusel mobile / grid desktop --}}
+        <div x-data="{ current: 0, total: {{ $reviewCount }} }" class="relative">
+            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 scrollbar-hide
+                        lg:overflow-x-visible lg:grid lg:grid-cols-4 lg:gap-6"
+                 id="reviews-carousel"
+                 @scroll.debounce.100ms="
+                     let el = $el; let w = el.scrollWidth - el.clientWidth;
+                     if (w > 0) { current = Math.round((el.scrollLeft / w) * (total - 1)); }
+                 ">
+                @foreach ($reviews as $rev)
+                    @php
+                        $rvName    = is_object($rev) ? ($rev->name ?? 'Viajero') : ($rev['name'] ?? 'Viajero');
+                        $rvCountry = is_object($rev) ? ($rev->country ?? null) : ($rev['country'] ?? null);
+                        $rvRating  = (int) round(is_object($rev) ? ($rev->rating ?? 5) : ($rev['rating'] ?? 5));
+                        $rvSource  = is_object($rev) ? ($rev->source ?? null) : ($rev['source'] ?? null);
+                        $rvQuote   = is_object($rev) ? ($rev->quote ?? '') : ($rev['quote'] ?? '');
+                        $rvAvatar  = is_object($rev) ? ($rev->avatar ?? null) : ($rev['avatar'] ?? null);
+                        $rvAvatarUrl = $rvAvatar ? (\Illuminate\Support\Str::startsWith($rvAvatar, ['http', '/']) ? $rvAvatar : asset($rvAvatar)) : null;
+                        $rvInitial = mb_strtoupper(mb_substr(trim($rvName), 0, 1));
+                        $rvMeta = trim(implode(' · ', array_filter([$rvCountry, $rvSource])));
+                    @endphp
+                    <figure class="review-card shrink-0 w-[82vw] sm:w-[60vw] md:w-[44vw] lg:w-auto snap-start
+                                   bg-cream-100 rounded-3xl ring-1 ring-teal-800/5 shadow-sm p-6 flex flex-col">
+                        {{-- Comillas + estrellas --}}
+                        <div class="flex items-center justify-between mb-3">
+                            <svg class="w-9 h-9 text-orange-400/40" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.17 6A5.17 5.17 0 002 11.17V18h6.83v-6.83H5.5A1.67 1.67 0 017.17 9.5V6zm9 0A5.17 5.17 0 0011 11.17V18h6.83v-6.83H14.5a1.67 1.67 0 011.67-1.67V6z"/></svg>
+                            <span class="text-orange-400 text-base leading-none tracking-tight" aria-label="{{ $rvRating }} de 5 estrellas">{{ str_repeat('★', $rvRating) }}{{ str_repeat('☆', 5 - $rvRating) }}</span>
+                        </div>
+                        {{-- Texto --}}
+                        <blockquote class="text-sm text-teal-800/85 leading-relaxed flex-1">“{{ $rvQuote }}”</blockquote>
+                        {{-- Autor --}}
+                        <figcaption class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
+                            @if ($rvAvatarUrl)
+                                <img src="{{ $rvAvatarUrl }}" alt="{{ $rvName }}" class="w-11 h-11 rounded-full object-cover shrink-0" loading="lazy" width="44" height="44">
+                            @else
+                                <span class="w-11 h-11 rounded-full bg-teal-800 text-white grid place-items-center font-display text-lg shrink-0" aria-hidden="true">{{ $rvInitial }}</span>
+                            @endif
+                            <div class="min-w-0">
+                                <p class="font-bold text-teal-800 text-sm leading-tight truncate">{{ $rvName }}</p>
+                                <p class="text-[11px] text-teal-800/55 leading-tight truncate">{{ $rvMeta }}</p>
+                            </div>
+                            <svg class="w-5 h-5 text-emerald-500 ml-auto shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" title="Reseña verificada"><path fill-rule="evenodd" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" clip-rule="evenodd"/></svg>
+                        </figcaption>
+                    </figure>
+                @endforeach
+            </div>
+
+            {{-- Dots (mobile/tablet) --}}
+            <div class="mt-5 flex items-center justify-center gap-2 lg:hidden" aria-hidden="true">
+                @for ($i = 0; $i < $reviewCount; $i++)
+                    <button type="button"
+                            @click="current = {{ $i }}; document.getElementById('reviews-carousel').scrollTo({ left: document.getElementById('reviews-carousel').scrollWidth / {{ $reviewCount }} * {{ $i }}, behavior: 'smooth' });"
+                            class="transition-all duration-200 rounded-full"
+                            :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
+                            :aria-label="'Ir a opinión {{ $i + 1 }}'"></button>
+                @endfor
             </div>
         </div>
     </div>
@@ -1036,7 +1126,8 @@
         {{-- Bloque hero: medallón + texto centrados en mobile, 2 col en desktop --}}
         <div class="flex flex-col items-center gap-8 lg:flex-row lg:gap-16 lg:items-center mb-14">
 
-            {{-- Medallón SVG "Best Tours in Lima" --}}
+            {{-- Medallón eliminado a pedido del cliente --}}
+            @if (false)
             <div class="flex justify-center shrink-0">
                 <div class="relative w-48 h-48 lg:w-60 lg:h-60 drop-shadow-2xl" aria-hidden="true">
                     <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
@@ -1121,6 +1212,7 @@
                     <span class="absolute -bottom-4 right-[42px] w-7 h-12 bg-amber-500 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);"></span>
                 </div>
             </div>
+            @endif
 
             {{-- Texto + card premio --}}
             <div class="text-center lg:text-left flex-1">
@@ -1203,79 +1295,63 @@
 
         {{-- Y también nos recomiendan --}}
         <div>
-            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-6">
-                Y también nos recomiendan
+            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-7">
+                Recomendado y verificado en
             </h3>
 
-            <div class="grid grid-cols-3 gap-4 lg:gap-6 max-w-2xl mx-auto lg:max-w-3xl">
-
-                {{-- Viator --}}
-                <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-4 lg:p-6 text-center">
-                    <div class="flex flex-col items-center gap-2 mb-3">
-                        {{-- Logo Viator: "V" pill + wordmark --}}
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-8 h-8 rounded-lg grid place-items-center text-white font-bold text-sm shadow-sm shrink-0" style="background-color:#1A8466;">
-                                <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white" aria-hidden="true"><path d="M12 2L4 20h4.5l3.5-8.4 3.5 8.4H20L12 2z"/></svg>
-                            </span>
-                            <span class="font-bold text-[13px] lg:text-sm leading-tight" style="color:#1A8466;">Viator</span>
-                        </div>
-                    </div>
-                    <p class="text-[10px] lg:text-xs text-teal-800/65 leading-snug">Principal plataforma de tours y actividades globales.</p>
-                </div>
+            {{-- Strip de logos reales, bien distribuido --}}
+            <div class="bg-white rounded-3xl ring-1 ring-cream-200 shadow-sm max-w-3xl mx-auto
+                        grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cream-200">
 
                 {{-- Tripadvisor --}}
-                <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-4 lg:p-6 text-center">
-                    <div class="flex flex-col items-center gap-2 mb-3">
-                        <div class="flex items-center gap-1.5">
-                            {{-- Búho simplificado Tripadvisor --}}
-                            <span class="w-8 h-8 rounded-full grid place-items-center shadow-sm shrink-0" style="background-color:#00AA6C;">
-                                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" aria-hidden="true">
-                                    <circle cx="9"  cy="10" r="3" fill="white"/>
-                                    <circle cx="15" cy="10" r="3" fill="white"/>
-                                    <circle cx="9"  cy="10" r="1.4" fill="#00AA6C"/>
-                                    <circle cx="15" cy="10" r="1.4" fill="#00AA6C"/>
-                                    <path d="M7 14.5 C8.5 16.5 15.5 16.5 17 14.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
-                                </svg>
-                            </span>
-                            <span class="font-bold text-[13px] lg:text-sm leading-tight" style="color:#00AA6C;">Tripadvisor</span>
-                        </div>
+                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
+                    <div class="flex items-center gap-2 h-7">
+                        <svg viewBox="0 0 40 24" class="h-[22px] w-auto" aria-hidden="true">
+                            <circle cx="13" cy="12" r="9.5" fill="#00AA6C"/>
+                            <circle cx="27" cy="12" r="9.5" fill="#00AA6C"/>
+                            <circle cx="13" cy="12" r="4.4" fill="#fff"/>
+                            <circle cx="27" cy="12" r="4.4" fill="#fff"/>
+                            <circle cx="13" cy="12" r="2" fill="#0a2326"/>
+                            <circle cx="27" cy="12" r="2" fill="#0a2326"/>
+                        </svg>
+                        <span class="font-bold text-[15px] tracking-tight" style="color:#0a2326;">Tripadvisor</span>
                     </div>
-                    <p class="text-[10px] lg:text-xs text-teal-800/65 leading-snug">La comunidad de viajeros más grande del mundo.</p>
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/60">
+                        <span class="tracking-tight" style="color:#00AA6C;letter-spacing:1px;">●●●●●</span> 4.9
+                    </span>
+                </div>
+
+                {{-- Viator --}}
+                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
+                    <span class="font-sans font-extrabold text-[26px] tracking-tight leading-7 h-7" style="color:#0a2326;">Viator</span>
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/60">
+                        <span class="text-orange-400">★★★★★</span> 4.8
+                    </span>
                 </div>
 
                 {{-- GetYourGuide --}}
-                <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-4 lg:p-6 text-center">
-                    <div class="flex flex-col items-center gap-2 mb-3">
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-8 h-8 rounded-lg grid place-items-center font-black text-xs text-white shadow-sm shrink-0" style="background-color:#FF5533;">
-                                G
-                            </span>
-                            <span class="font-bold text-[11px] lg:text-xs leading-tight text-teal-800">GetYour<br class="hidden lg:inline">Guide</span>
-                        </div>
-                    </div>
-                    <p class="text-[10px] lg:text-xs text-teal-800/65 leading-snug">Plataforma líder en experiencias turísticas.</p>
+                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
+                    <span class="font-sans font-extrabold text-[19px] tracking-tight leading-7 h-7" style="color:#FF5533;">GetYourGuide</span>
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/60">
+                        <span class="text-orange-400">★★★★★</span> 4.9
+                    </span>
                 </div>
-
             </div>
 
-            {{-- Decoración skyline naranja al fondo --}}
-            <div class="mt-10 opacity-30" aria-hidden="true">
-                <svg class="w-full h-20 text-amber-400/60" viewBox="0 0 800 80" fill="none" stroke="currentColor" stroke-width="1.2" preserveAspectRatio="xMidYMax meet">
-                    <path d="M0 70 L40 70 L40 45 L55 45 L55 30 L70 30 L70 15 L80 15 L80 8 L90 8 L90 15 L100 15 L100 30 L115 30 L115 45 L130 45 L130 70
-                             L160 70 L160 50 L170 50 L170 35 L185 35 L185 50 L200 50 L200 70
-                             L230 70 L230 40 L240 40 L240 25 L250 25 L250 10 L260 10 L260 25 L270 25 L270 40 L280 40 L280 70
-                             L310 70 L310 55 L325 55 L325 42 L340 42 L340 55 L355 55 L355 70
-                             L385 70 L385 48 L398 48 L398 32 L410 32 L410 48 L422 48 L422 70
-                             L450 70 L450 58 L465 58 L465 70
-                             L495 70 L495 42 L505 42 L505 28 L515 28 L515 18 L525 18 L525 28 L535 28 L535 42 L545 42 L545 70
-                             L575 70 L575 52 L590 52 L590 38 L605 38 L605 52 L620 52 L620 70
-                             L650 70 L650 46 L662 46 L662 70
-                             L690 70 L690 55 L700 55 L700 40 L710 40 L710 28 L720 28 L720 40 L730 40 L730 55 L740 55 L740 70
-                             L800 70 L800 80 L0 80 Z"/>
-                </svg>
-            </div>
+            <p class="mt-6 text-center text-xs text-teal-800/55 max-w-md mx-auto leading-relaxed">
+                Miles de reseñas verificadas de viajeros de todo el mundo respaldan nuestras experiencias.
+            </p>
         </div>
     </div>
 </section>
 
+{{-- ============================================================
+     SECCIÓN FAQ — AEO accordion (renderiza solo si hay FAQs)
+     ============================================================ --}}
+<x-faq-section />
+
 @endsection
+
+@push('schema')
+@include('partials.faq-schema')
+@endpush

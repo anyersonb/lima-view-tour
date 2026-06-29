@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\NewsletterConfirmation;
 use App\Models\NewsletterSubscriber;
+use App\Services\RecaptchaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -13,13 +14,20 @@ use Illuminate\View\View;
 
 class NewsletterController extends Controller
 {
-    public function subscribe(Request $request): RedirectResponse
+    public function subscribe(Request $request, RecaptchaService $recaptcha): RedirectResponse
     {
         // Honeypot: bots fill hidden fields that real users never see
         if ($request->filled('website')) {
             Log::info('newsletter.honeypot_triggered', ['ip' => $request->ip()]);
 
             return back()->with('newsletter_success', '¡Gracias por suscribirte!');
+        }
+
+        // reCAPTCHA verification (no-op when module is disabled)
+        if (! $recaptcha->verify($request->input('recaptcha_token'), 'newsletter', $request->ip())) {
+            return back()
+                ->withInput()
+                ->withErrors(['recaptcha' => __('recaptcha.failed')]);
         }
 
         $data = $request->validate([

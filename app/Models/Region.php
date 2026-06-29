@@ -42,6 +42,18 @@ class Region extends Model
         return $this->{"name_{$locale}"} ?: $this->name_es;
     }
 
+    public function getDescriptionAttribute(): ?string
+    {
+        $locale = app()->getLocale();
+        return $this->{"description_{$locale}"} ?: $this->description_es;
+    }
+
+    public function getEyebrowAttribute(): ?string
+    {
+        $locale = app()->getLocale();
+        return $this->{"eyebrow_{$locale}"} ?: $this->eyebrow_es;
+    }
+
     public function getRouteKeyName(): string
     {
         return 'slug';

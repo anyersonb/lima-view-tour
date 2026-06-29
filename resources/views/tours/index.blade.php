@@ -2,12 +2,13 @@
 
 @php
     $locale = app()->getLocale();
+    $L = fn (string $es, string $en, string $pt): string => $locale === 'pt' ? $pt : ($locale === 'en' ? $en : $es);
     $cat = $categoria ?? null;
     $titles = [
-        'lima'  => 'Tours en Lima',
-        'ica'   => 'Tours en Ica',
-        'cusco' => 'Tours en Cusco',
-        null    => 'Todos nuestros tours',
+        'lima'  => $L('Tours en Lima', 'Tours in Lima', 'Tours em Lima'),
+        'ica'   => $L('Tours en Ica', 'Tours in Ica', 'Tours em Ica'),
+        'cusco' => $L('Tours en Cusco', 'Tours in Cusco', 'Tours em Cusco'),
+        null    => $L('Todos nuestros tours', 'All our tours', 'Todos os nossos tours'),
     ];
     $banners = [
         'lima'  => 'Rectangle 19216.jpg',
@@ -16,11 +17,11 @@
         null    => 'banner-hero.jpg',
     ];
     $eyebrow = [
-        'lima'  => 'EXPLORA LA CAPITAL',
-        'ica'   => 'AVENTURA EN EL DESIERTO',
-        'cusco' => 'CIUDADELA SAGRADA',
-        null    => 'NUESTRO CATÁLOGO',
-    ][$cat ?? null] ?? 'NUESTRO CATÁLOGO';
+        'lima'  => $L('EXPLORA LA CAPITAL', 'EXPLORE THE CAPITAL', 'EXPLORE A CAPITAL'),
+        'ica'   => $L('AVENTURA EN EL DESIERTO', 'DESERT ADVENTURE', 'AVENTURA NO DESERTO'),
+        'cusco' => $L('CIUDADELA SAGRADA', 'SACRED CITADEL', 'CIDADELA SAGRADA'),
+        null    => $L('NUESTRO CATÁLOGO', 'OUR CATALOG', 'NOSSO CATÁLOGO'),
+    ][$cat ?? null] ?? $L('NUESTRO CATÁLOGO', 'OUR CATALOG', 'NOSSO CATÁLOGO');
     $sectionTitle = $titles[$cat ?? null] ?? 'Tours';
     $bannerImg = $banners[$cat ?? null] ?? 'banner-hero.jpg';
 
@@ -74,37 +75,53 @@
         </nav>
     </div>
 
-    <div class="container mx-auto px-5 lg:px-10 pt-12 pb-20 md:pb-28 text-center max-w-4xl">
-        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold opacity-90">{{ $eyebrow }}</p>
-        <h1 class="mt-4 font-display font-normal text-5xl md:text-6xl lg:text-7xl leading-[1.05]">
-            {{ $sectionTitle }}
-        </h1>
-        <p class="mt-5 mx-auto max-w-2xl text-sm md:text-base text-white/85">
-            Vive una aventura inolvidable. Tours diseñados con seguridad, comodidad y guías expertos.
-        </p>
+    <div class="container mx-auto px-5 lg:px-10 pt-12 pb-16 md:pb-24 max-w-3xl">
+        {{-- Pill: TOURS SELECCIONADOS EN PERÚ --}}
+        <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/25 backdrop-blur-sm pl-3.5 pr-4 py-2 mb-5">
+            <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
+            <span class="text-[11px] sm:text-xs uppercase tracking-[0.18em] text-amber-200 font-bold">{{ $L('Tours seleccionados en Perú', 'Selected tours in Peru', 'Tours selecionados no Peru') }}</span>
+        </span>
 
-        <form action="{{ route('tours.results', ['locale' => $locale]) }}" method="get"
-              class="mt-10 mx-auto max-w-3xl bg-white text-teal-800 rounded-pill shadow-2xl flex items-center gap-2 p-2">
-            <label class="flex-1 flex items-center gap-3 px-4">
-                <svg class="w-5 h-5 text-teal-700/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/>
-                </svg>
-                <span class="sr-only">Buscar tour</span>
-                <input type="search" name="q" placeholder="¿Qué experiencia buscas?"
-                       class="w-full bg-transparent border-0 focus:ring-0 placeholder:text-teal-700/50 text-base">
-            </label>
-            <button type="submit" class="btn--primary !py-3.5 !px-8">Buscar</button>
-        </form>
+        <h1 class="font-display font-normal text-[40px] leading-[1.02] sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">
+            {{ $L('Descubre experiencias con un estilo más', 'Discover experiences with a more', 'Descubra experiências com um estilo mais') }}
+            <span class="italic text-orange-400 font-light">premium.</span>
+        </h1>
+
+        {{-- Buscador (estilo Image #10) --}}
+        <div class="mt-8 bg-white text-teal-800 rounded-3xl shadow-2xl ring-1 ring-black/5 p-4 sm:p-5 max-w-2xl">
+            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-800/60 mb-3">{{ $L('Buscar experiencia', 'Search experience', 'Buscar experiência') }}</p>
+            <form method="GET" action="{{ route('tours.results', ['locale' => $locale]) }}" class="flex items-center gap-2.5" role="search">
+                <div class="relative flex-1 min-w-0">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-teal-800/40" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                    </span>
+                    <input type="search" name="q" placeholder="{{ $L('Buscar tour...', 'Search a tour...', 'Buscar tour...') }}"
+                           class="w-full rounded-2xl border border-teal-800/15 bg-cream-100 pl-11 pr-3 py-3.5 text-base text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
+                           aria-label="{{ $L('Buscar tour', 'Search a tour', 'Buscar tour') }}">
+                </div>
+                <button type="submit" class="shrink-0 bg-teal-800 hover:bg-teal-900 text-white font-bold text-sm rounded-2xl px-6 py-3.5 transition">{{ $L('Buscar', 'Search', 'Buscar') }}</button>
+            </form>
+            <div class="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+                <a href="{{ route('tours.index', ['locale' => $locale]) }}"
+                   class="shrink-0 rounded-full text-sm font-bold px-5 py-2.5 transition {{ !$cat ? 'bg-teal-800 text-white' : 'bg-cream-100 text-teal-800 ring-1 ring-teal-800/10 hover:bg-cream-200' }}">{{ $L('Todos', 'All', 'Todos') }}</a>
+                @foreach (['lima' => 'Lima', 'ica' => 'Ica', 'cusco' => 'Cusco'] as $rSlug => $rLabel)
+                    <a href="{{ route('tours.category', ['locale' => $locale, 'categoria' => $rSlug]) }}"
+                       class="shrink-0 rounded-full text-sm font-bold px-5 py-2.5 transition {{ $cat === $rSlug ? 'bg-teal-800 text-white' : 'bg-cream-100 text-teal-800 ring-1 ring-teal-800/10 hover:bg-cream-200' }}">{{ $rLabel }}</a>
+                @endforeach
+            </div>
+        </div>
     </div>
 </section>
 
 {{-- ───────── GRID DE TOURS ───────── --}}
 <section class="bg-white py-16 lg:py-20" id="catalogo">
     <div class="container mx-auto px-5 lg:px-10">
-        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+        {{-- Encabezado + filtros: ocultos en mobile, visibles desde md --}}
+        <div class="hidden md:block mb-10">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div>
-                <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">CATÁLOGO</p>
-                <h2 class="mt-2 font-display text-3xl md:text-4xl text-teal-800 leading-tight">Todos nuestros {{ $cat ? 'tours en ' . ucfirst($cat) : 'tours' }}</h2>
+                <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold">{{ $L('CATÁLOGO', 'CATALOG', 'CATÁLOGO') }}</p>
+                <h2 class="mt-2 font-display text-3xl md:text-4xl text-teal-800 leading-tight">{{ $sectionTitle }}</h2>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -121,6 +138,7 @@
                     </a>
                 @endforeach
             </div>
+        </div>
         </div>
 
         {{-- MOBILE (<640): cards horizontales tipo lista --}}

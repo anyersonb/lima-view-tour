@@ -37,11 +37,26 @@ class HomeController extends Controller
     private function fetchFeaturedTours(): \Illuminate\Support\Collection
     {
         try {
-            return Tour::published()
+            $featured = Tour::published()
                 ->featured()
                 ->ordered()
                 ->limit(8)
                 ->get();
+
+            // Si hay menos de 3 destacados, completar con tours publicados
+            // para garantizar al menos 3 cards visibles en el grid desktop.
+            if ($featured->count() < 3) {
+                $existingIds = $featured->pluck('id')->all();
+                $fill = Tour::published()
+                    ->ordered()
+                    ->when(count($existingIds) > 0, fn ($q) => $q->whereNotIn('id', $existingIds))
+                    ->limit(8 - $featured->count())
+                    ->get();
+
+                $featured = $featured->concat($fill);
+            }
+
+            return $featured;
         } catch (\Throwable $e) {
             Log::error('HomeController: failed to fetch featured tours', [
                 'exception' => $e->getMessage(),
@@ -60,13 +75,20 @@ class HomeController extends Controller
     private function fetchToursByRegion(string $regionName): \Illuminate\Support\Collection
     {
         try {
-            return Tour::published()
+            $regionTours = Tour::published()
                 ->ordered()
                 ->whereHas('region', static function ($query) use ($regionName): void {
                     $query->where('name_es', $regionName);
                 })
                 ->limit(8)
                 ->get();
+
+            // Respaldo a tours reales si la región no tiene tours (evita placeholders 404).
+            if ($regionTours->isEmpty()) {
+                $regionTours = Tour::published()->ordered()->limit(8)->get();
+            }
+
+            return $regionTours;
         } catch (\Throwable $e) {
             Log::error('HomeController: failed to fetch tours by region', [
                 'region' => $regionName,

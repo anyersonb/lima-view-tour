@@ -34,12 +34,22 @@ class PageResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('title_es')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Título (Español)'),
                 Forms\Components\TextInput::make('title_en')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Title (English)'),
+                Forms\Components\TextInput::make('title_pt')
+                    ->maxLength(255)
+                    ->label('Título (Português)'),
                 Forms\Components\Textarea::make('content_es')
+                    ->label('Contenido (Español)')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('content_en')
+                    ->label('Content (English)')
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('content_pt')
+                    ->label('Conteúdo (Português)')
                     ->columnSpanFull(),
                 Forms\Components\FileUpload::make('hero_image')
                     ->image(),

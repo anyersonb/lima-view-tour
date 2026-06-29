@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CartItemRequest;
+use App\Models\BlockedDate;
 use App\Models\Tour;
 use App\Services\CartService;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,19 @@ class CartController extends Controller
             $discount = $this->cart->couponDiscount();
             $total    = $this->cart->total();
             $couponCode = $this->cart->couponCode();
+
+            // Enriquecer items con datos de descuento/badge del tour (sin tocar BD)
+            if ($items->isNotEmpty()) {
+                $tourMeta = Tour::whereIn('id', $items->pluck('tour_id')->filter()->all())
+                    ->get(['id', 'price_before', 'is_featured'])
+                    ->keyBy('id');
+                $items = $items->map(function (array $it) use ($tourMeta) {
+                    $t = $tourMeta->get($it['tour_id'] ?? null);
+                    $it['price_before'] = $t?->price_before;
+                    $it['is_featured']  = (bool) ($t?->is_featured ?? false);
+                    return $it;
+                });
+            }
 
             // Related tours — fallback to empty collection on error
             $related = collect();
@@ -52,6 +66,10 @@ class CartController extends Controller
             $related    = collect();
         }
 
+        $public_key      = config('services.culqi.public_key');
+        $total_centavos  = (int) round($total * 100);
+        $firstTravelDate = optional($items->first())['travel_date'] ?? now()->addDays(7)->toDateString();
+
         return view('checkout', compact(
             'items',
             'subtotal',
@@ -59,6 +77,9 @@ class CartController extends Controller
             'total',
             'couponCode',
             'related',
+            'public_key',
+            'total_centavos',
+            'firstTravelDate',
         ));
     }
 
@@ -70,6 +91,24 @@ class CartController extends Controller
     {
         try {
             $tour = Tour::findOrFail($request->validated('tour_id'));
+
+            // Server-side check: reject blocked dates before adding to cart
+            $travelDate = $request->validated('travel_date');
+            if (BlockedDate::isBlocked($travelDate, $tour->id)) {
+                Log::info('CartController@store: blocked date rejected', [
+                    'tour_id'     => $tour->id,
+                    'travel_date' => $travelDate,
+                ]);
+
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => __('booking.date_blocked'),
+                    ], 422);
+                }
+
+                return redirect()->back()->withErrors(['travel_date' => __('booking.date_blocked')]);
+            }
 
             $this->cart->add(
                 $tour,

@@ -19,10 +19,13 @@ class Tour extends Model
     protected $casts = [
         'itinerary_es' => 'array',
         'itinerary_en' => 'array',
+        'itinerary_pt' => 'array',
         'includes_es' => 'array',
         'includes_en' => 'array',
+        'includes_pt' => 'array',
         'excludes_es' => 'array',
         'excludes_en' => 'array',
+        'excludes_pt' => 'array',
         'gallery' => 'array',
         'seo_keywords' => 'array',
         'is_featured' => 'boolean',

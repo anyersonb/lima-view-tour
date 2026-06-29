@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Illuminate\Support\Facades\Artisan;
+
+class Maintenance extends Page
+{
+    protected static ?string $navigationIcon    = 'heroicon-o-wrench-screwdriver';
+    protected static ?string $navigationGroup   = 'Sistema';
+    protected static ?string $navigationLabel   = 'Mantenimiento';
+    protected static ?string $title             = 'Mantenimiento del sitio';
+    protected static ?int    $navigationSort    = 100;
+
+    protected static string $view = 'filament.pages.maintenance';
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('clear_cache')
+                ->label('Limpiar caché')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Limpiar toda la caché')
+                ->modalDescription('Esto limpiará la caché de configuración, rutas, vistas y aplicación. El sitio seguirá funcionando normalmente.')
+                ->modalSubmitActionLabel('Sí, limpiar')
+                ->action(function () {
+                    Artisan::call('cache:clear');
+                    Artisan::call('config:clear');
+                    Artisan::call('route:clear');
+                    Artisan::call('view:clear');
+
+                    Notification::make()
+                        ->title('Caché limpiada correctamente')
+                        ->body('Se limpiaron: caché de aplicación, configuración, rutas y vistas.')
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('view_sitemap')
+                ->label('Ver sitemap')
+                ->icon('heroicon-o-globe-alt')
+                ->color('gray')
+                ->url(url('/sitemap.xml'))
+                ->openUrlInNewTab(),
+        ];
+    }
+}

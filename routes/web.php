@@ -1,11 +1,19 @@
 <?php
 
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\Customer\AccountController;
+use App\Http\Controllers\Customer\ForgotPasswordController;
+use App\Http\Controllers\Customer\LoginController;
+use App\Http\Controllers\Customer\LogoutController;
+use App\Http\Controllers\Customer\RegisterController;
+use App\Http\Controllers\Customer\ResetPasswordController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TourController;
@@ -30,14 +38,20 @@ Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'uns
 // Redirección por idioma del navegador
 Route::get('/', function () {
     $supported = config('app.supported_locales', ['es', 'en']);
-    $locale = request()->getPreferredLanguage($supported) ?: config('app.locale');
+    // Map pt-BR and pt-PT to our 'pt' locale
+    $preferred = request()->getPreferredLanguage($supported);
+    if (! $preferred) {
+        $rawLang = substr(request()->server('HTTP_ACCEPT_LANGUAGE', ''), 0, 2);
+        $preferred = ($rawLang === 'pt') ? 'pt' : config('app.locale');
+    }
+    $locale = $preferred;
     return redirect("/{$locale}");
 });
 
 Route::get('/mantenimiento', fn () => view('errors.maintenance'))->name('maintenance');
 
 Route::prefix('{locale}')
-    ->where(['locale' => 'es|en'])
+    ->where(['locale' => 'es|en|pt'])
     ->middleware('setlocale')
     ->group(function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -55,7 +69,9 @@ Route::prefix('{locale}')
         // Cart routes (Fase 2)
         Route::get('/carrito', [CartController::class, 'index'])->name('cart.index');
         Route::post('/carrito/agregar', [CartController::class, 'store'])->name('cart.store');
-        Route::post('/carrito/cupon', [CartController::class, 'applyCoupon'])->name('cart.coupon');
+        Route::post('/carrito/cupon', [CartController::class, 'applyCoupon'])
+            ->middleware('throttle:30,1')
+            ->name('cart.coupon');
         Route::delete('/carrito/vaciar', [CartController::class, 'clear'])->name('cart.clear');
         Route::patch('/carrito/{rowId}', [CartController::class, 'updateItem'])->name('cart.update');
         Route::delete('/carrito/{rowId}', [CartController::class, 'destroy'])->name('cart.destroy');
@@ -69,6 +85,12 @@ Route::prefix('{locale}')
             ->middleware('throttle:checkout')
             ->name('checkout.process');
         Route::get('/checkout/gracias', [CheckoutController::class, 'thanks'])->name('checkout.thanks');
+        Route::post('/checkout/paypal/create',  [CheckoutController::class, 'paypalCreateOrder'])
+            ->middleware('throttle:checkout')
+            ->name('checkout.paypal.create');
+        Route::post('/checkout/paypal/capture', [CheckoutController::class, 'paypalCaptureOrder'])
+            ->middleware('throttle:checkout')
+            ->name('checkout.paypal.capture');
 
         Route::get('/contacto', [ContactController::class, 'show'])->name('contact');
         Route::post('/contacto', [ContactController::class, 'submit'])
@@ -76,11 +98,48 @@ Route::prefix('{locale}')
             ->name('contact.submit');
         Route::get('/gracias', fn () => view('gracias'))->name('contact.thanks');
 
+        // Página de reseñas/comentarios de clientes (Google + Tripadvisor + Web)
+        Route::get('/resenas', [ReviewController::class, 'index'])->name('reviews');
+
+        // Blog
+        Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+        Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
+
         Route::get('/nosotros', fn () => view('about'))->name('about');
 
         // Legal pages
         Route::get('/terminos', [PageController::class, 'terms'])->name('legal.terms');
         Route::get('/privacidad', [PageController::class, 'privacy'])->name('legal.privacy');
+
+        // ── Customer portal (Fase 1) ──────────────────────────────────────
+        Route::get('/ingresar', [LoginController::class, 'showForm'])->name('customer.login');
+        Route::post('/ingresar', [LoginController::class, 'login'])
+            ->middleware('throttle:5,1')
+            ->name('customer.login.post');
+
+        Route::get('/registro', [RegisterController::class, 'showForm'])->name('customer.register');
+        Route::post('/registro', [RegisterController::class, 'register'])
+            ->middleware('throttle:10,1')
+            ->name('customer.register.post');
+
+        Route::post('/salir', [LogoutController::class, 'logout'])
+            ->name('customer.logout');
+
+        Route::get('/recuperar', [ForgotPasswordController::class, 'showForm'])->name('customer.password.request');
+        Route::post('/recuperar', [ForgotPasswordController::class, 'sendResetLink'])
+            ->middleware('throttle:5,1')
+            ->name('customer.password.email');
+
+        Route::get('/recuperar/{token}', [ResetPasswordController::class, 'showForm'])->name('customer.password.reset');
+        Route::post('/recuperar/reset', [ResetPasswordController::class, 'reset'])
+            ->middleware('throttle:5,1')
+            ->name('customer.password.update');
+
+        // Protected customer routes
+        Route::middleware('auth:customer')->group(function () {
+            Route::get('/mi-cuenta', [AccountController::class, 'dashboard'])->name('customer.account');
+            Route::patch('/mi-cuenta/perfil', [AccountController::class, 'updateProfile'])->name('customer.profile.update');
+        });
     });
 
 // Culqi Webhook — outside locale group, CSRF exempt

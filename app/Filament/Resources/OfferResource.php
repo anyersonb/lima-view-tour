@@ -31,12 +31,22 @@ class OfferResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('title_es')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Título (Español)'),
                 Forms\Components\TextInput::make('title_en')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Title (English)'),
+                Forms\Components\TextInput::make('title_pt')
+                    ->maxLength(255)
+                    ->label('Título (Português)'),
                 Forms\Components\Textarea::make('description_es')
+                    ->label('Descripción (Español)')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('description_en')
+                    ->label('Description (English)')
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('description_pt')
+                    ->label('Descrição (Português)')
                     ->columnSpanFull(),
                 Forms\Components\FileUpload::make('image')
                     ->image(),
@@ -46,9 +56,14 @@ class OfferResource extends Resource
                 Forms\Components\TextInput::make('cta_label_es')
                     ->required()
                     ->maxLength(255)
-                    ->default('Leer más'),
+                    ->default('Leer más')
+                    ->label('CTA (Español)'),
                 Forms\Components\TextInput::make('cta_label_en')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('CTA (English)'),
+                Forms\Components\TextInput::make('cta_label_pt')
+                    ->maxLength(255)
+                    ->label('CTA (Português)'),
                 Forms\Components\TextInput::make('cta_url')
                     ->maxLength(255),
                 Forms\Components\Select::make('tour_id')

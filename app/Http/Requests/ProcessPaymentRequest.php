@@ -32,8 +32,8 @@ class ProcessPaymentRequest extends FormRequest
 
             'customer_name'  => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
-            // Regex runs after prepareForValidation strips spaces, so no spaces in pattern needed
-            'customer_phone' => ['required', 'string', 'regex:/^(\+51)?9\d{8}$/'],
+            // Acepta número internacional con prefijo de país (+51, +1, etc.) tras quitar espacios
+            'customer_phone' => ['required', 'string', 'regex:/^\+?\d{7,15}$/'],
             'travel_date'    => ['required', 'date', 'after:today'],
 
             // Pickup information (optional but captured when provided)
@@ -50,7 +50,7 @@ class ProcessPaymentRequest extends FormRequest
         return [
             'payment_timing.required' => 'Debe indicar si pagará ahora o después.',
             'payment_timing.in'       => 'Opción de pago no válida.',
-            'customer_phone.regex'    => 'El teléfono debe ser peruano: +51 9XXXXXXXX o 9XXXXXXXX.',
+            'customer_phone.regex'    => 'Ingresa un teléfono válido con su prefijo de país.',
             'travel_date.after'       => 'La fecha de viaje debe ser posterior a hoy.',
             'culqi_token.required_if' => 'No se recibió el token de pago. Intente nuevamente.',
         ];

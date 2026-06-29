@@ -37,8 +37,13 @@ class TestimonialResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Textarea::make('quote_es')
                     ->required()
+                    ->label('Comentário (Español)')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('quote_en')
+                    ->label('Comentário (English)')
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('quote_pt')
+                    ->label('Comentário (Português)')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('rating')
                     ->required()

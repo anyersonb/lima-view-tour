@@ -154,6 +154,23 @@ class TourResource extends Resource
                                 Forms\Components\Textarea::make('notes_en')->rows(3)->label('Important notes'),
                             ]),
 
+                        Tabs\Tab::make('Português')
+                            ->icon('heroicon-o-language')
+                            ->schema([
+                                Forms\Components\TextInput::make('title_pt')->maxLength(255)->label('Título'),
+                                Forms\Components\TextInput::make('subtitle_pt')->maxLength(255)->label('Subtítulo'),
+                                Forms\Components\Textarea::make('description_pt')->rows(6)->label('Descrição'),
+                                Forms\Components\Repeater::make('itinerary_pt')->label('Roteiro')->schema([
+                                    Forms\Components\TextInput::make('time')->label('Hora'),
+                                    Forms\Components\TextInput::make('title')->label('Título'),
+                                    Forms\Components\Textarea::make('description')->label('Descrição')->rows(2),
+                                ])->columns(3)->collapsible(),
+                                Forms\Components\TagsInput::make('includes_pt')->label('Inclui')->placeholder('Adicionar item'),
+                                Forms\Components\TagsInput::make('excludes_pt')->label('Não inclui')->placeholder('Adicionar item'),
+                                Forms\Components\Textarea::make('recommendations_pt')->rows(3)->label('Recomendações'),
+                                Forms\Components\Textarea::make('notes_pt')->rows(3)->label('Notas importantes'),
+                            ]),
+
                         Tabs\Tab::make('Imágenes')
                             ->icon('heroicon-o-photo')
                             ->schema([
