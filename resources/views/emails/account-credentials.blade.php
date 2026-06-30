@@ -6,8 +6,8 @@
     };
     $accountUrl = route('customer.account', ['locale' => $locale]);
     $loginUrl   = route('customer.login',   ['locale' => $locale]);
-    $contactEmail = \App\Models\Setting::get('contact_email', 'reservas@limaviewtours.com');
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
+    $contactEmail = \App\Models\Setting::get('contact_email') ?: 'reservas@limaviewtours.com';
+    $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
 @endphp
 <!doctype html>
 <html lang="{{ $locale }}">

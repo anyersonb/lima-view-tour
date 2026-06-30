@@ -5,13 +5,17 @@
 
 @php
     $locale = app()->getLocale();
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
+    $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
     $contactPhoneTel = str_replace([' ', '+'], '', $contactPhone);
     // Blocks from CMS — all keys fall back to hardcoded assets when empty
     $b = $page?->blocks ?? [];
-    $mediaUrl = fn (?string $path): ?string => $path
-        ? \Illuminate\Support\Facades\Storage::disk('media')->url($path)
-        : null;
+    $mediaUrl = function ($path): ?string {
+        if (is_array($path)) { $path = $path[0] ?? ''; }
+        $path = trim((string) $path);
+        return ($path !== '' && $path !== '[]' && $path !== '""')
+            ? \Illuminate\Support\Facades\Storage::disk('media')->url($path)
+            : null;
+    };
 @endphp
 
 @section('content')

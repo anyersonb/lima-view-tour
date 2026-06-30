@@ -6,9 +6,9 @@
     $grandTotal = (float) $bookings->sum('total_price');
     $currency   = $first?->currency ?? 'USD';
     $cur        = $currency === 'USD' ? 'US$' : $currency . ' ';
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
+    $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
     $wa  = preg_replace('/\D/', '', \App\Models\Setting::get('whatsapp') ?: $contactPhone);
-    $contactEmail = \App\Models\Setting::get('contact_email', 'reservas@limaviewtours.com');
+    $contactEmail = \App\Models\Setting::get('contact_email') ?: 'reservas@limaviewtours.com';
     $toursUrl = url('/' . ($locale === 'en' ? 'en' : 'es') . '/tours');
     $fallbackImg = asset('assets/banners/banner-hero.jpg');
 @endphp

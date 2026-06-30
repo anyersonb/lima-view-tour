@@ -1,7 +1,7 @@
 @php
     $locale      = app()->getLocale();
     $variant     = $variant ?? 'solid'; // 'solid' | 'transparent'
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
+    $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
     $supportPhone = $contactPhone;
     $regions     = ['lima', 'ica', 'cusco'];
 

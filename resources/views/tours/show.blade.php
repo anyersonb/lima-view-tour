@@ -8,7 +8,7 @@
     $excludes   = $tour->{"excludes_{$locale}"}  ?? $tour->excludes_es  ?? [];
     $recommendations = $tour->{"recommendations_{$locale}"} ?? $tour->recommendations_es ?? null;
     $notes      = $tour->{"notes_{$locale}"}     ?? $tour->notes_es     ?? null;
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
+    $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
 
     $recommendationLines = $recommendations
         ? array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $recommendations))))

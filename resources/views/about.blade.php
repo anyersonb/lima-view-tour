@@ -8,9 +8,13 @@
     $brujula = '<svg viewBox="0 0 64 64" class="w-12 h-12 text-teal-700" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="14"/><path d="M32 14 L34 30 L50 32 L34 34 L32 50 L30 34 L14 32 L30 30 Z" fill="currentColor" opacity=".15" stroke="none"/><path d="M32 16v3M32 45v3M16 32h3M45 32h3"/></svg>';
     // Blocks from CMS — all keys fall back to hardcoded text when empty
     $b = $page?->blocks ?? [];
-    $mediaUrl = fn (?string $path): ?string => $path
-        ? \Illuminate\Support\Facades\Storage::disk('media')->url($path)
-        : null;
+    $mediaUrl = function ($path): ?string {
+        if (is_array($path)) { $path = $path[0] ?? ''; }
+        $path = trim((string) $path);
+        return ($path !== '' && $path !== '[]' && $path !== '""')
+            ? \Illuminate\Support\Facades\Storage::disk('media')->url($path)
+            : null;
+    };
 
     // Default stats (fallback when blocks.stats is not set in CMS)
     $defaultStats = [
