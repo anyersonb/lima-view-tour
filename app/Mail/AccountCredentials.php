@@ -18,15 +18,19 @@ class AccountCredentials extends Mailable
      * @param string   $password  Plain-text temporary password (shown once in this email)
      * @param string   $locale    es | en | pt
      */
+    /**
+     * NOTA: el parámetro de idioma se llama $mailLocale (no $locale) porque
+     * Illuminate\Mail\Mailable ya define $locale y no se puede redeclarar readonly.
+     */
     public function __construct(
         public readonly Customer $customer,
         public readonly string $password,
-        public readonly string $locale
+        public readonly string $mailLocale
     ) {}
 
     public function envelope(): Envelope
     {
-        $subject = match ($this->locale) {
+        $subject = match ($this->mailLocale) {
             'en'    => 'Your Lima View Tours account',
             'pt'    => 'Sua conta na Lima View Tours',
             default => 'Tu cuenta en Lima View Tours',
@@ -42,7 +46,7 @@ class AccountCredentials extends Mailable
             with: [
                 'customer' => $this->customer,
                 'password' => $this->password,
-                'locale'   => $this->locale,
+                'locale'   => $this->mailLocale,
             ]
         );
     }

@@ -12,6 +12,14 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        if ($request->expectsJson()) {
+            return null;
+        }
+
+        // No existe ruta 'login' por defecto: las rutas con guard 'auth'/'customer'
+        // son el portal de cliente. Filament admin usa su propio login.
+        $locale = app()->getLocale() ?: 'es';
+
+        return route('customer.login', ['locale' => $locale]);
     }
 }
