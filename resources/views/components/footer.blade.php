@@ -1,6 +1,6 @@
 @php
     $locale = app()->getLocale();
-    $contactPhone = \App\Models\Setting::get('contact_phone', '+51 925 886 725');
+    $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
 @endphp
 <footer class="site-footer" role="contentinfo">
     {{-- Newsletter band --}}

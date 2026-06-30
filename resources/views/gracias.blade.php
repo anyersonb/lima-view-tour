@@ -8,15 +8,16 @@
     $graciasCta      = \App\Models\Setting::get('gracias_cta_' . $locale)      ?: 'Volver a inicio';
 
     // Gracias page — editable images with fallbacks
-    $graciasBannerSetting = \App\Models\Setting::get('gracias_banner_image');
-    $graciasBannerUrl = $graciasBannerSetting
-        ? \Illuminate\Support\Facades\Storage::disk('media')->url($graciasBannerSetting)
-        : asset('assets/banners/Rectangle 19218.jpg');
-
-    $graciasLogoSetting = \App\Models\Setting::get('gracias_logo_image');
-    $graciasLogoUrl = $graciasLogoSetting
-        ? \Illuminate\Support\Facades\Storage::disk('media')->url($graciasLogoSetting)
-        : asset('assets/logos/logo.png');
+    $mediaOr = function ($key, $fallback) {
+        $v = \App\Models\Setting::get($key);
+        if (is_array($v)) { $v = $v[0] ?? ''; }
+        $v = trim((string) $v);
+        return ($v !== '' && $v !== '[]' && $v !== '""')
+            ? \Illuminate\Support\Facades\Storage::disk('media')->url($v)
+            : asset($fallback);
+    };
+    $graciasBannerUrl = $mediaOr('gracias_banner_image', 'assets/banners/Rectangle 19218.jpg');
+    $graciasLogoUrl   = $mediaOr('gracias_logo_image', 'assets/logos/logo.png');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="ltr">

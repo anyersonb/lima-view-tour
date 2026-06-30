@@ -172,7 +172,9 @@
     {{-- Hero background image (editable via Settings > Home) --}}
     @php
         $heroImgSetting = \App\Models\Setting::get('home_hero_image');
-        $heroImgUrl = $heroImgSetting
+        if (is_array($heroImgSetting)) { $heroImgSetting = $heroImgSetting[0] ?? ''; }
+        $heroImgSetting = trim((string) $heroImgSetting);
+        $heroImgUrl = ($heroImgSetting !== '' && $heroImgSetting !== '[]' && $heroImgSetting !== '""')
             ? \Illuminate\Support\Facades\Storage::disk('media')->url($heroImgSetting)
             : asset('assets/banners/hero-machu-picchu.png');
     @endphp
@@ -258,14 +260,14 @@
 
         @php
             // Stats values — editable via Settings > Home; fallback to original hardcoded values
-            $statRating    = \App\Models\Setting::get('stats_rating',    '4.8');
-            $statTravelers = \App\Models\Setting::get('home_stat_travelers', '+2,000');
-            $statYears     = \App\Models\Setting::get('stats_years',     '+11');
-            $statTours     = \App\Models\Setting::get('stats_tours',     '+50');
-            $statRatingLabel    = \App\Models\Setting::get('home_stat_rating_label',    'Valoración');
-            $statTravelersLabel = \App\Models\Setting::get('home_stat_travelers_label', 'Viajeros felices');
-            $statYearsLabel     = \App\Models\Setting::get('home_stat_years_label',     'Años de experiencia');
-            $statToursLabel     = \App\Models\Setting::get('home_stat_tours_label',     'Tours únicos');
+            $statRating    = \App\Models\Setting::get('stats_rating')    ?: '4.8';
+            $statTravelers = \App\Models\Setting::get('home_stat_travelers') ?: '+2,000';
+            $statYears     = \App\Models\Setting::get('stats_years')     ?: '+11';
+            $statTours     = \App\Models\Setting::get('stats_tours')     ?: '+50';
+            $statRatingLabel    = \App\Models\Setting::get('home_stat_rating_label')    ?: 'Valoración';
+            $statTravelersLabel = \App\Models\Setting::get('home_stat_travelers_label') ?: 'Viajeros felices';
+            $statYearsLabel     = \App\Models\Setting::get('home_stat_years_label')     ?: 'Años de experiencia';
+            $statToursLabel     = \App\Models\Setting::get('home_stat_tours_label')     ?: 'Tours únicos';
         @endphp
         {{-- STATS CARD — empujada al fondo con mt-auto, sobresale del hero --}}
         <div class="mt-auto pt-10 lg:hidden">
