@@ -264,10 +264,10 @@
             $statTravelers = \App\Models\Setting::get('home_stat_travelers') ?: '+2,000';
             $statYears     = \App\Models\Setting::get('stats_years')     ?: '+11';
             $statTours     = \App\Models\Setting::get('stats_tours')     ?: '+50';
-            $statRatingLabel    = \App\Models\Setting::get('home_stat_rating_label')    ?: 'Valoración';
-            $statTravelersLabel = \App\Models\Setting::get('home_stat_travelers_label') ?: 'Viajeros felices';
-            $statYearsLabel     = \App\Models\Setting::get('home_stat_years_label')     ?: 'Años de experiencia';
-            $statToursLabel     = \App\Models\Setting::get('home_stat_tours_label')     ?: 'Tours únicos';
+            $statRatingLabel    = \App\Models\Setting::get('home_stat_rating_label')    ?: $L('Valoración', 'Rating', 'Avaliação');
+            $statTravelersLabel = \App\Models\Setting::get('home_stat_travelers_label') ?: $L('Viajeros felices', 'Happy travelers', 'Viajantes felizes');
+            $statYearsLabel     = \App\Models\Setting::get('home_stat_years_label')     ?: $L('Años de experiencia', 'Years of experience', 'Anos de experiência');
+            $statToursLabel     = \App\Models\Setting::get('home_stat_tours_label')     ?: $L('Tours únicos', 'Unique tours', 'Tours exclusivos');
         @endphp
         {{-- STATS CARD — empujada al fondo con mt-auto, sobresale del hero --}}
         <div class="mt-auto pt-10 lg:hidden">
