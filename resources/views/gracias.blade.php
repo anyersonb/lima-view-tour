@@ -1,5 +1,22 @@
 @php
     $locale = app()->getLocale();
+
+    // Gracias page — editable texts with fallbacks
+    $graciasBadge    = \App\Models\Setting::get('gracias_badge_' . $locale)    ?: 'Tu mensaje fue enviado';
+    $graciasTitle    = \App\Models\Setting::get('gracias_title_' . $locale)    ?: "Gracias por\ncontactarnos";
+    $graciasBody     = \App\Models\Setting::get('gracias_body_' . $locale)     ?: 'Hemos captado tus datos de forma segura, pronto nos pondremos en contacto contigo.';
+    $graciasCta      = \App\Models\Setting::get('gracias_cta_' . $locale)      ?: 'Volver a inicio';
+
+    // Gracias page — editable images with fallbacks
+    $graciasBannerSetting = \App\Models\Setting::get('gracias_banner_image');
+    $graciasBannerUrl = $graciasBannerSetting
+        ? \Illuminate\Support\Facades\Storage::disk('media')->url($graciasBannerSetting)
+        : asset('assets/banners/Rectangle 19218.jpg');
+
+    $graciasLogoSetting = \App\Models\Setting::get('gracias_logo_image');
+    $graciasLogoUrl = $graciasLogoSetting
+        ? \Illuminate\Support\Facades\Storage::disk('media')->url($graciasLogoSetting)
+        : asset('assets/logos/logo.png');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="ltr">
@@ -16,12 +33,10 @@
 <body class="font-sans">
     <main class="min-h-screen grid lg:grid-cols-2">
         <section class="bg-cream-100 flex flex-col justify-center px-8 lg:px-20 py-16">
-            <p class="text-[11px] uppercase tracking-[0.25em] text-teal-800/70 font-semibold">Tu mensaje fue enviado</p>
-            <h1 class="mt-4 font-display text-5xl lg:text-7xl text-teal-800 leading-[1.05]">Gracias por<br>contactarnos</h1>
-            <p class="mt-5 text-sm text-teal-800/75 leading-relaxed max-w-md">
-                Hemos captado tus datos de forma segura, pronto nos pondremos en contacto contigo.
-            </p>
-            <a href="{{ url('/' . $locale) }}" class="btn--primary mt-8 self-start">Volver a inicio</a>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-teal-800/70 font-semibold">{{ $graciasBadge }}</p>
+            <h1 class="mt-4 font-display text-5xl lg:text-7xl text-teal-800 leading-[1.05]">{!! nl2br(e($graciasTitle)) !!}</h1>
+            <p class="mt-5 text-sm text-teal-800/75 leading-relaxed max-w-md">{{ $graciasBody }}</p>
+            <a href="{{ url('/' . $locale) }}" class="btn--primary mt-8 self-start">{{ $graciasCta }}</a>
             <div class="mt-12">
                 <p class="font-display text-xl text-teal-800">Follow us</p>
                 <ul class="mt-3 flex items-center gap-4 text-orange-500">
@@ -32,10 +47,10 @@
             </div>
         </section>
         <section class="relative min-h-[40vh] lg:min-h-screen">
-            <img src="{{ asset('assets/banners/Rectangle 19218.jpg') }}" alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+            <img src="{{ $graciasBannerUrl }}" alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
             <div class="absolute inset-0 bg-gradient-to-b from-black/0 to-black/30"></div>
             <div class="relative h-full grid place-items-center text-white">
-                <img src="{{ asset('assets/logos/logo.png') }}" alt="Lima View Tours" class="h-16 w-auto">
+                <img src="{{ $graciasLogoUrl }}" alt="Lima View Tours" class="h-16 w-auto">
             </div>
         </section>
     </main>

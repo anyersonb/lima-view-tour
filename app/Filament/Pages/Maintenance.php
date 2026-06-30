@@ -41,6 +41,24 @@ class Maintenance extends Page
                         ->send();
                 }),
 
+            Action::make('optimize')
+                ->label('Optimizar (producción)')
+                ->icon('heroicon-o-bolt')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Optimizar para producción')
+                ->modalDescription('Cachea la configuración y las vistas para acelerar el sitio. Ejecútalo después de cambiar el .env o desplegar código nuevo.')
+                ->modalSubmitActionLabel('Sí, optimizar')
+                ->action(function () {
+                    Artisan::call('config:cache');
+                    Artisan::call('view:cache');
+                    Notification::make()
+                        ->title('Sitio optimizado')
+                        ->body('Configuración y vistas cacheadas. El sitio debería responder más rápido.')
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('view_sitemap')
                 ->label('Ver sitemap')
                 ->icon('heroicon-o-globe-alt')

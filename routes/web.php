@@ -108,7 +108,15 @@ Route::prefix('{locale}')
         Route::get('/nosotros', function () {
             $page = \App\Models\Page::where('slug', 'nosotros')->first();
 
-            return view('about', compact('page'));
+            // Active testimonials — 4 cards + 1 featured Tripadvisor quote
+            $testimonials = \App\Models\Testimonial::active()->latest('order')->take(4)->get();
+            $featured     = \App\Models\Testimonial::active()
+                ->where('source', 'tripadvisor')
+                ->latest()
+                ->first()
+                ?? \App\Models\Testimonial::active()->latest()->first();
+
+            return view('about', compact('page', 'testimonials', 'featured'));
         })->name('about');
 
         // Legal pages

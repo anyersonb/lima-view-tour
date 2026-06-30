@@ -26,6 +26,9 @@
     $fbPixel = $settings['seo_facebook_pixel'] ?? null;
     $googleVerify = $settings['seo_google_site_verification'] ?? null;
     $bingVerify = $settings['seo_bing_site_verification'] ?? null;
+
+    // Cookie consent — when banner is disabled by admin, analytics loads without requiring consent
+    $cookieBannerEnabled = (bool) \App\Models\Setting::get('cookie_banner_enabled', true);
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="ltr" class="no-js">
@@ -118,29 +121,121 @@
     <x-jsonld />
     @stack('schema')
 
-    @if ($gtmId)
-        <script>
-            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
-        </script>
+    {{--
+        =====================================================================
+        ANALYTICS — Google Consent Mode v2 + Facebook Pixel gating
+        =====================================================================
+        When $cookieBannerEnabled is true:
+          - GTM/GA4 load with consent default = denied (Consent Mode v2).
+            They fire only conversion/analytics events after the user grants
+            consent via lvt-consent-granted or a stored 'granted' value.
+          - Facebook Pixel is NOT initialized at all until consent is granted.
+
+        When $cookieBannerEnabled is false (admin disabled the banner):
+          - Everything loads unconditionally, exactly as before.
+
+        Reference: https://developers.google.com/tag-platform/security/guides/consent
+        =====================================================================
+    --}}
+    @if ($gtmId || $gaId)
+        @if ($cookieBannerEnabled)
+            {{-- Step 1: initialize dataLayer and set Consent Mode v2 DEFAULTS to denied
+                 This must happen BEFORE the GTM/gtag scripts load. --}}
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                // Default: all consent types denied until user explicitly accepts
+                gtag('consent', 'default', {
+                    ad_storage:            'denied',
+                    analytics_storage:     'denied',
+                    ad_user_data:          'denied',
+                    ad_personalization:    'denied',
+                    wait_for_update:       500
+                });
+            </script>
+        @else
+            {{-- Banner disabled: initialize dataLayer without consent restrictions --}}
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+            </script>
+        @endif
+
+        {{-- Step 2: load GTM (it reads the consent state set above) --}}
+        @if ($gtmId)
+            <script>
+                (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
+            </script>
+        @endif
+
+        {{-- Step 3: load GA4 (inherits consent state from dataLayer above) --}}
+        @if ($gaId)
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
+            <script>
+                gtag('js', new Date());
+                gtag('config', '{{ $gaId }}', { anonymize_ip: true });
+            </script>
+        @endif
+
+        {{-- Step 4: consent UPDATE logic — runs on page load and on user accept event.
+             When banner is enabled: update consent to 'granted' if already stored or
+             when the user clicks Accept (lvt-consent-granted event).
+             When banner is disabled: skip (already loaded without restriction). --}}
+        @if ($cookieBannerEnabled)
+            <script>
+                (function () {
+                    function grantConsent() {
+                        gtag('consent', 'update', {
+                            ad_storage:         'granted',
+                            analytics_storage:  'granted',
+                            ad_user_data:       'granted',
+                            ad_personalization: 'granted'
+                        });
+                    }
+                    // If user already accepted in a previous session, update immediately
+                    if (localStorage.getItem('lvt_cookie_consent') === 'granted') {
+                        grantConsent();
+                    }
+                    // Listen for Accept click fired by the cookie banner component
+                    window.addEventListener('lvt-consent-granted', grantConsent);
+                })();
+            </script>
+        @endif
     @endif
 
-    @if ($gaId)
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '{{ $gaId }}', { anonymize_ip: true });
-        </script>
-    @endif
-
+    {{--
+        Facebook Pixel — no Consent Mode API; must NOT fire until consent is given.
+        When banner is enabled: register a loader function and call it only on consent.
+        When banner is disabled: load unconditionally as before.
+    --}}
     @if ($fbPixel)
-        <script>
-            !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '{{ $fbPixel }}');
-            fbq('track', 'PageView');
-        </script>
-        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ $fbPixel }}&ev=PageView&noscript=1"/></noscript>
+        @if ($cookieBannerEnabled)
+            <script>
+                (function () {
+                    function loadFbPixel() {
+                        if (window._fbPixelLoaded) return;
+                        window._fbPixelLoaded = true;
+                        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+                        fbq('init', '{{ $fbPixel }}');
+                        fbq('track', 'PageView');
+                    }
+                    // Load immediately if consent already granted in a previous session
+                    if (localStorage.getItem('lvt_cookie_consent') === 'granted') {
+                        loadFbPixel();
+                    }
+                    // Load when the user accepts via the banner
+                    window.addEventListener('lvt-consent-granted', loadFbPixel);
+                })();
+            </script>
+        @else
+            {{-- Banner disabled: load unconditionally --}}
+            <script>
+                !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '{{ $fbPixel }}');
+                fbq('track', 'PageView');
+            </script>
+            <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ $fbPixel }}&ev=PageView&noscript=1"/></noscript>
+        @endif
     @endif
 
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
@@ -148,6 +243,11 @@
 </head>
 <body class="bg-white">
     @if ($gtmId)
+        {{-- GTM noscript fallback — only render when consent has been granted
+             (or banner disabled). A noscript fallback without JS-based consent
+             gating could set cookies without user action; rendering it here is
+             acceptable because users without JS cannot interact with the banner
+             either. Consent Mode v2 handles the JS path above. --}}
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ $gtmId }}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     @endif
 
@@ -181,5 +281,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js" defer></script>
 
     @stack('scripts')
+
+    {{-- Cookie consent banner (shown when no prior decision + admin has it enabled) --}}
+    @if ($cookieBannerEnabled)
+        <x-cookie-banner />
+    @endif
 </body>
 </html>

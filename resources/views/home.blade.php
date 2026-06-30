@@ -88,6 +88,78 @@
 
 @section('content')
 
+{{--
+    SLIDER FIX — 2026-06-29
+    Las clases shrink-0, scrollbar-hide y lg:grid fueron purgadas del CSS compilado de producción
+    porque el markup es más nuevo que el último npm run build (disco/SSL bloqueados).
+    Solución: CSS literal en <style> + estilos inline en los tracks. No se purga nunca.
+--}}
+<style>
+/* Track base: siempre flex, nunca grid */
+.carousel-track {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;   /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+.carousel-track::-webkit-scrollbar { display: none; }
+
+/* Slides: 3 columnas (mc-carousel, lc-carousel) */
+.tour-slide {
+    flex: 0 0 88%;
+    max-width: 88%;
+    scroll-snap-align: center;
+}
+@media (min-width: 640px) {
+    .tour-slide {
+        flex-basis: 64%;
+        max-width: 64%;
+    }
+}
+@media (min-width: 768px) {
+    .tour-slide {
+        flex-basis: 48%;
+        max-width: 48%;
+    }
+}
+@media (min-width: 1024px) {
+    .tour-slide {
+        flex-basis: calc((100% - 32px) / 3);
+        max-width: calc((100% - 32px) / 3);
+        scroll-snap-align: start;
+    }
+}
+
+/* Slides: 4 columnas (exp-carousel, reviews-carousel) */
+.tour-slide-4 {
+    flex: 0 0 88%;
+    max-width: 88%;
+    scroll-snap-align: start;
+}
+@media (min-width: 640px) {
+    .tour-slide-4 {
+        flex-basis: 60%;
+        max-width: 60%;
+    }
+}
+@media (min-width: 768px) {
+    .tour-slide-4 {
+        flex-basis: 45%;
+        max-width: 45%;
+    }
+}
+@media (min-width: 1024px) {
+    .tour-slide-4 {
+        flex-basis: calc((100% - 48px) / 4);
+        max-width: calc((100% - 48px) / 4);
+        scroll-snap-align: start;
+    }
+}
+</style>
+
 {{-- ============================================================
      SECCIÓN 1 — HERO + STATS
      Stats card está DENTRO del hero. El hero usa flex-col con
@@ -97,9 +169,15 @@
      ============================================================ --}}
 <section class="relative isolate text-white" aria-labelledby="hero-title">
 
-    {{-- Fondo Machu Picchu --}}
+    {{-- Hero background image (editable via Settings > Home) --}}
+    @php
+        $heroImgSetting = \App\Models\Setting::get('home_hero_image');
+        $heroImgUrl = $heroImgSetting
+            ? \Illuminate\Support\Facades\Storage::disk('media')->url($heroImgSetting)
+            : asset('assets/banners/hero-machu-picchu.png');
+    @endphp
     <div class="absolute inset-0 -z-10">
-        <img src="{{ asset('assets/banners/hero-machu-picchu.png') }}" alt=""
+        <img src="{{ $heroImgUrl }}" alt=""
              class="w-full h-full object-cover object-[60%_center] lg:object-center"
              loading="eager" fetchpriority="high">
         <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/75"></div>
@@ -122,6 +200,16 @@
             <svg class="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
         </div>
 
+        @php
+            // Hero title: Setting with fallback to hardcoded originals
+            $heroTitleDefault = [
+                'es' => "Descubre\nlo que te\ntransforma.",
+                'en' => "Discover\nwhat\ntransforms you.",
+                'pt' => "Descubra\no que\ntransforma você.",
+            ];
+            $heroTitleRaw = \App\Models\Setting::get('home_hero_title_' . $locale)
+                ?: ($heroTitleDefault[$locale] ?? $heroTitleDefault['es']);
+        @endphp
         <h1 id="hero-title"
             class="font-display font-normal
                    text-[52px] leading-[0.92]
@@ -129,16 +217,7 @@
                    md:text-[76px]
                    lg:text-[88px]
                    xl:text-[104px] max-w-3xl">
-            @if ($locale === 'en')
-                Discover<br>what<br>
-                <span class="italic text-orange-400 font-light">transforms&nbsp;you.</span>
-            @elseif ($locale === 'pt')
-                Descubra<br>o que<br>
-                <span class="italic text-orange-400 font-light">transforma&nbsp;você.</span>
-            @else
-                Descubre<br>lo que te<br>
-                <span class="italic text-orange-400 font-light">transforma.</span>
-            @endif
+            {!! nl2br(e($heroTitleRaw)) !!}
         </h1>
         @php $heroCtaLabel = $L('EXPLORAR EXPERIENCIAS', 'EXPLORE EXPERIENCES', 'EXPLORAR EXPERIÊNCIAS'); @endphp
 
@@ -177,6 +256,17 @@
             </span>
         </div>
 
+        @php
+            // Stats values — editable via Settings > Home; fallback to original hardcoded values
+            $statRating    = \App\Models\Setting::get('stats_rating',    '4.8');
+            $statTravelers = \App\Models\Setting::get('home_stat_travelers', '+2,000');
+            $statYears     = \App\Models\Setting::get('stats_years',     '+11');
+            $statTours     = \App\Models\Setting::get('stats_tours',     '+50');
+            $statRatingLabel    = \App\Models\Setting::get('home_stat_rating_label',    'Valoración');
+            $statTravelersLabel = \App\Models\Setting::get('home_stat_travelers_label', 'Viajeros felices');
+            $statYearsLabel     = \App\Models\Setting::get('home_stat_years_label',     'Años de experiencia');
+            $statToursLabel     = \App\Models\Setting::get('home_stat_tours_label',     'Tours únicos');
+        @endphp
         {{-- STATS CARD — empujada al fondo con mt-auto, sobresale del hero --}}
         <div class="mt-auto pt-10 lg:hidden">
             <div id="stats-card-mobile"
@@ -188,26 +278,26 @@
                 {{-- Valoración --}}
                 <div class="text-center">
                     <svg class="w-6 h-6 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">{{ $st['stats_rating'] ?? '4.8' }}</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70">Valoración</p>
+                    <p class="font-display text-2xl mt-2 leading-none">{{ $statRating }}</p>
+                    <p class="mt-1 text-[10px] text-teal-800/70">{{ $statRatingLabel }}</p>
                     <p class="mt-0.5 text-orange-400 text-[10px]" aria-hidden="true">★★★★★</p>
                 </div>
                 <div class="text-center border-l border-cream-200/80">
                     <svg class="w-6 h-6 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">+2,000</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70 leading-tight">Viajeros<br>felices</p>
+                    <p class="font-display text-2xl mt-2 leading-none">{{ $statTravelers }}</p>
+                    <p class="mt-1 text-[10px] text-teal-800/70 leading-tight">{{ $statTravelersLabel }}</p>
                     <div class="mx-auto mt-1.5 h-0.5 w-6 bg-orange-400"></div>
                 </div>
                 <div class="text-center border-l border-cream-200/80">
                     <svg class="w-6 h-6 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">{{ $st['stats_years'] ?? '+11' }}</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70 leading-tight">Años de<br>experiencia</p>
+                    <p class="font-display text-2xl mt-2 leading-none">{{ $statYears }}</p>
+                    <p class="mt-1 text-[10px] text-teal-800/70 leading-tight">{{ $statYearsLabel }}</p>
                     <div class="mx-auto mt-1.5 h-0.5 w-6 bg-orange-400"></div>
                 </div>
                 <div class="text-center border-l border-cream-200/80">
                     <svg class="w-6 h-6 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">{{ $st['stats_tours'] ?? '+50' }}</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70">Tours únicos</p>
+                    <p class="font-display text-2xl mt-2 leading-none">{{ $statTours }}</p>
+                    <p class="mt-1 text-[10px] text-teal-800/70">{{ $statToursLabel }}</p>
                     <div class="mx-auto mt-1.5 h-0.5 w-6 bg-orange-400"></div>
                 </div>
             </div>
@@ -230,32 +320,32 @@
             {{-- Valoración --}}
             <div class="text-center">
                 <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $st['stats_rating'] ?? '4.8' }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70">Valoración</p>
+                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statRating }}</p>
+                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70">{{ $statRatingLabel }}</p>
                 <p class="mt-0.5 text-orange-400 text-[10px] lg:text-base tracking-tight" aria-hidden="true">★★★★★</p>
             </div>
 
             {{-- Viajeros --}}
             <div class="text-center border-l border-cream-200/80">
                 <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">+2,000</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">Viajeros <br class="md:hidden">felices</p>
+                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statTravelers }}</p>
+                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">{{ $statTravelersLabel }}</p>
                 <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
             </div>
 
             {{-- Años --}}
             <div class="text-center border-l border-cream-200/80">
                 <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $st['stats_years'] ?? '+11' }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">Años de <br class="md:hidden">experiencia</p>
+                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statYears }}</p>
+                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">{{ $statYearsLabel }}</p>
                 <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
             </div>
 
             {{-- Tours --}}
             <div class="text-center border-l border-cream-200/80">
                 <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $st['stats_tours'] ?? '+50' }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70">Tours únicos</p>
+                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statTours }}</p>
+                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70">{{ $statToursLabel }}</p>
                 <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
             </div>
         </div>
@@ -271,8 +361,12 @@
 
         {{-- Header --}}
         <div class="text-center mb-8">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">NUESTROS TOURS</p>
-            <h2 id="bestseller-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800">Más Comprados</h2>
+            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">
+                {{ \App\Models\Setting::get('home_sec_featured_eyebrow_' . $locale) ?: 'NUESTROS TOURS' }}
+            </p>
+            <h2 id="bestseller-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800">
+                {{ \App\Models\Setting::get('home_sec_featured_title_' . $locale) ?: 'Más Comprados' }}
+            </h2>
             {!! $sep !!}
         </div>
 
@@ -318,9 +412,8 @@
              }" class="relative">
 
             {{-- Track --}}
-            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2
-                        scrollbar-hide -mx-5 px-4 sm:mx-0 sm:px-[18vw] md:px-[26vw]
-                        lg:px-0 lg:overflow-x-visible lg:grid lg:grid-cols-3 lg:gap-6"
+            <div class="carousel-track gap-4 pb-2 -mx-5 px-4 sm:mx-0"
+                 style="padding-left:1rem;padding-right:1rem;"
                  id="mc-carousel"
                  @scroll.debounce.100ms="
                      let el = $el;
@@ -335,7 +428,7 @@
                  ">
 
                 @foreach ($mcTours as $i => $mct)
-                    <div class="shrink-0 w-[92vw] sm:w-[64vw] md:w-[48vw] lg:w-auto snap-center">
+                    <div class="tour-slide">
                         <x-tour-card
                             :title="$mct['title']"
                             :slug="$mct['slug']"
@@ -426,7 +519,7 @@
         {{-- Título centrado, sin eyebrow --}}
         <div class="text-center mb-8">
             <h2 id="lima-ica-cusco-title" class="font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                Tours en Lima, Ica y Cusco
+                {{ \App\Models\Setting::get('home_sec_cities_title_' . $locale) ?: 'Tours en Lima, Ica y Cusco' }}
             </h2>
             {!! $sep !!}
         </div>
@@ -444,9 +537,8 @@
         <div x-data="{ current: 0, total: {{ $limaCuscoCount }} }" class="relative">
 
             {{-- Track --}}
-            <div class="flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4
-                        scrollbar-hide -mx-5 px-4 sm:mx-0 sm:px-0
-                        lg:overflow-x-visible lg:grid lg:grid-cols-3 lg:gap-6"
+            <div class="carousel-track gap-5 pb-4 -mx-5 px-4 sm:mx-0"
+                 style="padding-left:1rem;padding-right:1rem;"
                  id="lc-carousel"
                  @scroll.debounce.100ms="
                      let el = $el;
@@ -455,7 +547,7 @@
                  ">
 
                 @foreach ($limaCuscoCols as $i => $lct)
-                    <div class="shrink-0 w-[92vw] sm:w-[72vw] md:w-[52vw] lg:w-auto snap-start">
+                    <div class="tour-slide">
                         <x-tour-card
                             :title="$lct['title']"
                             :slug="$lct['slug']"
@@ -493,9 +585,9 @@
 
             {{-- Flechas desktop --}}
             <button type="button"
-                    class="hidden lg:grid absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5
+                    class="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5
                            w-10 h-10 rounded-full bg-white shadow-md ring-1 ring-teal-800/10
-                           place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-10"
+                           items-center justify-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-10"
                     @click="
                         let el = document.getElementById('lc-carousel');
                         el.scrollBy({ left: -el.offsetWidth / 3, behavior: 'smooth' });
@@ -504,9 +596,9 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
             </button>
             <button type="button"
-                    class="hidden lg:grid absolute right-0 top-1/2 -translate-y-1/2 translate-x-5
+                    class="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-5
                            w-10 h-10 rounded-full bg-white shadow-md ring-1 ring-teal-800/10
-                           place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-10"
+                           items-center justify-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-10"
                     @click="
                         let el = document.getElementById('lc-carousel');
                         el.scrollBy({ left: el.offsetWidth / 3, behavior: 'smooth' });
@@ -847,9 +939,8 @@
         <div x-data="{ current: 0, total: {{ count($expTours) }} }" class="relative">
 
             {{-- Carrusel scroll-snap --}}
-            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4
-                        scrollbar-hide -mx-5 px-4 sm:mx-0 sm:px-0
-                        lg:overflow-x-visible lg:grid lg:grid-cols-4 lg:gap-6"
+            <div class="carousel-track gap-4 pb-4 -mx-5 px-4 sm:mx-0"
+                 style="padding-left:1rem;padding-right:1rem;"
                  id="exp-carousel"
                  @scroll.debounce.100ms="
                      let el = $el;
@@ -865,7 +956,7 @@
                         $eBadgeIsOrange = $eBadgeBg === 'orange-500';
                     @endphp
                     <a href="{{ $eUrl }}"
-                       class="shrink-0 w-[92vw] sm:w-[60vw] md:w-[45vw] lg:w-auto snap-start
+                       class="tour-slide-4
                               block group rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5
                               bg-white hover:shadow-md transition-shadow">
                         <div class="relative aspect-[4/3] overflow-hidden">
@@ -956,8 +1047,7 @@
 
         {{-- Carrusel mobile / grid desktop --}}
         <div x-data="{ current: 0, total: {{ $reviewCount }} }" class="relative">
-            <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 scrollbar-hide
-                        lg:overflow-x-visible lg:grid lg:grid-cols-4 lg:gap-6"
+            <div class="carousel-track gap-4 pb-4"
                  id="reviews-carousel"
                  @scroll.debounce.100ms="
                      let el = $el; let w = el.scrollWidth - el.clientWidth;
@@ -975,7 +1065,7 @@
                         $rvInitial = mb_strtoupper(mb_substr(trim($rvName), 0, 1));
                         $rvMeta = trim(implode(' · ', array_filter([$rvCountry, $rvSource])));
                     @endphp
-                    <figure class="review-card shrink-0 w-[82vw] sm:w-[60vw] md:w-[44vw] lg:w-auto snap-start
+                    <figure class="review-card tour-slide-4 snap-start
                                    bg-cream-100 rounded-3xl ring-1 ring-teal-800/5 shadow-sm p-6 flex flex-col">
                         {{-- Comillas + estrellas --}}
                         <div class="flex items-center justify-between mb-3">

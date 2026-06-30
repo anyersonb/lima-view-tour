@@ -10,4 +10,9 @@ return [
     'reviews' => ':count reseñas',
     'rights_reserved' => 'Todos los derechos reservados',
     'back_home'       => 'Volver al inicio',
+    // Cookie consent banner
+    'cookie_text'        => 'Usamos cookies para mejorar tu experiencia y analizar el tráfico del sitio. Puedes aceptarlas o rechazarlas.',
+    'cookie_accept'      => 'Aceptar',
+    'cookie_reject'      => 'Rechazar',
+    'cookie_privacy'     => 'Política de privacidad',
 ];

@@ -370,6 +370,290 @@ class PageResource extends Resource
                                             ->rows(3)
                                             ->maxLength(600),
                                     ]),
+
+                                // ── NOSOTROS — CONTENIDO ADICIONAL ──────────
+                                Forms\Components\Section::make('Nosotros — contenido')
+                                    ->description('Botón hero, segundo párrafo, botón contacto, banner, sección cultura, stats y testimonios')
+                                    ->visible(fn (Forms\Get $get): bool => $get('slug') === 'nosotros')
+                                    ->collapsible()
+                                    ->schema([
+
+                                        // Botón hero
+                                        Forms\Components\Section::make('Botón del hero')
+                                            ->columns(3)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('blocks.hero_cta_label_es')
+                                                    ->label('Botón hero (ES)')
+                                                    ->placeholder('Ver más')
+                                                    ->maxLength(80),
+                                                Forms\Components\TextInput::make('blocks.hero_cta_label_en')
+                                                    ->label('Hero button (EN)')
+                                                    ->placeholder('See more')
+                                                    ->maxLength(80),
+                                                Forms\Components\TextInput::make('blocks.hero_cta_label_pt')
+                                                    ->label('Botão hero (PT)')
+                                                    ->placeholder('Ver mais')
+                                                    ->maxLength(80),
+                                            ]),
+
+                                        // 2º párrafo + botón "¿Por qué reservar?"
+                                        Forms\Components\Section::make('Sección "¿Por qué reservar?" — 2º párrafo y botón')
+                                            ->columns(3)
+                                            ->schema([
+                                                Forms\Components\Textarea::make('blocks.why_intro2_es')
+                                                    ->label('2º párrafo (ES)')
+                                                    ->placeholder('Apostamos por un turismo responsable…')
+                                                    ->rows(3)
+                                                    ->maxLength(600),
+                                                Forms\Components\Textarea::make('blocks.why_intro2_en')
+                                                    ->label('2nd paragraph (EN)')
+                                                    ->placeholder('We bet on responsible tourism…')
+                                                    ->rows(3)
+                                                    ->maxLength(600),
+                                                Forms\Components\Textarea::make('blocks.why_intro2_pt')
+                                                    ->label('2º parágrafo (PT)')
+                                                    ->placeholder('Apostamos por um turismo responsável…')
+                                                    ->rows(3)
+                                                    ->maxLength(600),
+
+                                                Forms\Components\TextInput::make('blocks.why_cta_label_es')
+                                                    ->label('Botón contacto (ES)')
+                                                    ->placeholder('Contáctanos')
+                                                    ->maxLength(80),
+                                                Forms\Components\TextInput::make('blocks.why_cta_label_en')
+                                                    ->label('Contact button (EN)')
+                                                    ->placeholder('Contact us')
+                                                    ->maxLength(80),
+                                                Forms\Components\TextInput::make('blocks.why_cta_label_pt')
+                                                    ->label('Botão contato (PT)')
+                                                    ->placeholder('Fale conosco')
+                                                    ->maxLength(80),
+                                            ]),
+
+                                        // Banner "Somos Lima View Tours"
+                                        Forms\Components\Section::make('Banner "Somos Lima View Tours"')
+                                            ->columns(3)
+                                            ->schema([
+                                                Forms\Components\Textarea::make('blocks.banner_heading_es')
+                                                    ->label('Heading banner (ES)')
+                                                    ->placeholder("Somos\nLima View\nTours")
+                                                    ->helperText('Usa saltos de línea para controlar el quiebre del título.')
+                                                    ->rows(3)
+                                                    ->maxLength(120),
+                                                Forms\Components\Textarea::make('blocks.banner_heading_en')
+                                                    ->label('Banner heading (EN)')
+                                                    ->placeholder("We are\nLima View\nTours")
+                                                    ->rows(3)
+                                                    ->maxLength(120),
+                                                Forms\Components\Textarea::make('blocks.banner_heading_pt')
+                                                    ->label('Heading banner (PT)')
+                                                    ->placeholder("Somos\nLima View\nTours")
+                                                    ->rows(3)
+                                                    ->maxLength(120),
+
+                                                Forms\Components\Textarea::make('blocks.banner_text_es')
+                                                    ->label('Párrafo banner (ES)')
+                                                    ->placeholder('Transformamos cada viaje en una experiencia…')
+                                                    ->rows(3)
+                                                    ->maxLength(400),
+                                                Forms\Components\Textarea::make('blocks.banner_text_en')
+                                                    ->label('Banner paragraph (EN)')
+                                                    ->placeholder('We transform every trip into an experience…')
+                                                    ->rows(3)
+                                                    ->maxLength(400),
+                                                Forms\Components\Textarea::make('blocks.banner_text_pt')
+                                                    ->label('Parágrafo banner (PT)')
+                                                    ->placeholder('Transformamos cada viagem em uma experiência…')
+                                                    ->rows(3)
+                                                    ->maxLength(400),
+                                            ]),
+
+                                        // Sección "Vive la cultura local"
+                                        Forms\Components\Section::make('Sección "Vive la cultura local"')
+                                            ->columns(3)
+                                            ->schema([
+                                                Forms\Components\Textarea::make('blocks.cultura_heading_es')
+                                                    ->label('Heading (ES)')
+                                                    ->placeholder("Vive la cultura\nlocal")
+                                                    ->helperText('Usa saltos de línea para controlar el quiebre.')
+                                                    ->rows(2)
+                                                    ->maxLength(120),
+                                                Forms\Components\Textarea::make('blocks.cultura_heading_en')
+                                                    ->label('Heading (EN)')
+                                                    ->placeholder("Experience local\nculture")
+                                                    ->rows(2)
+                                                    ->maxLength(120),
+                                                Forms\Components\Textarea::make('blocks.cultura_heading_pt')
+                                                    ->label('Heading (PT)')
+                                                    ->placeholder("Viva a cultura\nlocal")
+                                                    ->rows(2)
+                                                    ->maxLength(120),
+
+                                                Forms\Components\Textarea::make('blocks.cultura_intro_es')
+                                                    ->label('Párrafo intro (ES)')
+                                                    ->placeholder('Cada experiencia se construye sobre tres pilares…')
+                                                    ->rows(3)
+                                                    ->maxLength(400),
+                                                Forms\Components\Textarea::make('blocks.cultura_intro_en')
+                                                    ->label('Intro paragraph (EN)')
+                                                    ->placeholder('Each experience is built on three fundamental pillars…')
+                                                    ->rows(3)
+                                                    ->maxLength(400),
+                                                Forms\Components\Textarea::make('blocks.cultura_intro_pt')
+                                                    ->label('Parágrafo intro (PT)')
+                                                    ->placeholder('Cada experiência é construída sobre três pilares…')
+                                                    ->rows(3)
+                                                    ->maxLength(400),
+                                            ]),
+
+                                        // Stats band — Repeater
+                                        Forms\Components\Section::make('Stats band (Misión / Visión / Valores / Equipo)')
+                                            ->description('Orden: los items aparecen de izquierda a derecha en escritorio (4 columnas).')
+                                            ->schema([
+                                                Forms\Components\Repeater::make('blocks.stats')
+                                                    ->label('Items del stats band')
+                                                    ->addActionLabel('Agregar item')
+                                                    ->defaultItems(0)
+                                                    ->reorderable()
+                                                    ->collapsible()
+                                                    ->itemLabel(fn (array $state): string => $state['title_es'] ?? 'Item')
+                                                    ->schema([
+                                                        Forms\Components\Grid::make(3)->schema([
+                                                            Forms\Components\TextInput::make('title_es')
+                                                                ->label('Título (ES)')
+                                                                ->placeholder('Misión')
+                                                                ->required()
+                                                                ->maxLength(80),
+                                                            Forms\Components\TextInput::make('title_en')
+                                                                ->label('Title (EN)')
+                                                                ->placeholder('Mission')
+                                                                ->maxLength(80),
+                                                            Forms\Components\TextInput::make('title_pt')
+                                                                ->label('Título (PT)')
+                                                                ->placeholder('Missão')
+                                                                ->maxLength(80),
+                                                        ]),
+                                                        Forms\Components\Grid::make(3)->schema([
+                                                            Forms\Components\Textarea::make('desc_es')
+                                                                ->label('Descripción (ES)')
+                                                                ->rows(2)
+                                                                ->required()
+                                                                ->maxLength(300),
+                                                            Forms\Components\Textarea::make('desc_en')
+                                                                ->label('Description (EN)')
+                                                                ->rows(2)
+                                                                ->maxLength(300),
+                                                            Forms\Components\Textarea::make('desc_pt')
+                                                                ->label('Descrição (PT)')
+                                                                ->rows(2)
+                                                                ->maxLength(300),
+                                                        ]),
+                                                    ])
+                                                    ->columnSpanFull(),
+                                            ]),
+
+                                        // Pilares (tabs) — Repeater
+                                        Forms\Components\Section::make('Pilares (tabs "Vive la cultura local")')
+                                            ->description('Cada pilar genera un botón de tab y su panel de contenido. El campo "key" debe ser único y sin espacios (ej: servicio, calidad, propio).')
+                                            ->schema([
+                                                Forms\Components\Repeater::make('blocks.pillars')
+                                                    ->label('Pilares')
+                                                    ->addActionLabel('Agregar pilar')
+                                                    ->defaultItems(0)
+                                                    ->reorderable()
+                                                    ->collapsible()
+                                                    ->itemLabel(fn (array $state): string => $state['label_es'] ?? ($state['key'] ?? 'Pilar'))
+                                                    ->schema([
+                                                        Forms\Components\TextInput::make('key')
+                                                            ->label('Clave única (ID)')
+                                                            ->placeholder('servicio')
+                                                            ->helperText('Sin espacios ni caracteres especiales. Ej: servicio, calidad, propio.')
+                                                            ->required()
+                                                            ->maxLength(40)
+                                                            ->columnSpanFull(),
+
+                                                        Forms\Components\Grid::make(3)->schema([
+                                                            Forms\Components\TextInput::make('label_es')
+                                                                ->label('Label tab (ES)')
+                                                                ->placeholder('Servicio')
+                                                                ->required()
+                                                                ->maxLength(60),
+                                                            Forms\Components\TextInput::make('label_en')
+                                                                ->label('Tab label (EN)')
+                                                                ->placeholder('Service')
+                                                                ->maxLength(60),
+                                                            Forms\Components\TextInput::make('label_pt')
+                                                                ->label('Label tab (PT)')
+                                                                ->placeholder('Serviço')
+                                                                ->maxLength(60),
+                                                        ]),
+
+                                                        Forms\Components\Grid::make(3)->schema([
+                                                            Forms\Components\TextInput::make('heading_es')
+                                                                ->label('Heading panel (ES)')
+                                                                ->placeholder('Servicio que se nota')
+                                                                ->required()
+                                                                ->maxLength(120),
+                                                            Forms\Components\TextInput::make('heading_en')
+                                                                ->label('Panel heading (EN)')
+                                                                ->placeholder('Service that shows')
+                                                                ->maxLength(120),
+                                                            Forms\Components\TextInput::make('heading_pt')
+                                                                ->label('Heading panel (PT)')
+                                                                ->placeholder('Serviço que se nota')
+                                                                ->maxLength(120),
+                                                        ]),
+
+                                                        Forms\Components\Grid::make(3)->schema([
+                                                            Forms\Components\Textarea::make('body_es')
+                                                                ->label('Cuerpo panel (ES)')
+                                                                ->rows(3)
+                                                                ->required()
+                                                                ->maxLength(500),
+                                                            Forms\Components\Textarea::make('body_en')
+                                                                ->label('Panel body (EN)')
+                                                                ->rows(3)
+                                                                ->maxLength(500),
+                                                            Forms\Components\Textarea::make('body_pt')
+                                                                ->label('Corpo painel (PT)')
+                                                                ->rows(3)
+                                                                ->maxLength(500),
+                                                        ]),
+                                                    ])
+                                                    ->columnSpanFull(),
+                                            ]),
+
+                                        // Sección testimonios — headings
+                                        Forms\Components\Section::make('Sección testimonios — encabezados')
+                                            ->columns(3)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('blocks.testimonios_eyebrow_es')
+                                                    ->label('Eyebrow (ES)')
+                                                    ->placeholder('CLIENTES SATISFECHOS')
+                                                    ->maxLength(120),
+                                                Forms\Components\TextInput::make('blocks.testimonios_eyebrow_en')
+                                                    ->label('Eyebrow (EN)')
+                                                    ->placeholder('SATISFIED CUSTOMERS')
+                                                    ->maxLength(120),
+                                                Forms\Components\TextInput::make('blocks.testimonios_eyebrow_pt')
+                                                    ->label('Eyebrow (PT)')
+                                                    ->placeholder('CLIENTES SATISFEITOS')
+                                                    ->maxLength(120),
+
+                                                Forms\Components\TextInput::make('blocks.testimonios_heading_es')
+                                                    ->label('Heading (ES)')
+                                                    ->placeholder('Nuestros clientes opinan de nuestros tours')
+                                                    ->maxLength(200),
+                                                Forms\Components\TextInput::make('blocks.testimonios_heading_en')
+                                                    ->label('Heading (EN)')
+                                                    ->placeholder('Our clients talk about our tours')
+                                                    ->maxLength(200),
+                                                Forms\Components\TextInput::make('blocks.testimonios_heading_pt')
+                                                    ->label('Heading (PT)')
+                                                    ->placeholder('Nossos clientes falam sobre nossos tours')
+                                                    ->maxLength(200),
+                                            ]),
+                                    ]),
                             ]),
                     ]),
             ]);

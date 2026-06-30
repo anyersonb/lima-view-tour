@@ -20,25 +20,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Subfolder deployment: when the app is served from
-        // https://limaviewtours.com/limaprogramacion/, force the root URL so
-        // asset()/url()/route() helpers emit the correct prefix. Also patch
-        // Livewire's asset/update URIs (its defaults don't honor forceRootUrl).
-        if (! empty($_SERVER['LIMA_SUBFOLDER'])) {
-            URL::forceRootUrl('https://limaviewtours.com/limaprogramacion');
+        // La app se sirve en la RAÍZ del dominio (limaviewtours.com). La generación
+        // de URLs se basa en APP_URL + TrustProxies; si se llegara a necesitar HTTPS
+        // forzado, hacerlo con APP_FORCE_HTTPS (ya en .env), no con rutas fijas.
+        if (config('app.force_https')) {
             URL::forceScheme('https');
-            // Livewire's asset_url replaces the full script URL (not a prefix).
-            // Pick the right file based on APP_DEBUG since Livewire registers
-            // /livewire/livewire.js in debug and /livewire/livewire.min.js otherwise.
-            $jsFile = config('app.debug') ? 'livewire.js' : 'livewire.min.js';
-            config([
-                'livewire.asset_url'  => "/limaprogramacion/livewire/{$jsFile}",
-                'livewire.update_uri' => '/limaprogramacion/livewire/update',
-                // The public disk URL is derived from APP_URL at filesystems.php config-load
-                // time, before forceRootUrl runs. Override it explicitly so Storage::url()
-                // emits the correct /limaprogramacion/storage/... prefix.
-                'filesystems.disks.public.url' => 'https://limaviewtours.com/limaprogramacion/storage',
-            ]);
         }
     }
 }
