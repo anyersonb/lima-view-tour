@@ -448,7 +448,17 @@
                 @endforeach
             </div>
 
-            {{-- Flechas: SOLO abajo en mobile/tablet (no sobre la foto, para que no parezca galería de imágenes). Desktop usa grid 3-col. --}}
+            {{-- Flechas DESKTOP (slider) --}}
+            <button type="button" @click="nav(-1)" aria-label="Tour anterior"
+                    class="hidden lg:flex"
+                    style="position:absolute;top:42%;left:0;transform:translateY(-50%);margin-left:-12px;width:46px;height:46px;border-radius:9999px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.14);align-items:center;justify-content:center;color:#15474B;border:1px solid rgba(20,71,75,.1);z-index:20;cursor:pointer;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button type="button" @click="nav(1)" aria-label="Tour siguiente"
+                    class="hidden lg:flex"
+                    style="position:absolute;top:42%;right:0;transform:translateY(-50%);margin-right:-12px;width:46px;height:46px;border-radius:9999px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.14);align-items:center;justify-content:center;color:#15474B;border:1px solid rgba(20,71,75,.1);z-index:20;cursor:pointer;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
 
             {{-- Controles inferiores: flecha + dots + flecha (mobile/tablet) --}}
             <div class="mt-5 flex items-center justify-center gap-3 lg:hidden">
