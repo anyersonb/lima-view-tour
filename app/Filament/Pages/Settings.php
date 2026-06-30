@@ -76,6 +76,20 @@ class Settings extends Page implements HasForms
             $rows['faqs'] = [];
         }
 
+        // Decode home Repeaters
+        $repeaterKeys = [
+            'home_destinos', 'home_why_items', 'home_tour_type_tabs',
+            'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
+        ];
+        foreach ($repeaterKeys as $rk) {
+            if (isset($rows[$rk]) && is_string($rows[$rk])) {
+                $decoded = json_decode($rows[$rk], true);
+                $rows[$rk] = is_array($decoded) ? $decoded : [];
+            } else {
+                $rows[$rk] = $rows[$rk] ?? [];
+            }
+        }
+
         $this->form->fill($rows);
     }
 
@@ -284,6 +298,307 @@ class Settings extends Page implements HasForms
                                 TextInput::make('gracias_cta_en')->label('Botón CTA (EN)')->placeholder('Back to home'),
                                 TextInput::make('gracias_cta_pt')->label('Botón CTA (PT)')->placeholder('Voltar ao início'),
                             ]),
+
+                        // ── Sección 3: Más Visitados ────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Sección "Más Visitados" (Destinos)')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_destinos_eyebrow_es')->label('Eyebrow (ES)')->placeholder('MÁS VISITADOS'),
+                                TextInput::make('home_sec_destinos_eyebrow_en')->label('Eyebrow (EN)')->placeholder('MOST VISITED'),
+                                TextInput::make('home_sec_destinos_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('MAIS VISITADOS'),
+                                TextInput::make('home_sec_destinos_title_es')->label('Título (ES)')->placeholder('Descubre las Ciudades<br>más Visitadas del Perú')->columnSpanFull(),
+                                TextInput::make('home_sec_destinos_title_en')->label('Título (EN)')->placeholder('Discover the Most Visited Cities of Peru')->columnSpanFull(),
+                                TextInput::make('home_sec_destinos_title_pt')->label('Título (PT)')->placeholder('Descubra as Cidades mais Visitadas do Peru')->columnSpanFull(),
+                                TextInput::make('home_destinos_footer_es')->label('Cierre sección (ES)')->placeholder('Experiencias auténticas, memorias inolvidables. Viaja con')->columnSpanFull(),
+                                TextInput::make('home_destinos_footer_en')->label('Cierre sección (EN)')->placeholder('Authentic experiences, unforgettable memories. Travel with')->columnSpanFull(),
+                                TextInput::make('home_destinos_footer_pt')->label('Cierre sección (PT)')->placeholder('Experiências autênticas, memórias inesquecíveis. Viaje com')->columnSpanFull(),
+                            ]),
+
+                        // ── Repeater: Destinos ──────────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Destinos (cards con imagen)')
+                            ->collapsible()->collapsed()
+                            ->schema([
+                                Repeater::make('home_destinos')
+                                    ->label('Destinos')
+                                    ->helperText('Dejar vacío para usar los destinos por defecto (Cusco, Lima, Ica).')
+                                    ->schema([
+                                        TextInput::make('title_es')->label('Título (ES)')->required(),
+                                        TextInput::make('title_en')->label('Título (EN)'),
+                                        TextInput::make('title_pt')->label('Título (PT)'),
+                                        TextInput::make('badge_es')->label('Badge (ES)'),
+                                        TextInput::make('badge_en')->label('Badge (EN)'),
+                                        TextInput::make('badge_pt')->label('Badge (PT)'),
+                                        Textarea::make('desc_es')->label('Descripción (ES)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_en')->label('Descripción (EN)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_pt')->label('Descripción (PT)')->rows(2)->columnSpanFull(),
+                                        TextInput::make('img')->label('Nombre imagen (assets/banners/)')->placeholder('Rectangle 19218.jpg')->columnSpanFull(),
+                                    ])
+                                    ->columns(3)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => $state['title_es'] ?? null)
+                                    ->addActionLabel('+ Agregar destino')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        // ── Sección 4: Por qué elegirnos ─────────────────────────────
+                        \Filament\Forms\Components\Section::make('Sección "¿Por qué elegirnos?"')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_why_eyebrow_es')->label('Eyebrow (ES)')->placeholder('VIAJA CON CONFIANZA'),
+                                TextInput::make('home_sec_why_eyebrow_en')->label('Eyebrow (EN)')->placeholder('TRAVEL WITH CONFIDENCE'),
+                                TextInput::make('home_sec_why_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('VIAJE COM CONFIANÇA'),
+                                TextInput::make('home_sec_why_title_es')->label('Título (ES)')->placeholder('¿Por qué elegir<br>Lima View Tours?')->columnSpanFull(),
+                                TextInput::make('home_sec_why_title_en')->label('Título (EN)')->placeholder('Why choose<br>Lima View Tours?')->columnSpanFull(),
+                                TextInput::make('home_sec_why_title_pt')->label('Título (PT)')->placeholder('Por que escolher<br>Lima View Tours?')->columnSpanFull(),
+                                TextInput::make('home_sec_why_subtitle_es')->label('Subtítulo (ES)')->placeholder('Más que un tour, te ofrecemos<br>experiencias inolvidables.')->columnSpanFull(),
+                                TextInput::make('home_sec_why_subtitle_en')->label('Subtítulo (EN)')->placeholder('More than a tour, we offer you<br>unforgettable experiences.')->columnSpanFull(),
+                                TextInput::make('home_sec_why_subtitle_pt')->label('Subtítulo (PT)')->placeholder('Mais que um tour, oferecemos<br>experiências inesquecíveis.')->columnSpanFull(),
+                                TextInput::make('home_trust_banner_es')->label('Banner confianza (ES)')->placeholder('Reserva fácil, segura y<br><strong class="font-bold text-orange-500">100% garantizada</strong>')->columnSpanFull(),
+                                TextInput::make('home_trust_banner_en')->label('Banner confianza (EN)')->placeholder('Easy, secure and<br><strong class="font-bold text-orange-500">100% guaranteed</strong> booking')->columnSpanFull(),
+                                TextInput::make('home_trust_banner_pt')->label('Banner confianza (PT)')->placeholder('Reserva fácil, segura e<br><strong class="font-bold text-orange-500">100% garantida</strong>')->columnSpanFull(),
+                            ]),
+
+                        // ── Repeater: ¿Por qué elegirnos? items ─────────────────────
+                        \Filament\Forms\Components\Section::make('Razones "¿Por qué elegirnos?" (lista)')
+                            ->collapsible()->collapsed()
+                            ->schema([
+                                Repeater::make('home_why_items')
+                                    ->label('Razones')
+                                    ->helperText('Dejar vacío para usar las 5 razones por defecto.')
+                                    ->schema([
+                                        TextInput::make('title_es')->label('Título (ES)')->required(),
+                                        TextInput::make('title_en')->label('Título (EN)'),
+                                        TextInput::make('title_pt')->label('Título (PT)'),
+                                        Textarea::make('desc_es')->label('Descripción (ES)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_en')->label('Descripción (EN)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_pt')->label('Descripción (PT)')->rows(2)->columnSpanFull(),
+                                    ])
+                                    ->columns(3)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => $state['title_es'] ?? null)
+                                    ->addActionLabel('+ Agregar razón')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        // ── Sección 5: ¿Qué tipo de tour? ────────────────────────────
+                        \Filament\Forms\Components\Section::make('Sección "¿Qué tipo de tour estás buscando?"')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_types_eyebrow_es')->label('Eyebrow (ES)')->placeholder('ESTANCIAS'),
+                                TextInput::make('home_sec_types_eyebrow_en')->label('Eyebrow (EN)')->placeholder('STAYS'),
+                                TextInput::make('home_sec_types_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('ESTADAS'),
+                                TextInput::make('home_sec_types_title_es')->label('Título (ES)')->placeholder('¿Qué tipo de tour estás buscando?')->columnSpanFull(),
+                                TextInput::make('home_sec_types_title_en')->label('Título (EN)')->placeholder('What type of tour are you looking for?')->columnSpanFull(),
+                                TextInput::make('home_sec_types_title_pt')->label('Título (PT)')->placeholder('Que tipo de tour você está procurando?')->columnSpanFull(),
+                            ]),
+
+                        // ── Repeater: Tour Type Tabs ─────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Tabs de tipo de tour')
+                            ->collapsible()->collapsed()
+                            ->schema([
+                                Repeater::make('home_tour_type_tabs')
+                                    ->label('Tipos de tour')
+                                    ->helperText('Dejar vacío para usar los 4 tipos por defecto. El campo "id" debe ser único (cult, adv, cul, oth).')
+                                    ->schema([
+                                        TextInput::make('id')->label('ID (único, sin espacios)')->placeholder('cult')->required(),
+                                        TextInput::make('label_es')->label('Label tab (ES)')->required(),
+                                        TextInput::make('label_en')->label('Label tab (EN)'),
+                                        TextInput::make('label_pt')->label('Label tab (PT)'),
+                                        TextInput::make('title_es')->label('Título panel (ES)'),
+                                        TextInput::make('title_en')->label('Título panel (EN)'),
+                                        TextInput::make('title_pt')->label('Título panel (PT)'),
+                                        TextInput::make('img')->label('Nombre imagen (assets/banners/)')->placeholder('Rectangle 19215.jpg'),
+                                        TextInput::make('eyebrow_es')->label('Eyebrow (ES)'),
+                                        TextInput::make('eyebrow_en')->label('Eyebrow (EN)'),
+                                        TextInput::make('eyebrow_pt')->label('Eyebrow (PT)'),
+                                        Textarea::make('desc_es')->label('Descripción (ES)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_en')->label('Descripción (EN)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_pt')->label('Descripción (PT)')->rows(2)->columnSpanFull(),
+                                        TextInput::make('price')->label('Precio desde (USD)')->numeric(),
+                                    ])
+                                    ->columns(3)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => ($state['label_es'] ?? null))
+                                    ->addActionLabel('+ Agregar tipo')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        // ── Repeater: Footer features ────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Features del footer de sección "¿Qué tipo de tour?"')
+                            ->collapsible()->collapsed()
+                            ->schema([
+                                Repeater::make('home_footer_features')
+                                    ->label('Features (4 íconos en fila)')
+                                    ->helperText('Dejar vacío para usar los 4 features por defecto.')
+                                    ->schema([
+                                        TextInput::make('label_es')->label('Etiqueta (ES)')->required(),
+                                        TextInput::make('label_en')->label('Etiqueta (EN)'),
+                                        TextInput::make('label_pt')->label('Etiqueta (PT)'),
+                                    ])
+                                    ->columns(3)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => $state['label_es'] ?? null)
+                                    ->addActionLabel('+ Agregar feature')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        // ── Sección 6: Experiencias ───────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Sección "Descubre experiencias únicas"')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_exp_eyebrow_es')->label('Eyebrow (ES)')->placeholder('EXPERIENCIAS'),
+                                TextInput::make('home_sec_exp_eyebrow_en')->label('Eyebrow (EN)')->placeholder('EXPERIENCES'),
+                                TextInput::make('home_sec_exp_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('EXPERIÊNCIAS'),
+                                TextInput::make('home_sec_exp_title_es')->label('Título (ES)')->placeholder('Descubre experiencias únicas')->columnSpanFull(),
+                                TextInput::make('home_sec_exp_title_en')->label('Título (EN)')->placeholder('Discover unique experiences')->columnSpanFull(),
+                                TextInput::make('home_sec_exp_title_pt')->label('Título (PT)')->placeholder('Descubra experiências únicas')->columnSpanFull(),
+                                TextInput::make('home_swipe_hint_es')->label('Hint deslizar (ES)')->placeholder('Desliza para ver más tours')->columnSpanFull(),
+                                TextInput::make('home_swipe_hint_en')->label('Hint deslizar (EN)')->placeholder('Swipe to see more tours')->columnSpanFull(),
+                                TextInput::make('home_swipe_hint_pt')->label('Hint deslizar (PT)')->placeholder('Deslize para ver mais tours')->columnSpanFull(),
+                                TextInput::make('home_swipe_sub_es')->label('Subtexto hint (ES)')->placeholder('Descubre nuestras mejores experiencias')->columnSpanFull(),
+                                TextInput::make('home_swipe_sub_en')->label('Subtexto hint (EN)')->placeholder('Discover our best experiences')->columnSpanFull(),
+                                TextInput::make('home_swipe_sub_pt')->label('Subtexto hint (PT)')->placeholder('Descubra nossas melhores experiências')->columnSpanFull(),
+                            ]),
+
+                        // ── Repeater: Experiencias únicas ────────────────────────────
+                        \Filament\Forms\Components\Section::make('Cards de "Experiencias únicas"')
+                            ->collapsible()->collapsed()
+                            ->schema([
+                                Repeater::make('home_exp_tours')
+                                    ->label('Experiencias')
+                                    ->helperText('Dejar vacío para usar las 4 tarjetas por defecto.')
+                                    ->schema([
+                                        TextInput::make('title_es')->label('Título (ES)')->required(),
+                                        TextInput::make('title_en')->label('Título (EN)'),
+                                        TextInput::make('title_pt')->label('Título (PT)'),
+                                        TextInput::make('badge_es')->label('Badge (ES)'),
+                                        TextInput::make('badge_en')->label('Badge (EN)'),
+                                        TextInput::make('badge_pt')->label('Badge (PT)'),
+                                        TextInput::make('img')->label('Nombre imagen (assets/banners/)')->placeholder('Rectangle 19216.jpg'),
+                                        TextInput::make('badgeBg')->label('Color badge (teal-800 / orange-500)')->placeholder('teal-800'),
+                                        TextInput::make('slug')->label('Slug del tour'),
+                                    ])
+                                    ->columns(3)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => $state['title_es'] ?? null)
+                                    ->addActionLabel('+ Agregar experiencia')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        // ── Sección 6B: Opiniones ─────────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Sección "Opiniones de viajeros"')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_reviews_eyebrow_es')->label('Eyebrow (ES)')->placeholder('OPINIONES REALES'),
+                                TextInput::make('home_sec_reviews_eyebrow_en')->label('Eyebrow (EN)')->placeholder('REAL REVIEWS'),
+                                TextInput::make('home_sec_reviews_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('OPINIÕES REAIS'),
+                                TextInput::make('home_sec_reviews_title_es')->label('Título (ES)')->placeholder('Lo que dicen nuestros viajeros')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_title_en')->label('Título (EN)')->placeholder('What our travelers say')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_title_pt')->label('Título (PT)')->placeholder('O que dizem nossos viajantes')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_subtitle_es')->label('Subtítulo (ES)')->placeholder('Miles de viajeros han vivido el Perú con nosotros.')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_subtitle_en')->label('Subtítulo (EN)')->placeholder('Thousands of travelers have experienced Peru with us.')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_subtitle_pt')->label('Subtítulo (PT)')->placeholder('Milhares de viajantes viveram o Peru conosco.')->columnSpanFull(),
+                            ]),
+
+                        // ── Sección 7: FAQs ──────────────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Sección "Preguntas frecuentes" (home)')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_faq_title_es')->label('Título (ES)')->placeholder('Preguntas frecuentes')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_title_en')->label('Título (EN)')->placeholder('Frequently asked questions')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_title_pt')->label('Título (PT)')->placeholder('Perguntas frequentes')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_subtitle_es')->label('Subtítulo (ES)')->placeholder('Resolvemos las dudas más comunes...')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_subtitle_en')->label('Subtítulo (EN)')->placeholder('We resolve the most common doubts...')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_subtitle_pt')->label('Subtítulo (PT)')->placeholder('Resolvemos as dúvidas mais comuns...')->columnSpanFull(),
+                            ]),
+
+                        // ── Repeater: FAQs home ──────────────────────────────────────
+                        \Filament\Forms\Components\Section::make('FAQs del acordeón (home) — separadas del AEO')
+                            ->collapsible()->collapsed()
+                            ->schema([
+                                Repeater::make('home_faqs')
+                                    ->label('Preguntas frecuentes (home)')
+                                    ->helperText('Estas FAQs son para el acordeón visual de la home. Son DISTINTAS a las FAQs del tab AEO/FAQ (schema estructurado). Dejar vacío para usar las 6 preguntas por defecto.')
+                                    ->schema([
+                                        TextInput::make('q_es')->label('Pregunta (ES)')->required()->columnSpanFull(),
+                                        TextInput::make('q_en')->label('Pregunta (EN)')->columnSpanFull(),
+                                        TextInput::make('q_pt')->label('Pregunta (PT)')->columnSpanFull(),
+                                        Textarea::make('a_es')->label('Respuesta (ES)')->rows(2)->required()->columnSpanFull(),
+                                        Textarea::make('a_en')->label('Respuesta (EN)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('a_pt')->label('Respuesta (PT)')->rows(2)->columnSpanFull(),
+                                    ])
+                                    ->columns(1)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => $state['q_es'] ?? null)
+                                    ->addActionLabel('+ Agregar pregunta')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        // ── Sección 8: Verificado y Recomendado ──────────────────────
+                        \Filament\Forms\Components\Section::make('Sección "Verificado y Recomendado"')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_reco_eyebrow_es')->label('Eyebrow pill (ES)')->placeholder('VERIFICADO Y RECOMENDADO POR')->columnSpanFull(),
+                                TextInput::make('home_sec_reco_eyebrow_en')->label('Eyebrow pill (EN)')->placeholder('VERIFIED AND RECOMMENDED BY')->columnSpanFull(),
+                                TextInput::make('home_sec_reco_eyebrow_pt')->label('Eyebrow pill (PT)')->placeholder('VERIFICADO E RECOMENDADO POR')->columnSpanFull(),
+                                TextInput::make('home_reco_intro_es')->label('Intro "Estamos recomendados por" (ES)')->columnSpanFull(),
+                                TextInput::make('home_reco_intro_en')->label('Intro "Estamos recomendados por" (EN)')->columnSpanFull(),
+                                TextInput::make('home_reco_intro_pt')->label('Intro "Estamos recomendados por" (PT)')->columnSpanFull(),
+                                TextInput::make('home_reco_headline_es')->label('Headline (ES)')->placeholder('Best Tours in Lima')->columnSpanFull(),
+                                TextInput::make('home_reco_headline_en')->label('Headline (EN)')->placeholder('Best Tours in Lima')->columnSpanFull(),
+                                TextInput::make('home_reco_headline_pt')->label('Headline (PT)')->placeholder('Best Tours in Lima')->columnSpanFull(),
+                                Textarea::make('home_reco_body_es')->rows(2)->label('Cuerpo (ES)')->placeholder('Una de las mejores empresas...')->columnSpanFull(),
+                                Textarea::make('home_reco_body_en')->rows(2)->label('Cuerpo (EN)')->columnSpanFull(),
+                                Textarea::make('home_reco_body_pt')->rows(2)->label('Cuerpo (PT)')->columnSpanFull(),
+                                TextInput::make('home_reco_award_title_es')->label('Premio título (ES)')->placeholder('GANAMOS EL PREMIO<br>DE VERIFICACIÓN')->columnSpanFull(),
+                                TextInput::make('home_reco_award_title_en')->label('Premio título (EN)')->columnSpanFull(),
+                                TextInput::make('home_reco_award_title_pt')->label('Premio título (PT)')->columnSpanFull(),
+                                Textarea::make('home_reco_award_desc_es')->rows(2)->label('Premio descripción (ES)')->placeholder('para los mejores tours...')->columnSpanFull(),
+                                Textarea::make('home_reco_award_desc_en')->rows(2)->label('Premio descripción (EN)')->columnSpanFull(),
+                                Textarea::make('home_reco_award_desc_pt')->rows(2)->label('Premio descripción (PT)')->columnSpanFull(),
+                                TextInput::make('home_sec_why_reco_title_es')->label('H3 "¿Por qué somos recomendados?" (ES)')->placeholder('¿Por qué somos recomendados?')->columnSpanFull(),
+                                TextInput::make('home_sec_why_reco_title_en')->label('H3 "¿Por qué somos recomendados?" (EN)')->columnSpanFull(),
+                                TextInput::make('home_sec_why_reco_title_pt')->label('H3 "¿Por qué somos recomendados?" (PT)')->columnSpanFull(),
+                                TextInput::make('home_sec_verified_in_es')->label('H3 "Recomendado y verificado en" (ES)')->placeholder('Recomendado y verificado en')->columnSpanFull(),
+                                TextInput::make('home_sec_verified_in_en')->label('H3 "Recomendado y verificado en" (EN)')->columnSpanFull(),
+                                TextInput::make('home_sec_verified_in_pt')->label('H3 "Recomendado y verificado en" (PT)')->columnSpanFull(),
+                                Textarea::make('home_reviews_footer_es')->rows(2)->label('Footer reseñas (ES)')->placeholder('Miles de reseñas verificadas...')->columnSpanFull(),
+                                Textarea::make('home_reviews_footer_en')->rows(2)->label('Footer reseñas (EN)')->columnSpanFull(),
+                                Textarea::make('home_reviews_footer_pt')->rows(2)->label('Footer reseñas (PT)')->columnSpanFull(),
+                            ]),
+
+                        // ── Repeater: ¿Por qué somos recomendados? ──────────────────
+                        \Filament\Forms\Components\Section::make('Cards "¿Por qué somos recomendados?"')
+                            ->collapsible()->collapsed()
+                            ->schema([
+                                Repeater::make('home_reco_items')
+                                    ->label('Razones de recomendación')
+                                    ->helperText('Dejar vacío para usar las 4 razones por defecto.')
+                                    ->schema([
+                                        TextInput::make('title_es')->label('Título (ES)')->required(),
+                                        TextInput::make('title_en')->label('Título (EN)'),
+                                        TextInput::make('title_pt')->label('Título (PT)'),
+                                        Textarea::make('desc_es')->label('Descripción (ES)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_en')->label('Descripción (EN)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_pt')->label('Descripción (PT)')->rows(2)->columnSpanFull(),
+                                        Select::make('icon')
+                                            ->label('Icono')
+                                            ->options(['shield'=>'Escudo (shield)','star'=>'Estrella (star)','headset'=>'Auriculares (headset)','medal'=>'Medalla (medal)'])
+                                            ->native(false),
+                                    ])
+                                    ->columns(3)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => $state['title_es'] ?? null)
+                                    ->addActionLabel('+ Agregar razón')
+                                    ->columnSpanFull(),
+                            ]),
                     ]),
                     Tabs\Tab::make('GEO')->icon('heroicon-o-map-pin')->schema([
                         TextInput::make('geo_business_name')
@@ -453,8 +768,10 @@ class Settings extends Page implements HasForms
     public function save(): void
     {
         foreach ($this->data as $key => $value) {
-            // Serialize FAQs repeater as JSON string
-            if ($key === 'faqs') {
+            // Serialize Repeater fields as JSON string
+            $jsonRepeaterKeys = ['faqs','home_destinos','home_why_items','home_tour_type_tabs',
+                                 'home_footer_features','home_exp_tours','home_reco_items','home_faqs'];
+            if (in_array($key, $jsonRepeaterKeys, true)) {
                 Setting::set($key, json_encode(is_array($value) ? $value : []));
                 continue;
             }
