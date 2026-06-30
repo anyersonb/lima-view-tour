@@ -41,32 +41,6 @@ class Maintenance extends Page
                         ->send();
                 }),
 
-            // TEMPORAL: ejecutar seeders de traducción (home + contenido BD). Quitar tras correr.
-            Action::make('run_translations')
-                ->label('Traducir contenido (EN/PT)')
-                ->icon('heroicon-o-language')
-                ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading('Ejecutar traducciones')
-                ->modalDescription('Rellena los valores EN y PT del contenido (home y BD) traducidos del español.')
-                ->modalSubmitActionLabel('Sí, traducir')
-                ->action(function () {
-                    $out = [];
-                    foreach (['TranslateHomeContentSeeder', 'TranslateContentSeeder'] as $cls) {
-                        if (class_exists('Database\\Seeders\\' . $cls)) {
-                            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => $cls, '--force' => true]);
-                            $out[] = $cls . ': ' . trim(\Illuminate\Support\Facades\Artisan::output());
-                        }
-                    }
-                    \Illuminate\Support\Facades\Artisan::call('cache:clear');
-
-                    Notification::make()
-                        ->title('Traducciones ejecutadas')
-                        ->body(implode(' | ', $out) ?: 'No se encontraron seeders.')
-                        ->success()
-                        ->send();
-                }),
-
             Action::make('optimize')
                 ->label('Optimizar (producción)')
                 ->icon('heroicon-o-bolt')
