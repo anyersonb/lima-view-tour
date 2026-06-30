@@ -7,8 +7,8 @@
     $openStep = session('open_step', 'reservas'); // 'reservas'|'datos'|'pago'
 @endphp
 
-@section('title', 'Carrito de compra — ' . __('seo.site_name'))
-@section('description', 'Confirma tus reservas y procede al pago seguro. Lima View Tours.')
+@section('title', __('ui.cart_title') . ' — ' . __('seo.site_name'))
+@section('description', __('ui.cart_subtitle'))
 
 @push('head')
 <meta name="robots" content="noindex,nofollow">
@@ -683,13 +683,13 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     </div>
     <div class="container mx-auto px-5 lg:px-10">
         <nav aria-label="Breadcrumb" class="pt-6 text-xs text-white/80">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">Inicio</a> &rsaquo; <span>Carrito de compra</span>
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">{{ __('ui.home') }}</a> &rsaquo; <span>{{ __('ui.cart_title') }}</span>
         </nav>
     </div>
     <div class="container mx-auto px-5 lg:px-10 py-14 md:py-18 text-center">
-        <h1 class="font-display text-3xl md:text-4xl lg:text-5xl leading-tight">Carrito de compra</h1>
+        <h1 class="font-display text-3xl md:text-4xl lg:text-5xl leading-tight">{{ __('ui.cart_title') }}</h1>
         <p class="mt-3 mx-auto max-w-xl text-sm text-white/85">
-            Revisa tus reservas, ajusta pasajeros y procede al pago. Cancelación gratuita hasta 48 h antes.
+            {{ __('ui.cart_subtitle') }}
         </p>
     </div>
 </section>
@@ -710,7 +710,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         @endif
         @if ($errors->any() && !$errors->has('general'))
             <div class="cart-flash error mt-6" role="alert">
-                <strong>Por favor corrige los siguientes errores:</strong>
+                <strong>{{ __('ui.fix_errors') }}</strong>
                 <ul class="mt-1 list-disc list-inside">
                     @foreach ($errors->all() as $msg)
                         <li>{{ $msg }}</li>
@@ -720,18 +720,18 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         @endif
 
         {{-- Switcher Carrito / Reservas --}}
-        <div class="cart-switcher" role="tablist" aria-label="Vistas">
+        <div class="cart-switcher" role="tablist" aria-label="{{ __('ui.views_label') }}">
             <button class="cart-switch-btn active"
                     role="tab" aria-selected="true"
                     aria-controls="screen-carrito"
                     data-screen-btn="carrito">
-                Carrito
+                {{ __('ui.cart') }}
             </button>
             <button class="cart-switch-btn"
                     role="tab" aria-selected="false"
                     aria-controls="screen-reservas"
                     data-screen-btn="reservasGuardadas">
-                Ver mis reservas
+                {{ __('ui.view_my_bookings') }}
             </button>
         </div>
 
@@ -741,18 +741,18 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         <div id="screen-carrito" class="cart-screen active" data-screen="carrito" role="tabpanel">
 
             {{-- Stepper 1·2·3 --}}
-            <nav class="cart-segment" aria-label="Pasos del proceso de compra">
+            <nav class="cart-segment" aria-label="{{ __('ui.checkout_steps_label') }}">
                 <button class="cart-seg-btn active" data-step-btn="reservas" type="button" aria-current="step">
                     <div class="cart-seg-num">1</div>
-                    <span class="cart-seg-label">Reservas</span>
+                    <span class="cart-seg-label">{{ __('ui.step_bookings') }}</span>
                 </button>
                 <button class="cart-seg-btn" data-step-btn="datos" type="button">
                     <div class="cart-seg-num">2</div>
-                    <span class="cart-seg-label">Datos</span>
+                    <span class="cart-seg-label">{{ __('ui.step_data') }}</span>
                 </button>
                 <button class="cart-seg-btn" data-step-btn="pago" type="button">
                     <div class="cart-seg-num">3</div>
-                    <span class="cart-seg-label">Pago</span>
+                    <span class="cart-seg-label">{{ __('ui.step_payment') }}</span>
                 </button>
             </nav>
 
@@ -766,7 +766,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                     {{-- Columna principal --}}
                     <div>
                         <div class="cart-head">
-                            <h2>Tus reservas</h2>
+                            <h2>{{ __('ui.your_bookings') }}</h2>
                             <span class="cart-meta-link">
                                 <span data-cart-count>{{ $items->count() }}</span> tour{{ $items->count() !== 1 ? 's' : '' }}
                             </span>
@@ -777,27 +777,27 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 <div class="cart-empty-head">
                                     <div class="cart-empty-icon" aria-hidden="true">🛒</div>
                                     <div>
-                                        <h3>Tu carrito está vacío</h3>
-                                        <p>Aquí aparecerán los tours que agregues antes de completar tu reserva. Elige una experiencia y continúa en pocos pasos.</p>
+                                        <h3>{{ __('ui.cart_empty_title') }}</h3>
+                                        <p>{{ __('ui.cart_empty_desc') }}</p>
                                     </div>
                                 </div>
                                 <div class="cart-empty-pills" aria-hidden="true">
-                                    <span class="cart-empty-pill">Reserva rápida</span>
-                                    <span class="cart-empty-pill">Pago seguro</span>
-                                    <span class="cart-empty-pill">Confirmación inmediata</span>
+                                    <span class="cart-empty-pill">{{ __('ui.quick_booking') }}</span>
+                                    <span class="cart-empty-pill">{{ __('ui.secure_payment') }}</span>
+                                    <span class="cart-empty-pill">{{ __('ui.instant_confirmation') }}</span>
                                 </div>
                                 <div class="cart-empty-actions">
-                                    <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">Explorar tours</a>
-                                    <button type="button" class="cart-btn-outline" data-screen-btn="reservasGuardadas">Ver mis reservas</button>
+                                    <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">{{ __('ui.explore_tours') }}</a>
+                                    <button type="button" class="cart-btn-outline" data-screen-btn="reservasGuardadas">{{ __('ui.view_my_bookings') }}</button>
                                 </div>
                             </div>
 
                             <div class="cart-empty-note-card">
-                                <h4>¿Qué pasará cuando agregues un tour?</h4>
+                                <h4>{{ __('ui.cart_steps_title') }}</h4>
                                 <ul class="cart-empty-note-list">
-                                    <li><span aria-hidden="true">•</span><span><b>Paso 1:</b> verás tu tour, fecha, idioma y cantidad de pasajeros.</span></li>
-                                    <li><span aria-hidden="true">•</span><span><b>Paso 2:</b> completarás tus datos de contacto y hotel o Airbnb.</span></li>
-                                    <li><span aria-hidden="true">•</span><span><b>Paso 3:</b> revisarás el pago final y confirmarás tu reserva.</span></li>
+                                    <li><span aria-hidden="true">•</span><span><b>{{ __('ui.step_bookings') }} 1:</b> {{ __('ui.cart_step1_text') }}</span></li>
+                                    <li><span aria-hidden="true">•</span><span><b>{{ __('ui.step_data') }} 2:</b> {{ __('ui.cart_step2_text') }}</span></li>
+                                    <li><span aria-hidden="true">•</span><span><b>{{ __('ui.step_payment') }} 3:</b> {{ __('ui.cart_step3_text') }}</span></li>
                                 </ul>
                             </div>
 
@@ -827,11 +827,11 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                              data-children="{{ $item['children'] }}">
 
                                         <div class="cart-chip-row">
-                                            <div class="cart-chip">Tour agregado</div>
+                                            <div class="cart-chip">{{ __('ui.tour_added') }}</div>
                                             @if ($hasDiscount)
-                                                <div class="cart-chip promo">Oferta especial activa</div>
+                                                <div class="cart-chip promo">{{ __('ui.special_offer_active') }}</div>
                                             @else
-                                                <div class="cart-chip">Precio regular</div>
+                                                <div class="cart-chip">{{ __('ui.regular_price') }}</div>
                                             @endif
                                         </div>
 
@@ -855,42 +855,42 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                         · <span data-children-label>{{ $item['children'] }}</span> niño{{ $item['children'] !== 1 ? 's' : '' }}
                                                     @endif
                                                 </div>
-                                                <div class="cart-sub">{{ $hasDiscount ? 'Reserva con descuento promocional' : 'Precio regular sin descuento' }}</div>
+                                                <div class="cart-sub">{{ $hasDiscount ? __('ui.booking_with_discount') : __('ui.regular_price_no_discount') }}</div>
                                             </div>
 
                                             <div class="cart-price-box">
                                                 @if ($hasDiscount)
-                                                    <div class="cart-price-tag">Antes</div>
+                                                    <div class="cart-price-tag">{{ __('ui.price_before') }}</div>
                                                     <div class="cart-price-before" data-item-before>US${{ number_format($beforeTotal, 0) }}</div>
-                                                    <div class="cart-price-tag">Ahora</div>
+                                                    <div class="cart-price-tag">{{ __('ui.price_now') }}</div>
                                                     <div class="cart-price-now" data-item-now>US${{ number_format($item['subtotal'], 0) }}</div>
-                                                    <div class="cart-price-saved" data-item-saved>Ahorro US${{ number_format($savedTotal, 0) }}</div>
+                                                    <div class="cart-price-saved" data-item-saved>{{ __('ui.saving') }} US${{ number_format($savedTotal, 0) }}</div>
                                                 @else
-                                                    <div class="cart-price-tag">Precio regular</div>
+                                                    <div class="cart-price-tag">{{ __('ui.regular_price') }}</div>
                                                     <div class="cart-price-regular" data-item-regular>US${{ number_format($item['subtotal'], 0) }}</div>
                                                 @endif
                                                 <button type="button"
                                                         class="cart-remove-btn"
                                                         data-remove-btn
-                                                        aria-label="Eliminar {{ $item['title_snapshot'] }}">
-                                                    Eliminar
+                                                        aria-label="{{ __('ui.remove') }} {{ $item['title_snapshot'] }}">
+                                                    {{ __('ui.remove') }}
                                                 </button>
                                             </div>
                                         </div>
 
                                         <div class="cart-tour-grid">
                                             <div class="cart-field-box">
-                                                <label for="date-{{ $item['row_id'] }}">Fecha del tour</label>
+                                                <label for="date-{{ $item['row_id'] }}">{{ __('ui.tour_date') }}</label>
                                                 <input type="date"
                                                        id="date-{{ $item['row_id'] }}"
                                                        class="cart-mini-input"
                                                        value="{{ $item['travel_date'] }}"
                                                        data-date-input
                                                        readonly
-                                                       title="Para cambiar la fecha elimina el tour y agrégalo de nuevo">
+                                                       title="{{ __('ui.tour_date') }}">
                                             </div>
                                             <div class="cart-field-box">
-                                                <label for="lang-{{ $item['row_id'] }}">Idioma del tour</label>
+                                                <label for="lang-{{ $item['row_id'] }}">{{ __('ui.tour_language_label') }}</label>
                                                 <select id="lang-{{ $item['row_id'] }}"
                                                         class="cart-mini-select"
                                                         data-lang-select>
@@ -903,32 +903,32 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
                                         <div class="cart-pax-shell">
                                             <div class="cart-pax-head">
-                                                <strong>Pasajeros</strong>
-                                                <span>Adultos y niños pagan igual</span>
+                                                <strong>{{ __('ui.passengers') }}</strong>
+                                                <span>{{ __('ui.adults_children_same_price') }}</span>
                                             </div>
                                             <div class="cart-pax-grid">
                                                 <div class="cart-pax-card">
-                                                    <label>Adultos</label>
+                                                    <label>{{ __('ui.adults') }}</label>
                                                     <div class="cart-qty-control">
                                                         <button type="button" class="cart-qty-btn"
                                                                 data-qty-btn="minus" data-target="adults"
-                                                                aria-label="Quitar un adulto">−</button>
+                                                                aria-label="{{ __('ui.remove_adult') }}">−</button>
                                                         <span class="cart-qty-value" data-adults-value>{{ $item['adults'] }}</span>
                                                         <button type="button" class="cart-qty-btn"
                                                                 data-qty-btn="plus" data-target="adults"
-                                                                aria-label="Agregar un adulto">+</button>
+                                                                aria-label="{{ __('ui.add_adult') }}">+</button>
                                                     </div>
                                                 </div>
                                                 <div class="cart-pax-card">
-                                                    <label>Niños</label>
+                                                    <label>{{ __('ui.children') }}</label>
                                                     <div class="cart-qty-control">
                                                         <button type="button" class="cart-qty-btn"
                                                                 data-qty-btn="minus" data-target="children"
-                                                                aria-label="Quitar un niño">−</button>
+                                                                aria-label="{{ __('ui.remove_child') }}">−</button>
                                                         <span class="cart-qty-value" data-children-value>{{ $item['children'] }}</span>
                                                         <button type="button" class="cart-qty-btn"
                                                                 data-qty-btn="plus" data-target="children"
-                                                                aria-label="Agregar un niño">+</button>
+                                                                aria-label="{{ __('ui.add_child') }}">+</button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -942,9 +942,9 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <div class="cart-coupon-card mt-4">
                                 <p class="cart-coupon-text">
                                     @if ($couponCode)
-                                        Cupón <strong>{{ $couponCode }}</strong> aplicado correctamente.
+                                        {{ __('ui.coupon_applied_message', ['code' => $couponCode]) }}
                                     @else
-                                        ¿Tienes un cupón de descuento? Aplícalo aquí.
+                                        {{ __('ui.coupon_prompt') }}
                                     @endif
                                 </p>
                                 <form method="POST"
@@ -953,18 +953,18 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     @csrf
                                     <input type="text"
                                            name="code"
-                                           placeholder="Código de cupón"
+                                           placeholder="{{ __('checkout.coupon_code') }}"
                                            value="{{ $couponCode ?? '' }}"
                                            class="cart-coupon-input"
-                                           aria-label="Código de cupón">
-                                    <button type="submit" class="cart-coupon-submit">Aplicar</button>
+                                           aria-label="{{ __('checkout.coupon_code') }}">
+                                    <button type="submit" class="cart-coupon-submit">{{ __('checkout.apply_coupon') }}</button>
                                 </form>
                             </div>
 
                             <div class="flex items-center justify-between mt-4">
                                 <a href="{{ route('tours.index', ['locale' => $locale]) }}"
                                    class="text-sm font-semibold text-teal-700 hover:text-orange-500 transition">
-                                    &lsaquo; Seguir explorando
+                                    &lsaquo; {{ __('ui.keep_exploring') }}
                                 </a>
                                 <form method="POST" action="{{ route('cart.clear', ['locale' => $locale]) }}">
                                     @csrf
@@ -972,7 +972,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     <button type="submit"
                                             class="text-xs text-teal-800/50 hover:text-state-error underline"
                                             onclick="return confirm('¿Vaciar el carrito?')">
-                                        Vaciar carrito
+                                        {{ __('ui.clear_cart') }}
                                     </button>
                                 </form>
                             </div>
@@ -982,8 +982,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                         {{-- Venta cruzada --}}
                         @if ($related->isNotEmpty())
                             <div class="cart-section-title-card">
-                                <h3>Agregar más tours</h3>
-                                <span>Recomendados</span>
+                                <h3>{{ __('ui.add_more_tours') }}</h3>
+                                <span>{{ __('ui.recommended') }}</span>
                             </div>
                             <div class="cart-more-tours {{ $items->isEmpty() ? 'compact' : '' }}">
                                 @foreach ($related as $relTour)
@@ -1000,7 +1000,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                             <div class="mt-auto">
                                                 <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $relTour->slug]) }}"
                                                    class="cart-add-btn" data-add-tour>
-                                                    Agregar tour
+                                                    {{ __('ui.add_tour') }}
                                                 </a>
                                             </div>
                                         </div>
@@ -1013,8 +1013,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
                     {{-- Aside resumen (desktop, solo con items) --}}
                     @if ($items->isNotEmpty())
-                        <aside class="cart-aside hidden lg:block lg:sticky lg:top-24 mt-6 lg:mt-0" aria-label="Resumen del pedido">
-                            <h3>Resumen</h3>
+                        <aside class="cart-aside hidden lg:block lg:sticky lg:top-24 mt-6 lg:mt-0" aria-label="{{ __('checkout.order_summary') }}">
+                            <h3>{{ __('checkout.order_summary') }}</h3>
                             <div class="cart-aside-list" id="aside-list">
                                 @foreach ($items as $item)
                                     <div class="cart-aside-item"
@@ -1025,7 +1025,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                          data-children="{{ $item['children'] }}">
                                         <div class="cart-aside-item-name">
                                             {{ \Illuminate\Support\Str::limit($item['title_snapshot'], 38) }}
-                                            <span class="cart-aside-item-sub" data-aside-pax>x {{ $item['quantity'] }} personas</span>
+                                            <span class="cart-aside-item-sub" data-aside-pax>x {{ $item['quantity'] }} {{ __('ui.persons') }}</span>
                                         </div>
                                         <span class="cart-aside-item-price" data-aside-price>US${{ number_format($item['subtotal'], 0) }}</span>
                                     </div>
@@ -1045,43 +1045,43 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <dl class="cart-aside-dl">
                                 @if ($asPromo > 0)
                                     <div class="cart-aside-row">
-                                        <dt class="cart-aside-label">Precio regular</dt>
+                                        <dt class="cart-aside-label">{{ __('ui.regular_price') }}</dt>
                                         <dd class="cart-aside-value" data-aside-before><s>US${{ number_format($asBefore, 0) }}</s></dd>
                                     </div>
                                     <div class="cart-aside-row">
-                                        <dt class="cart-aside-label">Descuento promocional</dt>
+                                        <dt class="cart-aside-label">{{ __('ui.promo_discount') }}</dt>
                                         <dd class="cart-aside-value ok" data-aside-promo>−US${{ number_format($asPromo, 0) }}</dd>
                                     </div>
                                 @endif
                                 <div class="cart-aside-row">
-                                    <dt class="cart-aside-label">Subtotal ({{ $items->count() }} {{ $items->count() === 1 ? 'tour' : 'tours' }})</dt>
+                                    <dt class="cart-aside-label">{{ __('checkout.subtotal') }} ({{ $items->count() }} {{ $items->count() === 1 ? 'tour' : 'tours' }})</dt>
                                     <dd class="cart-aside-value" data-aside-subtotal>US${{ number_format($subtotal, 0) }}</dd>
                                 </div>
                                 @if ($discount > 0)
                                     <div class="cart-aside-row">
-                                        <dt class="cart-aside-label">Cupón{{ $couponCode ? ' (' . $couponCode . ')' : '' }}</dt>
+                                        <dt class="cart-aside-label">{{ __('checkout.coupon_code') }}{{ $couponCode ? ' (' . $couponCode . ')' : '' }}</dt>
                                         <dd class="cart-aside-value ok" data-aside-discount>−US${{ number_format($discount, 0) }}</dd>
                                     </div>
                                 @endif
                             </dl>
                             <div class="cart-aside-total">
-                                <span class="cart-aside-total-label">Total</span>
+                                <span class="cart-aside-total-label">{{ __('checkout.total') }}</span>
                                 <span>
                                     <span class="cart-aside-total-price" data-aside-total>US${{ number_format($total, 0) }}</span>
                                     <span class="cart-aside-total-usd">USD</span>
                                 </span>
                             </div>
                             <button type="button" class="cart-step-btn primary cart-aside-cta" data-step-next>
-                                Continuar a Datos y Pago <span aria-hidden="true">→</span>
+                                {{ __('ui.continue_to_data_payment') }} <span aria-hidden="true">→</span>
                             </button>
-                            <p class="cart-aside-cta-help">Revisarás tus datos y el pago antes de confirmar.</p>
+                            <p class="cart-aside-cta-help">{{ __('ui.checkout_help_text') }}</p>
                         </aside>
                     @endif
 
                 </div>{{-- /lg:grid --}}
                 @if ($items->isNotEmpty())
                     <div class="cart-step-nav">
-                        <button type="button" class="cart-step-btn primary nav-next" data-step-next>Continuar a Datos y Pago <span aria-hidden="true">→</span></button>
+                        <button type="button" class="cart-step-btn primary nav-next" data-step-next>{{ __('ui.continue_to_data_payment') }} <span aria-hidden="true">→</span></button>
                     </div>
                 @endif
             </div>{{-- /panel reservas --}}
@@ -1100,8 +1100,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                 {{-- ─── Panel 2 ─── --}}
                 <div class="cart-panel" data-step="datos">
                     <div class="cart-head">
-                        <h2>Datos de la reserva</h2>
-                        <span class="cart-meta-link">Obligatorio</span>
+                        <h2>{{ __('ui.booking_data_title') }}</h2>
+                        <span class="cart-meta-link">{{ __('ui.required') }}</span>
                     </div>
 
                     @if ($items->isEmpty())
@@ -1109,17 +1109,17 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <div class="cart-empty-head" style="margin-bottom:0">
                                 <div class="cart-empty-icon" aria-hidden="true">📝</div>
                                 <div>
-                                    <h3>Primero agrega un tour</h3>
-                                    <p>Cuando agregues al menos un tour al carrito, aquí podrás completar tus datos obligatorios de manera rápida y clara.</p>
+                                    <h3>{{ __('ui.add_tour_first') }}</h3>
+                                    <p>{{ __('ui.lock_datos_desc') }}</p>
                                 </div>
                             </div>
                             <div class="cart-lock-steps">
-                                <div class="cart-lock-step"><div class="cart-lock-step-num">1</div><div class="cart-lock-step-txt"><b>Elige una experiencia</b><br>Agrega el tour que más te interese desde la web.</div></div>
-                                <div class="cart-lock-step"><div class="cart-lock-step-num">2</div><div class="cart-lock-step-txt"><b>Completa tu información</b><br>Nombre, número, correo, hotel e idioma del tour.</div></div>
-                                <div class="cart-lock-step"><div class="cart-lock-step-num">3</div><div class="cart-lock-step-txt"><b>Confirma tu pago</b><br>Revisa el total final y recibe tu confirmación.</div></div>
+                                <div class="cart-lock-step"><div class="cart-lock-step-num">1</div><div class="cart-lock-step-txt"><b>{{ __('ui.lock_step1_title') }}</b><br>{{ __('ui.lock_step1_desc') }}</div></div>
+                                <div class="cart-lock-step"><div class="cart-lock-step-num">2</div><div class="cart-lock-step-txt"><b>{{ __('ui.lock_step2_title') }}</b><br>{{ __('ui.lock_step2_desc') }}</div></div>
+                                <div class="cart-lock-step"><div class="cart-lock-step-num">3</div><div class="cart-lock-step-txt"><b>{{ __('ui.lock_step3_title') }}</b><br>{{ __('ui.lock_step3_desc') }}</div></div>
                             </div>
                             <div class="cart-empty-actions">
-                                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">Explorar tours</a>
+                                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">{{ __('ui.explore_tours') }}</a>
                             </div>
                         </div>
                     @else
@@ -1128,7 +1128,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <div class="cart-form-grid">
 
                                 <div class="cart-field">
-                                    <label for="customer_name">Nombre completo <span class="req">*</span></label>
+                                    <label for="customer_name">{{ __('customer.name') }} <span class="req">*</span></label>
                                     <input type="text"
                                            id="customer_name"
                                            name="customer_name"
@@ -1141,9 +1141,9 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
                                 <div class="cart-two">
                                     <div class="cart-field">
-                                        <label for="phone_local">Número de teléfono <span class="req">*</span></label>
+                                        <label for="phone_local">{{ __('ui.phone_number') }} <span class="req">*</span></label>
                                         <div style="display:flex; gap:8px;">
-                                            <select id="phone_prefix" class="cart-real-select" style="max-width:128px; flex:0 0 auto;" aria-label="Código de país">
+                                            <select id="phone_prefix" class="cart-real-select" style="max-width:128px; flex:0 0 auto;" aria-label="{{ __('ui.country_code') }}">
                                                 <option value="+51" selected>🇵🇪 +51</option>
                                                 <option value="+1">🇺🇸 +1</option>
                                                 <option value="+1">🇨🇦 +1</option>
@@ -1176,7 +1176,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                         </script>
                                     </div>
                                     <div class="cart-field">
-                                        <label for="customer_email">Correo electrónico <span class="req">*</span></label>
+                                        <label for="customer_email">{{ __('customer.email') }} <span class="req">*</span></label>
                                         <input type="email"
                                                id="customer_email"
                                                name="customer_email"
@@ -1189,20 +1189,20 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 </div>
 
                                 <div class="cart-field">
-                                    <label for="pickup_point">Hotel o Airbnb de recojo <span class="text-teal-800/40 font-normal normal-case">(opcional)</span></label>
+                                    <label for="pickup_point">{{ __('ui.pickup_hotel_label') }} <span class="text-teal-800/40 font-normal normal-case">({{ __('ui.optional') }})</span></label>
                                     <input type="text"
                                            id="pickup_point"
                                            name="pickup_point"
                                            value="{{ old('pickup_point') }}"
-                                           placeholder="Nombre del hotel, dirección o referencia"
+                                           placeholder="{{ __('ui.pickup_placeholder') }}"
                                            class="cart-real-input @error('pickup_point') border-red-500 @enderror">
                                     <div class="cart-field-help">
-                                        Si aún no tienes hotel o Airbnb reservado, puedes continuar con la reserva. Luego nos escribes o nosotros te contactaremos para coordinar el recojo.
+                                        {{ __('ui.pickup_help') }}
                                     </div>
                                 </div>
 
                                 <div class="cart-field">
-                                    <label for="tour_language">Idioma del tour</label>
+                                    <label for="tour_language">{{ __('ui.tour_language_label') }}</label>
                                     <select id="tour_language" name="tour_language" class="cart-real-select">
                                         <option value="en" @selected(old('tour_language', 'en') === 'en')>English</option>
                                         <option value="es" @selected(old('tour_language') === 'es')>Español</option>
@@ -1210,7 +1210,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 </div>
 
                                 <div class="cart-field">
-                                    <label for="travel_date">Fecha de viaje</label>
+                                    <label for="travel_date">{{ __('checkout.travel_date') }}</label>
                                     <input type="date"
                                            id="travel_date"
                                            name="travel_date"
@@ -1219,14 +1219,14 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            readonly
                                            class="cart-real-input @error('travel_date') border-red-500 @enderror"
                                            style="background:#f1ece3; cursor:not-allowed;">
-                                    <div class="cart-field-help">Se toma automáticamente de la fecha que elegiste al reservar el tour.</div>
+                                    <div class="cart-field-help">{{ __('ui.travel_date_help') }}</div>
                                     @error('travel_date')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                 </div>
 
                                 <div class="cart-field">
-                                    <label for="notes">Requisitos o comentarios (opcional)</label>
+                                    <label for="notes">{{ __('ui.notes_label') }}</label>
                                     <textarea id="notes" name="notes" rows="3"
-                                              placeholder="Ej. aún no tengo hotel confirmado / prefiero que nos escriban un día antes / tengo un requerimiento especial…"
+                                              placeholder="{{ __('ui.notes_placeholder') }}"
                                               class="cart-real-input">{{ old('notes') }}</textarea>
                                 </div>
 
@@ -1234,8 +1234,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                         </div>
                     </div>
                     <div class="cart-step-nav">
-                        <button type="button" class="cart-step-btn" data-step-prev><span aria-hidden="true">←</span> Atrás</button>
-                        <button type="button" class="cart-step-btn primary nav-next" data-step-next>Continuar al pago <span aria-hidden="true">→</span></button>
+                        <button type="button" class="cart-step-btn" data-step-prev><span aria-hidden="true">←</span> {{ __('ui.back') }}</button>
+                        <button type="button" class="cart-step-btn primary nav-next" data-step-next>{{ __('ui.continue_to_payment') }} <span aria-hidden="true">→</span></button>
                     </div>
                     @endif
 
@@ -1244,7 +1244,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                 {{-- ─── Panel 3: PAGO ─── --}}
                 <div class="cart-panel" data-step="pago">
                     <div class="cart-head">
-                        <h2>Pago seguro</h2>
+                        <h2>{{ __('checkout.title') }}</h2>
                         <span class="cart-meta-link">USD</span>
                     </div>
 
@@ -1253,17 +1253,17 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <div class="cart-empty-head" style="margin-bottom:0">
                                 <div class="cart-empty-icon" aria-hidden="true">💳</div>
                                 <div>
-                                    <h3>Primero agrega un tour</h3>
-                                    <p>Cuando agregues un tour, aquí verás el resumen del pago, descuentos aplicados y el total final antes de confirmar.</p>
+                                    <h3>{{ __('ui.add_tour_first') }}</h3>
+                                    <p>{{ __('ui.lock_pago_desc') }}</p>
                                 </div>
                             </div>
                             <div class="cart-lock-steps">
-                                <div class="cart-lock-step"><div class="cart-lock-step-num">1</div><div class="cart-lock-step-txt"><b>Elige una experiencia</b><br>Agrega el tour que más te interese desde la web.</div></div>
-                                <div class="cart-lock-step"><div class="cart-lock-step-num">2</div><div class="cart-lock-step-txt"><b>Completa tu información</b><br>Nombre, número, correo, hotel e idioma del tour.</div></div>
-                                <div class="cart-lock-step"><div class="cart-lock-step-num">3</div><div class="cart-lock-step-txt"><b>Confirma tu pago</b><br>Revisa el total final y recibe tu confirmación.</div></div>
+                                <div class="cart-lock-step"><div class="cart-lock-step-num">1</div><div class="cart-lock-step-txt"><b>{{ __('ui.lock_step1_title') }}</b><br>{{ __('ui.lock_step1_desc') }}</div></div>
+                                <div class="cart-lock-step"><div class="cart-lock-step-num">2</div><div class="cart-lock-step-txt"><b>{{ __('ui.lock_step2_title') }}</b><br>{{ __('ui.lock_step2_desc') }}</div></div>
+                                <div class="cart-lock-step"><div class="cart-lock-step-num">3</div><div class="cart-lock-step-txt"><b>{{ __('ui.lock_step3_title') }}</b><br>{{ __('ui.lock_step3_desc') }}</div></div>
                             </div>
                             <div class="cart-empty-actions">
-                                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">Explorar tours</a>
+                                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">{{ __('ui.explore_tours') }}</a>
                             </div>
                         </div>
                     @else
@@ -1284,41 +1284,41 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                         <div class="cart-payment-head-left">
                                             <div class="cart-payment-order">
                                                 <span class="cart-payment-order-num">{{ $idx + 1 }}</span>
-                                                Reserva número {{ $idx + 1 }}
+                                                {{ __('ui.booking_number') }} {{ $idx + 1 }}
                                             </div>
                                             <h4>{{ $item['title_snapshot'] }}</h4>
                                         </div>
                                         @if ($hasDiscount)
-                                            <div class="cart-payment-badge promo">Descuento aplicado</div>
+                                            <div class="cart-payment-badge promo">{{ __('ui.discount_applied') }}</div>
                                         @else
-                                            <div class="cart-payment-badge">Precio regular</div>
+                                            <div class="cart-payment-badge">{{ __('ui.regular_price') }}</div>
                                         @endif
                                     </div>
                                     <div class="cart-payment-body">
                                         <div class="cart-payment-row">
-                                            <span>Pasajeros</span>
+                                            <span>{{ __('ui.passengers') }}</span>
                                             <b>{{ $item['adults'] }} adulto{{ $item['adults'] !== 1 ? 's' : '' }}
                                                @if ($item['children'] > 0) · {{ $item['children'] }} niño{{ $item['children'] !== 1 ? 's' : '' }} @endif
                                             </b>
                                         </div>
                                         @if ($hasDiscount)
                                             <div class="cart-payment-row">
-                                                <span>Precio de antes</span>
+                                                <span>{{ __('ui.price_before_label') }}</span>
                                                 <b class="strike">US${{ number_format($beforeTotalPago, 0) }}</b>
                                             </div>
                                             <div class="cart-payment-row">
-                                                <span>Descuento aplicado</span>
+                                                <span>{{ __('ui.discount_applied') }}</span>
                                                 <b class="green">−US${{ number_format($discountTotalPago, 0) }}</b>
                                             </div>
                                         @else
                                             <div class="cart-payment-row">
-                                                <span>Precio regular</span>
+                                                <span>{{ __('ui.regular_price') }}</span>
                                                 <b>US${{ number_format($item['subtotal'], 0) }}</b>
                                             </div>
                                         @endif
                                     </div>
                                     <div class="cart-payment-final">
-                                        <span>{{ $hasDiscount ? 'Usted pagará ahora' : 'Usted pagará' }}</span>
+                                        <span>{{ $hasDiscount ? __('ui.you_will_pay_now') : __('ui.you_will_pay') }}</span>
                                         <b>US${{ number_format($item['subtotal'], 0) }}</b>
                                     </div>
                                 </div>
@@ -1330,17 +1330,17 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                     <div class="cart-card">
                         <div class="cart-card-pad">
                             <div class="cart-summary-row">
-                                <span>Subtotal ({{ $items->count() }} {{ $items->count() === 1 ? 'tour' : 'tours' }})</span>
+                                <span>{{ __('checkout.subtotal') }} ({{ $items->count() }} {{ $items->count() === 1 ? 'tour' : 'tours' }})</span>
                                 <b>US${{ number_format($subtotal, 0) }}</b>
                             </div>
                             @if ($discount > 0)
                                 <div class="cart-summary-row">
-                                    <span>Descuento{{ $couponCode ? ' (' . $couponCode . ')' : '' }}</span>
+                                    <span>{{ __('checkout.discount') }}{{ $couponCode ? ' (' . $couponCode . ')' : '' }}</span>
                                     <b style="color:var(--cart-ok)">−US${{ number_format($discount, 0) }}</b>
                                 </div>
                             @endif
                             <div class="cart-summary-row cart-total-row">
-                                <span>Total final</span>
+                                <span>{{ __('ui.grand_total') }}</span>
                                 <b data-total>US${{ number_format($total, 0) }}</b>
                             </div>
                         </div>
@@ -1348,31 +1348,31 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
                     {{-- Pay chips --}}
                     <div class="cart-pay-chips">
-                        <div class="cart-pay-chip">Pago seguro</div>
-                        <div class="cart-pay-chip">Confirmación rápida</div>
-                        <div class="cart-pay-chip">Reserva protegida</div>
+                        <div class="cart-pay-chip">{{ __('ui.secure_payment_chip') }}</div>
+                        <div class="cart-pay-chip">{{ __('ui.quick_confirmation') }}</div>
+                        <div class="cart-pay-chip">{{ __('ui.protected_booking') }}</div>
                     </div>
 
                     {{-- Timing: Pagar ahora / Pagar después --}}
                     <div class="cart-card">
                         <div class="cart-card-pad">
-                            <p style="font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#798188;margin:0 0 10px;">¿Cuándo pagar?</p>
+                            <p style="font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#798188;margin:0 0 10px;">{{ __('ui.when_to_pay') }}</p>
                             <div class="cart-timing-grid">
                                 <label class="cart-timing-label">
                                     <input type="radio" name="payment_timing_ui" value="now" id="timing-now" checked>
                                     <div class="cart-timing-text">
-                                        <b>Pagar ahora</b>
-                                        <span>Confirma al instante con PayPal o tarjeta de crédito/débito.</span>
+                                        <b>{{ __('ui.pay_now') }}</b>
+                                        <span>{{ __('ui.pay_now_desc') }}</span>
                                     </div>
                                     <div class="cart-timing-price">US${{ number_format($total, 0) }}</div>
                                 </label>
                                 <label class="cart-timing-label">
                                     <input type="radio" name="payment_timing_ui" value="later" id="timing-later">
                                     <div class="cart-timing-text">
-                                        <b>Reservar y pagar después</b>
-                                        <span>Sin cargos adicionales. Se cobrará el {{ $cancelDeadline->locale('es')->isoFormat('D [de] MMM') }}.</span>
+                                        <b>{{ __('ui.reserve_pay_later') }}</b>
+                                        <span>{{ __('ui.pay_later_desc', ['date' => $cancelDeadline->locale('es')->isoFormat('D [de] MMM')]) }}</span>
                                     </div>
-                                    <div class="cart-timing-price" style="color:var(--cart-ok)">US$0 ahora</div>
+                                    <div class="cart-timing-price" style="color:var(--cart-ok)">{{ __('ui.zero_now') }}</div>
                                 </label>
                             </div>
                         </div>
@@ -1382,8 +1382,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                     <div class="cart-card">
                         <div class="cart-card-pad">
                             <div class="cart-policy-box">
-                                <b>Cancelación gratuita 24 horas antes</b>
-                                Cancela hasta las 9:00 del {{ $cancelDeadline->locale('es')->isoFormat('D [de] MMM, YYYY') }} sin costo alguno.
+                                <b>{{ __('ui.free_cancellation_title') }}</b>
+                                {{ __('ui.free_cancellation_desc', ['date' => $cancelDeadline->locale('es')->isoFormat('D [de] MMM, YYYY')]) }}
                             </div>
                         </div>
                     </div>
@@ -1394,9 +1394,9 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <label class="cart-terms-row" id="terms-row">
                                 <input type="checkbox" name="accept_terms" id="accept_terms" value="1">
                                 <span>
-                                    Acepto los <a href="{{ route('legal.terms', ['locale' => $locale]) }}">términos y condiciones</a>,
-                                    la <a href="{{ route('legal.privacy', ['locale' => $locale]) }}">política de privacidad</a>
-                                    y la formalización del contrato directo con el proveedor.
+                                    {{ __('ui.terms_accept_prefix') }} <a href="{{ route('legal.terms', ['locale' => $locale]) }}">{{ __('ui.terms_link') }}</a>,
+                                    la <a href="{{ route('legal.privacy', ['locale' => $locale]) }}">{{ __('ui.privacy_link') }}</a>
+                                    {{ __('ui.contract_text') }}
                                 </span>
                             </label>
                         </div>
@@ -1409,8 +1409,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <div id="paypal-msg" role="alert" style="display:none; margin-top:10px; padding:10px 14px; border-radius:14px; font-size:13px; font-weight:600; background:rgba(200,110,87,.08); border:1px solid rgba(200,110,87,.25); color:#C86E57;"></div>
                         @else
                             <div class="cart-policy-box" style="text-align:center;">
-                                <b>Pasarela en configuración</b>
-                                El método de pago en línea estará disponible en breve.
+                                <b>{{ __('ui.gateway_config_title') }}</b>
+                                {{ __('ui.gateway_config_desc') }}
                             </div>
                         @endif
                     </div>
@@ -1422,12 +1422,12 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 id="btn-pay-later"
                                 class="cart-cta-btn"
                                 style="height:50px; border-radius:16px; width:100%;">
-                            <span>Reservar y pagar después</span>
+                            <span>{{ __('ui.reserve_pay_later') }}</span>
                             <span class="cart-cta-arrow" aria-hidden="true">→</span>
                         </button>
                     </div>
                     <div class="cart-step-nav">
-                        <button type="button" class="cart-step-btn" data-step-prev><span aria-hidden="true">←</span> Volver a Datos</button>
+                        <button type="button" class="cart-step-btn" data-step-prev><span aria-hidden="true">←</span> {{ __('ui.back_to_data') }}</button>
                     </div>
                     @endif
 
@@ -1442,51 +1442,51 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         ══════════════════════════════════════ --}}
         <div id="screen-reservas" class="cart-screen" data-screen="reservasGuardadas" role="tabpanel">
             <div class="cart-head">
-                <h2>Reservas confirmadas</h2>
-                <span class="cart-meta-link">0 activas</span>
+                <h2>{{ __('ui.confirmed_bookings') }}</h2>
+                <span class="cart-meta-link">{{ __('ui.zero_active') }}</span>
             </div>
             <div class="cart-saved-wrap">
                 <div class="cart-empty-state">
                     <div class="cart-empty-head">
                         <div class="cart-empty-icon" aria-hidden="true">✦</div>
                         <div>
-                            <h3>Aún no tienes reservas confirmadas</h3>
-                            <p>Cuando completes el pago de un tour, aquí podrás ver tus reservas, revisarlas y editar algunos datos si fuera necesario.</p>
+                            <h3>{{ __('ui.no_confirmed_bookings') }}</h3>
+                            <p>{{ __('ui.no_confirmed_bookings_desc') }}</p>
                         </div>
                     </div>
                     <div class="cart-info-mini-grid">
                         <div class="cart-info-mini">
-                            <small>Aquí verás</small>
-                            <span>Fecha, horario e idioma del tour</span>
+                            <small>{{ __('ui.here_you_see') }}</small>
+                            <span>{{ __('ui.mini_schedule_text') }}</span>
                         </div>
                         <div class="cart-info-mini">
-                            <small>También verás</small>
-                            <span>Nombre, pasajeros y hotel o Airbnb</span>
+                            <small>{{ __('ui.also_see') }}</small>
+                            <span>{{ __('ui.mini_data_text') }}</span>
                         </div>
                         <div class="cart-info-mini">
-                            <small>Estado</small>
-                            <span>Confirmación, voucher y método de pago</span>
+                            <small>{{ __('ui.status') }}</small>
+                            <span>{{ __('ui.mini_confirmation_text') }}</span>
                         </div>
                         <div class="cart-info-mini">
-                            <small>Edición</small>
-                            <span>Podrás actualizar datos si lo necesitas</span>
+                            <small>{{ __('ui.edition') }}</small>
+                            <span>{{ __('ui.mini_edit_text') }}</span>
                         </div>
                     </div>
                     <div class="cart-empty-actions">
-                        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">Explorar tours</a>
-                        <a href="mailto:info@limaviewtours.com" class="cart-btn-outline">Contactar soporte</a>
+                        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="cart-btn-dark">{{ __('ui.explore_tours') }}</a>
+                        <a href="mailto:info@limaviewtours.com" class="cart-btn-outline">{{ __('ui.contact_support') }}</a>
                     </div>
                 </div>
 
                 <div class="cart-ghost-history">
                     <div class="cart-head" style="margin-top:0">
-                        <h2 style="font-size:18px">Historial de pago</h2>
-                        <span class="cart-meta-link">Sin pagos</span>
+                        <h2 style="font-size:18px">{{ __('ui.payment_history') }}</h2>
+                        <span class="cart-meta-link">{{ __('ui.no_payments') }}</span>
                     </div>
-                    <div class="cart-summary-row"><span>Reservas pagadas</span><b>0 tours</b></div>
-                    <div class="cart-summary-row"><span>Método de pago</span><b>—</b></div>
-                    <div class="cart-summary-row"><span>Estado</span><b>Pendiente</b></div>
-                    <div class="cart-summary-row cart-total-row"><span>Total pagado</span><b>US$0</b></div>
+                    <div class="cart-summary-row"><span>{{ __('ui.paid_bookings') }}</span><b>0 tours</b></div>
+                    <div class="cart-summary-row"><span>{{ __('ui.payment_method') }}</span><b>—</b></div>
+                    <div class="cart-summary-row"><span>{{ __('ui.status') }}</span><b>{{ __('customer.status_pending') }}</b></div>
+                    <div class="cart-summary-row cart-total-row"><span>{{ __('ui.total_paid') }}</span><b>US$0</b></div>
                 </div>
             </div>
         </div>{{-- /screen reservas --}}
@@ -1503,14 +1503,14 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 <div class="cart-sticky" id="cart-sticky-footer" @if($items->isEmpty()) style="display:none" @endif>
     <div class="cart-sticky-inner">
         <div>
-            <div class="cart-total-label">Total</div>
+            <div class="cart-total-label">{{ __('checkout.total') }}</div>
             <div class="cart-total-price" data-total>US${{ number_format($total, 0) }}</div>
         </div>
         <button type="button"
                 class="cart-cta-btn"
                 id="cart-cta-main"
                 data-step-cta>
-            <span data-cta-text>Continuar</span>
+            <span data-cta-text>{{ __('ui.continue') }}</span>
             <span class="cart-cta-arrow" aria-hidden="true">→</span>
         </button>
     </div>

@@ -37,7 +37,7 @@
         {{-- Logo: ícono espiral + wordmark --}}
         <a href="{{ route('home', ['locale' => $locale]) }}"
            class="site-header__logo flex items-center shrink-0 py-3"
-           aria-label="Lima View Tours — Inicio">
+           aria-label="Lima View Tours — {{ __('nav.home') }}">
             <img src="{{ asset('assets/logos/logo.png') }}"
                  alt="Lima View Tours"
                  class="h-8 sm:h-10 lg:h-12 w-auto select-none"
@@ -50,13 +50,13 @@
 
         {{-- Navegación horizontal (desktop) — mismos accesos del menú --}}
         <nav class="site-header__nav hidden lg:flex items-center gap-7"
-             aria-label="{{ $isEn ? 'Main navigation' : 'Navegación principal' }}">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="site-header__nav-link">{{ $L('Inicio', 'Home', 'Início') }}</a>
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="site-header__nav-link">{{ $L('Tours', 'Tours', 'Tours') }}</a>
+             aria-label="{{ __('nav.main_navigation') }}">
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('nav.home') }}</a>
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('nav.tours') }}</a>
             <a href="{{ route('blog.index', ['locale' => $locale]) }}" class="site-header__nav-link">Blog</a>
-            <a href="{{ route('reviews', ['locale' => $locale]) }}" class="site-header__nav-link">{{ $L('Reseñas', 'Reviews', 'Avaliações') }}</a>
-            <a href="{{ url('/' . $locale . '/nosotros') }}" class="site-header__nav-link">{{ $L('Nosotros', 'About', 'Sobre nós') }}</a>
-            <a href="{{ route('contact', ['locale' => $locale]) }}" class="site-header__nav-link">{{ $L('Contacto', 'Contact', 'Contato') }}</a>
+            <a href="{{ route('reviews', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('ui.reviews') }}</a>
+            <a href="{{ url('/' . $locale . '/nosotros') }}" class="site-header__nav-link">{{ __('nav.about') }}</a>
+            <a href="{{ route('contact', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('nav.contact') }}</a>
         </nav>
 
         {{-- Spacer --}}
@@ -74,7 +74,7 @@
             {{-- Carrito con badge --}}
             <a href="{{ route('cart.index', ['locale' => $locale]) }}"
                class="site-header__cart-btn relative p-2 rounded-full transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
-               aria-label="{{ $cartCount }} {{ $isEn ? ($cartCount === 1 ? 'item in cart' : 'items in cart') : ($cartCount === 1 ? 'ítem en el carrito' : 'ítems en el carrito') }}">
+               aria-label="{{ $cartCount }} {{ $cartCount === 1 ? __('ui.cart_item_singular') : __('ui.cart_items_plural') }}">
                 {{-- Ícono carrito outline --}}
                 <svg class="w-6 h-6 lg:w-7 lg:h-7" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -102,7 +102,7 @@
                    style="align-items:center;gap:7px;padding:7px 14px;border-radius:9999px;font-size:13px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.35);text-decoration:none;transition:background .15s;white-space:nowrap;"
                    onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='transparent'">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0"/></svg>
-                    <span>{{ $L('Iniciar sesión', 'Sign in', 'Entrar') }}</span>
+                    <span>{{ __('customer.login') }}</span>
                 </a>
             @endauth
 
@@ -141,7 +141,7 @@
          class="site-menu fixed top-0 right-0 z-[70] w-[88%] max-w-[400px] bg-cream-50 text-teal-800 shadow-2xl flex flex-col overflow-y-auto overscroll-contain"
          style="height:100vh; height:100dvh;"
          role="dialog" aria-modal="true"
-         aria-label="{{ $isEn ? 'Main menu' : 'Menú principal' }}">
+         aria-label="{{ __('nav.main_menu') }}">
 
         {{-- Cabecera del drawer: logo + cerrar --}}
         <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-teal-800/10">
@@ -151,7 +151,7 @@
             </a>
             <button type="button" @click="open = false"
                     class="w-10 h-10 rounded-full bg-teal-800 text-white grid place-items-center shrink-0 hover:bg-teal-900 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
-                    aria-label="{{ $isEn ? 'Close menu' : 'Cerrar menú' }}">
+                    aria-label="{{ __('nav.close_menu') }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -167,13 +167,13 @@
                     </svg>
                 </span>
                 <input type="search" name="q"
-                       placeholder="{{ $L('Buscar tours, destinos o experiencias', 'Search tours, destinations or experiences', 'Buscar tours, destinos ou experiências') }}"
+                       placeholder="{{ __('ui.search_tours_placeholder') }}"
                        class="w-full rounded-2xl border border-teal-800/15 bg-white pl-12 pr-4 py-3.5 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
-                       aria-label="{{ $isEn ? 'Search' : 'Buscar' }}">
+                       aria-label="{{ __('ui.search') }}">
             </form>
 
             {{-- Navegación --}}
-            <nav aria-label="{{ $isEn ? 'Main navigation' : 'Navegación principal' }}" class="space-y-1">
+            <nav aria-label="{{ __('nav.main_navigation') }}" class="space-y-1">
 
                 {{-- Inicio --}}
                 <a href="{{ route('home', ['locale' => $locale]) }}" @click="open = false" class="site-menu__row">
@@ -184,7 +184,7 @@
                     </span>
                     <span class="site-menu__txt">
                         <b>{{ __('nav.home') }}</b>
-                        <small>{{ $L('Volver al inicio', 'Back to start', 'Voltar ao início') }}</small>
+                        <small>{{ __('ui.back_to_home') }}</small>
                     </span>
                     <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -202,7 +202,7 @@
                     </span>
                     <span class="site-menu__txt">
                         <b>Tours</b>
-                        <small>{{ $L('Lima, Ica y Cusco', 'Lima, Ica & Cusco', 'Lima, Ica e Cusco') }}</small>
+                        <small>{{ __('nav.tours_regions') }}</small>
                     </span>
                     <svg class="site-menu__chev transition-transform" :class="mTours && 'rotate-90'"
                          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -211,7 +211,7 @@
                 </button>
                 <div x-show="mTours" x-collapse x-cloak class="pl-14 pr-2 pb-1 space-y-0.5">
                     <a href="{{ route('tours.index', ['locale' => $locale]) }}" @click="open = false" class="site-menu__sub">
-                        {{ $L('Todos los tours', 'All tours', 'Todos os tours') }}
+                        {{ __('nav.all_tours') }}
                     </a>
                     @foreach ($regions as $region)
                         <a href="{{ route('tours.index', ['locale' => $locale]) }}#{{ $region }}" @click="open = false" class="site-menu__sub">
@@ -228,8 +228,8 @@
                         </svg>
                     </span>
                     <span class="site-menu__txt">
-                        <b>{{ $L('Mis reservas', 'My bookings', 'Minhas reservas') }}</b>
-                        <small>{{ $L('Consulta tus reservas', 'Check your reservations', 'Confira suas reservas') }}</small>
+                        <b>{{ __('ui.my_bookings') }}</b>
+                        <small>{{ __('ui.check_your_bookings') }}</small>
                     </span>
                     <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -245,7 +245,7 @@
                     </span>
                     <span class="site-menu__txt">
                         <b>{{ __('nav.cart') }}</b>
-                        <small>{{ $L('Revisa y paga', 'Review and pay', 'Revise e pague') }}</small>
+                        <small>{{ __('ui.cart_review_pay') }}</small>
                     </span>
                     <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -261,7 +261,7 @@
                     </span>
                     <span class="site-menu__txt">
                         <b>Blog</b>
-                        <small>{{ $L('Guías y consejos de viaje', 'Travel guides & tips', 'Guias e dicas de viagem') }}</small>
+                        <small>{{ __('ui.blog_tagline') }}</small>
                     </span>
                     <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -276,8 +276,8 @@
                         </svg>
                     </span>
                     <span class="site-menu__txt">
-                        <b>{{ $L('Reseñas', 'Reviews', 'Avaliações') }}</b>
-                        <small>{{ $L('Comentarios de nuestros clientes', 'What our clients say', 'Comentários dos clientes') }}</small>
+                        <b>{{ __('ui.reviews') }}</b>
+                        <small>{{ __('ui.reviews_tagline') }}</small>
                     </span>
                     <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -293,7 +293,7 @@
                     </span>
                     <span class="site-menu__txt">
                         <b>{{ __('nav.about') }}</b>
-                        <small>{{ $L('Conoce Lima View Tours', 'About Lima View Tours', 'Conheça a Lima View Tours') }}</small>
+                        <small>{{ __('ui.about_tagline') }}</small>
                     </span>
                     <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -310,7 +310,7 @@
                     </span>
                     <span class="site-menu__txt">
                         <b>{{ __('nav.contact') }}</b>
-                        <small>{{ $L('Te ayudamos', 'We help you', 'Nós ajudamos você') }}</small>
+                        <small>{{ __('ui.contact_tagline') }}</small>
                     </span>
                     <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -327,7 +327,7 @@
                         </span>
                         <span class="site-menu__txt">
                             <b>{{ __('customer.my_account') }}</b>
-                            <small>{{ $L('Tus reservas y perfil', 'Your bookings & profile', 'Suas reservas e perfil') }}</small>
+                            <small>{{ __('ui.account_tagline') }}</small>
                         </span>
                         <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -342,7 +342,7 @@
                         </span>
                         <span class="site-menu__txt">
                             <b>{{ __('customer.login') }}</b>
-                            <small>{{ $L('Accede a tu cuenta', 'Access your account', 'Acesse sua conta') }}</small>
+                            <small>{{ __('ui.login_tagline') }}</small>
                         </span>
                         <svg class="site-menu__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>

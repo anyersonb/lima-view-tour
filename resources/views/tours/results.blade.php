@@ -1,34 +1,34 @@
 @extends('layouts.app')
 
-@section('title', 'Resultados de búsqueda — ' . __('seo.site_name'))
+@section('title', __('ui.search_results') . ' — ' . __('seo.site_name'))
 
 @php $locale = app()->getLocale(); @endphp
 
 @section('content')
 <section class="bg-cream-100 pt-8 pb-4">
     <nav aria-label="Breadcrumb" class="container mx-auto px-5 lg:px-10 text-xs text-teal-800/70">
-        <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-500">Inicio</a> &gt;
-        <span>Resultados de búsqueda</span>
+        <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-500">{{ __('ui.home') }}</a> &gt;
+        <span>{{ __('ui.search_results') }}</span>
     </nav>
 </section>
 
 <section class="bg-cream-100 pb-10">
     <div class="container mx-auto px-5 lg:px-10">
-        <h1 class="font-display text-3xl md:text-4xl text-center text-teal-800">Resultados de búsqueda</h1>
+        <h1 class="font-display text-3xl md:text-4xl text-center text-teal-800">{{ __('ui.search_results') }}</h1>
         <form action="{{ route('tours.results', ['locale' => $locale]) }}" method="get"
               class="mt-6 mx-auto max-w-3xl bg-white rounded-pill p-2 flex items-center gap-2 shadow-sm">
             <label class="flex-1 flex items-center gap-3 px-4">
                 <svg class="w-5 h-5 text-teal-700/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" stroke-linecap="round"/></svg>
-                <input type="search" name="q" value="{{ $q }}" placeholder="Busca un destino o experiencia…" class="w-full bg-transparent border-0 focus:ring-0 placeholder:text-teal-700/50 text-base">
+                <input type="search" name="q" value="{{ $q }}" placeholder="{{ __('ui.search_destination') }}" class="w-full bg-transparent border-0 focus:ring-0 placeholder:text-teal-700/50 text-base">
             </label>
-            <button class="btn--primary !px-8">Buscar tour</button>
+            <button class="btn--primary !px-8">{{ __('ui.search_tour') }}</button>
         </form>
     </div>
 </section>
 
 <section class="bg-cream-100 pb-20">
     <div class="container mx-auto px-5 lg:px-10">
-        <p class="text-sm text-teal-800/70">{{ $tours->total() }} resultado{{ $tours->total() !== 1 ? 's' : '' }}{{ $q ? " para \"$q\"" : '' }}</p>
+        <p class="text-sm text-teal-800/70">{{ $tours->total() }} {{ $tours->total() !== 1 ? __('ui.results') : __('ui.result') }}{{ $q ? " para \"$q\"" : '' }}</p>
         <hr class="mt-2 mb-6 border-teal-800/15">
 
         <div class="space-y-5">
@@ -43,7 +43,7 @@
                             <p class="mt-2 flex items-center gap-2 text-sm text-teal-800/80">
                                 <span class="font-semibold">{{ $tour->rating }}</span>
                                 <span class="text-orange-400 tracking-tight">★★★★★</span>
-                                <span class="text-teal-800/60 text-xs">( {{ $tour->testimonials()->count() }} Comentarios )</span>
+                                <span class="text-teal-800/60 text-xs">( {{ $tour->testimonials()->count() }} {{ __('ui.comments') }} )</span>
                             </p>
                         @endif
                         @php
@@ -51,7 +51,7 @@
                                 $tour->languages ?? null,
                                 $tour->{"duration_{$locale}"} ?? $tour->duration_es ?? null,
                                 $tour->group_type ?? null,
-                                'Recojo y retorno',
+                                __('ui.pickup_return'),
                             ]);
                         @endphp
                         <ul class="mt-3 grid grid-cols-4 gap-2 text-[10px] text-teal-800/70 max-w-md">
@@ -64,26 +64,26 @@
                         </ul>
                     </div>
                     <div class="rounded-lg border border-teal-800/15 overflow-hidden self-center">
-                        <p class="bg-teal-700 text-white text-[10px] tracking-[0.2em] uppercase text-center py-1.5">PRECIO POR PERSONA</p>
+                        <p class="bg-teal-700 text-white text-[10px] tracking-[0.2em] uppercase text-center py-1.5">{{ __('ui.price_per_person') }}</p>
                         <div class="p-4 text-center">
                             <p class="text-sm">
                                 @if ($tour->price_before && $tour->price_before > $tour->price)
-                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60">Antes</span>
+                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60">{{ __('ui.before') }}</span>
                                     <span class="font-price text-base text-teal-800/60 line-through ml-1">${{ number_format((float) $tour->price_before, 0) }}</span>
-                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60 ml-2">Ahora</span>
+                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60 ml-2">{{ __('ui.now') }}</span>
                                 @endif
                                 <span class="font-price text-2xl text-state-error ml-1">${{ number_format((float) $tour->price, 0) }}</span>
                             </p>
                             <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour->slug]) }}"
-                               class="btn--primary btn--block mt-3">Reservar tour</a>
+                               class="btn--primary btn--block mt-3">{{ __('ui.book_tour') }}</a>
                         </div>
                     </div>
                 </article>
             @empty
                 <div class="text-center py-16">
-                    <p class="text-teal-800/70 text-lg">Sin resultados{{ $q ? " para \"$q\"" : '' }}.</p>
+                    <p class="text-teal-800/70 text-lg">{{ __('ui.no_results_found') }}{{ $q ? " para \"$q\"" : '' }}.</p>
                     <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-6 inline-block">
-                        Ver todos los tours
+                        {{ __('ui.see_all_tours') }}
                     </a>
                 </div>
             @endforelse

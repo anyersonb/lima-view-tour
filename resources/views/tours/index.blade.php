@@ -58,7 +58,7 @@
 @endphp
 
 @section('title', $sectionTitle . ' — ' . __('seo.site_name'))
-@section('description', 'Descubre nuestros tours por ' . $sectionTitle . '. Itinerarios con guías expertos, transporte cómodo y experiencias auténticas en Perú.')
+@section('description', __('ui.tours_meta_description', ['section' => $sectionTitle]))
 
 @section('content')
 
@@ -71,7 +71,7 @@
 
     <div class="container mx-auto px-5 lg:px-10">
         <nav aria-label="Breadcrumb" class="pt-6 text-xs text-white/85">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">Inicio</a> &gt; <span>{{ $sectionTitle }}</span>
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">{{ __('ui.home') }}</a> &gt; <span>{{ $sectionTitle }}</span>
         </nav>
     </div>
 
@@ -128,7 +128,7 @@
                 <a href="{{ route('tours.index', ['locale' => $locale]) }}"
                    class="px-5 py-2.5 rounded-pill text-xs font-semibold uppercase tracking-wide border transition
                    {{ !$cat ? 'bg-teal-700 text-white border-teal-700' : 'bg-cream-100 text-teal-800 border-teal-800/10 hover:border-orange-400' }}">
-                    Todos
+                    {{ __('ui.all') }}
                 </a>
                 @foreach (['lima', 'ica', 'cusco'] as $r)
                     <a href="{{ route('tours.category', ['locale' => $locale, 'categoria' => $r]) }}"
@@ -183,7 +183,7 @@
         </div>
 
         <div class="mt-12 flex justify-center">
-            <button type="button" class="btn--primary-outline">Cargar más tours</button>
+            <button type="button" class="btn--primary-outline">{{ __('ui.load_more_tours') }}</button>
         </div>
     </div>
 </section>
@@ -201,7 +201,7 @@
             <span class="w-10 h-10 rounded-full bg-cream-200"></span>
             <span class="leading-tight">
                 <span class="block font-semibold text-teal-800">Valeriy Roberts</span>
-                <span class="block text-xs text-teal-800/60">Cliente verificado</span>
+                <span class="block text-xs text-teal-800/60">{{ __('ui.verified_client') }}</span>
             </span>
         </figcaption>
     </div>
@@ -236,13 +236,13 @@
                  class="absolute inset-0 w-full h-full object-cover" loading="lazy">
             <div class="absolute inset-0 bg-gradient-to-t from-teal-900/85 via-teal-900/40 to-teal-900/20"></div>
             <div class="relative h-full p-8 flex flex-col">
-                <p class="text-[11px] uppercase tracking-[0.2em] font-semibold">CLIENTES SATISFECHOS</p>
-                <h3 class="mt-3 font-display text-3xl lg:text-4xl leading-tight">Nuestros clientes opinan de nuestros tours</h3>
+                <p class="text-[11px] uppercase tracking-[0.2em] font-semibold">{{ __('ui.happy_clients') }}</p>
+                <h3 class="mt-3 font-display text-3xl lg:text-4xl leading-tight">{{ __('ui.clients_opinion') }}</h3>
                 <p class="mt-4 inline-flex items-center gap-2 text-sm">
                     <span class="font-semibold">4.8</span>
                     <span class="text-orange-400">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                 </p>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-auto self-start">Ver tours</a>
+                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-auto self-start">{{ __('ui.see_tours') }}</a>
             </div>
         </article>
     </div>
@@ -252,16 +252,16 @@
 <section class="bg-white py-16 lg:py-20">
     <div class="container mx-auto px-5 lg:px-10">
         <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">¿Por qué reservar con nosotros?</h2>
-            <p class="mt-3 text-teal-800/70 text-sm">Cuatro razones para confiarnos tu próxima aventura por Perú.</p>
+            <h2 class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">{{ __('ui.why_book_with_us') }}</h2>
+            <p class="mt-3 text-teal-800/70 text-sm">{{ __('ui.why_book_subtitle') }}</p>
         </div>
 
         <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             @foreach ([
-                ['Experiencias Únicas', 'Itinerarios diseñados para que descubras lo mejor de cada destino, lejos de las rutas masificadas.'],
-                ['Turismo responsable', 'Trabajamos con comunidades y aliados que respetan el patrimonio y el medio ambiente.'],
-                ['Diversos paquetes', 'Encuentra el plan ideal para cada presupuesto: aventura, cultural, gastronómico o premium.'],
-                ['Guías profesionales', 'Equipo local certificado, apasionado y con dominio de español e inglés.'],
+                [__('ui.feature_unique_title'), __('ui.feature_unique_desc')],
+                [__('ui.feature_responsible_title'), __('ui.feature_responsible_desc')],
+                [__('ui.feature_packages_title'), __('ui.feature_packages_desc')],
+                [__('ui.feature_guides_title'), __('ui.feature_guides_desc')],
             ] as [$title, $desc])
                 <div class="text-center">
                     <span class="mx-auto w-12 h-12 rounded-full bg-cream-100 grid place-items-center text-teal-700">

@@ -11,13 +11,13 @@
     'rating'             => null,
     'reviews'            => 0,
     'duration'           => null,
-    'durationDetail'     => 'Duración del tour: 14 horas aprox.',
-    'language'           => 'Español / Inglés',
-    'languageDetail'     => 'Guía bilingüe',
+    'durationDetail'     => null,
+    'language'           => null,
+    'languageDetail'     => null,
     'pickup'             => null,
-    'pickupDetail'       => 'Desde tu hotel',
+    'pickupDetail'       => null,
     'freeCancellation'   => null,
-    'cancellationDetail' => 'Hasta 24h antes del tour',
+    'cancellationDetail' => null,
     'dailyDepartures'    => null,
     'locationLabel'      => null,
     'isMasVendido'       => false,
@@ -64,8 +64,13 @@
         default   => 'bg-teal-800',
     };
 
-    $pickupLabel = $pickup !== null ? ($pickup ? 'Recojo incluido' : 'Sin recojo') : 'Recojo incluido';
-    $durationLabel = $duration ?? 'Full Day';
+    $pickupLabel = $pickup !== null ? ($pickup ? __('ui.pickup_included') : __('ui.no_pickup')) : __('ui.pickup_included');
+    $durationLabel = $duration ?? __('ui.full_day');
+    $durationDetailResolved  = $durationDetail  ?? __('ui.duration_approx');
+    $languageResolved        = $language        ?? __('ui.language_default');
+    $languageDetailResolved  = $languageDetail  ?? __('ui.bilingual_guide');
+    $pickupDetailResolved    = $pickupDetail    ?? __('ui.from_your_hotel');
+    $cancellationDetailResolved = $cancellationDetail ?? __('ui.cancellation_24h');
 @endphp
 
 <article class="tour-card flex flex-col bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5 h-full">
@@ -101,7 +106,7 @@
         {{-- Pill OFERTA ESPECIAL top-right: blanca con chip rojo "-N%" --}}
         @if ($pct)
             <span class="absolute top-3 right-3 inline-flex items-center gap-1.5 bg-white text-teal-800 text-[11px] font-bold uppercase tracking-[0.05em] px-3 py-2 rounded-2xl shadow-md ring-1 ring-teal-800/10">
-                <span>OFERTA ESPECIAL</span>
+                <span>{{ __('ui.special_offer') }}</span>
                 <span class="inline-flex items-center bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-tight whitespace-nowrap">-{{ $pct }}%</span>
             </span>
         @endif
@@ -138,14 +143,14 @@
                 <span class="text-orange-400 text-base sm:text-lg leading-none tracking-tight" aria-hidden="true">★★★★★</span>
                 <span class="font-semibold text-teal-800">{{ $rating }}</span>
                 <span class="text-teal-800/55">·</span>
-                <span class="text-teal-800/55">{{ number_format((int)$reviews) }} reseñas</span>
+                <span class="text-teal-800/55">{{ number_format((int)$reviews) }} {{ __('ui.reviews') }}</span>
             </p>
         @endif
 
         {{-- Grid 2×2 de features --}}
         <div class="mt-3 sm:mt-4">
             <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-teal-800/70 mb-2 sm:mb-2.5 flex items-center gap-2">
-                Incluye
+                {{ __('ui.includes') }}
                 <span class="h-px flex-1 bg-teal-800/15"></span>
             </p>
             <ul class="grid grid-cols-2 gap-2 text-sm">
@@ -159,7 +164,7 @@
                     </span>
                     <div class="min-w-0">
                         <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ $durationLabel }}</p>
-                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">Full Day</p>
+                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $durationDetailResolved }}</p>
                     </div>
                 </li>
 
@@ -172,7 +177,7 @@
                     </span>
                     <div class="min-w-0">
                         <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ $pickupLabel }}</p>
-                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $pickupDetail }}</p>
+                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $pickupDetailResolved }}</p>
                     </div>
                 </li>
 
@@ -185,8 +190,8 @@
                         </svg>
                     </span>
                     <div class="min-w-0">
-                        <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ $language }}</p>
-                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $languageDetail }}</p>
+                        <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ $languageResolved }}</p>
+                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $languageDetailResolved }}</p>
                     </div>
                 </li>
 
@@ -199,8 +204,8 @@
                             </svg>
                         </span>
                         <div class="min-w-0">
-                            <p class="font-bold text-teal-800 text-[12px] leading-tight">Cancelación gratuita</p>
-                            <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $cancellationDetail }}</p>
+                            <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ __('ui.free_cancellation') }}</p>
+                            <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $cancellationDetailResolved }}</p>
                         </div>
                     </li>
                 @endif
@@ -217,10 +222,10 @@
                             <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
                             </svg>
-                            {{ $pct }}% DESCUENTO
+                            {{ $pct }}% {{ __('ui.discount_label') }}
                         </span>
                         <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-teal-800/50 font-medium uppercase tracking-wide leading-none">ANTES</span>
+                            <span class="text-[10px] text-teal-800/50 font-medium uppercase tracking-wide leading-none">{{ __('ui.before_price') }}</span>
                             <span class="font-price text-[13px] text-teal-800/45 line-through leading-none">{{ $currency }}{{ number_format((float)$before, 0) }}</span>
                         </div>
                     @else
@@ -231,16 +236,16 @@
                 {{-- Fila inferior: precio actual + CTA --}}
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-[9px] font-bold uppercase tracking-widest text-emerald-600 leading-none">AHORA</span>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-emerald-600 leading-none">{{ __('ui.now_price') }}</span>
                         <span class="font-price text-[22px] sm:text-[26px] font-bold text-teal-800 leading-none">{{ $currency }}{{ number_format((float)$now, 0) }}</span>
                         <span class="inline-flex items-center gap-0.5 text-[10px] text-teal-800/55 mt-0.5 leading-none">
                             <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd"/></svg>
-                            por persona
+                            {{ __('ui.per_person') }}
                         </span>
                     </div>
                     <a href="{{ $url }}"
                        class="bg-teal-900 hover:bg-teal-950 active:bg-teal-950 text-white rounded-full pl-4 pr-1.5 py-1.5 inline-flex items-center gap-2 font-semibold text-sm transition shadow-md shrink-0">
-                        <span class="whitespace-nowrap">Ver tour</span>
+                        <span class="whitespace-nowrap">{{ __('ui.see_tour') }}</span>
                         <span class="w-8 h-8 rounded-full bg-orange-500 grid place-items-center shrink-0">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>

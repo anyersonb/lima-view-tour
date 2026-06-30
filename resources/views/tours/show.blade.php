@@ -12,9 +12,9 @@
 
     $recommendationLines = $recommendations
         ? array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $recommendations))))
-        : ['Llevar protector solar SPF50+', 'Lentes de sol y sombrero', 'Ropa cómoda y zapatillas', 'Cámara fotográfica', 'Agua embotellada', 'Documento de identidad'];
+        : [__('ui.rec_sunscreen'), __('ui.rec_sunglasses_hat'), __('ui.rec_comfortable_clothes'), __('ui.rec_camera'), __('ui.rec_water'), __('ui.rec_id_document')];
 
-    $notesText = $notes ?: 'Las operaciones pueden ajustarse por condiciones climáticas; ante cancelación se reembolsa o reagenda sin costo.';
+    $notesText = $notes ?: __('ui.default_notes_text');
 
     $galleryUrls = $tour->gallery_urls;
     $totalImgs   = count($galleryUrls);
@@ -155,7 +155,7 @@
     })($tour->title);
 @endphp
 @section('title', $titleDisplay . ' — ' . __('seo.site_name'))
-@section('description', 'Reserva online: ' . $tour->title . '. Salidas diarias, guías oficiales, transporte cómodo. Mejor precio garantizado.')
+@section('description', __('seo.tour_description_prefix') . $tour->title . __('seo.tour_description_suffix'))
 
 @push('schema')
 <script type="application/ld+json">
@@ -163,7 +163,7 @@
     '@context' => 'https://schema.org',
     '@type'    => 'TouristTrip',
     'name'     => $tour->title,
-    'description' => 'Reserva online: ' . $tour->title,
+    'description' => __('seo.tour_description_prefix') . $tour->title,
     'image'    => $galleryUrls,
     'aggregateRating' => $tourRating ? [
         '@type'       => 'AggregateRating',
@@ -807,7 +807,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 <section class="hidden md:block bg-white pt-5 pb-2">
     <div class="container mx-auto max-w-7xl px-5 lg:px-10">
         <nav aria-label="Breadcrumb" class="text-xs text-teal-800/60">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-500 transition-colors">Inicio</a>
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-500 transition-colors">{{ __('ui.home') }}</a>
             <span class="mx-1" aria-hidden="true">/</span>
             <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="hover:text-orange-500 transition-colors">Tours</a>
             <span class="mx-1" aria-hidden="true">/</span>
@@ -877,24 +877,24 @@ if (!empty($itinerary)) {
             {{-- Flechas de navegación del slider (solo si hay más de 1 imagen) --}}
             <template x-if="gallery.length > 1">
                 <div>
-                    <button type="button" class="m-hero-nav prev" @click.stop="prev()" aria-label="Foto anterior">‹</button>
-                    <button type="button" class="m-hero-nav next" @click.stop="next()" aria-label="Foto siguiente">›</button>
+                    <button type="button" class="m-hero-nav prev" @click.stop="prev()" aria-label="{{ __('ui.prev_photo') }}">‹</button>
+                    <button type="button" class="m-hero-nav next" @click.stop="next()" aria-label="{{ __('ui.next_photo') }}">›</button>
                 </div>
             </template>
             {{-- Badges abajo izquierda --}}
             <div class="m-hero-badges">
                 <div class="m-main-badge">
                     <span class="m-ico">★</span>
-                    <span>{{ $tour->badge_text ?: 'Más reservado' }}</span>
+                    <span>{{ $tour->badge_text ?: __('ui.most_booked') }}</span>
                 </div>
                 <div class="m-subline">
-                    <span class="m-subitem safe"><span class="m-ico">🛡</span><span>Cancelación gratuita</span></span>
+                    <span class="m-subitem safe"><span class="m-ico">🛡</span><span>{{ __('ui.free_cancellation') }}</span></span>
                     <span class="m-divider" aria-hidden="true"></span>
-                    <span class="m-subitem urgent"><span class="m-ico">🔥</span><span>Últimos cupos</span></span>
+                    <span class="m-subitem urgent"><span class="m-ico">🔥</span><span>{{ __('ui.last_spots') }}</span></span>
                 </div>
             </div>
             {{-- Contador galería abajo derecha --}}
-            <button type="button" class="m-counter" @click="open(active)" aria-label="Ver galería">
+            <button type="button" class="m-counter" @click="open(active)" aria-label="{{ __('ui.view_gallery') }}">
                 ▣ <span x-text="active + 1">1</span>/{{ $totalImgs }}
             </button>
         </div>
@@ -914,16 +914,16 @@ if (!empty($itinerary)) {
              @click.self="close()">
             <div class="flex items-center justify-between px-5 py-4 text-white shrink-0">
                 <span class="text-sm font-semibold"><span x-text="active + 1"></span> / {{ $totalImgs }}</span>
-                <button type="button" @click="close()" class="p-2 rounded-full hover:bg-white/10 transition" aria-label="Cerrar galería">
+                <button type="button" @click="close()" class="p-2 rounded-full hover:bg-white/10 transition" aria-label="{{ __('ui.close_gallery') }}">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             <div class="relative flex-1 grid place-items-center px-4 overflow-hidden">
                 @if ($totalImgs > 1)
-                    <button type="button" @click="prev()" class="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="Foto anterior">
+                    <button type="button" @click="prev()" class="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.prev_photo') }}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <button type="button" @click="next()" class="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="Foto siguiente">
+                    <button type="button" @click="next()" class="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.next_photo') }}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>
                 @endif
@@ -936,10 +936,10 @@ if (!empty($itinerary)) {
         <div style="padding:18px 20px 0;">
             <h1 class="m-title">{{ $titleDisplay }}</h1>
             <div class="m-rating">
-                <span class="m-stars" aria-label="{{ $tourRating }} de 5 estrellas">★★★★★</span>
+                <span class="m-stars" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">★★★★★</span>
                 <span>{{ $tourRating }}</span>
-                <span>({{ $reviewsCount }} opiniones verificadas)</span>
-                <span class="m-verified" aria-label="Verificado">✓</span>
+                <span>({{ $reviewsCount }} {{ __('ui.verified_reviews') }})</span>
+                <span class="m-verified" aria-label="{{ __('ui.verified') }}">✓</span>
             </div>
 
             {{-- 3. COMPACT BOOKING --}}
@@ -949,33 +949,33 @@ if (!empty($itinerary)) {
                      get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); }
                  }">
                 <div class="m-compact-head">
-                    <span>Reserva online</span>
-                    <span>Cancelación gratis</span>
+                    <span>{{ __('ui.book_online') }}</span>
+                    <span>{{ __('ui.free_cancellation') }}</span>
                 </div>
                 <div class="m-compact-body">
                     {{-- Fila precio --}}
                     <div class="m-price-row">
                         @if ($hasOffer)
                         <div class="m-price-box old-box">
-                            <div class="m-price-label">ANTES</div>
+                            <div class="m-price-label">{{ mb_strtoupper(__('ui.price_before')) }}</div>
                             <div class="m-price-value old">US${{ number_format((float)$tour->price_before, 0) }}</div>
                         </div>
                         @endif
                         <div class="m-price-box new-box {{ $hasOffer ? '' : '' }}" style="{{ !$hasOffer ? 'grid-column:1/-1' : '' }}">
-                            <div class="m-price-label current">AHORA</div>
+                            <div class="m-price-label current">{{ mb_strtoupper(__('ui.price_now')) }}</div>
                             <div class="m-price-value new">US${{ number_format((float)$tour->price, 0) }}</div>
-                            <div class="m-price-unit">USD / PERSONA</div>
+                            <div class="m-price-unit">{{ mb_strtoupper(__('ui.usd_per_person')) }}</div>
                         </div>
                     </div>
                     {{-- Fecha --}}
                     <div class="m-field">
-                        <span class="m-label">Fecha del tour</span>
+                        <span class="m-label">{{ __('ui.tour_date') }}</span>
                         <div class="m-input-row">
                             <input type="date"
                                    data-booking-date
                                    x-model="$store.booking.date"
                                    min="{{ now()->addDay()->format('Y-m-d') }}"
-                                   aria-label="Fecha del tour"
+                                   aria-label="{{ __('ui.tour_date') }}"
                                    style="border:none;background:transparent;font-size:12px;color:#29404a;width:100%;outline:none;">
                             <span aria-hidden="true">📅</span>
                         </div>
@@ -983,25 +983,25 @@ if (!empty($itinerary)) {
                     {{-- Adultos / Niños --}}
                     <div class="m-mini-grid">
                         <div class="m-field">
-                            <span class="m-label">Adultos</span>
+                            <span class="m-label">{{ __('ui.adults') }}</span>
                             <div class="m-input-row">
-                                <button type="button" @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)" aria-label="Menos adultos" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
+                                <button type="button" @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)" aria-label="{{ __('ui.less_adults') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
                                 <span x-text="$store.booking.adults">1</span>
-                                <button type="button" @click="$store.booking.adults++" aria-label="Más adultos" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
+                                <button type="button" @click="$store.booking.adults++" aria-label="{{ __('ui.more_adults') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
                             </div>
                         </div>
                         <div class="m-field">
-                            <span class="m-label">Niños</span>
+                            <span class="m-label">{{ __('ui.children') }}</span>
                             <div class="m-input-row">
-                                <button type="button" @click="$store.booking.children = Math.max(0, $store.booking.children - 1)" aria-label="Menos niños" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
+                                <button type="button" @click="$store.booking.children = Math.max(0, $store.booking.children - 1)" aria-label="{{ __('ui.less_children') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
                                 <span x-text="$store.booking.children">0</span>
-                                <button type="button" @click="$store.booking.children++" aria-label="Más niños" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
+                                <button type="button" @click="$store.booking.children++" aria-label="{{ __('ui.more_children') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
                             </div>
                         </div>
                     </div>
                     {{-- Total --}}
                     <div class="m-total">
-                        <span>Total estimado
+                        <span>{{ __('ui.estimated_total') }}
                             <span class="m-total-sub"
                                   x-text="`${$store.booking.adults} adulto${$store.booking.adults>1?'s':''}` + ($store.booking.children>0 ? ` + ${$store.booking.children} niño${$store.booking.children>1?'s':''}` : '') + ` × US$${price}`">
                             </span>
@@ -1009,8 +1009,8 @@ if (!empty($itinerary)) {
                         <strong>US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
                     </div>
                     {{-- CTA --}}
-                    <button type="submit" form="form-reservar" class="m-cta">RESERVAR &nbsp; ›</button>
-                    <div class="m-foot">Pago seguro · Sin cargos extra</div>
+                    <button type="submit" form="form-reservar" class="m-cta">{{ mb_strtoupper(__('ui.book')) }} &nbsp; ›</button>
+                    <div class="m-foot">{{ __('ui.secure_payment_no_fees') }}</div>
                 </div>
             </div>
         </div>
@@ -1018,15 +1018,15 @@ if (!empty($itinerary)) {
         {{-- 4. TRUST ROW + NOTICE + FEATURES --}}
         <div style="padding:0 20px 18px;">
             <div class="m-trust-row">
-                <div class="m-trust">🛡️ Cancelación gratuita<small>Hasta 24h antes</small></div>
-                <div class="m-trust">🔒 Pago seguro<small>y protegido</small></div>
+                <div class="m-trust">🛡️ {{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
+                <div class="m-trust">🔒 {{ __('ui.secure_payment') }}<small>{{ __('ui.and_protected') }}</small></div>
             </div>
-            <div class="m-notice">🔥 {{ $bookingsWeek }} viajeros reservaron este tour esta semana</div>
+            <div class="m-notice">🔥 {{ $bookingsWeek }} {{ __('ui.travelers_booked_week') }}</div>
             <div class="m-features">
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">🚌</div><b>Recojo incluido</b><small>Desde tu hotel</small></div>
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">🌐</div><b>Guía bilingüe</b><small>{{ $tour->language ?: 'Español / Inglés' }}</small></div>
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">🛡️</div><b>Cancelación gratuita</b><small>Hasta 24h antes</small></div>
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">👥</div><b>Grupos pequeños</b><small>Experiencia personalizada</small></div>
+                <div class="m-feature"><div class="m-ico" aria-hidden="true">🚌</div><b>{{ __('ui.pickup_included') }}</b><small>{{ __('ui.from_your_hotel') }}</small></div>
+                <div class="m-feature"><div class="m-ico" aria-hidden="true">🌐</div><b>{{ __('ui.bilingual_guide') }}</b><small>{{ $tour->language ?: __('ui.spanish_english') }}</small></div>
+                <div class="m-feature"><div class="m-ico" aria-hidden="true">🛡️</div><b>{{ __('ui.free_cancellation') }}</b><small>{{ __('ui.until_24h_before') }}</small></div>
+                <div class="m-feature"><div class="m-ico" aria-hidden="true">👥</div><b>{{ __('ui.small_groups') }}</b><small>{{ __('ui.personalized_experience') }}</small></div>
             </div>
         </div>
 
@@ -1034,8 +1034,8 @@ if (!empty($itinerary)) {
         @if (count($highlightsFromItinerary) > 0)
         <div style="padding:18px 20px;">
             <div class="m-h2">
-                <h2>¿Qué vivirás en este tour?</h2>
-                <a href="#m-itinerary">Ver más</a>
+                <h2>{{ __('ui.what_will_you_experience') }}</h2>
+                <a href="#m-itinerary">{{ __('ui.see_more') }}</a>
             </div>
             @php $expCount = count($highlightsFromItinerary); @endphp
             <div class="m-exp-row" x-ref="expRow"
@@ -1062,8 +1062,8 @@ if (!empty($itinerary)) {
         @if (count($itinerary) > 0)
         <div id="m-itinerary" style="padding:18px 20px;">
             <div class="m-h2">
-                <h2>Itinerario del tour</h2>
-                <a href="#m-info-desc">Ver completo</a>
+                <h2>{{ __('ui.tour_itinerary') }}</h2>
+                <a href="#m-info-desc">{{ __('ui.full_itinerary') }}</a>
             </div>
             <div class="m-timeline">
                 @foreach ($itinerary as $step)
@@ -1082,13 +1082,13 @@ if (!empty($itinerary)) {
 
         {{-- 7. INFORMACIÓN IMPORTANTE — acordeón --}}
         <div style="padding:18px 20px;">
-            <h2 style="font-family:Georgia,serif;margin:0 0 12px;font-size:22px;color:#111;">Información importante</h2>
+            <h2 style="font-family:Georgia,serif;margin:0 0 12px;font-size:22px;color:#111;">{{ __('ui.important_info') }}</h2>
             <div class="m-info-list">
                 <details id="m-info-desc" class="group">
                     <summary class="m-info-item">
                         <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg></div>
                         <div>
-                            <b>Descripción</b>
+                            <b>{{ __('ui.description') }}</b>
                             <p>{{ \Illuminate\Support\Str::limit(strip_tags($tour->{"description_$locale"} ?? $tour->description_es ?? ''), 60) }}</p>
                         </div>
                         <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
@@ -1101,8 +1101,8 @@ if (!empty($itinerary)) {
                     <summary class="m-info-item">
                         <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg></div>
                         <div>
-                            <b>Itinerario completo</b>
-                            <p>Revisa el plan detallado del tour.</p>
+                            <b>{{ __('ui.full_itinerary') }}</b>
+                            <p>{{ __('ui.itinerary_subtitle') }}</p>
                         </div>
                         <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -1116,8 +1116,8 @@ if (!empty($itinerary)) {
                     <summary class="m-info-item">
                         <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
                         <div>
-                            <b>Servicios incluidos</b>
-                            <p>Todo lo que está incluido en tu experiencia.</p>
+                            <b>{{ __('ui.included_services') }}</b>
+                            <p>{{ __('ui.included_services_subtitle') }}</p>
                         </div>
                         <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -1126,7 +1126,7 @@ if (!empty($itinerary)) {
                             <div style="margin-bottom:4px;">✓ {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}</div>
                         @endforeach
                         @if (count($excludes) > 0)
-                            <div style="margin-top:8px;font-weight:700;">No incluye:</div>
+                            <div style="margin-top:8px;font-weight:700;">{{ __('ui.not_included') }}:</div>
                             @foreach ($excludes as $item)
                                 <div style="margin-bottom:4px;">✗ {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}</div>
                             @endforeach
@@ -1137,8 +1137,8 @@ if (!empty($itinerary)) {
                     <summary class="m-info-item">
                         <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg></div>
                         <div>
-                            <b>Recomendaciones</b>
-                            <p>Consejos para que disfrutes al máximo.</p>
+                            <b>{{ __('ui.recommendations') }}</b>
+                            <p>{{ __('ui.recommendations_subtitle') }}</p>
                         </div>
                         <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -1152,8 +1152,8 @@ if (!empty($itinerary)) {
                     <summary class="m-info-item">
                         <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg></div>
                         <div>
-                            <b>Notas importantes</b>
-                            <p>Lo que debes saber antes de reservar.</p>
+                            <b>{{ __('ui.important_notes') }}</b>
+                            <p>{{ __('ui.important_notes_subtitle') }}</p>
                         </div>
                         <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -1167,9 +1167,9 @@ if (!empty($itinerary)) {
         {{-- 8. OPINIONES / RESEÑAS (caja estilo WooCommerce, dinámica) --}}
         <div id="reviews" style="padding:18px 20px;">
             <div class="m-h2">
-                <h2>Opiniones de nuestros viajeros</h2>
+                <h2>{{ __('ui.traveler_reviews') }}</h2>
                 @if ($tourReviews->count() > 0)
-                    <span style="font-size:12px;color:#6b7077;font-weight:800;">{{ $tourReviews->count() }} {{ $tourReviews->count() === 1 ? 'valoración' : 'valoraciones' }}</span>
+                    <span style="font-size:12px;color:#6b7077;font-weight:800;">{{ $tourReviews->count() }} {{ $tourReviews->count() === 1 ? __('ui.one_rating') : __('ui.ratings') }}</span>
                 @endif
             </div>
             <div class="m-review-cards">
@@ -1177,15 +1177,15 @@ if (!empty($itinerary)) {
                     <div class="brand" style="color:#4285f4;">G Google</div>
                     <div class="score">4.7 <small>/5</small></div>
                     <div class="m-stars">★★★★★</div>
-                    <small>22 reseñas</small>
-                    <a href="#">Ver en Google →</a>
+                    <small>22 {{ __('ui.reviews') }}</small>
+                    <a href="#">{{ __('ui.see_on_google') }} →</a>
                 </div>
                 <div class="m-platform">
                     <div class="brand" style="color:#00a680;">● Tripadvisor</div>
                     <div class="score">4.6 <small>/5</small></div>
                     <div class="m-stars">★★★★★</div>
-                    <small>8 reseñas</small>
-                    <a href="#">Ver en Tripadvisor →</a>
+                    <small>8 {{ __('ui.reviews') }}</small>
+                    <a href="#">{{ __('ui.see_on_tripadvisor') }} →</a>
                 </div>
             </div>
 
@@ -1204,20 +1204,20 @@ if (!empty($itinerary)) {
                 <div class="m-comment">
                     <div style="width:38px;height:38px;border-radius:50%;background:#15474b;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex-shrink:0;" aria-hidden="true">{{ mb_strtoupper(mb_substr($rName,0,1,'UTF-8'),'UTF-8') }}</div>
                     <div>
-                        <b>{{ $rName }} <span class="m-verified" aria-label="Verificado">✓</span></b>
+                        <b>{{ $rName }} <span class="m-verified" aria-label="{{ __('ui.verified') }}">✓</span></b>
                         @if ($rDate)<span class="m-date">{{ $rDate }}</span>@endif
-                        <div class="m-stars" aria-label="Valorado con {{ $rRating }} de 5">{{ str_repeat('★', $rRating) }}<span style="color:#d8dcd8;">{{ str_repeat('★', 5 - $rRating) }}</span></div>
+                        <div class="m-stars" aria-label="{{ __('ui.rated_with') }} {{ $rRating }} {{ __('ui.of_5') }}">{{ str_repeat('★', $rRating) }}<span style="color:#d8dcd8;">{{ str_repeat('★', 5 - $rRating) }}</span></div>
                         @if ($rText)<p>{{ $rText }}</p>@endif
                     </div>
                 </div>
             @empty
-                <p class="m-reviews-empty">Sé el primero en dejar una reseña de este tour.</p>
+                <p class="m-reviews-empty">{{ __('ui.be_first_review') }}</p>
             @endforelse
 
             {{-- Formulario "Añade una valoración" (crea reseña pendiente de aprobación) --}}
             <details class="m-review-form-wrap" {{ ($errors->any() || session('review_status')) ? 'open' : '' }}>
                 <summary class="m-review-toggle">
-                    <span aria-hidden="true">✍️</span> Añade una valoración
+                    <span aria-hidden="true">✍️</span> {{ __('ui.add_review') }}
                     <span class="chev" aria-hidden="true">⌄</span>
                 </summary>
                 <form method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="m-review-form"
@@ -1227,8 +1227,8 @@ if (!empty($itinerary)) {
                         <div class="m-review-errors">{{ $errors->first() }}</div>
                     @endif
                     <div class="fld">
-                        <label>Tu puntuación <span class="req">*</span></label>
-                        <div class="m-rate-stars" role="radiogroup" aria-label="Puntuación">
+                        <label>{{ __('ui.your_rating') }} <span class="req">*</span></label>
+                        <div class="m-rate-stars" role="radiogroup" aria-label="{{ __('ui.rating') }}">
                             <template x-for="n in 5" :key="n">
                                 <span :class="{ 'on': n <= rating }" @click="rating = n" role="radio" :aria-checked="n === rating" :aria-label="`${n} estrellas`">★</span>
                             </template>
@@ -1236,21 +1236,21 @@ if (!empty($itinerary)) {
                         <input type="hidden" name="rating" :value="rating">
                     </div>
                     <div class="fld">
-                        <label for="rev-comment">Tu reseña <span class="req">*</span></label>
+                        <label for="rev-comment">{{ __('ui.your_review') }} <span class="req">*</span></label>
                         <textarea id="rev-comment" name="comment" required minlength="10" maxlength="2000">{{ old('comment') }}</textarea>
                     </div>
                     <div class="fld">
-                        <label for="rev-name">Nombre <span class="req">*</span></label>
+                        <label for="rev-name">{{ __('ui.name') }} <span class="req">*</span></label>
                         <input id="rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name">
                     </div>
                     <div class="fld">
-                        <label for="rev-email">Correo electrónico <span class="req">*</span></label>
+                        <label for="rev-email">{{ __('ui.email') }} <span class="req">*</span></label>
                         <input id="rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email">
-                        <div class="m-review-hint">No se publicará. Solo para verificar tu reseña.</div>
+                        <div class="m-review-hint">{{ __('ui.email_not_published') }}</div>
                     </div>
                     {{-- Honeypot anti-spam --}}
                     <input class="m-review-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-                    <button type="submit" class="m-review-submit">Enviar reseña</button>
+                    <button type="submit" class="m-review-submit">{{ __('ui.submit_review') }}</button>
                 </form>
             </details>
         </div>
@@ -1258,8 +1258,8 @@ if (!empty($itinerary)) {
         {{-- 9. OTROS VIAJEROS TAMBIÉN RESERVARON — rec-cards --}}
         <div style="padding:12px 20px 18px;">
             <div class="m-h2">
-                <h2>Otros viajeros también reservaron</h2>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}">Ver todos</a>
+                <h2>{{ __('ui.others_also_booked') }}</h2>
+                <a href="{{ route('tours.index', ['locale' => $locale]) }}">{{ __('ui.see_all') }}</a>
             </div>
             <div class="m-rec-list">
                 @foreach ($sidebarTours as $rel)
@@ -1309,20 +1309,20 @@ if (!empty($itinerary)) {
                         </div>
                         <div class="m-rec-side">
                             @if ($relHasOffer)
-                                <div class="offer">OFERTA</div>
+                                <div class="offer">{{ mb_strtoupper(__('ui.offer')) }}</div>
                                 <div class="price">
                                     <strong>US${{ number_format($relPrice, 0) }}</strong>
-                                    <small>por persona</small>
+                                    <small>{{ __('ui.per_person') }}</small>
                                 </div>
                                 <div class="disc">-{{ $relPct }}%</div>
-                                <div class="before">Antes US${{ number_format((float)$relBefore, 0) }}</div>
+                                <div class="before">{{ __('ui.before') }} US${{ number_format((float)$relBefore, 0) }}</div>
                             @else
                                 <div class="price">
                                     <strong>US${{ number_format($relPrice, 0) }}</strong>
-                                    <small>por persona</small>
+                                    <small>{{ __('ui.per_person') }}</small>
                                 </div>
                             @endif
-                            <a href="{{ $relHref }}" class="m-rec-btn">Ver tour</a>
+                            <a href="{{ $relHref }}" class="m-rec-btn">{{ __('ui.see_tour') }}</a>
                         </div>
                     </div>
                 @endforeach
@@ -1331,12 +1331,12 @@ if (!empty($itinerary)) {
 
         {{-- 10. RESERVA CON CONFIANZA --}}
         <div class="m-confidence">
-            <h2 style="font-family:Georgia,serif;margin:0 0 12px;font-size:20px;color:#1a0d75;">Reserva con confianza</h2>
+            <h2 style="font-family:Georgia,serif;margin:0 0 12px;font-size:20px;color:#1a0d75;">{{ __('ui.book_with_confidence') }}</h2>
             <div class="m-confidence-grid">
-                <div><span class="m-ico" aria-hidden="true">🛡️</span>Cancelación gratuita<small>Hasta 24h antes</small></div>
-                <div><span class="m-ico" aria-hidden="true">🔒</span>Pago seguro y protegido</div>
-                <div><span class="m-ico" aria-hidden="true">🎧</span>Atención al cliente 24/7</div>
-                <div><span class="m-ico" style="color:#c76b33;" aria-hidden="true">🏛️</span>Más de 10 años de experiencia</div>
+                <div><span class="m-ico" aria-hidden="true">🛡️</span>{{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
+                <div><span class="m-ico" aria-hidden="true">🔒</span>{{ __('ui.secure_payment_protected') }}</div>
+                <div><span class="m-ico" aria-hidden="true">🎧</span>{{ __('ui.customer_support_247') }}</div>
+                <div><span class="m-ico" style="color:#c76b33;" aria-hidden="true">🏛️</span>{{ __('ui.over_10_years') }}</div>
             </div>
         </div>
 
@@ -1368,16 +1368,16 @@ if (!empty($itinerary)) {
                 @if ($isMostBooked)
                     <span class="inline-flex items-center gap-1.5 bg-white/95 text-teal-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
                         <svg class="w-4 h-4 text-orange-400 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        Más reservado
+                        {{ __('ui.most_booked') }}
                     </span>
                 @endif
                 <span class="inline-flex items-center gap-1.5 bg-teal-800/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Cancelación gratuita
+                    {{ __('ui.free_cancellation') }}
                 </span>
                 <span class="inline-flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
                     <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clip-rule="evenodd"/></svg>
-                    Últimos cupos
+                    {{ __('ui.last_spots') }}
                 </span>
             </div>
 
@@ -1389,7 +1389,7 @@ if (!empty($itinerary)) {
                             @click="active = {{ $tIdx }}"
                             class="w-14 h-10 lg:w-16 lg:h-12 rounded-lg overflow-hidden ring-2 transition shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
                             :class="active === {{ $tIdx }} ? 'ring-orange-400 opacity-100' : 'ring-transparent opacity-60 hover:opacity-90'"
-                            aria-label="Foto {{ $tIdx + 1 }}">
+                            aria-label="{{ __('ui.photo') }} {{ $tIdx + 1 }}">
                         <img src="{{ $tUrl }}"
                              alt=""
                              class="w-full h-full object-cover"
@@ -1401,7 +1401,7 @@ if (!empty($itinerary)) {
                     <button type="button"
                             @click="open(active)"
                             class="w-14 h-10 lg:w-16 lg:h-12 rounded-lg overflow-hidden bg-black/60 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-transparent hover:ring-orange-400 transition shrink-0"
-                            aria-label="Ver todas las fotos">
+                            aria-label="{{ __('ui.view_all_photos') }}">
                         +{{ $totalImgs - 5 }}
                     </button>
                 @endif
@@ -1413,7 +1413,7 @@ if (!empty($itinerary)) {
                     @click="open(active)"
                     class="absolute bottom-3 right-3 z-20 inline-flex items-center gap-1.5 bg-black/55 hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
                     :class="{'hidden': {{ $totalImgs }} > 1}"
-                    aria-label="Ver galería de fotos">
+                    aria-label="{{ __('ui.view_gallery') }}">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
@@ -1429,16 +1429,16 @@ if (!empty($itinerary)) {
              @click.self="close()">
             <div class="flex items-center justify-between px-5 py-4 text-white shrink-0">
                 <span class="text-sm font-semibold"><span x-text="active + 1"></span> / {{ $totalImgs }}</span>
-                <button type="button" @click="close()" class="p-2 rounded-full hover:bg-white/10 transition" aria-label="Cerrar galería">
+                <button type="button" @click="close()" class="p-2 rounded-full hover:bg-white/10 transition" aria-label="{{ __('ui.close_gallery') }}">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             <div class="relative flex-1 grid place-items-center px-4 md:px-12 overflow-hidden">
                 @if ($totalImgs > 1)
-                    <button type="button" @click="prev()" class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="Foto anterior">
+                    <button type="button" @click="prev()" class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.prev_photo') }}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <button type="button" @click="next()" class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="Foto siguiente">
+                    <button type="button" @click="next()" class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.next_photo') }}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>
                 @endif
@@ -1457,11 +1457,11 @@ if (!empty($itinerary)) {
                     @if ($totalImgs > 8)
                         <button type="button" x-show="!showAll" @click="showAll = true"
                                 class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wide transition">
-                            Ver más ({{ $totalImgs - 8 }})
+                            {{ __('ui.see_more') }} ({{ $totalImgs - 8 }})
                         </button>
                         <button type="button" x-show="showAll" @click="showAll = false"
                                 class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wide transition">
-                            Ver menos
+                            {{ __('ui.see_less') }}
                         </button>
                     @endif
                 </div>
@@ -1476,16 +1476,16 @@ if (!empty($itinerary)) {
                 {{ $titleDisplay }}
             </h1>
             <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                <span class="inline-flex gap-0.5" aria-label="{{ $tourRating }} de 5 estrellas">
+                <span class="inline-flex gap-0.5" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">
                     @for ($s = 0; $s < 5; $s++)
                         <svg class="w-4 h-4 text-orange-400 fill-current" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     @endfor
                 </span>
                 <span class="font-bold text-teal-800 text-sm">{{ $tourRating }}</span>
-                <span class="text-teal-800/60 text-sm">({{ $reviewsCount }} opiniones verificadas)</span>
+                <span class="text-teal-800/60 text-sm">({{ $reviewsCount }} {{ __('ui.verified_reviews') }})</span>
                 <span class="inline-flex items-center gap-1 bg-state-success/10 text-state-success text-[11px] font-semibold px-2 py-0.5 rounded-full">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                    Verificado
+                    {{ __('ui.verified') }}
                 </span>
             </div>
         </section>
@@ -1494,21 +1494,21 @@ if (!empty($itinerary)) {
              3. CONFIANZA / URGENCIA
              trust-row + notice + 4 features
         ══════════════════════════════════════ --}}
-        <section aria-label="Confianza y garantías">
+        <section aria-label="{{ __('ui.trust_guarantees') }}">
             {{-- Trust row --}}
             <div class="grid grid-cols-2 gap-3 mb-3">
                 <div class="flex items-center gap-2.5 bg-white ring-1 ring-teal-800/10 rounded-2xl px-3 py-3">
                     <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                     <div>
-                        <p class="text-xs font-bold text-teal-800">Cancelación gratuita</p>
-                        <p class="text-[11px] text-teal-800/55">Hasta 24h antes</p>
+                        <p class="text-xs font-bold text-teal-800">{{ __('ui.free_cancellation') }}</p>
+                        <p class="text-[11px] text-teal-800/55">{{ __('ui.until_24h_before') }}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2.5 bg-white ring-1 ring-teal-800/10 rounded-2xl px-3 py-3">
                     <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                     <div>
-                        <p class="text-xs font-bold text-teal-800">Pago seguro</p>
-                        <p class="text-[11px] text-teal-800/55">y protegido</p>
+                        <p class="text-xs font-bold text-teal-800">{{ __('ui.secure_payment') }}</p>
+                        <p class="text-[11px] text-teal-800/55">{{ __('ui.and_protected') }}</p>
                     </div>
                 </div>
             </div>
@@ -1516,16 +1516,16 @@ if (!empty($itinerary)) {
             {{-- Notice urgencia --}}
             <div class="inline-flex items-center gap-2 bg-orange-50 border border-orange-200 text-teal-800 text-sm font-medium px-4 py-2.5 rounded-full w-full justify-center mt-1">
                 <svg class="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clip-rule="evenodd"/></svg>
-                <span><strong>{{ $bookingsWeek }}</strong> viajeros reservaron este tour esta semana</span>
+                <span><strong>{{ $bookingsWeek }}</strong> {{ __('ui.travelers_booked_week') }}</span>
             </div>
 
             {{-- Grid 4 features --}}
             <div class="grid grid-cols-4 gap-2 sm:gap-4 mt-4">
             @foreach ([
-                ['icon' => 'van',    'label' => 'Recojo incluido',      'caption' => 'Desde tu hotel'],
-                ['icon' => 'globe',  'label' => 'Guía bilingüe',        'caption' => 'Español / Inglés'],
-                ['icon' => 'shield', 'label' => 'Cancelación gratuita', 'caption' => 'Hasta 24h antes'],
-                ['icon' => 'group',  'label' => 'Grupos pequeños',      'caption' => 'Experiencia personalizada'],
+                ['icon' => 'van',    'label' => __('ui.pickup_included'),      'caption' => __('ui.from_your_hotel')],
+                ['icon' => 'globe',  'label' => __('ui.bilingual_guide'),        'caption' => __('ui.spanish_english')],
+                ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')],
+                ['icon' => 'group',  'label' => __('ui.small_groups'),      'caption' => __('ui.personalized_experience')],
             ] as $feature)
                 <div class="flex flex-col items-center text-center gap-1.5">
                     <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white ring-1 ring-teal-800/15 grid place-items-center text-teal-700 shadow-sm">
@@ -1565,7 +1565,7 @@ if (!empty($itinerary)) {
                 }
              }">
             <div class="flex items-center justify-between mb-4">
-                <h2 id="highlights-heading" class="font-display text-xl lg:text-2xl text-teal-800">¿Qué vivirás en este tour?</h2>
+                <h2 id="highlights-heading" class="font-display text-xl lg:text-2xl text-teal-800">{{ __('ui.what_will_you_experience') }}</h2>
             </div>
             <div class="highlights-track"
                  x-ref="track"
@@ -1627,9 +1627,9 @@ if (!empty($itinerary)) {
         @if (count($itinerary) > 0)
         <section aria-labelledby="itinerary-heading" class="pb-2">
             <div class="flex items-center justify-between mb-4">
-                <h2 id="itinerary-heading" class="font-display text-xl lg:text-2xl text-teal-800">Itinerario del tour</h2>
+                <h2 id="itinerary-heading" class="font-display text-xl lg:text-2xl text-teal-800">{{ __('ui.tour_itinerary') }}</h2>
             </div>
-            <ol class="space-y-0" aria-label="Itinerario del tour">
+            <ol class="space-y-0" aria-label="{{ __('ui.tour_itinerary') }}">
                 @foreach ($itinerary as $idx => $step)
                     <li class="relative flex gap-4 {{ !$loop->last ? 'pb-6' : '' }}">
                         @if (!$loop->last)
@@ -1677,7 +1677,7 @@ if (!empty($itinerary)) {
              Normal: 4 ítems | Oferta: 5 ítems
         ══════════════════════════════════════ --}}
         <section aria-labelledby="info-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm overflow-hidden">
-            <h2 id="info-heading" class="font-display text-base text-teal-800 px-5 pt-5 pb-3">Información importante</h2>
+            <h2 id="info-heading" class="font-display text-base text-teal-800 px-5 pt-5 pb-3">{{ __('ui.important_info') }}</h2>
             <div class="divide-y divide-teal-800/8">
 
                 {{-- Descripción --}}
@@ -1687,7 +1687,7 @@ if (!empty($itinerary)) {
                             <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
                         </span>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">Descripción</p>
+                            <p class="text-sm font-bold text-teal-800">{{ __('ui.description') }}</p>
                             <p class="text-xs text-teal-800/55 truncate">{{ \Illuminate\Support\Str::limit(strip_tags($tour->{"description_$locale"} ?? $tour->description_es ?? ''), 60) }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
@@ -1705,8 +1705,8 @@ if (!empty($itinerary)) {
                             <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>
                         </span>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">Itinerario completo</p>
-                            <p class="text-xs text-teal-800/55 truncate">Revisa el plan detallado del tour.</p>
+                            <p class="text-sm font-bold text-teal-800">{{ __('ui.full_itinerary') }}</p>
+                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.itinerary_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -1732,15 +1732,15 @@ if (!empty($itinerary)) {
                             <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>
                         </span>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">Servicios incluidos</p>
-                            <p class="text-xs text-teal-800/55 truncate">Todo lo que está incluido en tu experiencia.</p>
+                            <p class="text-sm font-bold text-teal-800">{{ __('ui.included_services') }}</p>
+                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.included_services_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
                     <div class="px-5 pb-5 pt-1 text-sm text-teal-800/80 space-y-4">
                         @if (count($includes) > 0)
                             <div>
-                                <p class="text-xs font-semibold text-state-success uppercase tracking-wide mb-2">Incluye</p>
+                                <p class="text-xs font-semibold text-state-success uppercase tracking-wide mb-2">{{ mb_strtoupper(__('ui.includes')) }}</p>
                                 <ul class="space-y-1.5">
                                     @foreach ($includes as $item)
                                         <li class="flex gap-2 items-start">
@@ -1753,7 +1753,7 @@ if (!empty($itinerary)) {
                         @endif
                         @if (count($excludes) > 0)
                             <div>
-                                <p class="text-xs font-semibold text-state-error uppercase tracking-wide mb-2">No incluye</p>
+                                <p class="text-xs font-semibold text-state-error uppercase tracking-wide mb-2">{{ mb_strtoupper(__('ui.not_included')) }}</p>
                                 <ul class="space-y-1.5">
                                     @foreach ($excludes as $item)
                                         <li class="flex gap-2 items-start">
@@ -1765,7 +1765,7 @@ if (!empty($itinerary)) {
                             </div>
                         @endif
                         @if (count($includes) === 0 && count($excludes) === 0)
-                            <p class="text-teal-800/55 text-xs">Consulta los servicios incluidos con nuestro equipo.</p>
+                            <p class="text-teal-800/55 text-xs">{{ __('ui.check_services_team') }}</p>
                         @endif
                     </div>
                 </details>
@@ -1777,8 +1777,8 @@ if (!empty($itinerary)) {
                             <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
                         </span>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">Recomendaciones</p>
-                            <p class="text-xs text-teal-800/55 truncate">Consejos para que disfrutes al máximo tu experiencia.</p>
+                            <p class="text-sm font-bold text-teal-800">{{ __('ui.recommendations') }}</p>
+                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.recommendations_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -1801,8 +1801,8 @@ if (!empty($itinerary)) {
                             <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
                         </span>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">Notas importantes</p>
-                            <p class="text-xs text-teal-800/55 truncate">Lo que debes saber antes de reservar.</p>
+                            <p class="text-sm font-bold text-teal-800">{{ __('ui.important_notes') }}</p>
+                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.important_notes_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -1819,8 +1819,8 @@ if (!empty($itinerary)) {
         ══════════════════════════════════════ --}}
         <section aria-labelledby="reviews-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 id="reviews-heading" class="font-display text-base lg:text-lg text-teal-800">Opiniones de nuestros viajeros</h2>
-                <a href="#reviews-heading" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">Ver todas</a>
+                <h2 id="reviews-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.traveler_reviews') }}</h2>
+                <a href="#reviews-heading" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">{{ __('ui.see_all') }}</a>
             </div>
             {{-- Plataformas Google + Tripadvisor --}}
             <div class="grid grid-cols-2 gap-3 mb-4">
@@ -1833,9 +1833,9 @@ if (!empty($itinerary)) {
                     <div class="flex gap-0.5 my-0.5" aria-hidden="true">
                         @for ($s=0;$s<5;$s++)<svg class="w-3 h-3 text-orange-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endfor
                     </div>
-                    <p class="text-[11px] text-teal-800/55 mb-1.5">22 reseñas</p>
+                    <p class="text-[11px] text-teal-800/55 mb-1.5">22 {{ __('ui.reviews') }}</p>
                     <a href="#" class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
-                        Ver en Google <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                        {{ __('ui.see_on_google') }} <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                     </a>
                 </div>
                 <div class="bg-cream-100 rounded-xl p-3">
@@ -1856,9 +1856,9 @@ if (!empty($itinerary)) {
                         @for ($s=0;$s<4;$s++)<svg class="w-3 h-3 text-orange-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endfor
                         <svg class="w-3 h-3 text-orange-200 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
-                    <p class="text-[11px] text-teal-800/55 mb-1.5">8 reseñas</p>
+                    <p class="text-[11px] text-teal-800/55 mb-1.5">8 {{ __('ui.reviews') }}</p>
                     <a href="#" class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
-                        Ver en Tripadvisor <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                        {{ __('ui.see_on_tripadvisor') }} <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                     </a>
                 </div>
             </div>
@@ -1899,7 +1899,7 @@ if (!empty($itinerary)) {
                                 <div>
                                     <p class="text-xs font-bold text-teal-800 flex items-center gap-1">
                                         {{ $tName }}
-                                        <span class="inline-flex items-center gap-0.5 bg-state-success/10 text-state-success text-[9px] font-semibold px-1.5 py-0.5 rounded-full" aria-label="Verificado">
+                                        <span class="inline-flex items-center gap-0.5 bg-state-success/10 text-state-success text-[9px] font-semibold px-1.5 py-0.5 rounded-full" aria-label="{{ __('ui.verified') }}">
                                             <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                         </span>
                                     </p>
@@ -1921,14 +1921,14 @@ if (!empty($itinerary)) {
                 @endforeach
             </div>
             @else
-                <p class="text-sm text-teal-800/55">Sé el primero en dejar una reseña de este tour.</p>
+                <p class="text-sm text-teal-800/55">{{ __('ui.be_first_review') }}</p>
             @endif
 
             {{-- Formulario "Añade una valoración" (desktop) — crea reseña pendiente de aprobación --}}
             <div class="mt-5 pt-5 border-t border-teal-800/10" x-data="{ open: {{ ($errors->any() || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
                 <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-teal-800">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    Añade una valoración
+                    {{ __('ui.add_review') }}
                     <svg class="w-4 h-4 transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <form x-show="open" x-cloak method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="mt-4 space-y-3">
@@ -1937,7 +1937,7 @@ if (!empty($itinerary)) {
                         <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first() }}</div>
                     @endif
                     <div>
-                        <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Tu puntuación *</label>
+                        <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_rating') }} *</label>
                         <div class="flex gap-1 text-2xl leading-none cursor-pointer">
                             <template x-for="n in 5" :key="n">
                                 <span @click="rating = n" :class="n <= rating ? 'text-orange-400' : 'text-teal-800/20'">★</span>
@@ -1946,22 +1946,22 @@ if (!empty($itinerary)) {
                         <input type="hidden" name="rating" :value="rating">
                     </div>
                     <div>
-                        <label for="d-rev-comment" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Tu reseña *</label>
+                        <label for="d-rev-comment" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_review') }} *</label>
                         <textarea id="d-rev-comment" name="comment" required minlength="10" maxlength="2000" rows="4" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">{{ old('comment') }}</textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="d-rev-name" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Nombre *</label>
+                            <label for="d-rev-name" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.name') }} *</label>
                             <input id="d-rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
                         </div>
                         <div>
-                            <label for="d-rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">Correo *</label>
+                            <label for="d-rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.email') }} *</label>
                             <input id="d-rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                            <p class="text-[10px] text-teal-800/45 mt-1">No se publicará.</p>
+                            <p class="text-[10px] text-teal-800/45 mt-1">{{ __('ui.email_not_published') }}</p>
                         </div>
                     </div>
                     <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-bold text-sm rounded-full py-2.5 px-6 transition-colors">Enviar reseña</button>
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-bold text-sm rounded-full py-2.5 px-6 transition-colors">{{ __('ui.submit_review') }}</button>
                 </form>
             </div>
         </section>
@@ -1971,8 +1971,8 @@ if (!empty($itinerary)) {
         ══════════════════════════════════════ --}}
         <section aria-labelledby="related-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 id="related-heading" class="font-display text-base lg:text-lg text-teal-800">Otros viajeros también reservaron</h2>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">Ver todos</a>
+                <h2 id="related-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.others_also_booked') }}</h2>
+                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">{{ __('ui.see_all') }}</a>
             </div>
             {{-- Slider tipo home: 2 cards por vista en desktop --}}
             <div class="d-related" x-data>
@@ -2007,11 +2007,11 @@ if (!empty($itinerary)) {
                 @endforeach
                 </div>
                 @if ($sidebarTours->count() > 2)
-                    <button type="button" class="d-related-nav prev" aria-label="Anterior"
+                    <button type="button" class="d-related-nav prev" aria-label="{{ __('ui.previous') }}"
                             @click="$refs.relTrack.scrollBy({ left: -$refs.relTrack.clientWidth * 0.9, behavior: 'smooth' })">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <button type="button" class="d-related-nav next" aria-label="Siguiente"
+                    <button type="button" class="d-related-nav next" aria-label="{{ __('ui.next') }}"
                             @click="$refs.relTrack.scrollBy({ left: $refs.relTrack.clientWidth * 0.9, behavior: 'smooth' })">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>
@@ -2023,13 +2023,13 @@ if (!empty($itinerary)) {
              9. RESERVA CON CONFIANZA
         ══════════════════════════════════════ --}}
         <section aria-labelledby="confidence-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
-            <h2 id="confidence-heading" class="font-display text-base font-bold text-teal-800 mb-4">Reserva con confianza</h2>
+            <h2 id="confidence-heading" class="font-display text-base font-bold text-teal-800 mb-4">{{ __('ui.book_with_confidence') }}</h2>
             <div class="grid grid-cols-4 gap-2">
                 @foreach ([
-                    ['icon' => 'shield', 'label' => 'Cancelación gratuita', 'caption' => 'Hasta 24h antes'],
-                    ['icon' => 'lock',   'label' => 'Pago seguro y protegido', 'caption' => ''],
-                    ['icon' => 'phone',  'label' => 'Atención al cliente 24/7', 'caption' => ''],
-                    ['icon' => 'medal',  'label' => 'Más de 10 años de experiencia', 'caption' => ''],
+                    ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')],
+                    ['icon' => 'lock',   'label' => __('ui.secure_payment_protected'), 'caption' => ''],
+                    ['icon' => 'phone',  'label' => __('ui.customer_support_247'), 'caption' => ''],
+                    ['icon' => 'medal',  'label' => __('ui.over_10_years'), 'caption' => ''],
                 ] as $trust)
                     <div class="flex flex-col items-center text-center gap-1.5">
                         <div class="w-10 h-10 rounded-full bg-orange-50 ring-1 ring-orange-200 grid place-items-center text-orange-500 shrink-0">
@@ -2055,15 +2055,15 @@ if (!empty($itinerary)) {
     </div>{{-- /columna izquierda --}}
 
     {{-- ─── COLUMNA DERECHA — tarjeta de reserva sticky ─── --}}
-    <aside class="hidden md:block d-sidebar-sticky" aria-label="Reserva">
+    <aside class="hidden md:block d-sidebar-sticky" aria-label="{{ __('ui.book_online') }}">
         <div id="seccion-reserva-desktop" class="booking-compact-card"
              x-data="{ price: window.__lvtPrice || 0, get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); } }">
             {{-- Cabecera --}}
             <div class="booking-compact-head">
-                <span class="text-white text-xs font-semibold tracking-wide">Reserva online</span>
+                <span class="text-white text-xs font-semibold tracking-wide">{{ __('ui.book_online') }}</span>
                 <span class="inline-flex items-center gap-1 text-white/80 text-[11px]">
                     <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Cancelación gratis
+                    {{ __('ui.free_cancellation') }}
                 </span>
             </div>
             {{-- Cuerpo --}}
@@ -2072,73 +2072,73 @@ if (!empty($itinerary)) {
                 <div class="flex items-end gap-4 flex-wrap">
                     @if ($hasOffer)
                         <div>
-                            <p class="text-[10px] uppercase tracking-widest text-teal-800/50 font-semibold leading-none">ANTES</p>
+                            <p class="text-[10px] uppercase tracking-widest text-teal-800/50 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_before')) }}</p>
                             <p class="font-price text-base text-teal-800/50 line-through leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
                         </div>
                         <div>
-                            <p class="text-[10px] uppercase tracking-widest text-orange-500 font-semibold leading-none">AHORA</p>
+                            <p class="text-[10px] uppercase tracking-widest text-orange-500 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_now')) }}</p>
                             <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ por persona</p>
+                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ {{ __('ui.per_person') }}</p>
                         </div>
                         <span class="ml-auto inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-600 text-[11px] font-bold px-2 py-1 rounded-lg">
                             -{{ $discountPct }}%
                         </span>
                     @else
                         <div>
-                            <p class="text-[10px] uppercase tracking-widest text-teal-800/55 font-semibold leading-none">Desde</p>
+                            <p class="text-[10px] uppercase tracking-widest text-teal-800/55 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
                             <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ por persona</p>
+                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ {{ __('ui.per_person') }}</p>
                         </div>
                     @endif
                 </div>
 
                 {{-- Campo Fecha --}}
                 <div>
-                    <label for="sb-date" class="block text-[11px] font-semibold text-teal-800 mb-1">Fecha del tour</label>
+                    <label for="sb-date" class="block text-[11px] font-semibold text-teal-800 mb-1">{{ __('ui.tour_date') }}</label>
                     <input type="date" id="sb-date"
                            data-booking-date
                            x-model="$store.booking.date"
                            class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
                            min="{{ now()->addDay()->format('Y-m-d') }}"
-                           aria-label="Seleccionar fecha del tour">
+                           aria-label="{{ __('ui.select_tour_date') }}">
                 </div>
 
                 {{-- Adultos --}}
                 <div>
-                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">Adultos</label>
+                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">{{ __('ui.adults') }}</label>
                     <div class="flex items-center gap-3 rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2">
                         <button type="button"
                                 @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)"
                                 class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="Reducir adultos">−</button>
+                                aria-label="{{ __('ui.less_adults') }}">−</button>
                         <span class="flex-1 text-center text-sm font-bold text-teal-800 tabular-nums" x-text="$store.booking.adults">1</span>
                         <button type="button"
                                 @click="$store.booking.adults++"
                                 class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="Aumentar adultos">+</button>
+                                aria-label="{{ __('ui.more_adults') }}">+</button>
                     </div>
                 </div>
 
                 {{-- Niños --}}
                 <div>
-                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">Niños</label>
+                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">{{ __('ui.children') }}</label>
                     <div class="flex items-center gap-3 rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2">
                         <button type="button"
                                 @click="$store.booking.children = Math.max(0, $store.booking.children - 1)"
                                 class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="Reducir niños">−</button>
+                                aria-label="{{ __('ui.less_children') }}">−</button>
                         <span class="flex-1 text-center text-sm font-bold text-teal-800 tabular-nums" x-text="$store.booking.children">0</span>
                         <button type="button"
                                 @click="$store.booking.children++"
                                 class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="Aumentar niños">+</button>
+                                aria-label="{{ __('ui.more_children') }}">+</button>
                     </div>
                 </div>
 
                 {{-- Total estimado --}}
                 <div class="flex items-center justify-between bg-cream-100 ring-1 ring-teal-800/10 rounded-xl px-4 py-3">
                     <div>
-                        <p class="text-xs font-semibold text-teal-800">Total estimado</p>
+                        <p class="text-xs font-semibold text-teal-800">{{ __('ui.estimated_total') }}</p>
                         <p class="text-[10px] text-teal-800/50 mt-0.5"
                            x-text="`${$store.booking.adults} adulto${$store.booking.adults>1?'s':''}` + ($store.booking.children>0 ? ` + ${$store.booking.children} niño${$store.booking.children>1?'s':''}` : '') + ` × US$${price}`">
                         </p>
@@ -2150,7 +2150,7 @@ if (!empty($itinerary)) {
                 <button type="submit"
                         form="form-reservar"
                         class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-sm rounded-full py-3.5 px-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800 uppercase tracking-wide">
-                    Reservar ahora
+                    {{ __('ui.book_now') }}
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                 </button>
 
@@ -2158,16 +2158,16 @@ if (!empty($itinerary)) {
                 <div class="grid grid-cols-2 gap-2 pt-1 border-t border-teal-800/10">
                     <div class="flex items-center gap-1.5 text-teal-800/70">
                         <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                        <span class="text-[10px] font-semibold">Cancelación gratuita</span>
+                        <span class="text-[10px] font-semibold">{{ __('ui.free_cancellation') }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 text-teal-800/70">
                         <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                        <span class="text-[10px] font-semibold">Pago seguro</span>
+                        <span class="text-[10px] font-semibold">{{ __('ui.secure_payment') }}</span>
                     </div>
                 </div>
 
                 {{-- Pie --}}
-                <p class="text-center text-[11px] text-teal-800/45">Sin cargos extra · Confirmación inmediata</p>
+                <p class="text-center text-[11px] text-teal-800/45">{{ __('ui.no_extra_fees_instant_confirmation') }}</p>
             </div>
         </div>
     </aside>{{-- /columna derecha --}}
@@ -2202,22 +2202,22 @@ if (!empty($itinerary)) {
                 @if ($hasOffer)
                     <p class="text-[9px] text-teal-800/50 line-through font-price leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
                 @else
-                    <p class="text-[10px] uppercase tracking-wider text-teal-800/55 font-semibold leading-none">Desde</p>
+                    <p class="text-[10px] uppercase tracking-wider text-teal-800/55 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
                 @endif
                 <p class="font-price text-2xl font-bold text-teal-800 leading-tight">US${{ number_format((float)$tour->price, 0) }}</p>
-                <p class="text-[10px] text-teal-800/45 leading-none">por persona</p>
+                <p class="text-[10px] text-teal-800/45 leading-none">{{ __('ui.per_person') }}</p>
             </div>
             <div class="flex items-center gap-2 text-teal-800/70 flex-1 justify-center">
                 <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                 <div>
-                    <p class="text-xs font-semibold text-teal-800">Cancelación gratuita</p>
-                    <p class="text-[11px] text-teal-800/50">Hasta 24h antes</p>
+                    <p class="text-xs font-semibold text-teal-800">{{ __('ui.free_cancellation') }}</p>
+                    <p class="text-[11px] text-teal-800/50">{{ __('ui.until_24h_before') }}</p>
                 </div>
             </div>
             <button type="submit"
                     form="form-reservar"
                     class="shrink-0 inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-semibold text-sm rounded-full py-3 px-5 lg:px-7 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
-                Reservar ahora
+                {{ __('ui.book_now') }}
                 <span class="w-7 h-7 rounded-full bg-orange-500 grid place-items-center shrink-0" aria-hidden="true">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                 </span>

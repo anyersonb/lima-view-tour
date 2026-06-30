@@ -958,9 +958,9 @@
                     <hr class="my-5 border-cream-200/80">
                     <div class="flex items-center justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">DESDE</p>
+                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.from') }}</p>
                             <p class="font-price text-2xl text-teal-800 font-semibold leading-none">US${{ $tPrice }}</p>
-                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">POR PERSONA</p>
+                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.per_person') }}</p>
                         </div>
                         <a href="{{ route('tours.index', ['locale' => $locale]) }}"
                            class="inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-5 py-3 font-semibold text-xs uppercase tracking-wider transition shrink-0">

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Nosotros — ' . __('seo.site_name'))
-@section('description', 'Somos planificadores profesionales para tus vacaciones. Conoce a Lima View Tours: experiencias auténticas, guías expertos y turismo responsable en Perú.')
+@section('title', __('nav.about') . ' — ' . __('seo.site_name'))
+@section('description', __('ui.about_meta_description'))
 
 @php
     $locale = app()->getLocale();
@@ -113,22 +113,22 @@
     <div class="container mx-auto px-5 lg:px-10">
         <nav aria-label="Breadcrumb" class="py-5 text-xs text-white/75">
             <ol class="flex items-center gap-1.5">
-                <li><a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400 transition-colors">Inicio</a></li>
+                <li><a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400 transition-colors">{{ __('nav.home') }}</a></li>
                 <li aria-hidden="true" class="text-white/50">/</li>
-                <li aria-current="page">Nosotros</li>
+                <li aria-current="page">{{ __('nav.about') }}</li>
             </ol>
         </nav>
     </div>
     <div class="container mx-auto px-5 lg:px-10 pb-20 md:pb-28 lg:pb-32">
-        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold text-white/80">{{ $b['hero_eyebrow_'.$locale] ?? 'SOBRE NOSOTROS' }}</p>
+        <p class="text-[11px] uppercase tracking-[0.25em] font-semibold text-white/80">{{ $b['hero_eyebrow_'.$locale] ?? __('ui.about_eyebrow') }}</p>
         <h1 id="about-hero-title" class="mt-3 font-display font-normal text-4xl md:text-5xl lg:text-6xl leading-[1.1] max-w-3xl">
-            {{ $b['hero_title_'.$locale] ?? 'Somos planificadores profesionales para tus vacaciones' }}
+            {{ $b['hero_title_'.$locale] ?? __('ui.about_hero_title') }}
         </h1>
         <p class="mt-5 max-w-2xl text-sm md:text-base text-white/85 leading-relaxed">
-            {{ $b['hero_lead_'.$locale] ?? 'Más de una década organizando experiencias auténticas por los destinos más emblemáticos del Perú. Nuestro compromiso: viajar contigo y dejar huella positiva.' }}
+            {{ $b['hero_lead_'.$locale] ?? __('ui.about_hero_lead') }}
         </p>
         <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-7">
-            {{ $b['hero_cta_label_'.$locale] ?? 'Ver más' }}
+            {{ $b['hero_cta_label_'.$locale] ?? __('ui.see_more') }}
         </a>
     </div>
 </section>
@@ -139,34 +139,34 @@
         <div>
             <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/60 font-semibold inline-flex items-center gap-2 mb-3">
                 <x-icon-compass class="w-8 h-8 text-teal-700" />
-                NOSOTROS
+                {{ __('nav.about') }}
             </p>
             <h2 id="about-why-title" class="font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
-                ¿Por qué reservar<br>con nosotros?
+                {{ __('ui.why_book_with_us') }}
             </h2>
             <p class="mt-5 text-teal-800/75 leading-relaxed text-sm md:text-base">
-                {{ $b['why_intro_'.$locale] ?? 'En Lima View Tours diseñamos experiencias para conectar a nuestros viajeros con la riqueza histórica, gastronómica y natural del Perú. Cada itinerario está pensado al detalle: transporte cómodo, guías locales certificados y aliados confiables.' }}
+                {{ $b['why_intro_'.$locale] ?? __('ui.about_why_intro') }}
             </p>
             <p class="mt-4 text-teal-800/75 leading-relaxed text-sm md:text-base">
-                {{ $b['why_intro2_'.$locale] ?? 'Apostamos por un turismo responsable que respeta a las comunidades y al medio ambiente. Nuestro símbolo —la espiral— representa el viaje desde el centro hacia nuevas perspectivas.' }}
+                {{ $b['why_intro2_'.$locale] ?? __('ui.about_why_intro2') }}
             </p>
             <a href="{{ route('contact', ['locale' => $locale]) }}" class="btn--primary mt-7">
-                {{ $b['why_cta_label_'.$locale] ?? 'Contáctanos' }}
+                {{ $b['why_cta_label_'.$locale] ?? __('ui.contact_us') }}
             </a>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-            <img src="{{ $mediaUrl($b['img_grid1'] ?? null) ?? asset('assets/banners/Rectangle 19216.jpg') }}" alt="Lima nocturna" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
-            <img src="{{ $mediaUrl($b['img_grid2'] ?? null) ?? asset('assets/banners/Rectangle 19217.jpg') }}" alt="Machu Picchu" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
-            <img src="{{ $mediaUrl($b['img_grid3'] ?? null) ?? asset('assets/banners/Rectangle 19218.jpg') }}" alt="Cusco colonial" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
-            <img src="{{ $mediaUrl($b['img_grid4'] ?? null) ?? asset('assets/banners/Rectangle 19219.jpg') }}" alt="Huacachina oasis" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid1'] ?? null) ?? asset('assets/banners/Rectangle 19216.jpg') }}" alt="{{ __('ui.alt_lima_nocturna') }}" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid2'] ?? null) ?? asset('assets/banners/Rectangle 19217.jpg') }}" alt="{{ __('ui.alt_machu_picchu') }}" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid3'] ?? null) ?? asset('assets/banners/Rectangle 19218.jpg') }}" alt="{{ __('ui.alt_cusco_colonial') }}" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm" loading="lazy" width="360" height="208">
+            <img src="{{ $mediaUrl($b['img_grid4'] ?? null) ?? asset('assets/banners/Rectangle 19219.jpg') }}" alt="{{ __('ui.alt_huacachina') }}" class="w-full h-44 md:h-52 object-cover rounded-2xl shadow-sm translate-y-6 md:translate-y-8" loading="lazy" width="360" height="208">
         </div>
     </div>
 </section>
 
 {{-- ───────── STATS BAND ───────── --}}
 <section class="bg-teal-700 text-white" aria-labelledby="about-stats-title">
-    <h2 id="about-stats-title" class="sr-only">Quiénes somos</h2>
+    <h2 id="about-stats-title" class="sr-only">{{ __('ui.who_we_are') }}</h2>
     <div class="container mx-auto px-5 lg:px-10 py-12 grid grid-cols-2 md:grid-cols-4 gap-y-8 md:gap-y-0 text-center">
         @foreach ($statsItems as $idx => $s)
             <div class="px-5 lg:px-8 {{ $idx > 0 ? 'border-l border-white/15' : '' }} flex flex-col items-center">
@@ -192,12 +192,12 @@
     <div class="container mx-auto px-5 lg:px-10 py-20 md:py-28 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
         <div>
             <h2 id="about-banner-title" class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">
-                {!! nl2br(e($b['banner_heading_'.$locale] ?? "Somos\nLima View\nTours")) !!}
+                {!! nl2br(e($b['banner_heading_'.$locale] ?? __('ui.about_banner_heading'))) !!}
             </h2>
         </div>
         <div>
             <p class="mt-6 lg:mt-0 text-sm md:text-base text-white/85 leading-relaxed max-w-xl">
-                {{ $b['banner_text_'.$locale] ?? 'Transformamos cada viaje en una experiencia que conecta tu presente con el legado vibrante del Perú. Somos más que una agencia: somos tus compañeros de aventura.' }}
+                {{ $b['banner_text_'.$locale] ?? __('ui.about_banner_text') }}
             </p>
         </div>
     </div>
@@ -210,15 +210,15 @@
         <div class="lg:sticky lg:top-28">
             <x-icon-compass class="w-12 h-12 lg:w-[58px] lg:h-[60px] text-teal-700 shrink-0" />
             <h2 id="about-cultura-title" class="mt-4 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
-                {!! nl2br(e($b['cultura_heading_'.$locale] ?? "Vive la cultura\nlocal")) !!}
+                {!! nl2br(e($b['cultura_heading_'.$locale] ?? __('ui.about_cultura_heading'))) !!}
             </h2>
             <p class="mt-4 text-teal-800/75 max-w-md leading-relaxed text-sm md:text-base">
-                {{ $b['cultura_intro_'.$locale] ?? 'Cada experiencia se construye sobre tres pilares fundamentales: servicio cálido, calidad sin compromisos y operación propia que asegura la mejor experiencia.' }}
+                {{ $b['cultura_intro_'.$locale] ?? __('ui.about_cultura_intro') }}
             </p>
         </div>
 
         <div>
-            <div role="tablist" aria-label="Pilares de servicio" class="flex flex-wrap gap-2 mb-6">
+            <div role="tablist" aria-label="{{ __('ui.service_pillars') }}" class="flex flex-wrap gap-2 mb-6">
                 @foreach ($pillarsItems as $pillar)
                     @php $pid = $pillar['key'] ?? '' @endphp
                     <button type="button"
@@ -272,13 +272,13 @@
             $tadAuthor = $featured?->name  ?? null;
         @endphp
         <blockquote class="mt-6 font-display text-2xl md:text-3xl text-teal-800 leading-snug">
-            &laquo;{{ $tadQuote ?? 'Una experiencia que supera lo prometido. Logística impecable, guías apasionados y un trato cálido que hizo del viaje algo memorable.' }}&raquo;
+            &laquo;{{ $tadQuote ?? __('ui.about_ta_quote') }}&raquo;
         </blockquote>
         <figcaption class="mt-6 inline-flex items-center gap-3 text-left">
             <span class="w-10 h-10 rounded-full bg-cream-200"></span>
             <span class="leading-tight">
                 <span class="block font-semibold text-teal-800">{{ $tadAuthor ?? 'Valeriy Roberts' }}</span>
-                <span class="block text-xs text-teal-800/60">Cliente verificado</span>
+                <span class="block text-xs text-teal-800/60">{{ __('ui.verified_client') }}</span>
             </span>
         </figcaption>
     </div>
@@ -323,7 +323,7 @@
                         <div class="p-6">
                             <span class="text-orange-400 text-3xl leading-none" aria-hidden="true">&rdquo;</span>
                             <blockquote class="mt-2 text-sm text-teal-800/85 leading-relaxed">
-                                Excelente atención y un itinerario muy bien diseñado. Volvería sin dudarlo y lo recomiendo a quien quiera conocer Perú a profundidad.
+                                {{ __('ui.about_fallback_quote') }}
                             </blockquote>
                             <p class="mt-3 text-orange-400 text-sm" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733; <span class="text-teal-800/60">Google</span></p>
                         </div>
@@ -345,16 +345,16 @@
             <div class="absolute inset-0 bg-gradient-to-t from-teal-900/85 via-teal-900/40 to-teal-900/20"></div>
             <div class="relative h-full p-8 flex flex-col">
                 <p class="text-[11px] uppercase tracking-[0.2em] font-semibold">
-                    {{ $b['testimonios_eyebrow_'.$locale] ?? 'CLIENTES SATISFECHOS' }}
+                    {{ $b['testimonios_eyebrow_'.$locale] ?? __('ui.happy_clients') }}
                 </p>
                 <h3 class="mt-3 font-display text-3xl lg:text-4xl leading-tight">
-                    {{ $b['testimonios_heading_'.$locale] ?? 'Nuestros clientes opinan de nuestros tours' }}
+                    {{ $b['testimonios_heading_'.$locale] ?? __('ui.clients_opinion') }}
                 </h3>
                 <p class="mt-4 inline-flex items-center gap-2 text-sm">
                     <span class="font-semibold">{{ $avgRating }}</span>
                     <span class="text-orange-400">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                 </p>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-auto self-start">Ver tours</a>
+                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-auto self-start">{{ __('ui.see_tours') }}</a>
             </div>
         </article>
     </div>

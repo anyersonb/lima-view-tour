@@ -11,7 +11,7 @@
 @endphp
 
 @section('title', __('checkout.title') . ' — ' . __('seo.site_name'))
-@section('description', 'Completa tu pago de forma segura con tarjeta de crédito o débito. Lima View Tours.')
+@section('description', __('checkout.meta_description'))
 
 @push('head')
 <meta name="robots" content="noindex,nofollow">
@@ -27,17 +27,17 @@
     </div>
     <div class="container mx-auto px-5 lg:px-10">
         <nav aria-label="Breadcrumb" class="pt-6 text-xs text-white/80">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">Inicio</a>
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">{{ __('nav.home') }}</a>
             &gt;
-            <a href="{{ route('cart.index', ['locale' => $locale]) }}" class="hover:text-orange-400">Carrito</a>
+            <a href="{{ route('cart.index', ['locale' => $locale]) }}" class="hover:text-orange-400">{{ __('nav.cart') }}</a>
             &gt;
-            <span>Pago</span>
+            <span>{{ __('checkout.payment_step') }}</span>
         </nav>
     </div>
     <div class="container mx-auto px-5 lg:px-10 py-16 md:py-20 text-center">
         <h1 class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">{{ __('checkout.title') }}</h1>
         <p class="mt-4 mx-auto max-w-2xl text-sm md:text-base text-white/85">
-            Completa tus datos y paga con tarjeta de crédito o débito de forma segura con Culqi.
+            {{ __('checkout.hero_subtitle') }}
         </p>
     </div>
 </section>
@@ -54,7 +54,7 @@
         @endif
         @if ($errors->any())
             <div class="mb-6 rounded-xl bg-state-error/10 border border-state-error/30 text-state-error px-5 py-4 text-sm" role="alert">
-                <p class="font-semibold mb-2">Por favor corrige los siguientes errores:</p>
+                <p class="font-semibold mb-2">{{ __('checkout.fix_errors') }}</p>
                 <ul class="list-disc list-inside space-y-1">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -74,10 +74,10 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </span>
                     <div class="flex-1">
-                        <p class="font-semibold text-teal-800 text-sm">Cancelación gratuita + reprogramación ilimitada</p>
-                        <p class="text-xs text-teal-800/70 mt-1">Hasta las 9:00 del {{ $cancelDeadline->locale('es')->isoFormat('D [de] MMM, YYYY') }}.</p>
+                        <p class="font-semibold text-teal-800 text-sm">{{ __('checkout.free_cancellation') }}</p>
+                        <p class="text-xs text-teal-800/70 mt-1">{{ __('checkout.cancel_until', ['date' => $cancelDeadline->locale($locale)->isoFormat('D [de] MMM, YYYY')]) }}</p>
                     </div>
-                    <a href="{{ route('cart.index', ['locale' => $locale]) }}" class="text-orange-600 text-xs font-semibold uppercase tracking-wide hover:text-orange-500 underline-offset-2 hover:underline shrink-0">Modificar</a>
+                    <a href="{{ route('cart.index', ['locale' => $locale]) }}" class="text-orange-600 text-xs font-semibold uppercase tracking-wide hover:text-orange-500 underline-offset-2 hover:underline shrink-0">{{ __('checkout.modify') }}</a>
                 </div>
 
                 <form id="payment-form"
@@ -94,7 +94,7 @@
                     <div class="bg-white rounded-2xl p-6 lg:p-7 shadow-sm">
                         <h2 class="font-display text-xl text-teal-800 mb-5 flex items-center gap-2">
                             <span class="w-2 h-6 bg-orange-500 rounded-full" aria-hidden="true"></span>
-                            Viajero principal
+                            {{ __('checkout.main_traveler') }}
                         </h2>
 
                         <div class="grid gap-4 md:grid-cols-2">
@@ -103,7 +103,7 @@
                                     {{ __('checkout.customer_name') }} <span class="text-state-error">*</span>
                                 </label>
                                 <input type="text" id="customer_name" name="customer_name" value="{{ old('customer_name') }}"
-                                       placeholder="Ej. María García López" autocomplete="name"
+                                       placeholder="{{ __('checkout.name_placeholder') }}" autocomplete="name"
                                        class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600 @error('customer_name') border-state-error @enderror">
                                 @error('customer_name')<p class="mt-1 text-xs text-state-error">{{ $message }}</p>@enderror
                             </div>
@@ -145,23 +145,23 @@
                     <div class="bg-white rounded-2xl p-6 lg:p-7 shadow-sm">
                         <h2 class="font-display text-xl text-teal-800 mb-5 flex items-center gap-2">
                             <span class="w-2 h-6 bg-orange-500 rounded-full" aria-hidden="true"></span>
-                            Punto de recogida
+                            {{ __('checkout.pickup_point') }}
                         </h2>
                         <label for="pickup_point" class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">
-                            Zona / dirección de tu hotel <span class="text-state-error">*</span>
+                            {{ __('checkout.pickup_zone_label') }} <span class="text-state-error">*</span>
                         </label>
                         <select id="pickup_point" name="pickup_point"
                                 class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 focus:border-teal-600 focus:ring-teal-600">
-                            <option value="">Selecciona tu zona</option>
+                            <option value="">{{ __('checkout.pickup_select') }}</option>
                             <option {{ old('pickup_point') === 'Miraflores' ? 'selected' : '' }}>Miraflores</option>
                             <option {{ old('pickup_point') === 'San Isidro' ? 'selected' : '' }}>San Isidro</option>
                             <option {{ old('pickup_point') === 'Barranco' ? 'selected' : '' }}>Barranco</option>
                             <option {{ old('pickup_point') === 'Centro de Lima' ? 'selected' : '' }}>Centro de Lima</option>
                             <option {{ old('pickup_point') === 'Aeropuerto Jorge Chávez' ? 'selected' : '' }}>Aeropuerto Jorge Chávez</option>
-                            <option {{ old('pickup_point') === 'Otro' ? 'selected' : '' }}>Otra zona (indicar abajo)</option>
+                            <option {{ old('pickup_point') === 'Otro' ? 'selected' : '' }}>{{ __('checkout.pickup_other') }}</option>
                         </select>
                         <input type="text" name="pickup_detail" value="{{ old('pickup_detail') }}"
-                               placeholder="Nombre del hotel, dirección o referencia"
+                               placeholder="{{ __('checkout.pickup_detail_placeholder') }}"
                                class="mt-3 w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600">
                     </div>
 
@@ -169,27 +169,27 @@
                     <div class="bg-white rounded-2xl p-6 lg:p-7 shadow-sm">
                         <h2 class="font-display text-xl text-teal-800 mb-5 flex items-center gap-2">
                             <span class="w-2 h-6 bg-orange-500 rounded-full" aria-hidden="true"></span>
-                            Otros detalles
+                            {{ __('checkout.other_details') }}
                         </h2>
                         <div class="grid gap-4 md:grid-cols-2">
                             <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">Idioma del tour</label>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">{{ __('checkout.tour_language') }}</label>
                                 <select name="tour_language" class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 focus:border-teal-600 focus:ring-teal-600">
-                                    <option value="es" {{ old('tour_language') === 'es' ? 'selected' : '' }}>Español</option>
-                                    <option value="en" {{ old('tour_language', 'en') === 'en' ? 'selected' : '' }}>Inglés</option>
-                                    <option value="es-en" {{ old('tour_language') === 'es-en' ? 'selected' : '' }}>Bilingüe (Español + Inglés)</option>
+                                    <option value="es" {{ old('tour_language') === 'es' ? 'selected' : '' }}>{{ __('checkout.lang_es') }}</option>
+                                    <option value="en" {{ old('tour_language', 'en') === 'en' ? 'selected' : '' }}>{{ __('checkout.lang_en') }}</option>
+                                    <option value="es-en" {{ old('tour_language') === 'es-en' ? 'selected' : '' }}>{{ __('checkout.lang_bilingual') }}</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">Tipo de guía</label>
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">{{ __('checkout.guide_type') }}</label>
                                 <select name="guide_type" class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 focus:border-teal-600 focus:ring-teal-600">
-                                    <option value="group" {{ old('guide_type', 'group') === 'group' ? 'selected' : '' }}>Grupal (compartido)</option>
-                                    <option value="private" {{ old('guide_type') === 'private' ? 'selected' : '' }}>Privado</option>
+                                    <option value="group" {{ old('guide_type', 'group') === 'group' ? 'selected' : '' }}>{{ __('checkout.guide_group') }}</option>
+                                    <option value="private" {{ old('guide_type') === 'private' ? 'selected' : '' }}>{{ __('checkout.guide_private') }}</option>
                                 </select>
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">Comentarios adicionales (opcional)</label>
-                                <textarea name="notes" rows="2" placeholder="Ej. Restricciones alimentarias, movilidad, edades de los niños…"
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">{{ __('checkout.additional_comments') }}</label>
+                                <textarea name="notes" rows="2" placeholder="{{ __('checkout.notes_placeholder') }}"
                                           class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600">{{ old('notes') }}</textarea>
                             </div>
                         </div>
@@ -199,9 +199,9 @@
                     <div class="bg-white rounded-2xl p-6 lg:p-7 shadow-sm">
                         <h2 class="font-display text-xl text-teal-800 mb-2 flex items-center gap-2">
                             <span class="w-2 h-6 bg-orange-500 rounded-full" aria-hidden="true"></span>
-                            Información de pago
+                            {{ __('checkout.payment_info') }}
                         </h2>
-                        <p class="text-sm text-teal-800/70 mb-4">Elige cuándo pagar</p>
+                        <p class="text-sm text-teal-800/70 mb-4">{{ __('checkout.choose_when_to_pay') }}</p>
 
                         <div class="grid gap-3">
                             <label class="flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition"
@@ -209,8 +209,8 @@
                                 <input type="radio" name="payment_timing_ui" value="now" x-model="paymentTiming"
                                        class="mt-1 text-orange-500 focus:ring-orange-400">
                                 <div class="flex-1">
-                                    <p class="font-semibold text-teal-800 text-sm">Pagar ahora</p>
-                                    <p class="text-xs text-teal-800/65 mt-0.5">Confirma tu reserva al instante con tarjeta.</p>
+                                    <p class="font-semibold text-teal-800 text-sm">{{ __('checkout.pay_now') }}</p>
+                                    <p class="text-xs text-teal-800/65 mt-0.5">{{ __('checkout.pay_now_desc') }}</p>
                                 </div>
                                 <span class="font-price text-lg text-teal-800 whitespace-nowrap">${{ number_format($total, 2) }} <span class="text-xs text-teal-800/55">USD</span></span>
                             </label>
@@ -220,10 +220,10 @@
                                 <input type="radio" name="payment_timing_ui" value="later" x-model="paymentTiming"
                                        class="mt-1 text-orange-500 focus:ring-orange-400">
                                 <div class="flex-1">
-                                    <p class="font-semibold text-teal-800 text-sm">Reservar ahora y pagar después</p>
-                                    <p class="text-xs text-teal-800/65 mt-0.5">Sin cargos adicionales. Se te cobrará ${{ number_format($total, 2) }} USD el {{ $cancelDeadline->locale('es')->isoFormat('D [de] MMM') }}.</p>
+                                    <p class="font-semibold text-teal-800 text-sm">{{ __('checkout.book_now_pay_later') }}</p>
+                                    <p class="text-xs text-teal-800/65 mt-0.5">{{ __('checkout.pay_later_desc', ['amount' => number_format($total, 2), 'date' => $cancelDeadline->locale($locale)->isoFormat('D [de] MMM')]) }}</p>
                                 </div>
-                                <span class="font-price text-lg text-state-success whitespace-nowrap">$0,00 <span class="text-xs text-teal-800/55">ahora</span></span>
+                                <span class="font-price text-lg text-state-success whitespace-nowrap">$0,00 <span class="text-xs text-teal-800/55">{{ __('checkout.now') }}</span></span>
                             </label>
                         </div>
                     </div>
@@ -232,12 +232,12 @@
                     <div class="bg-white rounded-2xl p-6 lg:p-7 shadow-sm">
                         <h2 class="font-display text-xl text-teal-800 mb-4 flex items-center gap-2">
                             <span class="w-2 h-6 bg-orange-500 rounded-full" aria-hidden="true"></span>
-                            Pagar con
+                            {{ __('checkout.pay_with') }}
                         </h2>
 
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             @foreach ([
-                                ['card', 'Tarjeta', '💳', false],
+                                ['card', __('checkout.payment_card'), '💳', false],
                                 ['yape', 'Yape', '🟣', true],
                                 ['plin', 'Plin', '🔷', true],
                                 ['paypal', 'PayPal', '🅿️', true],
@@ -250,7 +250,7 @@
                                     <span class="text-2xl" aria-hidden="true">{{ $emoji }}</span>
                                     <span class="text-xs font-semibold text-teal-800">{{ $label }}</span>
                                     @if ($soon)
-                                        <span class="absolute -top-2 -right-2 bg-orange-400 text-white text-[9px] uppercase tracking-wider rounded-full px-2 py-0.5">Próx.</span>
+                                        <span class="absolute -top-2 -right-2 bg-orange-400 text-white text-[9px] uppercase tracking-wider rounded-full px-2 py-0.5">{{ __('checkout.coming_soon_badge') }}</span>
                                     @endif
                                 </label>
                             @endforeach
@@ -263,21 +263,21 @@
                             <input type="checkbox" name="accept_terms" required value="1"
                                    class="mt-0.5 w-4 h-4 rounded border-teal-800/30 text-orange-500 focus:ring-orange-400 shrink-0">
                             <span>
-                                Acepto los <a href="{{ route('legal.terms', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2">términos y condiciones</a>,
-                                la <a href="{{ route('legal.privacy', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2">política de privacidad</a>
-                                y la formalización del contrato directo con el proveedor.
+                                {{ __('checkout.accept_terms_prefix') }} <a href="{{ route('legal.terms', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.terms_link') }}</a>,
+                                {{ __('checkout.accept_privacy_prefix') }} <a href="{{ route('legal.privacy', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.privacy_link') }}</a>
+                                {{ __('checkout.accept_terms_suffix') }}
                             </span>
                         </label>
 
                         <button type="button"
                                 id="btn-culqi-open"
                                 class="btn--primary btn--block mt-5 text-base py-4">
-                            <span x-show="paymentTiming === 'now'">Pagar ahora — ${{ number_format($total, 2) }} USD</span>
-                            <span x-show="paymentTiming === 'later'">Reservar ahora · pagar después</span>
+                            <span x-show="paymentTiming === 'now'">{{ __('checkout.pay_now') }} — ${{ number_format($total, 2) }} USD</span>
+                            <span x-show="paymentTiming === 'later'">{{ __('checkout.book_now_pay_later') }}</span>
                         </button>
 
                         <p class="mt-3 text-[11px] text-center text-teal-800/55">
-                            Aceptamos VISA, Mastercard y AmEx &nbsp;·&nbsp; {{ __('checkout.secure_payment') }}
+                            {{ __('checkout.accepted_cards') }} &nbsp;·&nbsp; {{ __('checkout.secure_payment') }}
                         </p>
                     </div>
                 </form>
@@ -293,7 +293,7 @@
                             <span class="flex-1 leading-snug">
                                 {{ \Illuminate\Support\Str::limit($item['title_snapshot'], 40) }}
                                 <span class="block text-xs text-teal-800/55">
-                                    x {{ $item['quantity'] }} {{ $item['quantity'] === 1 ? 'persona' : 'personas' }}
+                                    x {{ $item['quantity'] }} {{ $item['quantity'] === 1 ? __('ui.person') : __('ui.persons') }}
                                     &nbsp;&middot;&nbsp;
                                     {{ \Carbon\Carbon::parse($item['travel_date'])->format('d M Y') }}
                                 </span>
@@ -325,7 +325,7 @@
 
                 <a href="{{ route('cart.index', ['locale' => $locale]) }}"
                    class="mt-6 inline-flex items-center gap-1 text-xs text-teal-800/60 hover:text-orange-500 transition">
-                    &lsaquo; Volver al carrito
+                    &lsaquo; {{ __('checkout.back_to_cart') }}
                 </a>
             </aside>
         </div>
