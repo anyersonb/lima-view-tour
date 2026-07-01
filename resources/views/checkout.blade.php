@@ -806,9 +806,10 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 @foreach ($items as $item)
                                     @php
                                         $cover   = $item['cover_image'] ?? null;
-                                        $imgSrc  = $cover
-                                            ? (str_starts_with($cover, 'http') ? $cover : asset($cover))
-                                            : asset('assets/banners/Rectangle 19210.jpg');
+                                        // ImagePath resuelve el prefijo /storage correctamente
+                                        // (asset() omitía /storage y las portadas subidas daban 404).
+                                        $imgSrc  = \App\Support\ImagePath::url($cover)
+                                            ?: asset('assets/banners/Rectangle 19210.jpg');
                                         $qty         = (int) ($item['adults'] + $item['children']);
                                         $beforeUnit  = $item['price_before'] ?? null;
                                         $hasDiscount = $beforeUnit && (float) $beforeUnit > (float) $item['unit_price'];
