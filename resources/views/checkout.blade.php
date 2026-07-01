@@ -1190,12 +1190,43 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
                                 <div class="cart-field">
                                     <label for="pickup_point">{{ __('ui.pickup_hotel_label') }} <span class="text-teal-800/40 font-normal normal-case">({{ __('ui.optional') }})</span></label>
+                                    @php
+                                        // Sugerencias curadas de punto de recojo (hoteles y zonas
+                                        // frecuentes en Lima, Ica/Paracas y Cusco). Autocompletado
+                                        // gratis vía <datalist> nativo — sin API de mapas. El campo
+                                        // sigue siendo texto libre: el viajero puede escribir otro.
+                                        $pickupSuggestions = [
+                                            // Lima — zonas
+                                            'Miraflores, Lima', 'San Isidro, Lima', 'Barranco, Lima',
+                                            'Santiago de Surco, Lima', 'San Borja, Lima', 'Magdalena del Mar, Lima',
+                                            'Aeropuerto Jorge Chávez (Callao)', 'Centro Histórico de Lima',
+                                            // Lima — hoteles frecuentes
+                                            'JW Marriott Hotel Lima (Miraflores)', 'Belmond Miraflores Park',
+                                            'Hilton Lima Miraflores', 'Casa Andina Premium Miraflores',
+                                            'Country Club Lima Hotel (San Isidro)', 'The Westin Lima (San Isidro)',
+                                            'Novotel Lima', 'Ibis Larco Miraflores', 'Meliá Lima', 'Hotel B (Barranco)',
+                                            // Ica / Paracas / Huacachina
+                                            'Huacachina, Ica', 'Hotel Mossone (Huacachina)', 'El Huacachinero (Huacachina)',
+                                            'Paracas (El Chaco)', 'Hotel Paracas, a Luxury Collection Resort', 'La Hacienda Bahía Paracas',
+                                            // Cusco
+                                            'Plaza de Armas de Cusco', 'Belmond Hotel Monasterio (Cusco)',
+                                            'Palacio del Inka (Cusco)', 'JW Marriott El Convento Cusco',
+                                            'Casa Andina Premium Cusco', 'Tierra Viva Cusco Plaza',
+                                        ];
+                                    @endphp
                                     <input type="text"
                                            id="pickup_point"
                                            name="pickup_point"
+                                           list="pickup_options"
                                            value="{{ old('pickup_point') }}"
                                            placeholder="{{ __('ui.pickup_placeholder') }}"
+                                           autocomplete="off"
                                            class="cart-real-input @error('pickup_point') border-red-500 @enderror">
+                                    <datalist id="pickup_options">
+                                        @foreach ($pickupSuggestions as $opt)
+                                            <option value="{{ $opt }}"></option>
+                                        @endforeach
+                                    </datalist>
                                     <div class="cart-field-help">
                                         {{ __('ui.pickup_help') }}
                                     </div>
@@ -1523,52 +1554,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     data-namespace="paypal_sdk">
 </script>
 @endif
-@php
-    $gmapsKey = \App\Models\Setting::get('google_maps_api_key') ?: config('services.google.maps_api_key');
-@endphp
-@if ($gmapsKey)
-<script>
-(function () {
-    'use strict';
-
-    // Initialize Google Places Autocomplete on the pickup_point field.
-    // Runs once the Maps JS SDK is loaded (callback=initPickupAutocomplete).
-    window.initPickupAutocomplete = function () {
-        var input = document.getElementById('pickup_point');
-        if (!input || !window.google?.maps?.places) { return; }
-
-        var autocomplete = new google.maps.places.Autocomplete(input, {
-            types: ['establishment', 'geocode'],
-            componentRestrictions: { country: 'pe' },
-            fields: ['name', 'formatted_address'],
-        });
-
-        // Bias results toward Lima (center: -12.0464, -77.0428, radius ~30km)
-        autocomplete.setBounds(
-            new google.maps.LatLngBounds(
-                new google.maps.LatLng(-12.3000, -77.2500),
-                new google.maps.LatLng(-11.7500, -76.7000)
-            )
-        );
-
-        autocomplete.addListener('place_changed', function () {
-            var place = autocomplete.getPlace();
-            if (!place) { return; }
-            // Prefer the establishment name; fall back to formatted address
-            var label = place.name || place.formatted_address || '';
-            if (place.formatted_address && place.name && place.name !== place.formatted_address) {
-                label = place.name + ', ' + place.formatted_address;
-            }
-            input.value = label;
-        });
-    };
-}());
-</script>
-<script
-    src="https://maps.googleapis.com/maps/api/js?key={{ $gmapsKey }}&libraries=places&language=es&region=PE&callback=initPickupAutocomplete"
-    async defer>
-</script>
-@endif
+{{-- El punto de recojo usa autocompletado nativo con <datalist> (gratis, sin
+     API de Google Maps). Ver el campo #pickup_point y #pickup_options arriba. --}}
 <script>
 (function () {
     'use strict';

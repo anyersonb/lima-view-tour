@@ -137,10 +137,91 @@ class SitemapController extends Controller
             $lines[] = 'User-agent: SemrushBot';
             $lines[] = 'Crawl-delay: 10';
             $lines[] = '';
+
+            // ── Bots de IA / agentes: bienvenidos al contenido público ──
+            // (agentic browsing + visibilidad en asistentes). Se mantiene el
+            // bloqueo de /admin y /checkout. Cada agente respeta su propio
+            // User-agent, por eso se listan explícitamente.
+            $aiBots = [
+                'GPTBot', 'ChatGPT-User', 'OAI-SearchBot',   // OpenAI
+                'ClaudeBot', 'Claude-Web', 'anthropic-ai',    // Anthropic
+                'PerplexityBot', 'Perplexity-User',           // Perplexity
+                'Google-Extended',                            // Gemini/Vertex
+                'Applebot-Extended',                          // Apple Intelligence
+                'CCBot',                                      // Common Crawl
+                'Bytespider', 'Amazonbot', 'Meta-ExternalAgent',
+            ];
+            foreach ($aiBots as $bot) {
+                $lines[] = 'User-agent: ' . $bot;
+                $lines[] = 'Allow: /';
+                $lines[] = 'Disallow: /admin';
+                $lines[] = 'Disallow: /admin/';
+                $lines[] = 'Disallow: /checkout';
+                $lines[] = 'Disallow: /es/checkout';
+                $lines[] = 'Disallow: /en/checkout';
+                $lines[] = '';
+            }
+
             $lines[] = 'Sitemap: ' . $base . '/sitemap.xml';
+            $lines[] = '';
+            $lines[] = '# LLM-friendly site summary: ' . $base . '/llms.txt';
         }
 
         return response(implode("\n", $lines), 200, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+        ]);
+    }
+
+    /**
+     * /llms.txt — resumen del sitio legible por LLMs/agentes (formato
+     * llmstxt.org, Markdown). Se genera dinámicamente desde los tours
+     * publicados para mantenerse siempre actualizado.
+     */
+    public function llms(): Response
+    {
+        $base = rtrim(config('app.url'), '/');
+        $phone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
+        $email = \App\Models\Setting::get('contact_email') ?: 'info@limaviewtours.com';
+        $wa = preg_replace('/[^0-9]/', '', $phone);
+
+        $L = [];
+        $L[] = '# Lima View Tours';
+        $L[] = '';
+        $L[] = '> Agencia de turismo en Perú especializada en experiencias premium en Lima, Ica y Cusco: city tours, Machu Picchu, Huacachina, Islas Ballestas, Líneas de Nazca, Laguna Humantay, Montaña de 7 Colores y más. Reserva online con cancelación gratuita y guías bilingües (español/inglés).';
+        $L[] = '';
+        $L[] = 'Idiomas del sitio: Español (' . $base . '/es), English (' . $base . '/en), Português (' . $base . '/pt).';
+        $L[] = '';
+
+        $L[] = '## Tours';
+        foreach (Tour::published()->ordered()->get() as $tour) {
+            $url = $base . '/es/tours/detalle/' . $tour->slug;
+            $price = $tour->price ? ('US$' . number_format((float) $tour->price, 0)) : null;
+            $dur = $tour->duration ? (', ' . $tour->duration) : '';
+            $desc = trim((string) ($tour->subtitle_es ?: strip_tags((string) $tour->description_es)));
+            $desc = $desc !== '' ? \Illuminate\Support\Str::limit($desc, 140) : 'Tour en Perú';
+            $suffix = $price ? (' — desde ' . $price . ' por persona' . $dur) : $dur;
+            $L[] = '- [' . $tour->title . '](' . $url . '): ' . $desc . $suffix;
+        }
+        $L[] = '';
+
+        $L[] = '## Páginas';
+        $L[] = '- [Todos los tours](' . $base . '/es/tours): catálogo completo con filtros por región.';
+        $L[] = '- [Nosotros](' . $base . '/es/nosotros): quiénes somos y por qué reservar con nosotros.';
+        $L[] = '- [Reseñas](' . $base . '/es/resenas): opiniones verificadas de viajeros (Google, TripAdvisor y web).';
+        $L[] = '- [Blog](' . $base . '/es/blog): guías de viaje y consejos sobre Perú.';
+        $L[] = '- [Contacto](' . $base . '/es/contacto): WhatsApp ' . $phone . ' · Email ' . $email . '.';
+        $L[] = '';
+
+        $L[] = '## Reservar / contactar';
+        $L[] = '- WhatsApp: https://wa.me/' . $wa;
+        $L[] = '- Email: ' . $email;
+        $L[] = '- Reserva online directa desde la página de cada tour (botón "Reservar ahora").';
+        $L[] = '';
+
+        $L[] = '## Recursos';
+        $L[] = '- [Sitemap XML](' . $base . '/sitemap.xml)';
+
+        return response(implode("\n", $L) . "\n", 200, [
             'Content-Type' => 'text/plain; charset=utf-8',
         ]);
     }

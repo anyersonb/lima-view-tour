@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 // SEO automático
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+Route::get('/llms.txt', [SitemapController::class, 'llms'])->name('llms');
 
 // Newsletter (sin locale)
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])

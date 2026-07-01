@@ -158,25 +158,86 @@
 @section('description', __('seo.tour_description_prefix') . $tour->title . __('seo.tour_description_suffix'))
 
 @push('schema')
+@php
+    $canonicalUrl = route('tours.show', ['locale' => $locale, 'slug' => $tour->slug]);
+    $siteUrl = rtrim(config('app.url'), '/');
+    $tourImages = !empty($galleryUrls) ? $galleryUrls : [$tour->cover_url];
+
+    // Itinerario como ItemList (lugares/paradas del recorrido).
+    $itineraryList = [];
+    foreach ($itinerary as $i => $step) {
+        $stepTitle = trim((string) ($step['title'] ?? ''));
+        if ($stepTitle === '') { continue; }
+        $itineraryList[] = [
+            '@type'    => 'ListItem',
+            'position' => count($itineraryList) + 1,
+            'item'     => array_filter([
+                '@type'       => 'TouristAttraction',
+                'name'        => $stepTitle,
+                'description' => trim((string) ($step['description'] ?? '')) ?: null,
+            ]),
+        ];
+    }
+
+    // Reseñas individuales (aprobadas) para rich results.
+    $reviewList = [];
+    foreach ($tourReviews as $rev) {
+        $body = trim((string) ($rev->{"quote_$locale"} ?? $rev->quote_es ?? ''));
+        if ($body === '') { continue; }
+        $reviewList[] = [
+            '@type'         => 'Review',
+            'author'        => ['@type' => 'Person', 'name' => $rev->name ?: 'Viajero'],
+            'datePublished' => optional($rev->created_at)->toDateString(),
+            'reviewRating'  => [
+                '@type'       => 'Rating',
+                'ratingValue' => max(1, min(5, (int) round($rev->rating ?: 5))),
+                'bestRating'  => 5,
+            ],
+            'reviewBody'    => \Illuminate\Support\Str::limit($body, 500),
+        ];
+    }
+
+    $schema = array_filter([
+        '@context'    => 'https://schema.org',
+        '@type'       => 'TouristTrip',
+        '@id'         => $canonicalUrl . '#tour',
+        'name'        => $tour->title,
+        'description' => \Illuminate\Support\Str::limit(strip_tags((string) ($tour->description_es ?: (__('seo.tour_description_prefix') . $tour->title))), 300),
+        'url'         => $canonicalUrl,
+        'image'       => $tourImages,
+        'inLanguage'  => $locale,
+        'touristType' => ['Sightseeing', 'Cultural tourism', 'Adventure'],
+        'provider'    => [
+            '@type' => 'TravelAgency',
+            'name'  => 'Lima View Tours',
+            'url'   => $siteUrl,
+            'logo'  => $siteUrl . '/assets/logos/logo.png',
+            'telephone' => \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725',
+        ],
+        'aggregateRating' => $tourRating ? [
+            '@type'       => 'AggregateRating',
+            'ratingValue' => $tourRating,
+            'reviewCount' => $reviewsCount ?: 1,
+            'bestRating'  => 5,
+        ] : null,
+        'review' => $reviewList ?: null,
+        'itinerary' => $itineraryList ? [
+            '@type'           => 'ItemList',
+            'itemListElement' => $itineraryList,
+        ] : null,
+        'offers' => array_filter([
+            '@type'          => 'Offer',
+            'price'          => (float) $tour->price,
+            'priceCurrency'  => $tour->currency ?: 'USD',
+            'availability'   => 'https://schema.org/InStock',
+            'url'            => $canonicalUrl,
+            'priceValidUntil'=> now()->addYear()->format('Y-m-d'),
+            'validFrom'      => optional($tour->created_at)->toDateString(),
+        ]),
+    ], fn ($v) => $v !== null);
+@endphp
 <script type="application/ld+json">
-{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type'    => 'TouristTrip',
-    'name'     => $tour->title,
-    'description' => __('seo.tour_description_prefix') . $tour->title,
-    'image'    => $galleryUrls,
-    'aggregateRating' => $tourRating ? [
-        '@type'       => 'AggregateRating',
-        'ratingValue' => $tourRating,
-        'reviewCount' => $reviewsCount ?: 1,
-    ] : null,
-    'offers' => [
-        '@type'        => 'Offer',
-        'price'        => (float) $tour->price,
-        'priceCurrency'=> 'USD',
-        'availability' => 'https://schema.org/InStock',
-    ],
-], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!}
+{!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
 </script>
 @endpush
 
@@ -1253,6 +1314,11 @@ if (!empty($itinerary)) {
                     <button type="submit" class="m-review-submit">{{ __('ui.submit_review') }}</button>
                 </form>
             </details>
+
+            {{-- Widget oficial "Escribir reseña" de TripAdvisor --}}
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--m-line);display:flex;justify-content:center;">
+                <x-tripadvisor-write-review uniq="311" />
+            </div>
         </div>
 
         {{-- 9. OTROS VIAJEROS TAMBIÉN RESERVARON — rec-cards --}}
@@ -1963,6 +2029,11 @@ if (!empty($itinerary)) {
                     <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
                     <button type="submit" class="inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-bold text-sm rounded-full py-2.5 px-6 transition-colors">{{ __('ui.submit_review') }}</button>
                 </form>
+            </div>
+
+            {{-- Widget oficial "Escribir reseña" de TripAdvisor (desktop) --}}
+            <div class="mt-5 pt-5 border-t border-teal-800/10 flex justify-center">
+                <x-tripadvisor-write-review uniq="412" />
             </div>
         </section>
 

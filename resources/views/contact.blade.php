@@ -107,6 +107,7 @@
                 <label class="block">
                     <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_name') }}</span>
                     <input type="text" name="nombre" required
+                           autocomplete="given-name"
                            placeholder="Johanna"
                            value="{{ old('nombre') }}"
                            class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
@@ -114,6 +115,7 @@
                 <label class="block">
                     <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_lastname') }}</span>
                     <input type="text" name="apellido" required
+                           autocomplete="family-name"
                            placeholder="{{ __('ui.contact_lastname_placeholder') }}"
                            value="{{ old('apellido') }}"
                            class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
@@ -123,6 +125,7 @@
             <label class="block mt-4">
                 <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_phone') }}</span>
                 <input type="tel" name="celular" required
+                       autocomplete="tel"
                        placeholder="{{ __('ui.contact_phone_placeholder') }}"
                        value="{{ old('celular') }}"
                        class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
@@ -131,6 +134,7 @@
             <label class="block mt-4">
                 <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('customer.email') }}</span>
                 <input type="email" name="email" required
+                       autocomplete="email"
                        placeholder="{{ __('ui.contact_email_placeholder') }}"
                        value="{{ old('email') }}"
                        class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
