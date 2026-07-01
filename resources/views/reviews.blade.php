@@ -203,6 +203,15 @@
                 </div>
             </div>
         @endif
+
+        {{-- Widget oficial "Escribir reseña" de TripAdvisor (siempre visible) --}}
+        <div class="mt-14 text-center">
+            <p class="font-display text-2xl text-teal-900 mb-1">{{ $L('Escríbenos en TripAdvisor', 'Review us on TripAdvisor', 'Avalie-nos no TripAdvisor') }}</p>
+            <p class="text-teal-800/70 mb-5">{{ $L('Comparte tu experiencia con otros viajeros.', 'Share your experience with other travelers.', 'Compartilhe sua experiência com outros viajantes.') }}</p>
+            <div class="flex justify-center">
+                <x-tripadvisor-write-review uniq="217" />
+            </div>
+        </div>
     </div>
 </section>
 

@@ -24,18 +24,23 @@ class SecurityHeaders
             ."https://www.googletagmanager.com https://www.google-analytics.com "
             ."https://connect.facebook.net "
             ."https://maps.googleapis.com "
+            ."https://www.jscache.com https://*.tacdn.com "
+            ."https://www.tripadvisor.com https://*.tripadvisor.com "
             ."https://www.google.com https://www.gstatic.com",
         'style-src'   => "'self' 'unsafe-inline' "
-            ."https://fonts.googleapis.com https://cdnjs.cloudflare.com",
-        'font-src'    => "'self' https://fonts.gstatic.com data:",
+            ."https://fonts.googleapis.com https://cdnjs.cloudflare.com "
+            ."https://*.tacdn.com https://www.tripadvisor.com",
+        'font-src'    => "'self' https://fonts.gstatic.com https://*.tacdn.com data:",
         'img-src'     => "'self' data: https: blob:",
         'frame-src'   => "https://*.culqi.com https://www.googletagmanager.com "
             ."https://www.paypal.com https://*.paypal.com "
+            ."https://www.tripadvisor.com https://*.tripadvisor.com "
             ."https://www.google.com",
         'connect-src' => "'self' https://api.culqi.com "
             ."https://www.paypal.com https://*.paypal.com https://*.paypalobjects.com "
             ."https://www.google-analytics.com "
-            ."https://maps.googleapis.com https://maps.gstatic.com",
+            ."https://maps.googleapis.com https://maps.gstatic.com "
+            ."https://www.tripadvisor.com https://*.tripadvisor.com https://*.tacdn.com",
         'object-src'  => "'none'",
         'base-uri'    => "'self'",
         'form-action' => "'self' https://checkout.culqi.com https://www.paypal.com https://*.paypal.com",
