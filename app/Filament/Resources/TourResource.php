@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TourResource\Pages;
 use App\Models\Tour;
+use App\Support\ImageOptimizer;
 use App\Support\ImagePath;
 use Filament\Forms;
 use Filament\Forms\Components\Tabs;
@@ -179,6 +180,8 @@ class TourResource extends Resource
                                     ->disk('public')
                                     ->directory('tours/covers')
                                     ->imageEditor()
+                                    ->saveUploadedFileUsing(ImageOptimizer::saver('tours/covers', 1600, deletePrevious: true))
+                                    ->helperText('Se optimiza automáticamente a WebP (máx. 1600px de ancho).')
                                     ->label('Imagen de portada'),
                                 Forms\Components\FileUpload::make('gallery')
                                     ->multiple()
@@ -187,6 +190,8 @@ class TourResource extends Resource
                                     ->directory('tours/gallery')
                                     ->reorderable()
                                     ->panelLayout('grid')
+                                    ->saveUploadedFileUsing(ImageOptimizer::saver('tours/gallery', 1920))
+                                    ->helperText('Cada imagen se optimiza a WebP (máx. 1920px de ancho).')
                                     ->label('Galería'),
                             ]),
 
@@ -208,7 +213,8 @@ class TourResource extends Resource
                                     ->disk('public')
                                     ->directory('tours/seo')
                                     ->imageEditor()
-                                    ->helperText('Imagen Open Graph (1200x630px)')
+                                    ->saveUploadedFileUsing(ImageOptimizer::saver('tours/seo', 1200, deletePrevious: true))
+                                    ->helperText('Imagen Open Graph — se optimiza a WebP (máx. 1200px).')
                                     ->label('OG Image'),
                             ]),
                     ]),

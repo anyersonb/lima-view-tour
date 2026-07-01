@@ -173,7 +173,10 @@ class Settings extends Page implements HasForms
                         TextInput::make('seo_default_title')->label('Title por defecto'),
                         Textarea::make('seo_default_description')->rows(2)->maxLength(160)->label('Description por defecto'),
                         TextInput::make('seo_default_keywords')->label('Keywords (separadas por coma)'),
-                        FileUpload::make('seo_og_image')->image()->disk('public')->directory('seo')->label('OG Image por defecto'),
+                        FileUpload::make('seo_og_image')->image()->disk('public')->directory('seo')
+                            ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('seo', 1200, deletePrevious: true))
+                            ->helperText('Se optimiza a WebP (máx. 1200px).')
+                            ->label('OG Image por defecto'),
                         TextInput::make('seo_google_site_verification')->label('Google Search Console'),
                         TextInput::make('seo_bing_site_verification')->label('Bing Webmaster'),
                         TextInput::make('seo_google_analytics_id')->placeholder('G-XXXXXX')->label('Google Analytics 4'),
@@ -192,7 +195,8 @@ class Settings extends Page implements HasForms
                                     ->image()
                                     ->disk('media')
                                     ->directory('home')
-                                    ->helperText('Dejar vacío para usar la imagen por defecto (Machu Picchu).')
+                                    ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1920, disk: 'media', deletePrevious: true))
+                                    ->helperText('Dejar vacío para usar la imagen por defecto (Machu Picchu). Se optimiza a WebP (máx. 1920px).')
                                     ->columnSpanFull(),
                                 Textarea::make('home_hero_title_es')
                                     ->label('Hero título (ES)')
@@ -276,14 +280,15 @@ class Settings extends Page implements HasForms
                                     ->image()
                                     ->disk('media')
                                     ->directory('home')
-                                    ->helperText('Dejar vacío para usar Rectangle 19218.jpg por defecto.')
+                                    ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1920, disk: 'media', deletePrevious: true))
+                                    ->helperText('Dejar vacío para usar Rectangle 19218.jpg por defecto. Se optimiza a WebP (máx. 1920px).')
                                     ->columnSpanFull(),
                                 FileUpload::make('gracias_logo_image')
                                     ->label('Logo sobre la imagen')
                                     ->image()
                                     ->disk('media')
                                     ->directory('home')
-                                    ->helperText('Dejar vacío para usar logo.png por defecto.')
+                                    ->helperText('Dejar vacío para usar logo.png por defecto. (El logo NO se convierte para conservar la transparencia original.)')
                                     ->columnSpanFull(),
                                 TextInput::make('gracias_badge_es')->label('Badge/eyebrow (ES)')->placeholder('Tu mensaje fue enviado'),
                                 TextInput::make('gracias_badge_en')->label('Badge/eyebrow (EN)')->placeholder('Your message was sent'),

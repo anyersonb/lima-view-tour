@@ -91,6 +91,8 @@ class BlogPostResource extends Resource
                                     ->directory('blog/covers')
                                     ->imageEditor()
                                     ->nullable()
+                                    ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('blog/covers', 1600, deletePrevious: true))
+                                    ->helperText('Se optimiza automáticamente a WebP (máx. 1600px de ancho).')
                                     ->label('Imagen de portada'),
                             ]),
 

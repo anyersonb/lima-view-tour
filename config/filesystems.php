@@ -38,7 +38,12 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // Escribe DIRECTO en public/storage (carpeta ya publicada por el
+            // servidor). Así las subidas del CMS se ven sin depender del symlink
+            // storage:link, que en el hosting cPanel de producción no persiste.
+            // En local, public/storage es symlink a storage/app/public, por lo
+            // que apunta al mismo lugar y no rompe nada existente.
+            'root' => public_path('storage'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
