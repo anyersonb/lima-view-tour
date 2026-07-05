@@ -24,6 +24,8 @@
     'discountPct'        => null,
     'badge'              => null,
     'badgeType'          => 'success',
+    'showBestSeller'     => true,
+    'showOffer'          => true,
 ])
 
 @php
@@ -38,8 +40,12 @@
         $pct = (int) round((1 - ((float)$now / (float)$before)) * 100);
     }
 
-    // Texto del escudo
-    $shieldText = $badge ?: ($isMasVendido ? 'BEST SELLER' : null);
+    // Texto del escudo (desactivable por tour desde el admin).
+    // badge_text viene libre desde la BD (en español); si existe una clave
+    // ui.badge_<slug> se usa su traducción para EN/PT.
+    $badgeKey = $badge ? 'ui.badge_' . \Illuminate\Support\Str::slug($badge, '_') : null;
+    $badgeResolved = $badge ? (\Illuminate\Support\Facades\Lang::has($badgeKey) ? __($badgeKey) : $badge) : null;
+    $shieldText = $showBestSeller ? ($badgeResolved ?: ($isMasVendido ? 'BEST SELLER' : null)) : null;
     $shieldLines = [];
     if ($shieldText) {
         $words = preg_split('/\s+/', trim($shieldText));
@@ -103,8 +109,8 @@
             </div>
         @endif
 
-        {{-- Pill OFERTA ESPECIAL top-right: blanca con chip rojo "-N%" --}}
-        @if ($pct)
+        {{-- Pill OFERTA ESPECIAL top-right: blanca con chip rojo "-N%" (desactivable por tour) --}}
+        @if ($pct && $showOffer)
             <span class="absolute top-3 right-3 inline-flex items-center gap-1.5 bg-white text-teal-800 text-[11px] font-bold uppercase tracking-[0.05em] px-3 py-2 rounded-2xl shadow-md ring-1 ring-teal-800/10">
                 <span>{{ __('ui.special_offer') }}</span>
                 <span class="inline-flex items-center bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-tight whitespace-nowrap">-{{ $pct }}%</span>

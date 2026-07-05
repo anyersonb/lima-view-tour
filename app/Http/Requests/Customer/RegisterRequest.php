@@ -37,7 +37,7 @@ class RegisterRequest extends FormRequest
         }
 
         $validator->after(function (\Illuminate\Validation\Validator $v) use ($recaptcha) {
-            if (! $recaptcha->verify($this->input('recaptcha_token'), 'register', $this->ip())) {
+            if (! $recaptcha->verify($this->input('recaptcha_token') ?: $this->input('g-recaptcha-response'), 'register', $this->ip())) {
                 $v->errors()->add('recaptcha', __('recaptcha.failed'));
             }
         });

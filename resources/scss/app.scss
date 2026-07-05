@@ -79,3 +79,46 @@
     /* Sombras más suaves sobre fondo oscuro */
     .shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl { --tw-shadow-color: rgba(0,0,0,.55); }
 }
+
+/* ============================================================
+   AJUSTE LAPTOP 1200–1599px — pedido del cliente:
+   "en laptop de 1200 a 1600 baja los tamaños ya que se ve
+   grande todo". Rango exclusivo: NO toca <1200 (mobile/tablet)
+   ni >=1600 (desktop grande). Se compone de dos partes:
+   1) Reescala global vía font-size en <html> (afecta a toda
+      utilidad Tailwind basada en rem: paddings, gaps, radios,
+      la mayoría de tamaños de texto, max-width del contenedor
+      en secciones que usan rem, etc).
+   2) Overrides puntuales para valores arbitrarios en PX fijos
+      (hero home/tours, galería desktop de detalle de tour) que
+      no responden al font-size de <html> porque no usan rem.
+   ============================================================ */
+@media (min-width: 1200px) and (max-width: 1599.98px) {
+
+    html { font-size: 87.5%; }
+
+    /* Overrides con !important: las utilidades Tailwind de valor
+       arbitrario (text-[104px], h-[500px], etc.) se emiten después
+       en el CSS compilado y ganan la cascada a igual especificidad. */
+
+    /* Home — hero: alto y padding-top fijos en px (no escalan con rem) */
+    .home-hero__wrap {
+        min-height: 560px !important;
+        padding-top: 100px !important;
+    }
+
+    /* Home — hero: título con tamaño fijo en px */
+    .home-hero__title {
+        font-size: 72px !important;
+    }
+
+    /* Tours (listado) — hero: título con tamaño fijo en px */
+    .tours-hero__title {
+        font-size: 58px !important;
+    }
+
+    /* Tour (detalle) — galería hero desktop con alto fijo en px */
+    .tour-gallery__hero {
+        height: 400px !important;
+    }
+}

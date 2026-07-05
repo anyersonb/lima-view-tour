@@ -18,6 +18,8 @@
     'discountPct'        => null,
     'badge'              => null,
     'badgeType'          => 'success',
+    'showBestSeller'     => true,
+    'showOffer'          => true,
 ])
 
 @php
@@ -31,7 +33,9 @@
         $pct = (int) round((1 - ((float)$now / (float)$before)) * 100);
     }
 
-    $shieldText = $badge ?: ($isMasVendido ? 'BEST SELLER' : null);
+    $badgeKey = $badge ? 'ui.badge_' . \Illuminate\Support\Str::slug($badge, '_') : null;
+    $badgeResolved = $badge ? (\Illuminate\Support\Facades\Lang::has($badgeKey) ? __($badgeKey) : $badge) : null;
+    $shieldText = $showBestSeller ? ($badgeResolved ?: ($isMasVendido ? 'BEST SELLER' : null)) : null;
 
     $shieldBg = match ($badgeType) {
         'warn'    => 'bg-orange-600',
@@ -124,14 +128,14 @@
 
     {{-- ── COL 3: PRECIO + CTA ── --}}
     <div class="shrink-0 w-[30%] max-w-[140px] border-l border-teal-800/10 py-3 px-3 flex flex-col items-end text-right">
-        @if ($pct)
+        @if ($pct && $showOffer)
             <p class="text-[9px] font-bold uppercase tracking-[0.08em] text-orange-500 leading-tight">{{ __('ui.special_offer') }}</p>
         @endif
 
         <p class="mt-1 font-price text-2xl font-bold text-teal-800 leading-none">{{ $currency }}{{ number_format((float)$now, 0) }}</p>
         <p class="text-[10px] text-teal-800/55 leading-tight">{{ __('ui.per_person') }}</p>
 
-        @if ($pct)
+        @if ($pct && $showOffer)
             <span class="mt-1.5 inline-flex items-center bg-cream-100 text-teal-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full ring-1 ring-teal-800/10">−{{ $pct }}%</span>
         @endif
 

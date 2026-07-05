@@ -5,6 +5,13 @@
 
     RewriteEngine On
 
+    # Accesos EXTERNOS con el prefijo del viejo staging (/limaprogramacion/public/*)
+    # → 301 a la raíz del dominio. THE_REQUEST conserva la URL original del
+    # navegador, así que el tráfico normal (rewrites internos desde el .htaccess
+    # raíz) no dispara esta regla. Complementa el 301 de /limaprogramacion/.htaccess.
+    RewriteCond %{THE_REQUEST} \s/+limaprogramacion[/?\s]
+    RewriteRule ^(.*)$ /$1 [R=301,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

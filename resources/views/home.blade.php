@@ -56,6 +56,8 @@
                     ? (\App\Support\ImagePath::url($t->cover_image ?? null) ?? asset('assets/banners/banner-hero.jpg'))
                     : (\App\Support\ImagePath::url($t['cover_image'] ?? null) ?? asset('assets/banners/banner-hero.jpg')),
                 'slug'      => is_object($t) ? ($t->slug ?? '')                                  : ($t['slug'] ?? ''),
+                'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true)       : ($t['show_best_seller'] ?? true)),
+                'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true)       : ($t['show_offer_badge'] ?? true)),
             ];
         })->all();
     };
@@ -186,7 +188,7 @@
     </div>
 
     {{-- Flex column: texto arriba, stats card al fondo --}}
-    <div class="relative px-5
+    <div class="home-hero__wrap relative px-5
                 pt-24 pb-0
                 sm:pt-28
                 md:pt-36
@@ -213,7 +215,7 @@
                 ?: ($heroTitleDefault[$locale] ?? $heroTitleDefault['es']);
         @endphp
         <h1 id="hero-title"
-            class="font-display font-normal
+            class="home-hero__title font-display font-normal
                    text-[52px] leading-[0.92]
                    sm:text-[68px]
                    md:text-[76px]
@@ -441,7 +443,9 @@
                             :badgeType="$mct['badgeType']"
                             :rating="$mct['rating']"
                             :reviews="$mct['reviews']"
-                            :isMasVendido="true"
+                            :isMasVendido="$mct['showBestSeller']"
+                            :showBestSeller="$mct['showBestSeller']"
+                            :showOffer="$mct['showOffer']"
                             :pickup="true"
                         />
                     </div>
@@ -480,25 +484,6 @@
                 </button>
             </div>
 
-            {{-- Hint deslizar: mano tap + flechas punteadas (mobile/tablet) --}}
-            <div class="mt-4 flex flex-col items-center gap-1 lg:hidden" aria-hidden="true">
-                <div class="flex items-center gap-2">
-                    <svg class="w-11 h-3.5 text-orange-500" viewBox="0 0 56 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <line x1="54" y1="8" x2="15" y2="8" stroke-dasharray="4 4" stroke-linecap="round"/>
-                        <path d="M20 3 L13 8 L20 13" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <svg class="w-7 h-7" viewBox="0 0 24 24" aria-hidden="true">
-                        <path fill="currentColor" class="text-teal-800" d="M9 12.2V5a1.5 1.5 0 013 0v5.5h.4V6.5a1.5 1.5 0 013 0v4h.4V8.5a1.5 1.5 0 013 0V15a5 5 0 01-5 5h-1.5a4 4 0 01-3-1.36l-3.3-3.8a1.6 1.6 0 012.32-2.2L9 14.4V12.2z"/>
-                        <path fill="none" stroke="currentColor" class="text-orange-500" stroke-width="1.5" stroke-linecap="round" d="M8 3.4 6.9 1.9M12 2.6V0.9M16 3.4l1.1-1.5"/>
-                    </svg>
-                    <svg class="w-11 h-3.5 text-orange-500" viewBox="0 0 56 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <line x1="2" y1="8" x2="41" y2="8" stroke-dasharray="4 4" stroke-linecap="round"/>
-                        <path d="M36 3 L43 8 L36 13" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <p class="text-teal-800 font-semibold text-base leading-tight">{{ \App\Models\Setting::get('home_swipe_hint_' . $locale) ?: 'Desliza para ver más tours' }}</p>
-                <p class="text-xs text-teal-800/55 leading-tight">{{ \App\Models\Setting::get('home_swipe_sub_' . $locale) ?: 'Descubre nuestras mejores experiencias' }}</p>
-            </div>
         </div>
 
         {{-- Link ver todos (mobile, centrado debajo del hint) --}}
@@ -570,7 +555,9 @@
                             :badgeType="$lct['badgeType']"
                             :rating="$lct['rating']"
                             :reviews="$lct['reviews']"
-                            :isMasVendido="true"
+                            :isMasVendido="$lct['showBestSeller']"
+                            :showBestSeller="$lct['showBestSeller']"
+                            :showOffer="$lct['showOffer']"
                             :pickup="true"
                         />
                     </div>
@@ -1155,7 +1142,7 @@
                     @php
                         $rvName    = is_object($rev) ? ($rev->name ?? 'Viajero') : ($rev['name'] ?? 'Viajero');
                         $rvCountry = is_object($rev) ? ($rev->country ?? null) : ($rev['country'] ?? null);
-                        $rvRating  = (int) round(is_object($rev) ? ($rev->rating ?? 5) : ($rev['rating'] ?? 5));
+                        $rvRating  = max(0, min(5, (int) round(is_object($rev) ? ($rev->rating ?? 5) : ($rev['rating'] ?? 5))));
                         $rvSource  = is_object($rev) ? ($rev->source ?? null) : ($rev['source'] ?? null);
                         $rvQuote   = is_object($rev) ? ($rev->quote ?? '') : ($rev['quote'] ?? '');
                         $rvAvatar  = is_object($rev) ? ($rev->avatar ?? null) : ($rev['avatar'] ?? null);

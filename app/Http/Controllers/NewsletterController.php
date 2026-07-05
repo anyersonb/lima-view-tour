@@ -24,7 +24,8 @@ class NewsletterController extends Controller
         }
 
         // reCAPTCHA verification (no-op when module is disabled)
-        if (! $recaptcha->verify($request->input('recaptcha_token'), 'newsletter', $request->ip())) {
+        // v3 envía recaptcha_token (hidden); el checkbox v2 envía g-recaptcha-response
+        if (! $recaptcha->verify($request->input('recaptcha_token') ?: $request->input('g-recaptcha-response'), 'newsletter', $request->ip())) {
             return back()
                 ->withInput()
                 ->withErrors(['recaptcha' => __('recaptcha.failed')]);

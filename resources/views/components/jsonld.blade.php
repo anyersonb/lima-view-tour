@@ -35,27 +35,9 @@
         $settings['social_trivago']          ?? null,
     ]));
 
-    // aggregateRating from Testimonial model (active + with rating)
-    $aggregateRating = null;
-    try {
-        $ratingData = \App\Models\Testimonial::active()
-            ->whereNotNull('rating')
-            ->selectRaw('COUNT(*) as cnt, AVG(rating) as avg_rating')
-            ->first();
-        if ($ratingData && $ratingData->cnt >= 1) {
-            $aggregateRating = [
-                '@type'       => 'AggregateRating',
-                'ratingValue' => round((float) $ratingData->avg_rating, 1),
-                'bestRating'  => 5,
-                'worstRating' => 1,
-                'reviewCount' => (int) $ratingData->cnt,
-            ];
-        }
-    } catch (\Throwable $e) {
-        // Silent: DB not available during artisan commands
-    }
-
     // Build TravelAgency / LocalBusiness schema
+    // Nota: sin aggregateRating aquí — Google considera "self-serving" las reseñas
+    // propias marcadas sobre LocalBusiness/Organization y lo reporta como error en GSC.
     $organization = [
         '@context' => 'https://schema.org',
         '@type'    => ['TravelAgency', 'LocalBusiness'],
@@ -100,10 +82,6 @@
 
     if (! empty($sameAs)) {
         $organization['sameAs'] = $sameAs;
-    }
-
-    if ($aggregateRating) {
-        $organization['aggregateRating'] = $aggregateRating;
     }
 
     $website = [

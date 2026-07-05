@@ -47,7 +47,10 @@ class TourResource extends Resource
                                         ->label('Categoría'),
                                 ]),
                                 Forms\Components\TextInput::make('slug')
-                                    ->helperText('Se genera automáticamente del título si lo dejas vacío.')
+                                    ->label('URL del tour (slug)')
+                                    ->helperText('Es la dirección pública del tour. Se genera automáticamente del título al crear y NO se puede editar después: cambiarla rompería los enlaces ya compartidos e indexados.')
+                                    ->disabled(fn (string $operation): bool => $operation === 'edit')
+                                    ->dehydrated(fn (string $operation): bool => $operation === 'create')
                                     ->maxLength(255),
                                 Forms\Components\Grid::make(3)->schema([
                                     Forms\Components\TextInput::make('duration')->label('Duración')->placeholder('Full Day'),
@@ -111,13 +114,21 @@ class TourResource extends Resource
                                     ]),
                                 ]),
                                 Forms\Components\Grid::make(3)->schema([
-                                    Forms\Components\TextInput::make('rating')->numeric()->step(0.1)->default(4.8)->label('Calificación'),
+                                    Forms\Components\TextInput::make('rating')->numeric()->step(0.1)->minValue(1)->maxValue(5)->default(4.8)->label('Calificación')->helperText('Entre 1 y 5.'),
                                     Forms\Components\TextInput::make('reviews_count')->numeric()->default(0)->label('# reseñas'),
                                     Forms\Components\TextInput::make('order')->numeric()->default(0)->label('Orden'),
                                 ]),
                                 Forms\Components\Grid::make(2)->schema([
                                     Forms\Components\Toggle::make('is_published')->label('Publicado')->default(true),
                                     Forms\Components\Toggle::make('is_featured')->label('Destacado'),
+                                    Forms\Components\Toggle::make('show_best_seller')
+                                        ->label('Badge "BEST SELLER"')
+                                        ->helperText('Muestra u oculta el escudo BEST SELLER en las tarjetas y el detalle del tour.')
+                                        ->default(true),
+                                    Forms\Components\Toggle::make('show_offer_badge')
+                                        ->label('Badge "Oferta especial"')
+                                        ->helperText('Muestra u oculta la pastilla OFERTA ESPECIAL −N% (solo aplica si hay precio antes).')
+                                        ->default(true),
                                 ]),
                             ]),
 
@@ -136,6 +147,12 @@ class TourResource extends Resource
                                 Forms\Components\TagsInput::make('excludes_es')->label('No incluye')->placeholder('Agregar item'),
                                 Forms\Components\Textarea::make('recommendations_es')->rows(3)->label('Recomendaciones'),
                                 Forms\Components\Textarea::make('notes_es')->rows(3)->label('Notas importantes'),
+                                Forms\Components\Repeater::make('faqs_es')->label('Preguntas frecuentes')->schema([
+                                    Forms\Components\TextInput::make('question')->label('Pregunta')->required(),
+                                    Forms\Components\Textarea::make('answer')->label('Respuesta')->rows(3)->required(),
+                                ])->collapsible()->reorderable()->defaultItems(0)
+                                  ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                                  ->helperText('Se muestran como acordeón en la página del tour. Déjalo vacío si el tour no lleva FAQs.'),
                             ]),
 
                         Tabs\Tab::make('English')
@@ -153,6 +170,12 @@ class TourResource extends Resource
                                 Forms\Components\TagsInput::make('excludes_en')->label('Excludes'),
                                 Forms\Components\Textarea::make('recommendations_en')->rows(3)->label('Recommendations'),
                                 Forms\Components\Textarea::make('notes_en')->rows(3)->label('Important notes'),
+                                Forms\Components\Repeater::make('faqs_en')->label('Frequently asked questions')->schema([
+                                    Forms\Components\TextInput::make('question')->label('Question')->required(),
+                                    Forms\Components\Textarea::make('answer')->label('Answer')->rows(3)->required(),
+                                ])->collapsible()->reorderable()->defaultItems(0)
+                                  ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                                  ->helperText('Shown as an accordion on the tour page. Falls back to Spanish if empty.'),
                             ]),
 
                         Tabs\Tab::make('Português')
@@ -170,6 +193,12 @@ class TourResource extends Resource
                                 Forms\Components\TagsInput::make('excludes_pt')->label('Não inclui')->placeholder('Adicionar item'),
                                 Forms\Components\Textarea::make('recommendations_pt')->rows(3)->label('Recomendações'),
                                 Forms\Components\Textarea::make('notes_pt')->rows(3)->label('Notas importantes'),
+                                Forms\Components\Repeater::make('faqs_pt')->label('Perguntas frequentes')->schema([
+                                    Forms\Components\TextInput::make('question')->label('Pergunta')->required(),
+                                    Forms\Components\Textarea::make('answer')->label('Resposta')->rows(3)->required(),
+                                ])->collapsible()->reorderable()->defaultItems(0)
+                                  ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                                  ->helperText('Exibido como acordeão na página do tour. Se vazio, usa o espanhol.'),
                             ]),
 
                         Tabs\Tab::make('Imágenes')

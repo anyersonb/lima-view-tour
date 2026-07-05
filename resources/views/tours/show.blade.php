@@ -10,6 +10,12 @@
     $notes      = $tour->{"notes_{$locale}"}     ?? $tour->notes_es     ?? null;
     $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
 
+    // FAQs del tour: idioma actual con fallback a español; solo pares completos.
+    $tourFaqs = array_values(array_filter(
+        (array) ($tour->{"faqs_{$locale}"} ?: $tour->faqs_es ?: []),
+        fn ($f) => !empty($f['question']) && !empty($f['answer'])
+    ));
+
     $recommendationLines = $recommendations
         ? array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $recommendations))))
         : [__('ui.rec_sunscreen'), __('ui.rec_sunglasses_hat'), __('ui.rec_comfortable_clothes'), __('ui.rec_camera'), __('ui.rec_water'), __('ui.rec_id_document')];
@@ -20,7 +26,7 @@
     $totalImgs   = count($galleryUrls);
     $tourRating  = $tour->rating ?? 4.8;
     $reviewsCount = $tour->reviews_count ?? 30;
-    $isMostBooked = $tour->is_most_booked ?? $tour->is_featured ?? false;
+    $isMostBooked = ($tour->show_best_seller ?? true) && ($tour->is_most_booked ?? $tour->is_featured ?? false);
     $bookingsWeek = $tour->bookings_this_week ?? 30;
 
     // ── Variante oferta ──
@@ -199,7 +205,8 @@
 
     $schema = array_filter([
         '@context'    => 'https://schema.org',
-        '@type'       => 'TouristTrip',
+        // Product es tipo válido para review snippets en Google; TouristTrip solo no lo es
+        '@type'       => ['Product', 'TouristTrip'],
         '@id'         => $canonicalUrl . '#tour',
         'name'        => $tour->title,
         'description' => \Illuminate\Support\Str::limit(strip_tags((string) ($tour->description_es ?: (__('seo.tour_description_prefix') . $tour->title))), 300),
@@ -216,9 +223,10 @@
         ],
         'aggregateRating' => $tourRating ? [
             '@type'       => 'AggregateRating',
-            'ratingValue' => $tourRating,
+            'ratingValue' => max(1, min(5, round((float) $tourRating, 1))),
             'reviewCount' => $reviewsCount ?: 1,
             'bestRating'  => 5,
+            'worstRating' => 1,
         ] : null,
         'review' => $reviewList ?: null,
         'itinerary' => $itineraryList ? [
@@ -239,6 +247,19 @@
 <script type="application/ld+json">
 {!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
 </script>
+@if ($tourFaqs)
+<script type="application/ld+json">
+{!! json_encode([
+    '@context'   => 'https://schema.org',
+    '@type'      => 'FAQPage',
+    'mainEntity' => array_map(fn ($f) => [
+        '@type'          => 'Question',
+        'name'           => $f['question'],
+        'acceptedAnswer' => ['@type' => 'Answer', 'text' => $f['answer']],
+    ], $tourFaqs),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
+</script>
+@endif
 @endpush
 
 @push('head')
@@ -1222,6 +1243,26 @@ if (!empty($itinerary)) {
                         {!! nl2br(e($notesText)) !!}
                     </div>
                 </details>
+                @if ($tourFaqs)
+                <details class="group">
+                    <summary class="m-info-item">
+                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg></div>
+                        <div>
+                            <b>{{ __('ui.tour_faqs') }}</b>
+                            <p>{{ __('ui.tour_faqs_subtitle') }}</p>
+                        </div>
+                        <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </summary>
+                    <div style="padding:0 14px 14px 66px;font-size:12px;color:#555;line-height:1.5;">
+                        @foreach ($tourFaqs as $faq)
+                            <div style="margin-bottom:10px;">
+                                <div style="font-weight:700;color:#083b31;margin-bottom:2px;">{{ $faq['question'] }}</div>
+                                <div>{!! nl2br(e($faq['answer'])) !!}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </details>
+                @endif
             </div>
         </div>
 
@@ -1420,7 +1461,7 @@ if (!empty($itinerary)) {
     <div class="space-y-5 lg:space-y-6 min-w-0">
 
         {{-- ── HERO GALERÍA DESKTOP ── --}}
-        <div class="relative rounded-2xl overflow-hidden h-[380px] lg:h-[500px] bg-teal-800/10">
+        <div class="tour-gallery__hero relative rounded-2xl overflow-hidden h-[380px] lg:h-[500px] bg-teal-800/10">
             <img :src="gallery[active] || '{{ addslashes($galleryUrls[0] ?? $tour->cover_url) }}'"
                  src="{{ $galleryUrls[0] ?? $tour->cover_url }}"
                  alt="{{ $tour->title }}"
@@ -1876,6 +1917,30 @@ if (!empty($itinerary)) {
                         {!! nl2br(e($notesText)) !!}
                     </div>
                 </details>
+
+                {{-- Preguntas frecuentes del tour (administrables por idioma) --}}
+                @if ($tourFaqs)
+                <details class="group">
+                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
+                        <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
+                            <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-teal-800">{{ __('ui.tour_faqs') }}</p>
+                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.tour_faqs_subtitle') }}</p>
+                        </div>
+                        <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </summary>
+                    <div class="px-5 pb-5 pt-1 space-y-4">
+                        @foreach ($tourFaqs as $faq)
+                            <div>
+                                <p class="text-sm font-bold text-teal-800 mb-1">{{ $faq['question'] }}</p>
+                                <p class="text-sm text-teal-800/80 leading-relaxed">{!! nl2br(e($faq['answer'])) !!}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </details>
+                @endif
 
             </div>
         </section>

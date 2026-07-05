@@ -53,6 +53,8 @@
             'group' => is_object($t) ? ($t->group_type ?? '') : ($t['group_type'] ?? ''),
             'img' => \App\Support\ImagePath::url($img) ?? asset('assets/banners/banner-hero.jpg'),
             'slug' => is_object($t) ? ($t->slug ?? '') : ($t['slug'] ?? ''),
+            'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true) : ($t['show_best_seller'] ?? true)),
+            'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true) : ($t['show_offer_badge'] ?? true)),
         ];
     });
 @endphp
@@ -82,7 +84,7 @@
             <span class="text-[11px] sm:text-xs uppercase tracking-[0.18em] text-amber-200 font-bold">{{ $L('Tours seleccionados en Perú', 'Selected tours in Peru', 'Tours selecionados no Peru') }}</span>
         </span>
 
-        <h1 class="font-display font-normal text-[40px] leading-[1.02] sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">
+        <h1 class="tours-hero__title font-display font-normal text-[40px] leading-[1.02] sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">
             {{ $L('Descubre experiencias con un estilo más', 'Discover experiences with a more', 'Descubra experiências com um estilo mais') }}
             <span class="italic text-orange-400 font-light">premium.</span>
         </h1>
@@ -156,6 +158,8 @@
                     :language="$tour['lang']"
                     :badge="$tour['badge']"
                     :badge-type="$tour['badgeType']"
+                    :showBestSeller="$tour['showBestSeller']"
+                    :showOffer="$tour['showOffer']"
                     :location-label="$cat ? ucfirst($cat) : null"
                     currency="US$"
                 />
@@ -177,6 +181,8 @@
                     :language="$tour['lang']"
                     :badge="$tour['badge']"
                     :badge-type="$tour['badgeType']"
+                    :showBestSeller="$tour['showBestSeller']"
+                    :showOffer="$tour['showOffer']"
                     currency="US$"
                 />
             @endforeach
