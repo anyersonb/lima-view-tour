@@ -37,8 +37,15 @@ class HomeController extends Controller
     private function fetchFeaturedTours(): \Illuminate\Support\Collection
     {
         try {
-            $featured = Tour::published()
-                ->featured()
+            // "Más Comprados" se ordena solo, por número real de reservas
+            // (excluye canceladas); la columna manual `order` queda como
+            // desempate. Las secciones por región (Ica/Lima/Cusco) siguen
+            // usando el orden manual.
+            $byPurchases = static fn ($query) => $query
+                ->withCount(['bookings as purchases_count' => static fn ($b) => $b->where('status', '!=', 'cancelled')])
+                ->orderByDesc('purchases_count');
+
+            $featured = $byPurchases(Tour::published()->featured())
                 ->ordered()
                 ->limit(8)
                 ->get();
@@ -47,7 +54,7 @@ class HomeController extends Controller
             // para garantizar al menos 3 cards visibles en el grid desktop.
             if ($featured->count() < 3) {
                 $existingIds = $featured->pluck('id')->all();
-                $fill = Tour::published()
+                $fill = $byPurchases(Tour::published())
                     ->ordered()
                     ->when(count($existingIds) > 0, fn ($q) => $q->whereNotIn('id', $existingIds))
                     ->limit(8 - $featured->count())

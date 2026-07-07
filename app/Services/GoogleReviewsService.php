@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Log;
 class GoogleReviewsService
 {
     private const CACHE_TTL     = 6 * 3600; // 6 hours in seconds
+    private const EMPTY_TTL     = 600;      // failures/empty: 10 min, para no ocultar reseñas tras corregir la API key
     private const PLACES_API    = 'https://maps.googleapis.com/maps/api/place/details/json';
-    private const CACHE_PREFIX  = 'google_reviews.';
+    private const CACHE_PREFIX  = 'google_reviews.v2.'; // v2: invalida entradas [] cacheadas con el TTL largo
 
     /**
      * Whether the service is fully configured and enabled.
@@ -40,9 +41,17 @@ class GoogleReviewsService
 
         $cacheKey = self::CACHE_PREFIX . $this->placeId() . '.' . $language;
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($language): array {
-            return $this->fetchReviews($language);
-        });
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $reviews = $this->fetchReviews($language);
+
+        Cache::put($cacheKey, $reviews, $reviews === [] ? self::EMPTY_TTL : self::CACHE_TTL);
+
+        return $reviews;
     }
 
     /**
@@ -59,9 +68,19 @@ class GoogleReviewsService
 
         $cacheKey = self::CACHE_PREFIX . 'stats.' . $this->placeId() . '.' . $language;
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($language): ?array {
-            return $this->fetchStats($language);
-        });
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $stats = $this->fetchStats($language);
+
+        if ($stats !== null) {
+            Cache::put($cacheKey, $stats, self::CACHE_TTL);
+        }
+
+        return $stats;
     }
 
     // ─────────────────────────────────────────────────────────────

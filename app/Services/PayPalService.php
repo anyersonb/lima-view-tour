@@ -168,10 +168,12 @@ class PayPalService
         try {
             $token = $this->accessToken();
 
+            // PayPal exige un objeto JSON ({} o vacío) en el capture; un array []
+            // (lo que produce ->post($url, [])) responde 400 MALFORMED_REQUEST_JSON.
             $response = Http::withToken($token)
                 ->acceptJson()
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("{$this->baseUrl()}/v2/checkout/orders/{$orderId}/capture", []);
+                ->withBody('{}', 'application/json')
+                ->post("{$this->baseUrl()}/v2/checkout/orders/{$orderId}/capture");
 
             if ($response->failed()) {
                 Log::error('paypal.capture_order.failed', [
