@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'contact_description' => 'We are here to answer your questions. Contact us and plan your next adventure in Peru.',
     'default_description' => 'Discover Lima with expert-guided tours: city tour, food, Pachacamac, Palomino islands and more. Book online with flexible cancellation.',
     'default_title' => 'Lima View Tours — Tours and experiences in Lima, Peru',
     'home_description' => 'Book the best tours in Lima: food, history, nature and adventure. Local guides, small groups and 100% online booking.',

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'contact_description' => 'Estamos aqui para tirar suas dúvidas. Fale conosco e planeje sua próxima aventura pelo Peru.',
     'default_description' => 'Descubra Lima com tours guiados por especialistas: city tour, gastronomia, Pachacámac, ilhas Palomino e muito mais. Reserve online com cancelamento flexível.',
     'default_title' => 'Lima View Tours — Tours e experiências em Lima, Peru',
     'home_description' => 'Reserve os melhores tours em Lima: gastronomia, história, natureza e aventura. Guias locais, grupos pequenos e reserva 100% online.',

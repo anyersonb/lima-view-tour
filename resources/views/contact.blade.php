@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Contáctanos — ' . __('seo.site_name'))
-@section('description', 'Estamos aquí para resolver tus dudas. Contáctanos y planifica tu próxima aventura por Perú.')
+@section('title', __('nav.contact') . ' — ' . __('seo.site_name'))
+@section('description', __('seo.contact_description'))
 
 @php
     $locale = app()->getLocale();

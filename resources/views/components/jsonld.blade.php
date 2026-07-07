@@ -24,12 +24,17 @@
     $rawHours   = $settings['contact_hours_' . $locale]
                   ?? ($settings['contact_hours_es'] ?? null);
 
-    // Social links for sameAs
+    // Social links for sameAs.
+    // OJO: no usar ltrim($url, 'https://') — recorta por juego de caracteres
+    // y convierte "tiktok.com" en "iktok.com".
+    $stripScheme = static fn (?string $url): ?string => $url
+        ? 'https://' . preg_replace('#^https?://#i', '', trim($url))
+        : null;
     $sameAs = array_values(array_filter([
-        $settings['social_instagram']    ? 'https://' . ltrim($settings['social_instagram'], 'https://')   : null,
-        $settings['social_facebook']     ? 'https://' . ltrim($settings['social_facebook'], 'https://')    : null,
-        $settings['social_tiktok']       ? 'https://' . ltrim($settings['social_tiktok'], 'https://')      : null,
-        $settings['social_youtube']      ? 'https://' . ltrim($settings['social_youtube'], 'https://')     : null,
+        $stripScheme($settings['social_instagram'] ?: null),
+        $stripScheme($settings['social_facebook'] ?: null),
+        $stripScheme($settings['social_tiktok'] ?: null),
+        $stripScheme($settings['social_youtube'] ?: null),
         $settings['social_google_reviews']   ?? null,
         $settings['social_tripadvisor']      ?? null,
         $settings['social_trivago']          ?? null,
