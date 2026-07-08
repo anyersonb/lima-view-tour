@@ -127,7 +127,7 @@ class GoogleReviewsService
                 return $body;
             }
 
-            Log::warning('GoogleReviewsService: legacy Places API failed, trying Places API (New)', [
+            Log::error('GoogleReviewsService: legacy Places API failed, trying Places API (New)', [
                 'http_status'   => $response->status(),
                 'status'        => $status ?: 'unknown',
                 'error_message' => $body['error_message'] ?? '',
@@ -162,7 +162,7 @@ class GoogleReviewsService
                 ]);
 
             if (! $response->successful()) {
-                Log::warning('GoogleReviewsService: Places API (New) also failed', [
+                Log::error('GoogleReviewsService: Places API (New) also failed', [
                     'http_status' => $response->status(),
                     'error'       => $response->json('error.message') ?? $response->body(),
                 ]);
