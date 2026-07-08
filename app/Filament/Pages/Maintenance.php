@@ -59,6 +59,24 @@ class Maintenance extends Page
                         ->send();
                 }),
 
+            Action::make('run_migrations')
+                ->label('Ejecutar migraciones')
+                ->icon('heroicon-o-circle-stack')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Ejecutar migraciones pendientes')
+                ->modalDescription('Aplica a la base de datos los cambios de estructura pendientes (nuevas columnas/tablas). No borra datos. Ejecútalo después de desplegar código que incluya migraciones nuevas.')
+                ->modalSubmitActionLabel('Sí, migrar')
+                ->action(function () {
+                    Artisan::call('migrate', ['--force' => true]);
+
+                    Notification::make()
+                        ->title('Migraciones ejecutadas')
+                        ->body(trim(Artisan::output()) ?: 'No había migraciones pendientes.')
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('view_sitemap')
                 ->label('Ver sitemap')
                 ->icon('heroicon-o-globe-alt')

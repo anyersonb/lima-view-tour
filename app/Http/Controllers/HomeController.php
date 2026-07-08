@@ -37,12 +37,14 @@ class HomeController extends Controller
     private function fetchFeaturedTours(): \Illuminate\Support\Collection
     {
         try {
-            // "Más Comprados" se ordena solo, por número real de reservas
-            // (excluye canceladas); la columna manual `order` queda como
-            // desempate. Las secciones por región (Ica/Lima/Cusco) siguen
-            // usando el orden manual.
+            // "Más Comprados" tiene su propio orden manual: `featured_order`
+            // (1 = primero; NULL va al final y se ordena por número real de
+            // reservas, excluyendo canceladas). Es independiente de `order`,
+            // que siguen usando las secciones por región (Ica/Lima/Cusco).
             $byPurchases = static fn ($query) => $query
                 ->withCount(['bookings as purchases_count' => static fn ($b) => $b->where('status', '!=', 'cancelled')])
+                ->orderByRaw('featured_order IS NULL')
+                ->orderBy('featured_order')
                 ->orderByDesc('purchases_count');
 
             $featured = $byPurchases(Tour::published()->featured())

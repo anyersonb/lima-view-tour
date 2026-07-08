@@ -117,6 +117,12 @@ class TourResource extends Resource
                                     Forms\Components\TextInput::make('rating')->numeric()->step(0.1)->minValue(1)->maxValue(5)->default(4.8)->label('Calificación')->helperText('Entre 1 y 5.'),
                                     Forms\Components\TextInput::make('reviews_count')->numeric()->default(0)->label('# reseñas'),
                                     Forms\Components\TextInput::make('order')->numeric()->default(0)->label('Orden'),
+                                    Forms\Components\TextInput::make('featured_order')
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->nullable()
+                                        ->label('Orden en "Más Comprados"')
+                                        ->helperText('Posición manual en la sección "Tours más Comprados" del home (1 = primero). Vacío = se ordena solo por número de reservas. Aplica a tours con "Destacado" activo.'),
                                 ]),
                                 Forms\Components\Grid::make(2)->schema([
                                     Forms\Components\Toggle::make('is_published')->label('Publicado')->default(true),
@@ -296,6 +302,10 @@ class TourResource extends Resource
                 Tables\Columns\TextColumn::make('order')
                     ->sortable()
                     ->label('#'),
+                Tables\Columns\TextColumn::make('featured_order')
+                    ->sortable()
+                    ->label('# Más Comprados')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('region_id')

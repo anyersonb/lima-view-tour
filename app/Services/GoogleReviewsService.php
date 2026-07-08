@@ -12,7 +12,8 @@ class GoogleReviewsService
     private const CACHE_TTL     = 6 * 3600; // 6 hours in seconds
     private const EMPTY_TTL     = 600;      // failures/empty: 10 min, para no ocultar reseñas tras corregir la API key
     private const PLACES_API    = 'https://maps.googleapis.com/maps/api/place/details/json';
-    private const CACHE_PREFIX  = 'google_reviews.v2.'; // v2: invalida entradas [] cacheadas con el TTL largo
+    private const PLACES_API_V1 = 'https://places.googleapis.com/v1/places/'; // Places API (New) — acepta keys con restricción de referer
+    private const CACHE_PREFIX  = 'google_reviews.v3.'; // v3: invalida el [] cacheado antes del fallback con Referer
 
     /**
      * Whether the service is fully configured and enabled.
@@ -99,39 +100,94 @@ class GoogleReviewsService
 
     /**
      * Hit the Places Details API and return raw decoded body, or null on failure.
+     *
+     * Se envía el header Referer del sitio: las keys con restricción de
+     * "sitios web" (HTTP referrers) rechazan llamadas server-side sin él.
+     * Si el endpoint legacy la rechaza igual (REQUEST_DENIED), se reintenta
+     * contra Places API (New), que sí valida el Referer enviado.
      */
     private function callApi(string $language): ?array
     {
+        $referer = rtrim((string) config('app.url'), '/') . '/';
+
         try {
-            $response = Http::timeout(8)->get(self::PLACES_API, [
-                'place_id' => $this->placeId(),
-                'fields'   => 'reviews,rating,user_ratings_total',
-                'key'      => $this->apiKey(),
-                'language' => $language,
+            $response = Http::timeout(8)
+                ->withHeaders(['Referer' => $referer])
+                ->get(self::PLACES_API, [
+                    'place_id' => $this->placeId(),
+                    'fields'   => 'reviews,rating,user_ratings_total',
+                    'key'      => $this->apiKey(),
+                    'language' => $language,
+                ]);
+
+            $body   = $response->json() ?: [];
+            $status = $body['status'] ?? '';
+
+            if ($response->successful() && $status === 'OK') {
+                return $body;
+            }
+
+            Log::warning('GoogleReviewsService: legacy Places API failed, trying Places API (New)', [
+                'http_status'   => $response->status(),
+                'status'        => $status ?: 'unknown',
+                'error_message' => $body['error_message'] ?? '',
             ]);
 
-            if (! $response->successful()) {
-                Log::warning('GoogleReviewsService: HTTP error', [
-                    'status' => $response->status(),
-                ]);
-
-                return null;
-            }
-
-            $body = $response->json();
-
-            if (($body['status'] ?? '') !== 'OK') {
-                Log::warning('GoogleReviewsService: Places API returned non-OK status', [
-                    'status'        => $body['status'] ?? 'unknown',
-                    'error_message' => $body['error_message'] ?? '',
-                ]);
-
-                return null;
-            }
-
-            return $body;
+            return $this->callApiV1($language, $referer);
         } catch (\Throwable $e) {
             Log::error('GoogleReviewsService: exception calling Places API', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Fallback: Places API (New). Devuelve el body ya normalizado al formato
+     * del endpoint legacy (result.reviews / result.rating / user_ratings_total)
+     * para no tocar los consumidores.
+     */
+    private function callApiV1(string $language, string $referer): ?array
+    {
+        try {
+            $response = Http::timeout(8)
+                ->withHeaders([
+                    'X-Goog-Api-Key'   => $this->apiKey(),
+                    'X-Goog-FieldMask' => 'rating,userRatingCount,reviews',
+                    'Referer'          => $referer,
+                ])
+                ->get(self::PLACES_API_V1 . $this->placeId(), [
+                    'languageCode' => $language,
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('GoogleReviewsService: Places API (New) also failed', [
+                    'http_status' => $response->status(),
+                    'error'       => $response->json('error.message') ?? $response->body(),
+                ]);
+
+                return null;
+            }
+
+            $body = $response->json() ?: [];
+
+            return [
+                'status' => 'OK',
+                'result' => [
+                    'rating'             => $body['rating'] ?? 0,
+                    'user_ratings_total' => $body['userRatingCount'] ?? 0,
+                    'reviews'            => array_map(static fn (array $r): array => [
+                        'author_name'       => $r['authorAttribution']['displayName'] ?? '',
+                        'rating'            => $r['rating'] ?? 5,
+                        'text'              => $r['text']['text'] ?? '',
+                        'time'              => isset($r['publishTime']) ? (int) strtotime($r['publishTime']) : 0,
+                        'profile_photo_url' => $r['authorAttribution']['photoUri'] ?? null,
+                    ], $body['reviews'] ?? []),
+                ],
+            ];
+        } catch (\Throwable $e) {
+            Log::error('GoogleReviewsService: exception calling Places API (New)', [
                 'exception' => $e->getMessage(),
             ]);
 
