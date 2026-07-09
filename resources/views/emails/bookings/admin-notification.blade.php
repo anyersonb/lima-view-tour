@@ -27,7 +27,8 @@
 
     {{-- Marca --}}
     <tr><td style="background:linear-gradient(135deg,#052f32,#0a4a4d);background-color:#0a4a4d;padding:20px;text-align:center;color:#fff;font-family:Georgia,serif;font-size:21px;letter-spacing:6px;font-weight:bold;">
-        <span style="color:#d7a041;">&#9673;</span>&nbsp; LIMA VIEW TOURS
+        <img src="{{ asset('assets/logos/logo-gold.png') }}" alt="Lima View Tours" width="200" height="80" style="width:200px;height:auto;display:inline-block;border:0;">
+
     </td></tr>
 
     {{-- Banner acción requerida --}}

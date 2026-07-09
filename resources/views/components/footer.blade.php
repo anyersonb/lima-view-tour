@@ -49,7 +49,7 @@
         <div class="container mx-auto py-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             <section aria-labelledby="footer-brand">
                 <a href="{{ route('home', ['locale' => $locale]) }}" aria-label="Lima View Tours — Inicio" class="inline-flex items-center gap-3">
-                    <img src="{{ asset('assets/logos/logo.png') }}" alt="Lima View Tours" class="h-14 w-auto">
+                    <img src="{{ asset('assets/logos/logo-gold.png') }}" alt="Lima View Tours" class="h-14 w-auto">
                 </a>
                 <p class="mt-4 text-sm leading-relaxed text-white/75">
                     {{ \App\Models\Setting::get('footer_about_' . $locale) ?: __('footer.brand_description') }}
