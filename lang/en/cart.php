@@ -26,4 +26,7 @@ return [
         'date_future'      => 'The date must be today or in the future.',
         'max_quantity'     => 'Maximum allowed quantity is 20.',
     ],
+
+    'recover_success' => 'We restored your cart. You can continue with your booking.',
+    'recover_expired' => 'The recovery link is no longer valid or the cart is empty.',
 ];

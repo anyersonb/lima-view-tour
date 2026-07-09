@@ -1859,6 +1859,40 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         };
     }
 
+    // ── Carrito abandonado: captura de contacto en segundo plano ─────
+    // Cuando el visitante escribe su correo (y datos) en el checkout,
+    // guardamos el carrito + contacto para poder recuperarlo si no paga.
+    const CART_CONTACT_URL = @json(route('cart.contact', ['locale' => app()->getLocale()]));
+    let lastContactSnapshot = '';
+    function persistAbandonedContact() {
+        const d = collectCustomerData();
+        if (!d.customer_email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.customer_email)) return;
+        const snapshot = [d.customer_email, d.customer_name, d.customer_phone].join('|');
+        if (snapshot === lastContactSnapshot) return; // no reenviar si nada cambió
+        lastContactSnapshot = snapshot;
+        try {
+            fetch(CART_CONTACT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type':     'application/json',
+                    'X-CSRF-TOKEN':     CSRF,
+                    'Accept':           'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    customer_email: d.customer_email,
+                    customer_name:  d.customer_name,
+                    customer_phone: d.customer_phone,
+                }),
+                keepalive: true,
+            }).catch(() => {});
+        } catch (e) { /* silencioso: nunca romper el checkout */ }
+    }
+    ['#customer_email', '#customer_name', '#phone_local'].forEach(sel => {
+        const el = document.querySelector(sel);
+        if (el) el.addEventListener('blur', persistAbandonedContact);
+    });
+
     function validateCustomer() {
         const d     = collectCustomerData();
         const terms = document.getElementById('accept_terms')?.checked;

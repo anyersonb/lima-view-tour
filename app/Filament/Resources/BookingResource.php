@@ -103,6 +103,13 @@ class BookingResource extends Resource
                     ->required()
                     ->maxLength(5)
                     ->default('es'),
+                Forms\Components\Toggle::make('send_emails')
+                    ->label('Enviar correos de confirmación (cliente + administrador)')
+                    ->helperText('Envía el correo de confirmación al cliente y la notificación interna. Desactívalo para cargar reservas históricas sin notificar.')
+                    ->default(true)
+                    ->dehydrated(false)
+                    ->visibleOn('create')
+                    ->columnSpanFull(),
             ]);
     }
 

@@ -3,12 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProcessPaymentRequest;
-use App\Mail\BookingConfirmed;
-use App\Mail\BookingNotificationAdmin;
 use App\Models\BlockedDate;
 use App\Models\Customer;
-use App\Models\Setting;
 use App\Models\Booking;
+use App\Services\AbandonedCartService;
+use App\Services\BookingNotifier;
 use App\Services\CartService;
 use App\Services\PaymentService;
 use App\Services\PayPalService;
@@ -26,9 +25,11 @@ use Illuminate\View\View;
 class CheckoutController extends Controller
 {
     public function __construct(
-        private readonly CartService    $cart,
-        private readonly PaymentService $payment,
-        private readonly PayPalService  $paypal,
+        private readonly CartService          $cart,
+        private readonly PaymentService       $payment,
+        private readonly PayPalService        $paypal,
+        private readonly BookingNotifier      $notifier,
+        private readonly AbandonedCartService $abandoned,
     ) {}
 
     /**
@@ -319,41 +320,12 @@ class CheckoutController extends Controller
             'bookings'    => $bookings->pluck('reference')->all(),
         ]);
 
-        // Send confirmation email to the customer (non-blocking)
-        try {
-            Mail::to($customer['customer_email'])
-                ->send(new BookingConfirmed($bookings, $customer['customer_email']));
+        // Send customer confirmation + internal admin notification (non-blocking).
+        // Shared with the Filament admin "create booking" flow via BookingNotifier.
+        $this->notifier->send($bookings, $paid, $customer['customer_email']);
 
-            Log::info('checkout.confirmation_email.sent', [
-                'email'    => $customer['customer_email'],
-                'bookings' => $bookings->pluck('reference')->all(),
-            ]);
-        } catch (\Throwable $mailEx) {
-            Log::warning('checkout.confirmation_email.failed', [
-                'email'   => $customer['customer_email'],
-                'message' => $mailEx->getMessage(),
-            ]);
-        }
-
-        // Send internal admin notification (non-blocking)
-        try {
-            $adminEmail = Setting::get('booking_notification_email')
-                ?: config('mail.from.address');
-
-            $paymentTiming = $paid ? 'now' : 'later';
-
-            Mail::to($adminEmail)
-                ->send(new BookingNotificationAdmin($bookings, $paymentTiming));
-
-            Log::info('checkout.admin_notification_email.sent', [
-                'admin_email' => $adminEmail,
-                'bookings'    => $bookings->pluck('reference')->all(),
-            ]);
-        } catch (\Throwable $adminMailEx) {
-            Log::warning('checkout.admin_notification_email.failed', [
-                'message' => $adminMailEx->getMessage(),
-            ]);
-        }
+        // Cierra el carrito abandonado asociado (por sesión y/o email)
+        $this->abandoned->markConverted(session()->getId(), $customer['customer_email']);
 
         $this->cart->clear();
 

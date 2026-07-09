@@ -89,6 +89,31 @@ class CartService
         Session::forget([self::SESSION_ITEMS, self::SESSION_COUPON]);
     }
 
+    /**
+     * Replace the whole cart with a list of item arrays (rebuilds the keyed
+     * session structure). Used to restore an abandoned cart from its snapshot.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    public function replace(array $items): void
+    {
+        $keyed = [];
+
+        foreach ($items as $item) {
+            if (empty($item['tour_id'])) {
+                continue;
+            }
+
+            $rowId = $item['row_id']
+                ?? $this->buildRowId($item['tour_id'], $item['travel_date'] ?? '');
+
+            $item['row_id'] = $rowId;
+            $keyed[$rowId]  = $item;
+        }
+
+        Session::put(self::SESSION_ITEMS, $keyed);
+    }
+
     // ─────────────────────────────────────────────────────────────
     //  Coupons
     // ─────────────────────────────────────────────────────────────

@@ -77,6 +77,12 @@ Route::prefix('{locale}')
             ->middleware('throttle:30,1')
             ->name('cart.coupon');
         Route::delete('/carrito/vaciar', [CartController::class, 'clear'])->name('cart.clear');
+        // Carrito abandonado: captura de contacto (AJAX) + link de recuperación
+        Route::post('/carrito/guardar-contacto', [CartController::class, 'saveContact'])
+            ->middleware('throttle:30,1')
+            ->name('cart.contact');
+        Route::get('/carrito/recuperar/{token}', [CartController::class, 'recover'])
+            ->name('cart.recover');
         Route::patch('/carrito/{rowId}', [CartController::class, 'updateItem'])->name('cart.update');
         Route::delete('/carrito/{rowId}', [CartController::class, 'destroy'])->name('cart.destroy');
 

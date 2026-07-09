@@ -26,4 +26,7 @@ return [
         'date_future'      => 'A data deve ser hoje ou no futuro.',
         'max_quantity'     => 'A quantidade máxima permitida é 20.',
     ],
+
+    'recover_success' => 'Recuperamos seu carrinho. Você pode continuar com sua reserva.',
+    'recover_expired' => 'O link de recuperação não é mais válido ou o carrinho está vazio.',
 ];

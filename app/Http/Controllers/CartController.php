@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CartItemRequest;
+use App\Models\AbandonedCart;
 use App\Models\BlockedDate;
 use App\Models\Tour;
+use App\Services\AbandonedCartService;
 use App\Services\CartService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -13,7 +16,10 @@ use Illuminate\View\View;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly CartService $cart) {}
+    public function __construct(
+        private readonly CartService          $cart,
+        private readonly AbandonedCartService $abandoned,
+    ) {}
 
     // ─────────────────────────────────────────────────────────────
     //  index — render cart view
@@ -248,6 +254,61 @@ class CartController extends Controller
 
             return redirect()->back()->withErrors(['general' => __('cart.error')]);
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  saveContact — persist cart + contact for abandoned-cart recovery
+    //  (llamado por AJAX cuando el visitante escribe su email en el checkout)
+    // ─────────────────────────────────────────────────────────────
+
+    public function saveContact(Request $request, string $locale): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'customer_email' => ['nullable', 'email', 'max:255'],
+                'customer_name'  => ['nullable', 'string', 'max:255'],
+                'customer_phone' => ['nullable', 'string', 'max:40'],
+            ]);
+
+            $this->abandoned->capture([
+                'email' => $validated['customer_email'] ?? null,
+                'name'  => $validated['customer_name']  ?? null,
+                'phone' => $validated['customer_phone'] ?? null,
+            ]);
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            // Nunca romper la UX del checkout por esto
+            Log::warning('CartController@saveContact: capture failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['success' => false], 200);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  recover — restore an abandoned cart from its recovery link
+    // ─────────────────────────────────────────────────────────────
+
+    public function recover(string $locale, string $token): RedirectResponse
+    {
+        $cart = AbandonedCart::where('token', $token)->first();
+
+        if (! $cart || empty($cart->items)) {
+            return redirect()->route('cart.index', ['locale' => $locale])
+                ->with('error', __('cart.recover_expired'));
+        }
+
+        $this->abandoned->restore($cart);
+
+        Log::info('CartController@recover: cart restored', [
+            'token'  => $token,
+            'locale' => $locale,
+        ]);
+
+        return redirect()->route('cart.index', ['locale' => $locale])
+            ->with('success', __('cart.recover_success'));
     }
 
     // ─────────────────────────────────────────────────────────────
