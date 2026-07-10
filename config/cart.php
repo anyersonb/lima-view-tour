@@ -40,4 +40,25 @@ return [
         'expire_after_days'             => 7,
         'batch_size'                    => 50,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recordatorio de pago — reservas "pagar luego"
+    |--------------------------------------------------------------------------
+    |
+    | Cuando un cliente reserva con la opción "pagar luego" (payment_method =
+    | 'pay_later', payment_status = 'pending'), se le envía un correo
+    | recordándole que complete el pago ANTES de la fecha del tour.
+    |
+    | enabled       Activa/desactiva el envío de recordatorios.
+    | days_before   Días de antelación respecto a la fecha del tour en que se
+    |               dispara el recordatorio (p. ej. 2 = dos días antes).
+    | batch_size    Máx. de reservas procesadas por corrida del comando.
+    |
+    */
+    'payment_reminder' => [
+        'enabled'     => true,
+        'days_before' => 2,
+        'batch_size'  => 100,
+    ],
 ];

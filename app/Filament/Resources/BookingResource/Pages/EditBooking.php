@@ -16,4 +16,15 @@ class EditBooking extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    /**
+     * Reconstruye el toggle "tour personalizado" al abrir una reserva:
+     * si no tiene tour del catálogo (tour_id null), es un tour manual.
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['use_custom_tour'] = empty($data['tour_id']);
+
+        return $data;
+    }
 }

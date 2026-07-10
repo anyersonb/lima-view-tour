@@ -70,7 +70,14 @@
                         @if ($booking->pickup_point)
                         <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Hotel de recojo</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->pickup_point }}@if($booking->pickup_detail)<br><span style="font-weight:normal;color:#71808a;font-size:12px;">{{ $booking->pickup_detail }}</span>@endif</td></tr>
                         @endif
+                        <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Precio por persona</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $cur }}{{ number_format($booking->unit_price, 2) }}</td></tr>
+                        @if ($booking->hasDiscount())
+                        <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Descuento{{ $booking->discount_type === 'percent' ? ' ('.rtrim(rtrim(number_format($booking->discount_value, 2), '0'), '.').'%)' : '' }}</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;color:#b0560d;">− {{ $cur }}{{ number_format($booking->discount_amount, 2) }}</td></tr>
+                        @endif
                         <tr><td style="padding:11px 0;border-top:1px solid #ece6dc;color:#0b3035;font-weight:bold;">Total ({{ $pax }})</td><td align="right" style="padding:11px 0;border-top:1px solid #ece6dc;color:#0b7c56;font-weight:bold;font-size:16px;">{{ $cur }}{{ number_format($booking->total_price, 2) }}</td></tr>
+                        @if ($booking->custom_tour_details)
+                        <tr><td colspan="2" style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;font-size:13px;line-height:1.5;"><b style="color:#0b3035;">Tour personalizado:</b> {{ $booking->custom_tour_details }}</td></tr>
+                        @endif
                     </table>
                 </td></tr>
             </table>

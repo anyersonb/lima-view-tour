@@ -17,6 +17,12 @@ class Kernel extends ConsoleKernel
             ->everyFiveMinutes()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Recordatorio de pago para reservas "pagar luego" (2 días antes del tour)
+        $schedule->command('bookings:send-payment-reminders')
+            ->dailyAt('09:00')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

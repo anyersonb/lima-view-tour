@@ -17,7 +17,15 @@ class Booking extends Model
         'travel_date' => 'date',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'payment_reminder_sent_at' => 'datetime',
     ];
+
+    public function hasDiscount(): bool
+    {
+        return $this->discount_type !== null && (float) $this->discount_amount > 0;
+    }
 
     protected static function booted(): void
     {
