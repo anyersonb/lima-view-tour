@@ -232,10 +232,12 @@ class BookingResource extends Resource
                         Forms\Components\Select::make('payment_method')
                             ->label('Método de pago')
                             ->options([
-                                'pay_later' => 'Pagar luego',
-                                'paypal'    => 'PayPal',
-                                'cash'      => 'Efectivo',
-                                'transfer'  => 'Transferencia',
+                                'pay_later'    => 'Pagar luego',
+                                'paypal'       => 'PayPal',
+                                'card'         => 'Pago con tarjeta',
+                                'payment_link' => 'Link de pago',
+                                'cash'         => 'Efectivo',
+                                'transfer'     => 'Transferencia',
                             ])
                             ->default('pay_later')
                             ->native(false),
@@ -379,11 +381,13 @@ class BookingResource extends Resource
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Método')
                     ->formatStateUsing(fn (?string $state) => match ($state) {
-                        'pay_later' => 'Pagar luego',
-                        'paypal'    => 'PayPal',
-                        'cash'      => 'Efectivo',
-                        'transfer'  => 'Transferencia',
-                        default     => $state ?: '—',
+                        'pay_later'    => 'Pagar luego',
+                        'paypal'       => 'PayPal',
+                        'card'         => 'Pago con tarjeta',
+                        'payment_link' => 'Link de pago',
+                        'cash'         => 'Efectivo',
+                        'transfer'     => 'Transferencia',
+                        default        => $state ?: '—',
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('payment_reference')
