@@ -240,7 +240,16 @@ class BookingResource extends Resource
                                 'transfer'     => 'Transferencia',
                             ])
                             ->default('pay_later')
-                            ->native(false),
+                            ->native(false)
+                            ->live(),
+                        Forms\Components\TextInput::make('payment_link_url')
+                            ->label('Link de pago (opcional)')
+                            ->url()
+                            ->maxLength(500)
+                            ->placeholder('https://...')
+                            ->helperText('Pega aquí el enlace de pago para enviárselo al cliente. Opcional.')
+                            ->visible(fn (Forms\Get $get) => $get('payment_method') === 'payment_link')
+                            ->columnSpanFull(),
                         Forms\Components\TextInput::make('payment_reference')
                             ->label('Referencia de pago (automática)')
                             ->helperText('Se genera automáticamente (ej. ID de captura de PayPal). No se edita a mano.')
@@ -393,6 +402,11 @@ class BookingResource extends Resource
                 Tables\Columns\TextColumn::make('payment_reference')
                     ->label('Ref. pago')
                     ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('payment_link_url')
+                    ->label('Link de pago')
+                    ->url(fn ($record) => $record->payment_link_url, shouldOpenInNewTab: true)
+                    ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true),
                 ...(\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'pickup_point') ? [
                     Tables\Columns\TextColumn::make('pickup_point')
