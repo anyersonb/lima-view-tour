@@ -28,9 +28,11 @@ class BookingConfirmed extends Mailable
         // Detect locale from the first booking; fallback to app locale
         $locale = $this->bookings->first()?->locale ?? app()->getLocale();
 
-        $subject = $locale === 'en'
-            ? 'Booking Confirmation — Lima View Tours'
-            : 'Confirmación de reserva — Lima View Tours';
+        $subject = match ($locale) {
+            'en'    => 'Booking Confirmation — Lima View Tours',
+            'pt'    => 'Confirmação de reserva — Lima View Tours',
+            default => 'Confirmación de reserva — Lima View Tours',
+        };
 
         return new Envelope(subject: $subject);
     }
