@@ -10,6 +10,23 @@
     $notes      = $tour->{"notes_{$locale}"}     ?? $tour->notes_es     ?? null;
     $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
 
+    // ── Zonas de recogida (pickup) — configuración GLOBAL, igual para todos los tours ──
+    $pickupEnabled  = (bool) \App\Models\Setting::get('pickup_enabled', false);
+    $rawPickupZones = \App\Models\Setting::get('pickup_zones');
+    $pickupZonesRaw = is_string($rawPickupZones) ? (json_decode($rawPickupZones, true) ?? []) : (is_array($rawPickupZones) ? $rawPickupZones : []);
+    $pickupZones = collect($pickupZonesRaw)
+        ->filter(fn ($z) => is_array($z) && isset($z['lat'], $z['lng']) && is_numeric($z['lat']) && is_numeric($z['lng']))
+        ->map(fn ($z) => [
+            'label'     => (string) ($z['label'] ?? ''),
+            'lat'       => (float) $z['lat'],
+            'lng'       => (float) $z['lng'],
+            'radius_km' => (float) ($z['radius_km'] ?? 2),
+            'type'      => ($z['type'] ?? 'all') === 'hotels' ? 'hotels' : 'all',
+        ])
+        ->values();
+    $pickupMapsKey = \App\Models\Setting::get('google_maps_api_key') ?: config('services.google.maps_api_key');
+    $showPickup    = $pickupEnabled && $pickupZones->isNotEmpty() && filled($pickupMapsKey);
+
     // FAQs del tour: idioma actual con fallback a español; solo pares completos.
     $tourFaqs = array_values(array_filter(
         (array) ($tour->{"faqs_{$locale}"} ?: $tour->faqs_es ?: []),
@@ -570,6 +587,26 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-comment b { font-size: 13px; }
 .m-comment .m-date { float: right; color: #777; font-size: 11px; font-weight: 500; }
 .m-comment p { font-size: 12px; margin: 5px 0 0; line-height: 1.35; }
+/* ── Carrusel de opiniones (mobile) ── */
+.m-reviews-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 4px 2px 10px; margin: 0 -2px; }
+.m-reviews-track::-webkit-scrollbar { display: none; }
+.m-review-slide { flex: 0 0 86%; max-width: 86%; scroll-snap-align: start; }
+.m-review-slide .m-comment { border-bottom: 0; border: 1px solid var(--m-line); border-radius: 14px; padding: 14px; background: #fff; height: 168px; overflow: hidden; }
+/* Tarjetas de comentario de tamaño uniforme: texto recortado a 4 líneas */
+.m-review-slide .m-comment p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.m-review-more { display: inline-block; margin-top: 4px; background: none; border: 0; padding: 0; color: var(--m-orange); font-size: 11.5px; font-weight: 800; cursor: pointer; }
+.m-reviews-dots { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 2px; }
+.m-reviews-dots button { height: 8px; width: 8px; border-radius: 999px; background: #d8dcd8; border: 0; padding: 0; transition: all .2s ease; }
+.m-reviews-dots button.active { width: 22px; background: var(--m-orange); }
+/* Popup de comentario completo (mobile) */
+.m-review-modal-wrap { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.m-review-modal-overlay { position: absolute; inset: 0; background: rgba(10,50,64,.6); }
+.m-review-modal { position: relative; z-index: 1; width: 100%; max-width: 420px; max-height: 80vh; overflow-y: auto; background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.m-review-modal-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: #f1f0ec; color: #111; font-size: 14px; cursor: pointer; display: grid; place-items: center; }
+.m-review-modal b { font-size: 15px; display: block; }
+.m-review-modal .m-date { display: inline-block; float: none; margin: 2px 0 6px; }
+.m-review-modal .m-stars { display: block; margin-bottom: 10px; }
+.m-review-modal p { font-size: 13px; line-height: 1.5; color: #333; margin: 0; white-space: pre-line; }
 /* ── Caja de reseñas (form estilo WooCommerce adaptado al diseño) ── */
 .m-review-flash { margin: 12px 0; padding: 11px 13px; background: #eaf6ee; border: 1px solid #bfe3cc; border-radius: 10px; color: #176a3d; font-size: 12.5px; font-weight: 700; }
 .m-reviews-empty { font-size: 12.5px; color: #6b7077; margin: 12px 0 0; }
@@ -762,6 +799,14 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .d-related-nav.prev { left: -14px; }
 .d-related-nav.next { right: -14px; }
 
+/* ── Carrusel "Opiniones de nuestros viajeros" (desktop) ── */
+.d-reviews-track { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding-bottom: .25rem; scrollbar-width: none; }
+.d-reviews-track::-webkit-scrollbar { display: none; }
+.d-review-slide { flex: 0 0 100%; max-width: 100%; scroll-snap-align: start; min-width: 0; }
+@media (min-width: 1024px) {
+    .d-review-slide { flex-basis: calc(50% - .5rem); max-width: calc(50% - .5rem); }
+}
+
 /* ── Modo nocturno DESACTIVADO (tema claro forzado; reactivar quitando "and (min-width:99999px)") ── */
 @media (prefers-color-scheme: dark) and (min-width: 99999px) {
     .booking-compact-card,
@@ -882,6 +927,72 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 }());
 </script>
 @endpush
+
+@if ($showPickup)
+@push('scripts')
+{{-- Zonas de recogida — datos inyectados desde el servidor, sin exponer más que lat/lng/radio/tipo --}}
+<script>
+    window.LVT_PICKUP_ZONES = @json($pickupZones);
+</script>
+<script>
+(function () {
+    // Dibuja los círculos de cobertura en los mapas mobile (#m-pickup-map) y desktop (#d-pickup-map).
+    // Ambos contenedores pueden existir a la vez en el DOM (uno se oculta por CSS según el breakpoint).
+    function renderPickupMaps() {
+        var zones = window.LVT_PICKUP_ZONES || [];
+        var ids = ['m-pickup-map', 'd-pickup-map'];
+
+        ids.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+
+            var map = new google.maps.Map(el, { center: { lat: -12.09, lng: -77.03 }, zoom: 12 });
+            var bounds = new google.maps.LatLngBounds();
+            var any = false;
+
+            zones.forEach(function (zone) {
+                var center = { lat: zone.lat, lng: zone.lng };
+                any = true;
+                bounds.extend(center);
+
+                new google.maps.Marker({ position: center, map: map, title: zone.label || '' });
+                new google.maps.Circle({
+                    map: map,
+                    center: center,
+                    radius: (zone.radius_km || 2) * 1000,
+                    strokeColor: '#d96b33',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 1.5,
+                    fillColor: '#d96b33',
+                    fillOpacity: 0.12,
+                });
+            });
+
+            if (any) map.fitBounds(bounds);
+        });
+    }
+
+    window.__lvtPickupMapsReady = renderPickupMaps;
+
+    if (window.google && window.google.maps) {
+        renderPickupMaps();
+        return;
+    }
+
+    if (!document.getElementById('lvt-gmaps-sdk')) {
+        var s = document.createElement('script');
+        s.id = 'lvt-gmaps-sdk';
+        s.src = 'https://maps.googleapis.com/maps/api/js?key={{ $pickupMapsKey }}&loading=async&callback=__lvtPickupMapsReady';
+        s.async = true;
+        s.defer = true;
+        document.head.appendChild(s);
+    } else {
+        document.getElementById('lvt-gmaps-sdk').addEventListener('load', renderPickupMaps);
+    }
+}());
+</script>
+@endpush
+@endif
 
 @section('content')
 
@@ -1266,28 +1377,58 @@ if (!empty($itinerary)) {
             </div>
         </div>
 
+        {{-- 7B. ¿DÓNDE TE RECOGEMOS? — zonas de recogida (mobile) --}}
+        @if ($showPickup)
+        <div style="padding:18px 20px;">
+            <h2 style="font-family:Georgia,serif;margin:0 0 4px;font-size:22px;color:#111;">{{ __('ui.pickup_zones_title') }}</h2>
+            <p style="font-size:12px;color:#6e7278;line-height:1.5;margin:0 0 12px;">{{ __('ui.pickup_zones_subtitle') }}</p>
+            <div id="m-pickup-map" style="width:100%;height:220px;border-radius:14px;overflow:hidden;background:#f1f0ec;margin-bottom:12px;"></div>
+            <div class="m-info-list">
+                @foreach ($pickupZones as $zone)
+                    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;">
+                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg></div>
+                        <div style="flex:1;min-width:0;">
+                            <b>{{ $zone['label'] }}</b>
+                            <p>{{ __('ui.pickup_zones_radius', ['km' => rtrim(rtrim(number_format($zone['radius_km'], 1), '0'), '.')]) }} · {{ $zone['type'] === 'hotels' ? __('ui.pickup_zones_hotels_only') : __('ui.pickup_zones_type_all') }}</p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- 8. OPINIONES / RESEÑAS (caja estilo WooCommerce, dinámica) --}}
-        <div id="reviews" style="padding:18px 20px;">
+        {{-- x-data del popup de comentario completo (mismo patrón que home.blade.php sección Opiniones) --}}
+        <div id="reviews" style="padding:18px 20px;" x-data="{ reviewModalOpen: false, review: {} }">
             <div class="m-h2">
                 <h2>{{ __('ui.traveler_reviews') }}</h2>
                 @if ($tourReviews->count() > 0)
                     <span style="font-size:12px;color:#6b7077;font-weight:800;">{{ $tourReviews->count() }} {{ $tourReviews->count() === 1 ? __('ui.one_rating') : __('ui.ratings') }}</span>
                 @endif
             </div>
+            {{-- Rating/nº editables desde Configuración → APIs; enlaces desde Configuración → Redes sociales --}}
+            @php
+                $mGoogleRating = \App\Models\Setting::get('reviews_google_rating') ?: '4.9';
+                $mGoogleCount  = \App\Models\Setting::get('reviews_google_count') ?: '123';
+                $mTaRating     = \App\Models\Setting::get('reviews_tripadvisor_rating') ?: '4.6';
+                $mTaCount      = \App\Models\Setting::get('reviews_tripadvisor_count') ?: '8';
+                $mGoogleLink   = \App\Models\Setting::get('social_google_reviews') ?: '#';
+                $mTaLink       = \App\Models\Setting::get('social_tripadvisor') ?: '#';
+            @endphp
             <div class="m-review-cards">
                 <div class="m-platform">
                     <div class="brand" style="color:#4285f4;">G Google</div>
-                    <div class="score">4.7 <small>/5</small></div>
+                    <div class="score">{{ $mGoogleRating }} <small>/5</small></div>
                     <div class="m-stars">★★★★★</div>
-                    <small>22 {{ __('ui.reviews') }}</small>
-                    <a href="#">{{ __('ui.see_on_google') }} →</a>
+                    <small>{{ $mGoogleCount }} {{ __('ui.reviews') }}</small>
+                    <a href="{{ $mGoogleLink }}" @if ($mGoogleLink !== '#') target="_blank" rel="noopener nofollow" @endif>{{ __('ui.see_on_google') }} →</a>
                 </div>
                 <div class="m-platform">
                     <div class="brand" style="color:#00a680;">● Tripadvisor</div>
-                    <div class="score">4.6 <small>/5</small></div>
+                    <div class="score">{{ $mTaRating }} <small>/5</small></div>
                     <div class="m-stars">★★★★★</div>
-                    <small>8 {{ __('ui.reviews') }}</small>
-                    <a href="#">{{ __('ui.see_on_tripadvisor') }} →</a>
+                    <small>{{ $mTaCount }} {{ __('ui.reviews') }}</small>
+                    <a href="{{ $mTaLink }}" @if ($mTaLink !== '#') target="_blank" rel="noopener nofollow" @endif>{{ __('ui.see_on_tripadvisor') }} →</a>
                 </div>
             </div>
 
@@ -1295,26 +1436,73 @@ if (!empty($itinerary)) {
                 <div class="m-review-flash">{{ session('review_status') }}</div>
             @endif
 
-            {{-- Lista de reseñas del tour --}}
-            @forelse ($tourReviews as $rev)
-                @php
-                    $rName   = $rev->name ?: 'Viajero';
-                    $rDate   = $rev->created_at ? \Carbon\Carbon::parse($rev->created_at)->translatedFormat('j \d\e F, Y') : '';
-                    $rText   = $rev->{"quote_$locale"} ?: $rev->quote_es;
-                    $rRating = max(1, min(5, (int) round($rev->rating)));
-                @endphp
-                <div class="m-comment">
-                    <div style="width:38px;height:38px;border-radius:50%;background:#15474b;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex-shrink:0;" aria-hidden="true">{{ mb_strtoupper(mb_substr($rName,0,1,'UTF-8'),'UTF-8') }}</div>
-                    <div>
-                        <b>{{ $rName }} <span class="m-verified" aria-label="{{ __('ui.verified') }}">✓</span></b>
-                        @if ($rDate)<span class="m-date">{{ $rDate }}</span>@endif
-                        <div class="m-stars" aria-label="{{ __('ui.rated_with') }} {{ $rRating }} {{ __('ui.of_5') }}">{{ str_repeat('★', $rRating) }}<span style="color:#d8dcd8;">{{ str_repeat('★', 5 - $rRating) }}</span></div>
-                        @if ($rText)<p>{{ $rText }}</p>@endif
+            {{-- Lista de reseñas del tour: carrusel con paginación --}}
+            @if ($tourReviews->count() > 0)
+                <div x-data="{ current: 0, total: {{ $tourReviews->count() }} }">
+                    <div class="m-reviews-track" id="m-reviews-carousel"
+                         @scroll.debounce.100ms="
+                             let el = $el; let w = el.scrollWidth - el.clientWidth;
+                             if (w > 0) { current = Math.round((el.scrollLeft / w) * (total - 1)); }
+                         ">
+                        @foreach ($tourReviews as $rev)
+                            @php
+                                $rName        = $rev->name ?: 'Viajero';
+                                $rDate        = $rev->created_at ? \Carbon\Carbon::parse($rev->created_at)->translatedFormat('j \d\e F, Y') : '';
+                                $rTextFull    = trim((string) ($rev->{"quote_$locale"} ?: $rev->quote_es));
+                                $rTextShort   = \Illuminate\Support\Str::limit($rTextFull, 120);
+                                $rTextIsLong  = mb_strlen($rTextFull) > 120;
+                                $rRating      = max(1, min(5, (int) round($rev->rating)));
+                                $rInitial     = mb_strtoupper(mb_substr($rName,0,1,'UTF-8'),'UTF-8');
+                            @endphp
+                            {{-- Tarjeta de tamaño uniforme: texto truncado a 120 car.; "Ver más" abre el popup con el comentario completo --}}
+                            <div class="m-review-slide">
+                                <div class="m-comment">
+                                    <div style="width:38px;height:38px;border-radius:50%;background:#15474b;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex-shrink:0;" aria-hidden="true">{{ $rInitial }}</div>
+                                    <div>
+                                        <b>{{ $rName }} <span class="m-verified" aria-label="{{ __('ui.verified') }}">✓</span></b>
+                                        @if ($rDate)<span class="m-date">{{ $rDate }}</span>@endif
+                                        <div class="m-stars" aria-label="{{ __('ui.rated_with') }} {{ $rRating }} {{ __('ui.of_5') }}">{{ str_repeat('★', $rRating) }}<span style="color:#d8dcd8;">{{ str_repeat('★', 5 - $rRating) }}</span></div>
+                                        @if ($rTextShort)<p>{{ $rTextShort }}</p>@endif
+                                        @if ($rTextIsLong)
+                                            <button type="button" class="m-review-more"
+                                                    @click="review = { name: @js($rName), date: @js($rDate), quote: @js($rTextFull), rating: {{ $rRating }}, initial: @js($rInitial) }; reviewModalOpen = true">
+                                                {{ __('ui.see_more') }}
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
+                    {{-- Dots de paginación (se ocultan si hay una sola reseña) --}}
+                    @if ($tourReviews->count() > 1)
+                        <div class="m-reviews-dots" aria-hidden="true">
+                            @for ($i = 0; $i < $tourReviews->count(); $i++)
+                                <button type="button"
+                                        @click="current = {{ $i }}; document.getElementById('m-reviews-carousel').scrollTo({ left: document.getElementById('m-reviews-carousel').scrollWidth / {{ $tourReviews->count() }} * {{ $i }}, behavior: 'smooth' });"
+                                        :class="{ 'active': current === {{ $i }} }"
+                                        :aria-label="'Ir a opinión {{ $i + 1 }}'"></button>
+                            @endfor
+                        </div>
+                    @endif
                 </div>
-            @empty
+            @else
                 <p class="m-reviews-empty">{{ __('ui.be_first_review') }}</p>
-            @endforelse
+            @endif
+
+            {{-- Popup: comentario completo (mobile) — se abre desde "Ver más" --}}
+            <div x-cloak x-show="reviewModalOpen" x-transition.opacity
+                 @keydown.escape.window="reviewModalOpen = false"
+                 class="m-review-modal-wrap" role="dialog" aria-modal="true">
+                <div class="m-review-modal-overlay" @click="reviewModalOpen = false"></div>
+                <div class="m-review-modal" x-show="reviewModalOpen" x-transition.scale.origin.center>
+                    <button type="button" class="m-review-modal-close" @click="reviewModalOpen = false" aria-label="Cerrar">✕</button>
+                    <b x-text="review.name"></b>
+                    <span class="m-date" x-text="review.date"></span>
+                    <div class="m-stars" x-text="'★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5))"></div>
+                    <p x-text="review.quote"></p>
+                </div>
+            </div>
 
             {{-- Formulario "Añade una valoración" (crea reseña pendiente de aprobación) --}}
             <details class="m-review-form-wrap" {{ ($errors->any() || session('review_status')) ? 'open' : '' }}>
@@ -1356,10 +1544,6 @@ if (!empty($itinerary)) {
                 </form>
             </details>
 
-            {{-- Widget oficial "Escribir reseña" de TripAdvisor --}}
-            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--m-line);display:flex;justify-content:center;">
-                <x-tripadvisor-write-review uniq="311" />
-            </div>
         </div>
 
         {{-- 9. OTROS VIAJEROS TAMBIÉN RESERVARON — rec-cards --}}
@@ -1393,7 +1577,12 @@ if (!empty($itinerary)) {
                         $relPct     = $relHasOffer ? (int) round(((float)$relBefore - $relPrice) / (float)$relBefore * 100) : 0;
                         $relHref    = $relSlug !== '#' ? route('tours.show', ['locale' => $locale, 'slug' => $relSlug]) : '#';
                         $relIncludes = is_object($rel) ? ($rel->{"includes_$locale"} ?? $rel->includes_es ?? []) : [];
-                        $relBullets  = array_slice(array_filter(array_map(fn($i) => is_array($i) ? ($i['label'] ?? $i[0] ?? '') : (string)$i, $relIncludes ?: [])), 0, 2);
+                        // Limpia checks (✅ ✔ ☑ ✓) y trunca cada ítem para que la card no se desborde aunque el dato venga en un bloque
+                        $relBullets  = array_slice(array_filter(array_map(function ($i) {
+                            $t = is_array($i) ? ($i['label'] ?? $i[0] ?? '') : (string) $i;
+                            $t = trim(preg_replace('/[\x{2705}\x{2714}\x{2611}\x{2713}\x{FE0F}]/u', '', $t));
+                            return \Illuminate\Support\Str::limit($t, 46);
+                        }, $relIncludes ?: [])), 0, 2);
                     @endphp
                     <div class="m-rec-card">
                         <div class="m-rec-image-wrap">
@@ -1946,26 +2135,67 @@ if (!empty($itinerary)) {
         </section>
 
         {{-- ══════════════════════════════════════
+             6B. ¿DÓNDE TE RECOGEMOS? — zonas de recogida (global, todos los tours)
+        ══════════════════════════════════════ --}}
+        @if ($showPickup)
+        <section aria-labelledby="pickup-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
+            <h2 id="pickup-heading" class="font-display text-base lg:text-lg text-teal-800 mb-1">{{ __('ui.pickup_zones_title') }}</h2>
+            <p class="text-sm text-teal-800/60 mb-4 max-w-2xl">{{ __('ui.pickup_zones_subtitle') }}</p>
+
+            <div class="grid lg:grid-cols-5 gap-5">
+                <div id="d-pickup-map" class="lg:col-span-3 w-full h-72 lg:h-80 rounded-xl overflow-hidden bg-teal-800/5 ring-1 ring-teal-800/10"></div>
+
+                <ul class="lg:col-span-2 space-y-2.5" aria-label="{{ __('ui.pickup_zones_title') }}">
+                    @foreach ($pickupZones as $zone)
+                        <li class="flex items-start gap-3 bg-cream-100 rounded-xl px-4 py-3">
+                            <span class="w-8 h-8 rounded-full bg-teal-800 grid place-items-center shrink-0 mt-0.5" aria-hidden="true">
+                                <svg class="w-4 h-4 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-teal-800">{{ $zone['label'] }}</p>
+                                <p class="text-xs text-teal-800/55">
+                                    {{ __('ui.pickup_zones_radius', ['km' => rtrim(rtrim(number_format($zone['radius_km'], 1), '0'), '.')]) }}
+                                    &middot;
+                                    {{ $zone['type'] === 'hotels' ? __('ui.pickup_zones_hotels_only') : __('ui.pickup_zones_type_all') }}
+                                </p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </section>
+        @endif
+
+        {{-- ══════════════════════════════════════
              7. OPINIONES DE NUESTROS VIAJEROS
         ══════════════════════════════════════ --}}
-        <section aria-labelledby="reviews-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
+        {{-- x-data del popup de comentario completo (mismo patrón que home.blade.php sección Opiniones) --}}
+        <section aria-labelledby="reviews-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5" x-data="{ reviewModalOpen: false, review: {} }">
             <div class="flex items-center justify-between mb-4">
                 <h2 id="reviews-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.traveler_reviews') }}</h2>
                 <a href="#reviews-heading" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">{{ __('ui.see_all') }}</a>
             </div>
-            {{-- Plataformas Google + Tripadvisor --}}
+            {{-- Plataformas Google + Tripadvisor: rating/nº editables desde Configuración → APIs; enlaces desde Configuración → Redes sociales --}}
+            @php
+                $dGoogleRating = \App\Models\Setting::get('reviews_google_rating') ?: '4.9';
+                $dGoogleCount  = \App\Models\Setting::get('reviews_google_count') ?: '123';
+                $dTaRating     = \App\Models\Setting::get('reviews_tripadvisor_rating') ?: '4.6';
+                $dTaCount      = \App\Models\Setting::get('reviews_tripadvisor_count') ?: '8';
+                $dGoogleLink   = \App\Models\Setting::get('social_google_reviews') ?: '#';
+                $dTaLink       = \App\Models\Setting::get('social_tripadvisor') ?: '#';
+            @endphp
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <div class="bg-cream-100 rounded-xl p-3">
                     <div class="flex items-center gap-1.5 mb-1">
                         <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                         <span class="text-xs font-bold text-teal-800">Google</span>
                     </div>
-                    <p class="font-price text-xl font-bold text-teal-800">4.7<span class="text-teal-800/40 text-xs">/5</span></p>
+                    <p class="font-price text-xl font-bold text-teal-800">{{ $dGoogleRating }}<span class="text-teal-800/40 text-xs">/5</span></p>
                     <div class="flex gap-0.5 my-0.5" aria-hidden="true">
                         @for ($s=0;$s<5;$s++)<svg class="w-3 h-3 text-orange-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endfor
                     </div>
-                    <p class="text-[11px] text-teal-800/55 mb-1.5">22 {{ __('ui.reviews') }}</p>
-                    <a href="#" class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
+                    <p class="text-[11px] text-teal-800/55 mb-1.5">{{ $dGoogleCount }} {{ __('ui.reviews') }}</p>
+                    <a href="{{ $dGoogleLink }}" @if ($dGoogleLink !== '#') target="_blank" rel="noopener nofollow" @endif class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
                         {{ __('ui.see_on_google') }} <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                     </a>
                 </div>
@@ -1982,13 +2212,13 @@ if (!empty($itinerary)) {
                         </svg>
                         <span class="text-xs font-bold text-teal-800">Tripadvisor</span>
                     </div>
-                    <p class="font-price text-xl font-bold text-teal-800">4.6<span class="text-teal-800/40 text-xs">/5</span></p>
+                    <p class="font-price text-xl font-bold text-teal-800">{{ $dTaRating }}<span class="text-teal-800/40 text-xs">/5</span></p>
                     <div class="flex gap-0.5 my-0.5" aria-hidden="true">
                         @for ($s=0;$s<4;$s++)<svg class="w-3 h-3 text-orange-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endfor
                         <svg class="w-3 h-3 text-orange-200 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
-                    <p class="text-[11px] text-teal-800/55 mb-1.5">8 {{ __('ui.reviews') }}</p>
-                    <a href="#" class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
+                    <p class="text-[11px] text-teal-800/55 mb-1.5">{{ $dTaCount }} {{ __('ui.reviews') }}</p>
+                    <a href="{{ $dTaLink }}" @if ($dTaLink !== '#') target="_blank" rel="noopener nofollow" @endif class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
                         {{ __('ui.see_on_tripadvisor') }} <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                     </a>
                 </div>
@@ -1999,61 +2229,126 @@ if (!empty($itinerary)) {
                 <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold px-4 py-3">{{ session('review_status') }}</div>
             @endif
 
-            {{-- Reviews individuales del tour --}}
+            {{-- Reviews individuales del tour: carrusel con paginación --}}
             @if($tourReviews->count() > 0)
-            <div class="space-y-3">
+            <div x-data="{ current: 0, total: {{ $tourReviews->count() }} }">
                 @php
                 $avatarColors = ['bg-teal-700', 'bg-orange-500', 'bg-teal-600', 'bg-amber-600', 'bg-cyan-700'];
                 @endphp
-                @foreach ($tourReviews as $tIdx => $testimonial)
-                    @php
-                        $tName     = $testimonial->author_name ?? $testimonial->name ?? 'Viajero';
-                        $tDate     = $testimonial->created_at ? \Carbon\Carbon::parse($testimonial->created_at)->translatedFormat('j M Y') : '';
-                        $tText     = $testimonial->{"quote_$locale"} ?? $testimonial->quote_es ?? $testimonial->{"content_$locale"} ?? $testimonial->content_es ?? $testimonial->content ?? '';
-                        $tRating   = (int)($testimonial->rating ?? 5);
-                        $tAvatar   = $testimonial->avatar_url ?? null;
-                        $tInitials = mb_strtoupper(mb_substr(trim($tName), 0, 1, 'UTF-8'), 'UTF-8');
-                        if (str_contains($tName, ' ')) {
-                            $parts = explode(' ', trim($tName));
-                            $tInitials = mb_strtoupper(mb_substr($parts[0], 0, 1, 'UTF-8') . mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
-                        }
-                        $tColor = $avatarColors[$tIdx % count($avatarColors)];
-                    @endphp
-                    <div class="p-4 bg-cream-100 rounded-xl">
-                        <div class="flex items-start justify-between gap-2 mb-2">
-                            <div class="flex items-center gap-2.5">
-                                @if ($tAvatar)
-                                    <img src="{{ $tAvatar }}" alt="{{ $tName }}" class="w-9 h-9 rounded-full object-cover shrink-0" loading="lazy" width="36" height="36">
-                                @else
-                                    <div class="w-9 h-9 rounded-full {{ $tColor }} text-white grid place-items-center text-xs font-bold shrink-0" aria-hidden="true">{{ $tInitials }}</div>
-                                @endif
-                                <div>
-                                    <p class="text-xs font-bold text-teal-800 flex items-center gap-1">
-                                        {{ $tName }}
-                                        <span class="inline-flex items-center gap-0.5 bg-state-success/10 text-state-success text-[9px] font-semibold px-1.5 py-0.5 rounded-full" aria-label="{{ __('ui.verified') }}">
-                                            <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                        </span>
-                                    </p>
-                                    <div class="flex gap-0.5 mt-0.5" aria-hidden="true">
-                                        @for ($s = 0; $s < 5; $s++)
-                                            <svg class="w-3 h-3 {{ $s < $tRating ? 'text-orange-400' : 'text-orange-200' }} fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                                        @endfor
+                <div class="d-reviews-track" id="d-reviews-carousel"
+                     @scroll.debounce.100ms="
+                         let el = $el; let w = el.scrollWidth - el.clientWidth;
+                         if (w > 0) { current = Math.round((el.scrollLeft / w) * (total - 1)); }
+                     ">
+                    @foreach ($tourReviews as $tIdx => $testimonial)
+                        @php
+                            $tName       = $testimonial->author_name ?? $testimonial->name ?? 'Viajero';
+                            $tDate       = $testimonial->created_at ? \Carbon\Carbon::parse($testimonial->created_at)->translatedFormat('j M Y') : '';
+                            $tTextFull   = trim((string) ($testimonial->{"quote_$locale"} ?? $testimonial->quote_es ?? $testimonial->{"content_$locale"} ?? $testimonial->content_es ?? $testimonial->content ?? ''));
+                            $tTextShort  = \Illuminate\Support\Str::limit($tTextFull, 120);
+                            $tTextIsLong = mb_strlen($tTextFull) > 120;
+                            $tRating     = (int)($testimonial->rating ?? 5);
+                            $tAvatar     = $testimonial->avatar_url ?? null;
+                            $tInitials = mb_strtoupper(mb_substr(trim($tName), 0, 1, 'UTF-8'), 'UTF-8');
+                            if (str_contains($tName, ' ')) {
+                                $parts = explode(' ', trim($tName));
+                                $tInitials = mb_strtoupper(mb_substr($parts[0], 0, 1, 'UTF-8') . mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
+                            }
+                            $tColor = $avatarColors[$tIdx % count($avatarColors)];
+                        @endphp
+                        {{-- Tarjeta de tamaño uniforme: texto recortado a 120 car.; "Ver más" abre el popup con el comentario completo --}}
+                        <div class="d-review-slide">
+                            <div class="p-4 bg-cream-100 rounded-2xl ring-1 ring-teal-800/5 h-full min-h-[176px] flex flex-col">
+                                <div class="flex items-start justify-between gap-2 mb-2">
+                                    <div class="flex items-center gap-2.5">
+                                        @if ($tAvatar)
+                                            <img src="{{ $tAvatar }}" alt="{{ $tName }}" class="w-9 h-9 rounded-full object-cover shrink-0" loading="lazy" width="36" height="36">
+                                        @else
+                                            <div class="w-9 h-9 rounded-full {{ $tColor }} text-white grid place-items-center text-xs font-bold shrink-0" aria-hidden="true">{{ $tInitials }}</div>
+                                        @endif
+                                        <div>
+                                            <p class="text-xs font-bold text-teal-800 flex items-center gap-1">
+                                                {{ $tName }}
+                                                <span class="inline-flex items-center gap-0.5 bg-state-success/10 text-state-success text-[9px] font-semibold px-1.5 py-0.5 rounded-full" aria-label="{{ __('ui.verified') }}">
+                                                    <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                                </span>
+                                            </p>
+                                            <div class="flex gap-0.5 mt-0.5" aria-hidden="true">
+                                                @for ($s = 0; $s < 5; $s++)
+                                                    <svg class="w-3 h-3 {{ $s < $tRating ? 'text-orange-400' : 'text-orange-200' }} fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                                @endfor
+                                            </div>
+                                        </div>
                                     </div>
+                                    @if ($tDate)
+                                        <span class="text-[10px] text-teal-800/45 shrink-0">{{ $tDate }}</span>
+                                    @endif
                                 </div>
+                                @if ($tTextShort)
+                                    <p class="text-xs text-teal-800/75 leading-relaxed">{{ $tTextShort }}</p>
+                                @endif
+                                @if ($tTextIsLong)
+                                    <button type="button"
+                                            class="mt-1.5 self-start text-[11px] font-bold text-orange-600 hover:text-orange-700 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                                            @click="review = { name: @js($tName), date: @js($tDate), quote: @js($tTextFull), rating: {{ $tRating }}, avatar: @js($tAvatar), initial: @js($tInitials), color: @js($tColor) }; reviewModalOpen = true">
+                                        {{ __('ui.see_more') }}
+                                    </button>
+                                @endif
                             </div>
-                            @if ($tDate)
-                                <span class="text-[10px] text-teal-800/45 shrink-0">{{ $tDate }}</span>
-                            @endif
                         </div>
-                        @if ($tText)
-                            <p class="text-xs text-teal-800/75 leading-relaxed">{{ $tText }}</p>
-                        @endif
+                    @endforeach
+                </div>
+                {{-- Dots de paginación (se ocultan si hay una sola reseña) --}}
+                @if ($tourReviews->count() > 1)
+                    <div class="mt-4 flex items-center justify-center gap-2" aria-hidden="true">
+                        @for ($i = 0; $i < $tourReviews->count(); $i++)
+                            <button type="button"
+                                    @click="current = {{ $i }}; document.getElementById('d-reviews-carousel').scrollTo({ left: document.getElementById('d-reviews-carousel').scrollWidth / {{ $tourReviews->count() }} * {{ $i }}, behavior: 'smooth' });"
+                                    class="transition-all duration-200 rounded-full"
+                                    :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
+                                    :aria-label="'Ir a opinión {{ $i + 1 }}'"></button>
+                        @endfor
                     </div>
-                @endforeach
+                @endif
             </div>
             @else
                 <p class="text-sm text-teal-800/55">{{ __('ui.be_first_review') }}</p>
             @endif
+
+            {{-- Popup: comentario completo (desktop) — se abre desde "Ver más" --}}
+            <div x-cloak
+                 x-show="reviewModalOpen"
+                 x-transition.opacity
+                 @keydown.escape.window="reviewModalOpen = false"
+                 class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+                 role="dialog" aria-modal="true">
+                <div class="absolute inset-0 bg-teal-950/60 backdrop-blur-sm" @click="reviewModalOpen = false"></div>
+                <div x-show="reviewModalOpen"
+                     x-transition.scale.origin.center
+                     class="relative z-10 w-full max-w-md bg-cream-100 rounded-3xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
+                    <button type="button" @click="reviewModalOpen = false"
+                            class="absolute top-4 right-4 w-8 h-8 grid place-items-center rounded-full bg-teal-800/10 text-teal-800 hover:bg-teal-800/20"
+                            aria-label="Cerrar">✕</button>
+                    <div class="text-orange-400 text-lg leading-none mb-3"
+                         x-text="'★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5))"></div>
+                    <blockquote class="text-sm text-teal-800/90 leading-relaxed whitespace-pre-line"
+                                x-text="'“' + (review.quote || '') + '”'"></blockquote>
+                    <div class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
+                        <template x-if="review.avatar">
+                            <img :src="review.avatar" :alt="review.name" class="w-11 h-11 rounded-full object-cover shrink-0">
+                        </template>
+                        <template x-if="!review.avatar">
+                            <span class="w-11 h-11 rounded-full text-white grid place-items-center font-display text-lg shrink-0"
+                                  :class="review.color || 'bg-teal-800'"
+                                  x-text="review.initial"></span>
+                        </template>
+                        <div class="min-w-0">
+                            <p class="font-bold text-teal-800 text-sm leading-tight" x-text="review.name"></p>
+                            <p class="text-[11px] text-teal-800/55 leading-tight" x-text="review.date"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {{-- Formulario "Añade una valoración" (desktop) — crea reseña pendiente de aprobación --}}
             <div class="mt-5 pt-5 border-t border-teal-800/10" x-data="{ open: {{ ($errors->any() || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
@@ -2096,10 +2391,6 @@ if (!empty($itinerary)) {
                 </form>
             </div>
 
-            {{-- Widget oficial "Escribir reseña" de TripAdvisor (desktop) --}}
-            <div class="mt-5 pt-5 border-t border-teal-800/10 flex justify-center">
-                <x-tripadvisor-write-review uniq="412" />
-            </div>
         </section>
 
         {{-- ══════════════════════════════════════

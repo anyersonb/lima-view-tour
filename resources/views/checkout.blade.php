@@ -1192,10 +1192,18 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 <div class="cart-field">
                                     <label for="pickup_point">{{ __('ui.pickup_hotel_label') }} <span class="text-teal-800/40 font-normal normal-case">({{ __('ui.optional') }})</span></label>
                                     @php
-                                        // Sugerencias curadas de punto de recojo (hoteles y zonas
-                                        // frecuentes en Lima, Ica/Paracas y Cusco). Autocompletado
-                                        // gratis vía <datalist> nativo — sin API de mapas. El campo
-                                        // sigue siendo texto libre: el viajero puede escribir otro.
+                                        // Punto de recojo. Si hay Google Maps API Key configurada se usa
+                                        // autocompletado de Google Places (el viajero busca cualquier lugar;
+                                        // consume API por búsqueda). Si no hay key, cae a una lista curada
+                                        // gratis vía <datalist> nativo. Siempre es texto libre.
+                                        $pickupMapsKey = \App\Models\Setting::get('google_maps_api_key') ?: config('services.google.maps_api_key');
+                                        // Zonas de recogida del admin — para limitar el autocompletado por radio
+                                        $pickupZonesRaw = \App\Models\Setting::get('pickup_zones');
+                                        $pickupZonesRaw = is_string($pickupZonesRaw) ? (json_decode($pickupZonesRaw, true) ?: []) : (is_array($pickupZonesRaw) ? $pickupZonesRaw : []);
+                                        $pickupZones = collect($pickupZonesRaw)
+                                            ->filter(fn ($z) => is_array($z) && isset($z['lat'], $z['lng']) && is_numeric($z['lat']) && is_numeric($z['lng']))
+                                            ->map(fn ($z) => ['lat' => (float) $z['lat'], 'lng' => (float) $z['lng'], 'radius_km' => (float) ($z['radius_km'] ?? 2), 'label' => (string) ($z['label'] ?? '')])
+                                            ->values()->all();
                                         $pickupSuggestions = [
                                             // Lima — zonas
                                             'Miraflores, Lima', 'San Isidro, Lima', 'Barranco, Lima',
@@ -1218,16 +1226,88 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     <input type="text"
                                            id="pickup_point"
                                            name="pickup_point"
-                                           list="pickup_options"
+                                           @if (blank($pickupMapsKey)) list="pickup_options" @endif
                                            value="{{ old('pickup_point') }}"
                                            placeholder="{{ __('ui.pickup_placeholder') }}"
                                            autocomplete="off"
                                            class="cart-real-input @error('pickup_point') border-red-500 @enderror">
+                                    <div id="pickup_zone_warn" role="alert" style="display:none;margin-top:6px;color:#c0392b;font-size:12px;font-weight:600;line-height:1.4;"></div>
+                                    @if (blank($pickupMapsKey))
                                     <datalist id="pickup_options">
                                         @foreach ($pickupSuggestions as $opt)
                                             <option value="{{ $opt }}"></option>
                                         @endforeach
                                     </datalist>
+                                    @else
+                                    {{-- Autocompletado de Google Places LIMITADO a las zonas de recogida del admin (sesga por bounds + valida por radio/distancia). Aislado y en try/catch. --}}
+                                    <script>
+                                    (function () {
+                                        var ZONES = @json($pickupZones);
+                                        var OUT_MSG = @json(__('ui.pickup_out_of_zone'));
+
+                                        function haversineKm(aLat, aLng, bLat, bLng) {
+                                            var R = 6371, toR = Math.PI / 180;
+                                            var dLat = (bLat - aLat) * toR, dLng = (bLng - aLng) * toR;
+                                            var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                                    Math.cos(aLat * toR) * Math.cos(bLat * toR) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                                            return 2 * R * Math.asin(Math.sqrt(s));
+                                        }
+                                        function toggleWarn(show) {
+                                            var w = document.getElementById('pickup_zone_warn');
+                                            if (! w) return;
+                                            if (show) {
+                                                var labels = ZONES.map(function (z) { return z.label; }).filter(Boolean).join(', ');
+                                                w.textContent = OUT_MSG + (labels ? ' (' + labels + ')' : '');
+                                                w.style.display = 'block';
+                                            } else { w.style.display = 'none'; }
+                                        }
+                                        function initCheckoutPickup() {
+                                            var el = document.getElementById('pickup_point');
+                                            if (! el || el.dataset.gac || ! (window.google && google.maps && google.maps.places)) return;
+                                            el.dataset.gac = '1';
+                                            try {
+                                                var ac = new google.maps.places.Autocomplete(el, { fields: ['name', 'formatted_address', 'geometry'], componentRestrictions: { country: 'pe' } });
+                                                if (ZONES.length) {
+                                                    var b = new google.maps.LatLngBounds();
+                                                    ZONES.forEach(function (z) {
+                                                        var dLat = z.radius_km / 111;
+                                                        var dLng = z.radius_km / (111 * Math.cos(z.lat * Math.PI / 180));
+                                                        b.extend({ lat: z.lat + dLat, lng: z.lng + dLng });
+                                                        b.extend({ lat: z.lat - dLat, lng: z.lng - dLng });
+                                                    });
+                                                    ac.setBounds(b);
+                                                    ac.setOptions({ strictBounds: true });
+                                                }
+                                                ac.addListener('place_changed', function () {
+                                                    try {
+                                                        var p = ac.getPlace();
+                                                        var loc = p && p.geometry && p.geometry.location;
+                                                        if (ZONES.length && loc) {
+                                                            var plat = loc.lat(), plng = loc.lng();
+                                                            var inZone = ZONES.some(function (z) { return haversineKm(plat, plng, z.lat, z.lng) <= z.radius_km; });
+                                                            if (! inZone) { toggleWarn(true); el.value = ''; el.focus(); return; }
+                                                        }
+                                                        toggleWarn(false);
+                                                        var name = p && p.name ? p.name : '';
+                                                        var addr = p && p.formatted_address ? p.formatted_address : '';
+                                                        var txt = name && addr ? (name + ' — ' + addr) : (name || addr);
+                                                        if (txt) { el.value = txt; el.dispatchEvent(new Event('input', { bubbles: true })); }
+                                                    } catch (e) {}
+                                                });
+                                            } catch (e) {}
+                                        }
+                                        window.__lvtCheckoutPickupReady = initCheckoutPickup;
+                                        if (window.google && google.maps && google.maps.places) { initCheckoutPickup(); return; }
+                                        var existing = document.getElementById('lvt-gmaps-sdk');
+                                        if (existing) { existing.addEventListener('load', initCheckoutPickup); return; }
+                                        var s = document.createElement('script');
+                                        s.id = 'lvt-gmaps-sdk';
+                                        s.src = 'https://maps.googleapis.com/maps/api/js?key={{ $pickupMapsKey }}&libraries=places&loading=async&callback=__lvtCheckoutPickupReady';
+                                        s.async = true; s.defer = true;
+                                        document.head.appendChild(s);
+                                    })();
+                                    </script>
+                                    @endif
                                     <div class="cart-field-help">
                                         {{ __('ui.pickup_help') }}
                                     </div>

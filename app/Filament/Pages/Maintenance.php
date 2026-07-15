@@ -59,6 +59,24 @@ class Maintenance extends Page
                         ->send();
                 }),
 
+            Action::make('publish_assets')
+                ->label('Recompilar assets')
+                ->icon('heroicon-o-paint-brush')
+                ->color('info')
+                ->requiresConfirmation()
+                ->modalHeading('Recompilar assets del panel')
+                ->modalDescription('Vuelve a publicar los archivos JS/CSS de Filament en /public. Úsalo si el panel se ve raro o si funciones como "arrastrar para reordenar" dejaron de responder después de un deploy.')
+                ->modalSubmitActionLabel('Sí, recompilar')
+                ->action(function () {
+                    Artisan::call('filament:assets');
+
+                    Notification::make()
+                        ->title('Assets recompilados')
+                        ->body('Se republicaron los assets de Filament. Recarga el panel con Ctrl+F5.')
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('run_migrations')
                 ->label('Ejecutar migraciones')
                 ->icon('heroicon-o-circle-stack')

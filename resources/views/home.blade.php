@@ -826,7 +826,7 @@
         {{-- Header --}}
         <div class="text-center mb-8">
             {!! $brujula !!}
-            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">{{ \App\Models\Setting::get('home_sec_types_eyebrow_' . $locale) ?: 'ESTANCIAS' }}</p>
+            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">{{ \App\Models\Setting::get('home_sec_types_eyebrow_' . $locale) ?: 'CATEGORÍAS' }}</p>
             <h2 id="tour-type-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
                 {!! \App\Models\Setting::get('home_sec_types_title_' . $locale) ?: '¿Qué tipo de tour <br class="sm:hidden">estás buscando?' !!}
             </h2>
@@ -1113,7 +1113,8 @@
     }
     $reviewCount = $reviews->count();
 @endphp
-<section id="opiniones" class="bg-white px-5 py-10 lg:py-20 scroll-mt-24" aria-labelledby="opiniones-title">
+<section id="opiniones" class="bg-white px-5 py-10 lg:py-20 scroll-mt-24" aria-labelledby="opiniones-title"
+         x-data="{ reviewModalOpen: false, review: {} }">
     <div class="container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header --}}
@@ -1149,6 +1150,9 @@
                         $rvAvatarUrl = $rvAvatar ? (\Illuminate\Support\Str::startsWith($rvAvatar, ['http', '/']) ? $rvAvatar : asset($rvAvatar)) : null;
                         $rvInitial = mb_strtoupper(mb_substr(trim($rvName), 0, 1));
                         $rvMeta = trim(implode(' · ', array_filter([$rvCountry, $rvSource])));
+                        $rvQuoteFull   = trim((string) $rvQuote);
+                        $rvQuoteShort  = \Illuminate\Support\Str::limit($rvQuoteFull, 80);
+                        $rvQuoteIsLong = mb_strlen($rvQuoteFull) > 80;
                     @endphp
                     <figure class="review-card tour-slide-4 snap-start
                                    bg-cream-100 rounded-3xl ring-1 ring-teal-800/5 shadow-sm p-6 flex flex-col">
@@ -1157,8 +1161,16 @@
                             <svg class="w-9 h-9 text-orange-400/40" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.17 6A5.17 5.17 0 002 11.17V18h6.83v-6.83H5.5A1.67 1.67 0 017.17 9.5V6zm9 0A5.17 5.17 0 0011 11.17V18h6.83v-6.83H14.5a1.67 1.67 0 011.67-1.67V6z"/></svg>
                             <span class="text-orange-400 text-base leading-none tracking-tight" aria-label="{{ $rvRating }} de 5 estrellas">{{ str_repeat('★', $rvRating) }}{{ str_repeat('☆', 5 - $rvRating) }}</span>
                         </div>
-                        {{-- Texto --}}
-                        <blockquote class="text-sm text-teal-800/85 leading-relaxed flex-1">“{{ $rvQuote }}”</blockquote>
+                        {{-- Texto: recortado a 40 caracteres; "Ver más" abre el popup con el comentario completo --}}
+                        <blockquote class="text-sm text-teal-800/85 leading-relaxed">“{{ $rvQuoteShort }}”</blockquote>
+                        @if ($rvQuoteIsLong)
+                            <button type="button"
+                                    class="mt-2 self-start text-xs font-bold text-orange-600 hover:text-orange-700 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                                    @click="review = { name: @js($rvName), meta: @js($rvMeta), quote: @js($rvQuoteFull), rating: {{ $rvRating }}, avatar: @js($rvAvatarUrl), initial: @js($rvInitial) }; reviewModalOpen = true">
+                                {{ __('ui.see_more') }}
+                            </button>
+                        @endif
+                        <div class="flex-1"></div>
                         {{-- Autor --}}
                         <figcaption class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
                             @if ($rvAvatarUrl)
@@ -1185,6 +1197,54 @@
                             :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
                             :aria-label="'Ir a opinión {{ $i + 1 }}'"></button>
                 @endfor
+            </div>
+        </div>
+
+        {{-- CTA: ver todas las reseñas reales en Google (editable en Configuración → Redes sociales) --}}
+        @php
+            $googleReviewsUrl = \App\Models\Setting::get('social_google_reviews')
+                ?: 'https://www.google.com/maps/place/Lima+view+tours/@-12.0457338,-77.0281479,17z/data=!3m1!4b1!4m6!3m5!1s0x9105c90e82ab0695:0xad0c3b21492d1a96!8m2!3d-12.0457338!4d-77.0281479!16s%2Fg%2F11w7s4b74q!18m1!1e1';
+        @endphp
+        <div class="mt-8 text-center">
+            <a href="{{ $googleReviewsUrl }}" target="_blank" rel="noopener nofollow"
+               class="inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-teal-800/15 px-6 py-3 text-sm font-bold text-teal-800 shadow-sm hover:ring-teal-800/30 hover:shadow transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.85 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.67-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.67 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></svg>
+                {{ __('ui.see_all_google_reviews') }}
+                <span aria-hidden="true">→</span>
+            </a>
+        </div>
+
+        {{-- Popup: comentario completo (se abre desde "Ver más") --}}
+        <div x-cloak
+             x-show="reviewModalOpen"
+             x-transition.opacity
+             @keydown.escape.window="reviewModalOpen = false"
+             class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+             role="dialog" aria-modal="true">
+            <div class="absolute inset-0 bg-teal-950/60 backdrop-blur-sm" @click="reviewModalOpen = false"></div>
+            <div x-show="reviewModalOpen"
+                 x-transition.scale.origin.center
+                 class="relative z-10 w-full max-w-md bg-cream-100 rounded-3xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
+                <button type="button" @click="reviewModalOpen = false"
+                        class="absolute top-4 right-4 w-8 h-8 grid place-items-center rounded-full bg-teal-800/10 text-teal-800 hover:bg-teal-800/20"
+                        aria-label="Cerrar">✕</button>
+                <div class="text-orange-400 text-lg leading-none mb-3"
+                     x-text="'★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5))"></div>
+                <blockquote class="text-sm text-teal-800/90 leading-relaxed whitespace-pre-line"
+                            x-text="'“' + (review.quote || '') + '”'"></blockquote>
+                <div class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
+                    <template x-if="review.avatar">
+                        <img :src="review.avatar" :alt="review.name" class="w-11 h-11 rounded-full object-cover shrink-0">
+                    </template>
+                    <template x-if="!review.avatar">
+                        <span class="w-11 h-11 rounded-full bg-teal-800 text-white grid place-items-center font-display text-lg shrink-0"
+                              x-text="review.initial"></span>
+                    </template>
+                    <div class="min-w-0">
+                        <p class="font-bold text-teal-800 text-sm leading-tight" x-text="review.name"></p>
+                        <p class="text-[11px] text-teal-800/55 leading-tight" x-text="review.meta"></p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

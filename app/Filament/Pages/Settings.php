@@ -51,6 +51,11 @@ class Settings extends Page implements HasForms
             ? filter_var($rows['tripadvisor_reviews_enabled'], FILTER_VALIDATE_BOOLEAN)
             : false;
 
+        // Pre-rellenar Zonas de recogida (pickup) — configuración GLOBAL para todos los tours
+        $rows['pickup_enabled'] = isset($rows['pickup_enabled'])
+            ? filter_var($rows['pickup_enabled'], FILTER_VALIDATE_BOOLEAN)
+            : false;
+
         // Pre-rellenar reCAPTCHA desde .env si aún no están en la BD
         $rows['recaptcha_enabled']  = isset($rows['recaptcha_enabled'])
             ? filter_var($rows['recaptcha_enabled'], FILTER_VALIDATE_BOOLEAN)
@@ -80,6 +85,7 @@ class Settings extends Page implements HasForms
         $repeaterKeys = [
             'home_destinos', 'home_why_items', 'home_tour_type_tabs',
             'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
+            'pickup_zones',
         ];
         foreach ($repeaterKeys as $rk) {
             if (isset($rows[$rk]) && is_string($rows[$rk])) {
@@ -146,6 +152,14 @@ class Settings extends Page implements HasForms
                         TextInput::make('social_facebook')->prefix('https://')->label('Facebook'),
                         TextInput::make('social_tiktok')->prefix('https://')->label('TikTok'),
                         TextInput::make('social_youtube')->prefix('https://')->label('YouTube'),
+                        TextInput::make('social_google_reviews')
+                            ->label('Enlace "Ver en Google" (reseñas)')
+                            ->url()
+                            ->helperText('Enlace a la ficha de Google Business para dejar/ver reseñas. Usado en las tarjetas de rating de cada tour.'),
+                        TextInput::make('social_tripadvisor')
+                            ->label('Enlace "Ver en Tripadvisor"')
+                            ->url()
+                            ->helperText('Enlace al perfil de Tripadvisor. Usado en las tarjetas de rating de cada tour.'),
                     ]),
                     Tabs\Tab::make('Pagos')->icon('heroicon-o-credit-card')->schema([
                         Select::make('paypal_mode')
@@ -392,9 +406,9 @@ class Settings extends Page implements HasForms
                             ->collapsible()->collapsed()
                             ->columns(3)
                             ->schema([
-                                TextInput::make('home_sec_types_eyebrow_es')->label('Eyebrow (ES)')->placeholder('ESTANCIAS'),
-                                TextInput::make('home_sec_types_eyebrow_en')->label('Eyebrow (EN)')->placeholder('STAYS'),
-                                TextInput::make('home_sec_types_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('ESTADAS'),
+                                TextInput::make('home_sec_types_eyebrow_es')->label('Eyebrow (ES)')->placeholder('CATEGORÍAS'),
+                                TextInput::make('home_sec_types_eyebrow_en')->label('Eyebrow (EN)')->placeholder('CATEGORIES'),
+                                TextInput::make('home_sec_types_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('CATEGORIAS'),
                                 TextInput::make('home_sec_types_title_es')->label('Título (ES)')->placeholder('¿Qué tipo de tour estás buscando?')->columnSpanFull(),
                                 TextInput::make('home_sec_types_title_en')->label('Título (EN)')->placeholder('What type of tour are you looking for?')->columnSpanFull(),
                                 TextInput::make('home_sec_types_title_pt')->label('Título (PT)')->placeholder('Que tipo de tour você está procurando?')->columnSpanFull(),
@@ -690,6 +704,94 @@ class Settings extends Page implements HasForms
                         Toggle::make('tripadvisor_reviews_enabled')
                             ->label('Activar traída de reseñas de Tripadvisor')
                             ->helperText('Requiere Tripadvisor API Key y Location ID configurados.'),
+
+                        \Filament\Forms\Components\Section::make('Tarjetas de reseñas (rating y nº)')
+                            ->description('Rating y número de reseñas mostrados en las tarjetas de Google/Tripadvisor de cada tour. Los enlaces "Ver en Google/Tripadvisor" se configuran en la pestaña "Redes sociales".')
+                            ->collapsible()
+                            ->schema([
+                                TextInput::make('reviews_google_rating')
+                                    ->label('Google — Rating (ej. 4.9)')
+                                    ->helperText('Se muestra en la tarjeta de Google de la página de cada tour.'),
+                                TextInput::make('reviews_google_count')
+                                    ->label('Google — Nº de reseñas (ej. 123)')
+                                    ->numeric()
+                                    ->helperText('Cantidad de reseñas mostrada junto al rating de Google.'),
+                                TextInput::make('reviews_tripadvisor_rating')
+                                    ->label('Tripadvisor — Rating (ej. 4.6)')
+                                    ->helperText('Se muestra en la tarjeta de Tripadvisor de la página de cada tour.'),
+                                TextInput::make('reviews_tripadvisor_count')
+                                    ->label('Tripadvisor — Nº de reseñas (ej. 8)')
+                                    ->numeric()
+                                    ->helperText('Cantidad de reseñas mostrada junto al rating de Tripadvisor.'),
+                            ]),
+                    ]),
+                    Tabs\Tab::make('Recogida')->icon('heroicon-o-map')->schema([
+                        Toggle::make('pickup_enabled')
+                            ->label('¿Ofrece servicio de recogida en zonas generales?')
+                            ->helperText('Actívalo para mostrar la sección "¿Dónde te recogemos?" en la página de CADA tour, con el mapa y las zonas configuradas abajo. Es una configuración global: aplica igual para todos los tours.')
+                            ->live(),
+
+                        \Filament\Forms\Components\Section::make('Zonas de recogida')
+                            ->description('Define las zonas donde ofreces recogida. Se muestran en todos los tours. Reutiliza la Google Maps API Key configurada en la pestaña "APIs".')
+                            ->collapsible()
+                            ->visible(fn (\Filament\Forms\Get $get): bool => (bool) $get('pickup_enabled'))
+                            ->schema([
+                                \Filament\Forms\Components\ViewField::make('pickup_zones_tools')
+                                    ->view('filament.pages.partials.pickup-zones-tools')
+                                    ->dehydrated(false)
+                                    ->columnSpanFull(),
+
+                                Repeater::make('pickup_zones')
+                                    ->label('Zonas')
+                                    ->helperText('Escribe el nombre del lugar para usar el autocompletado de Google (rellena lat/lng automáticamente). Si el autocompletado no responde, puedes ingresar lat/lng a mano: en Google Maps, clic derecho sobre el punto exacto → clic en las coordenadas para copiarlas.')
+                                    ->schema([
+                                        TextInput::make('label')
+                                            ->label('Nombre del lugar / zona')
+                                            ->placeholder('Miraflores, Lima')
+                                            ->required()
+                                            ->columnSpanFull()
+                                            ->extraInputAttributes([
+                                                'data-pickup-place-input' => 'true',
+                                                'autocomplete' => 'off',
+                                                'x-init' => 'window.__lvtInitPickupAutocomplete && window.__lvtInitPickupAutocomplete($el)',
+                                            ]),
+                                        TextInput::make('lat')
+                                            ->label('Latitud')
+                                            ->numeric()
+                                            ->step('any')
+                                            ->required()
+                                            ->extraInputAttributes(['data-pickup-lat' => 'true']),
+                                        TextInput::make('lng')
+                                            ->label('Longitud')
+                                            ->numeric()
+                                            ->step('any')
+                                            ->required()
+                                            ->extraInputAttributes(['data-pickup-lng' => 'true']),
+                                        TextInput::make('radius_km')
+                                            ->label('Radio (km)')
+                                            ->numeric()
+                                            ->step('0.1')
+                                            ->minValue(0.1)
+                                            ->default(2)
+                                            ->required(),
+                                        Select::make('type')
+                                            ->label('Tipo de recogida')
+                                            ->options([
+                                                'all'    => 'Todas las ubicaciones',
+                                                'hotels' => 'Solo hoteles',
+                                            ])
+                                            ->default('all')
+                                            ->native(false)
+                                            ->required(),
+                                    ])
+                                    ->columns(4)
+                                    ->reorderable()
+                                    ->collapsible()
+                                    ->defaultItems(0)
+                                    ->itemLabel(fn (array $state): ?string => $state['label'] ?? null)
+                                    ->addActionLabel('Añadir otra zona')
+                                    ->columnSpanFull(),
+                            ]),
                     ]),
                     Tabs\Tab::make('reCAPTCHA')->icon('heroicon-o-shield-check')->schema([
                         Toggle::make('recaptcha_enabled')
@@ -768,6 +870,7 @@ class Settings extends Page implements HasForms
         'tripadvisor_reviews_enabled',
         'recaptcha_enabled',
         'cookie_banner_enabled',
+        'pickup_enabled',
     ];
 
     public function save(): void
@@ -775,7 +878,8 @@ class Settings extends Page implements HasForms
         foreach ($this->data as $key => $value) {
             // Serialize Repeater fields as JSON string
             $jsonRepeaterKeys = ['faqs','home_destinos','home_why_items','home_tour_type_tabs',
-                                 'home_footer_features','home_exp_tours','home_reco_items','home_faqs'];
+                                 'home_footer_features','home_exp_tours','home_reco_items','home_faqs',
+                                 'pickup_zones'];
             if (in_array($key, $jsonRepeaterKeys, true)) {
                 Setting::set($key, json_encode(is_array($value) ? $value : []));
                 continue;

@@ -6,11 +6,16 @@ use App\Models\Offer;
 use App\Models\Region;
 use App\Models\Testimonial;
 use App\Models\Tour;
+use App\Services\ReviewAggregator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
+    public function __construct(
+        private readonly ReviewAggregator $reviews,
+    ) {}
+
     public function index(): View
     {
         $featuredTours = $this->fetchFeaturedTours();
@@ -121,10 +126,17 @@ class HomeController extends Controller
         }
     }
 
+    /**
+     * Testimonios del home: mezcla reseñas reales de Google (API) con los
+     * testimonios destacados del CMS, usando el mismo servicio que /resenas.
+     * Si la API de Google no está activa, muestra solo los del CMS (como antes).
+     */
     private function fetchTestimonials(): \Illuminate\Support\Collection
     {
         try {
-            return Testimonial::active()->featured()->orderBy('order')->limit(4)->get();
+            $cms = Testimonial::active()->featured()->orderBy('order')->limit(8)->get();
+
+            return $this->reviews->merge($cms, app()->getLocale())->take(9);
         } catch (\Throwable $e) {
             Log::error('HomeController: failed to fetch testimonials', [
                 'exception' => $e->getMessage(),
