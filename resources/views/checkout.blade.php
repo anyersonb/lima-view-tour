@@ -1291,7 +1291,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                         var name = p && p.name ? p.name : '';
                                                         var addr = p && p.formatted_address ? p.formatted_address : '';
                                                         var txt = name && addr ? (name + ' — ' + addr) : (name || addr);
-                                                        if (txt) { el.value = txt; el.dispatchEvent(new Event('input', { bubbles: true })); }
+                                                        if (txt) { el.value = txt; el.dispatchEvent(new Event('change', { bubbles: true })); }
                                                     } catch (e) {}
                                                 });
                                             } catch (e) {}
