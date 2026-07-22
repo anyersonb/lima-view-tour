@@ -1197,6 +1197,10 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                         // consume API por búsqueda). Si no hay key, cae a una lista curada
                                         // gratis vía <datalist> nativo. Siempre es texto libre.
                                         $pickupMapsKey = \App\Models\Setting::get('google_maps_api_key') ?: config('services.google.maps_api_key');
+                                        // [TEMPORAL 2026-07-21] A pedido del cliente: desactivar el buscador de
+                                        // Google Maps en el recojo y dejar el campo como texto libre. Para
+                                        // reactivar el autocompletado de Google, borra la línea de abajo.
+                                        $pickupMapsKey = null;
                                         // Zonas de recogida del admin — para limitar el autocompletado por radio
                                         $pickupZonesRaw = \App\Models\Setting::get('pickup_zones');
                                         $pickupZonesRaw = is_string($pickupZonesRaw) ? (json_decode($pickupZonesRaw, true) ?: []) : (is_array($pickupZonesRaw) ? $pickupZonesRaw : []);
