@@ -31,9 +31,11 @@ class BookingPaymentReminder extends Mailable
     {
         $locale = $this->bookings->first()?->locale ?? app()->getLocale();
 
-        $subject = $locale === 'en'
-            ? 'Payment reminder — complete your Lima View Tours booking'
-            : 'Recordatorio de pago — completa tu reserva de Lima View Tours';
+        $subject = match ($locale) {
+            'en'    => 'Your booking is not confirmed yet — complete your payment (Lima View Tours)',
+            'pt'    => 'Sua reserva ainda não está confirmada — conclua o pagamento (Lima View Tours)',
+            default => 'Tu reserva aún no está confirmada — completa el pago (Lima View Tours)',
+        };
 
         return new Envelope(subject: $subject);
     }
