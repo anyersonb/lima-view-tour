@@ -17,9 +17,18 @@
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # Redirect Trailing Slashes If Not A Folder...
+    # Destino ABSOLUTO a propósito. La regla que trae Laravel usa `%1` relativo
+    # y esta app vive en un subdirectorio (/public_html/limaprogramacion/public)
+    # que sirve la raíz del dominio: Apache reconstruía el Location con el path
+    # físico, así que /machu-picchu-2-dias-1-noches/ salía a
+    # /limaprogramacion/public/machu-picchu-2-dias-1-noches y de ahí rebotaba a
+    # la raíz con el 301 de más arriba. Resultado: 3 saltos para una URL vieja
+    # (la misma que sin slash resuelve en 1) y la ruta interna del hosting
+    # filtrada en un Location público. Con esquema+host explícitos el destino no
+    # pasa por el mapeo a filesystem y queda un solo salto.
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/(.+)/$
+    RewriteRule ^ %{REQUEST_SCHEME}://%{HTTP_HOST}/%1 [L,R=301]
 
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d

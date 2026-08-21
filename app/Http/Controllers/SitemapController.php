@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\Page;
 use App\Models\Region;
 use App\Models\Tour;
+use App\Support\LocalizedPages;
 use Illuminate\Http\Response;
 
 class SitemapController extends Controller
@@ -21,11 +22,17 @@ class SitemapController extends Controller
         $staticRoutes = [
             ['path' => '',           'priority' => '1.0', 'changefreq' => 'daily'],
             ['path' => '/tours',     'priority' => '0.9', 'changefreq' => 'daily'],
-            ['path' => '/nosotros',  'priority' => '0.7', 'changefreq' => 'monthly'],
-            ['path' => '/contacto',  'priority' => '0.6', 'changefreq' => 'monthly'],
-            ['path' => '/resenas',   'priority' => '0.6', 'changefreq' => 'weekly'],
-            ['path' => '/terminos',  'priority' => '0.3', 'changefreq' => 'yearly'],
-            ['path' => '/privacidad','priority' => '0.3', 'changefreq' => 'yearly'],
+        ];
+
+        // Páginas institucionales: desde la propuesta ESPASEO su path cambia por
+        // idioma (/es/nosotros, /en/about-us, /pt/sobre-nos), así que no pueden
+        // ir en $staticRoutes, que asume el mismo path para los 3 idiomas.
+        $institutional = [
+            'about'         => ['priority' => '0.7', 'changefreq' => 'monthly'],
+            'contact'       => ['priority' => '0.6', 'changefreq' => 'monthly'],
+            'reviews'       => ['priority' => '0.6', 'changefreq' => 'weekly'],
+            'legal.terms'   => ['priority' => '0.3', 'changefreq' => 'yearly'],
+            'legal.privacy' => ['priority' => '0.3', 'changefreq' => 'yearly'],
         ];
 
         foreach ($staticRoutes as $r) {
@@ -36,6 +43,22 @@ class SitemapController extends Controller
                     'priority' => $r['priority'],
                     'changefreq' => $r['changefreq'],
                     'alternates' => collect($locales)->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . $r['path']])->all(),
+                ];
+            }
+        }
+
+        foreach ($institutional as $key => $meta) {
+            $alternates = collect($locales)
+                ->mapWithKeys(fn ($l) => [$l => $base . LocalizedPages::path($key, $l)])
+                ->all();
+
+            foreach ($locales as $locale) {
+                $urls[] = [
+                    'loc' => $base . LocalizedPages::path($key, $locale),
+                    'lastmod' => now()->toAtomString(),
+                    'priority' => $meta['priority'],
+                    'changefreq' => $meta['changefreq'],
+                    'alternates' => $alternates,
                 ];
             }
         }
@@ -93,7 +116,17 @@ class SitemapController extends Controller
         }
 
         // CMS pages
-        foreach (Page::published()->where('show_in_sitemap', true)->get() as $page) {
+        // Se excluyen las institucionales: ya salieron arriba con su path por
+        // idioma. Si se dejaran pasar, el sitemap publicaría /en/nosotros y
+        // /pt/nosotros (el slug español bajo otro idioma), que desde este lote
+        // responden 301 — y un sitemap con URLs que redirigen es exactamente lo
+        // que vino a corregir la propuesta. El deduplicado por 'loc' de abajo no
+        // alcanza: son URLs distintas, no repetidas.
+        $institutionalSlugs = collect(array_keys($institutional))
+            ->map(fn ($key) => LocalizedPages::slugFor($key, LocalizedPages::BASE_LOCALE))
+            ->all();
+
+        foreach (Page::published()->where('show_in_sitemap', true)->whereNotIn('slug', $institutionalSlugs)->get() as $page) {
             foreach ($locales as $locale) {
                 $urls[] = [
                     'loc' => $base . '/' . $locale . '/' . $page->slug,
@@ -104,6 +137,13 @@ class SitemapController extends Controller
                 ];
             }
         }
+
+        // Deduplicado por URL (2026-07-26). /nosotros y /contacto estaban dos
+        // veces: una como ruta estática y otra como Page del CMS con
+        // show_in_sitemap. Se conserva la primera aparición, que es la estática
+        // y trae mejor priority/changefreq. No se quitan de $staticRoutes por si
+        // el editor despublica la Page desde el panel.
+        $urls = collect($urls)->unique('loc')->values()->all();
 
         return response()
             ->view('seo.sitemap', ['urls' => $urls])

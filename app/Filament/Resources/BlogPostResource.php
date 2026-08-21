@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Filament\Resources\BlogPostResource\Pages;
 use App\Models\BlogPost;
 use Filament\Forms;
@@ -13,6 +14,8 @@ use Filament\Tables\Table;
 
 class BlogPostResource extends Resource
 {
+    use HasLocalizedSeoFields;
+
     protected static ?string $model = BlogPost::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-newspaper';
@@ -47,6 +50,39 @@ class BlogPostResource extends Resource
                                     ->fileAttachmentsDisk('public')
                                     ->fileAttachmentsDirectory('blog/attachments')
                                     ->label('Cuerpo del artículo'),
+
+                                Forms\Components\Section::make('SEO — Español')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->collapsible()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('slug')
+                                            ->label('Slug (URL) — Español')
+                                            ->helperText('Se genera automáticamente del título en español si se deja vacío al crear.')
+                                            ->maxLength(60)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug', static::seoSanitizeSlug($state)))
+                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
+                                            ->unique(ignoreRecord: true),
+                                        Forms\Components\Placeholder::make('slug_es_preview')
+                                            ->label('Vista previa URL')
+                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/es/blog/' . ($get('slug') ?: '{slug}')),
+                                        Forms\Components\TextInput::make('meta_title_es')
+                                            ->maxLength(70)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_es'), 50, 60))
+                                            ->label('Meta title (Español)'),
+                                        Forms\Components\Textarea::make('meta_description_es')
+                                            ->maxLength(160)
+                                            ->rows(3)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_es'), 150, 160))
+                                            ->label('Meta description (Español)'),
+                                        Forms\Components\Textarea::make('schema_jsonld_es')
+                                            ->label('Datos estructurados (JSON-LD) — Español')
+                                            ->rows(6)
+                                            ->helperText('Opcional. Si lo completas, REEMPLAZA el JSON-LD automático (BlogPosting) de esta entrada en este idioma. Debe ser JSON válido.')
+                                            ->rules([static::seoJsonLdRule()]),
+                                    ]),
                             ]),
 
                         // ── English content ───────────────────────────────
@@ -63,6 +99,39 @@ class BlogPostResource extends Resource
                                     ->fileAttachmentsDisk('public')
                                     ->fileAttachmentsDirectory('blog/attachments')
                                     ->label('Body'),
+
+                                Forms\Components\Section::make('SEO — English')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->collapsible()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('slug_en')
+                                            ->label('Slug (URL) — English')
+                                            ->maxLength(60)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_en', static::seoSanitizeSlug($state)))
+                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
+                                            ->unique(ignoreRecord: true)
+                                            ->helperText('Vacío = usa el slug en español como fallback (no genera 404).'),
+                                        Forms\Components\Placeholder::make('slug_en_preview')
+                                            ->label('Vista previa URL')
+                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/en/blog/' . ($get('slug_en') ?: $get('slug') ?: '{slug}')),
+                                        Forms\Components\TextInput::make('meta_title_en')
+                                            ->maxLength(70)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_en'), 50, 60))
+                                            ->label('Meta title (English)'),
+                                        Forms\Components\Textarea::make('meta_description_en')
+                                            ->maxLength(160)
+                                            ->rows(3)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_en'), 150, 160))
+                                            ->label('Meta description (English)'),
+                                        Forms\Components\Textarea::make('schema_jsonld_en')
+                                            ->label('Structured data (JSON-LD) — English')
+                                            ->rows(6)
+                                            ->helperText('Optional. Falls back to Spanish if empty. Must be valid JSON.')
+                                            ->rules([static::seoJsonLdRule()]),
+                                    ]),
                             ]),
 
                         // ── Portuguese content ────────────────────────────
@@ -79,6 +148,39 @@ class BlogPostResource extends Resource
                                     ->fileAttachmentsDisk('public')
                                     ->fileAttachmentsDirectory('blog/attachments')
                                     ->label('Corpo do artigo'),
+
+                                Forms\Components\Section::make('SEO — Português')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->collapsible()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('slug_pt')
+                                            ->label('Slug (URL) — Português')
+                                            ->maxLength(60)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_pt', static::seoSanitizeSlug($state)))
+                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
+                                            ->unique(ignoreRecord: true)
+                                            ->helperText('Vazio = usa o slug em espanhol como fallback (sem 404).'),
+                                        Forms\Components\Placeholder::make('slug_pt_preview')
+                                            ->label('Vista previa URL')
+                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/pt/blog/' . ($get('slug_pt') ?: $get('slug') ?: '{slug}')),
+                                        Forms\Components\TextInput::make('meta_title_pt')
+                                            ->maxLength(70)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_pt'), 50, 60))
+                                            ->label('Meta title (Português)'),
+                                        Forms\Components\Textarea::make('meta_description_pt')
+                                            ->maxLength(160)
+                                            ->rows(3)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_pt'), 150, 160))
+                                            ->label('Meta description (Português)'),
+                                        Forms\Components\Textarea::make('schema_jsonld_pt')
+                                            ->label('Dados estruturados (JSON-LD) — Português')
+                                            ->rows(6)
+                                            ->helperText('Opcional. Se vazio, usa o do espanhol. Deve ser um JSON válido.')
+                                            ->rules([static::seoJsonLdRule()]),
+                                    ]),
                             ]),
 
                         // ── Cover image ───────────────────────────────────
@@ -97,13 +199,11 @@ class BlogPostResource extends Resource
                             ]),
 
                         // ── Post data ─────────────────────────────────────
+                        // El slug (ES/EN/PT) se movió a "SEO — [idioma]" dentro de cada
+                        // pestaña de idioma (Español/English/Português).
                         Tabs\Tab::make('Datos')
                             ->icon('heroicon-o-tag')
                             ->schema([
-                                Forms\Components\TextInput::make('slug')
-                                    ->maxLength(255)
-                                    ->helperText('Se genera automáticamente del título en español si se deja vacío.')
-                                    ->label('Slug (URL)'),
                                 Forms\Components\TextInput::make('category')
                                     ->maxLength(255)
                                     ->label('Categoría'),
@@ -113,38 +213,6 @@ class BlogPostResource extends Resource
                                 Forms\Components\TextInput::make('author_name')
                                     ->maxLength(255)
                                     ->label('Nombre del autor'),
-                            ]),
-
-                        // ── SEO ───────────────────────────────────────────
-                        Tabs\Tab::make('SEO')
-                            ->icon('heroicon-o-magnifying-glass')
-                            ->schema([
-                                Forms\Components\TextInput::make('meta_title_es')
-                                    ->maxLength(70)
-                                    ->helperText('Recomendado: 50-60 caracteres')
-                                    ->label('Meta title (Español)'),
-                                Forms\Components\Textarea::make('meta_description_es')
-                                    ->maxLength(160)
-                                    ->rows(2)
-                                    ->helperText('Recomendado: 150-160 caracteres')
-                                    ->label('Meta description (Español)'),
-
-                                Forms\Components\TextInput::make('meta_title_en')
-                                    ->maxLength(70)
-                                    ->helperText('Recommended: 50-60 characters')
-                                    ->label('Meta title (English)'),
-                                Forms\Components\Textarea::make('meta_description_en')
-                                    ->maxLength(160)
-                                    ->rows(2)
-                                    ->label('Meta description (English)'),
-
-                                Forms\Components\TextInput::make('meta_title_pt')
-                                    ->maxLength(70)
-                                    ->label('Meta title (Português)'),
-                                Forms\Components\Textarea::make('meta_description_pt')
-                                    ->maxLength(160)
-                                    ->rows(2)
-                                    ->label('Meta description (Português)'),
                             ]),
 
                         // ── Publication settings ──────────────────────────

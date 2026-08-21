@@ -666,10 +666,10 @@
 
         {{-- Banners: apilados en mobile, grid 3 columnas en desktop --}}
         <div class="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6">
-            @foreach ($destinos as $destino)
+            @foreach ($destinos as $dIdx => $destino)
                 <article class="relative block w-full rounded-3xl overflow-hidden shadow-md min-h-[280px] lg:min-h-0 lg:aspect-[3/4]">
                     {{-- Imagen de fondo --}}
-                    <img src="{{ asset('assets/banners/' . $destino['img']) }}"
+                    <img src="{{ \App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1))) ?: (\App\Support\ImagePath::homeImage($destino['img'] ?? null) ?: asset('assets/banners/Rectangle 19218.jpg')) }}"
                          alt="{{ $destino['title_' . $locale] ?? $destino['title_es'] ?? '' }}"
                          class="absolute inset-0 w-full h-full object-cover object-center"
                          loading="lazy"
@@ -899,7 +899,7 @@
         </div>
 
         {{-- Paneles de contenido --}}
-        @foreach ($tourTypeTabs as $tab)
+        @foreach ($tourTypeTabs as $ttIdx => $tab)
         @php
             $id       = $tab['id'] ?? 'tab0';
             $label    = $tab['label_' . $locale] ?? $tab['label_es'] ?? '';
@@ -921,7 +921,7 @@
 
                 {{-- Imagen --}}
                 <div class="relative">
-                    <img src="{{ asset('assets/banners/' . $tImg) }}"
+                    <img src="{{ \App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1))) ?: (\App\Support\ImagePath::homeImage($tImg) ?: asset('assets/banners/Rectangle 19215.jpg')) }}"
                          alt="{{ $tTitle }}"
                          class="w-full h-48 lg:h-full object-cover" loading="lazy">
                     <span class="absolute top-4 left-4 inline-flex items-center gap-2 bg-teal-800 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
@@ -1045,7 +1045,7 @@
                               block group rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5
                               bg-white hover:shadow-md transition-shadow">
                         <div class="relative aspect-[4/3] overflow-hidden">
-                            <img src="{{ asset('assets/banners/' . $eImg) }}"
+                            <img src="{{ \App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_exp_img_' . ($i + 1))) ?: (\App\Support\ImagePath::homeImage($eImg) ?: asset('assets/banners/Rectangle 19216.jpg')) }}"
                                  alt="{{ $eTitle }}"
                                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                  loading="lazy">

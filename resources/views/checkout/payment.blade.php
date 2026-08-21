@@ -263,8 +263,8 @@
                             <input type="checkbox" name="accept_terms" required value="1"
                                    class="mt-0.5 w-4 h-4 rounded border-teal-800/30 text-orange-500 focus:ring-orange-400 shrink-0">
                             <span>
-                                {{ __('checkout.accept_terms_prefix') }} <a href="{{ route('legal.terms', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.terms_link') }}</a>,
-                                {{ __('checkout.accept_privacy_prefix') }} <a href="{{ route('legal.privacy', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.privacy_link') }}</a>
+                                {{ __('checkout.accept_terms_prefix') }} <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.terms_link') }}</a>,
+                                {{ __('checkout.accept_privacy_prefix') }} <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.privacy_link') }}</a>
                                 {{ __('checkout.accept_terms_suffix') }}
                             </span>
                         </label>

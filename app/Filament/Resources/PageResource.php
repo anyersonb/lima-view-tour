@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Filament\Resources\PageResource\Pages;
 use App\Models\Page;
 use App\Support\ImagePath;
@@ -13,6 +14,8 @@ use Filament\Tables\Table;
 
 class PageResource extends Resource
 {
+    use HasLocalizedSeoFields;
+
     protected static ?string $model = Page::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
@@ -75,6 +78,31 @@ class PageResource extends Resource
                                         Forms\Components\Textarea::make('content_es')
                                             ->label('Contenido')
                                             ->rows(4),
+
+                                        Forms\Components\Section::make('SEO — Español')
+                                            ->icon('heroicon-o-magnifying-glass')
+                                            ->collapsible()
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('slug_es_note')
+                                                    ->label('Identificador (slug)')
+                                                    ->content(fn (Forms\Get $get): string => (string) ($get('slug') ?: '—') . ' — se edita en la pestaña General.'),
+                                                Forms\Components\TextInput::make('meta_title_es')
+                                                    ->label('Meta título — Español')
+                                                    ->maxLength(70)
+                                                    ->live()
+                                                    ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_es'), 50, 60)),
+                                                Forms\Components\Textarea::make('meta_description_es')
+                                                    ->label('Meta descripción — Español')
+                                                    ->rows(3)
+                                                    ->maxLength(160)
+                                                    ->live()
+                                                    ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_es'), 150, 160)),
+                                                Forms\Components\Textarea::make('schema_jsonld_es')
+                                                    ->label('Datos estructurados (JSON-LD) — Español')
+                                                    ->rows(6)
+                                                    ->helperText('Opcional. Debe ser JSON válido — se valida antes de guardar.')
+                                                    ->rules([static::seoJsonLdRule()]),
+                                            ]),
                                     ]),
 
                                 Forms\Components\Section::make('English')
@@ -86,6 +114,39 @@ class PageResource extends Resource
                                         Forms\Components\Textarea::make('content_en')
                                             ->label('Content')
                                             ->rows(4),
+
+                                        Forms\Components\Section::make('SEO — English')
+                                            ->icon('heroicon-o-magnifying-glass')
+                                            ->collapsible()
+                                            ->schema([
+                                                // slug_en/slug_pt siguen FUERA del formulario, pero ya NO por
+                                                // falta de enrutamiento: desde 2026-08-21 las 5 páginas fijas
+                                                // (/contacto, /nosotros, /resenas, /terminos, /privacidad) sí
+                                                // tienen URL por idioma, con 301 desde la vieja y hreflang real.
+                                                // El slug de cada idioma vive en config/localized_pages.php y no
+                                                // en estas columnas: el patrón de la ruta se arma al registrar
+                                                // las rutas, así que si saliera de la BD un `route:cache`
+                                                // congelaría los slugs del deploy y editarlos acá daría 404
+                                                // hasta limpiar esa caché. Ofrecer el campo sería mentirle al
+                                                // editor. Las columnas se conservan para las páginas del CMS que
+                                                // algún día se sirvan por una ruta genérica /{locale}/pagina/{slug}.
+                                                Forms\Components\TextInput::make('meta_title_en')
+                                                    ->label('Meta title — English')
+                                                    ->maxLength(70)
+                                                    ->live()
+                                                    ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_en'), 50, 60)),
+                                                Forms\Components\Textarea::make('meta_description_en')
+                                                    ->label('Meta description — English')
+                                                    ->rows(3)
+                                                    ->maxLength(160)
+                                                    ->live()
+                                                    ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_en'), 150, 160)),
+                                                Forms\Components\Textarea::make('schema_jsonld_en')
+                                                    ->label('Structured data (JSON-LD) — English')
+                                                    ->rows(6)
+                                                    ->helperText('Optional. Falls back to Spanish if empty. Must be valid JSON.')
+                                                    ->rules([static::seoJsonLdRule()]),
+                                            ]),
                                     ]),
 
                                 Forms\Components\Section::make('Português')
@@ -97,24 +158,38 @@ class PageResource extends Resource
                                         Forms\Components\Textarea::make('content_pt')
                                             ->label('Conteúdo')
                                             ->rows(4),
+
+                                        Forms\Components\Section::make('SEO — Português')
+                                            ->icon('heroicon-o-magnifying-glass')
+                                            ->collapsible()
+                                            ->schema([
+                                                // Ver nota de slug_en en la sección "SEO — English" arriba:
+                                                // mismo motivo, mismo criterio. slug_pt fuera del form.
+                                                Forms\Components\TextInput::make('meta_title_pt')
+                                                    ->label('Meta título — Português')
+                                                    ->maxLength(70)
+                                                    ->live()
+                                                    ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_pt'), 50, 60)),
+                                                Forms\Components\Textarea::make('meta_description_pt')
+                                                    ->label('Meta descrição — Português')
+                                                    ->rows(3)
+                                                    ->maxLength(160)
+                                                    ->live()
+                                                    ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_pt'), 150, 160)),
+                                                Forms\Components\Textarea::make('schema_jsonld_pt')
+                                                    ->label('Dados estruturados (JSON-LD) — Português')
+                                                    ->rows(6)
+                                                    ->helperText('Opcional. Se vazio, usa o do espanhol. Deve ser um JSON válido.')
+                                                    ->rules([static::seoJsonLdRule()]),
+                                            ]),
                                     ]),
                             ]),
 
-                        // ── Tab 3: SEO ────────────────────────────────────────
-                        Forms\Components\Tabs\Tab::make('SEO')
-                            ->icon('heroicon-o-magnifying-glass')
+                        // ── Tab 3: Imágenes (el título/descripción SEO ahora vive
+                        //    por idioma dentro de "Títulos y contenido" → SEO — [idioma]) ──
+                        Forms\Components\Tabs\Tab::make('Imágenes')
+                            ->icon('heroicon-o-photo')
                             ->schema([
-                                Forms\Components\TextInput::make('seo_title')
-                                    ->label('Meta título')
-                                    ->maxLength(255)
-                                    ->columnSpanFull(),
-
-                                Forms\Components\Textarea::make('seo_description')
-                                    ->label('Meta descripción')
-                                    ->maxLength(320)
-                                    ->rows(3)
-                                    ->columnSpanFull(),
-
                                 Forms\Components\FileUpload::make('hero_image')
                                     ->label('Imagen hero (global)')
                                     ->disk('media')
@@ -673,7 +748,8 @@ class PageResource extends Resource
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('hero_image')
                     ->getStateUsing(fn ($record) => ImagePath::url($record->hero_image)),
-                Tables\Columns\TextColumn::make('seo_title')
+                Tables\Columns\TextColumn::make('meta_title_es')
+                    ->label('Meta título (ES)')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_published')

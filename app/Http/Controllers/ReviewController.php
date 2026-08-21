@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Page;
 use App\Models\Setting;
 use App\Models\Testimonial;
 use App\Services\ReviewAggregator;
@@ -68,7 +69,55 @@ class ReviewController extends Controller
             'trivago'     => $this->cleanLink(Setting::get('social_trivago')),
         ];
 
-        return view('reviews', compact('testimonials', 'stats', 'overall', 'links'));
+        // Página del CMS (Filament → Páginas → slug "resenas") para meta
+        // título/descripción/JSON-LD administrables. No existe hoy en el
+        // seeder de páginas estáticas — null-safe en la vista, igual que
+        // "contacto"/"nosotros" cuando el registro no está publicado.
+        $page = Page::where('slug', 'resenas')->first();
+
+        return view('reviews', compact('testimonials', 'stats', 'overall', 'links', 'page'));
+    }
+
+    /**
+     * Guarda una reseña enviada desde la página pública de reseñas.
+     * No está ligada a ningún tour. Queda is_active=false (pendiente de
+     * moderación) hasta que un admin la apruebe en Filament → Testimonios.
+     */
+    public function store(\Illuminate\Http\Request $request, string $locale): \Illuminate\Http\RedirectResponse
+    {
+        $data = $request->validate([
+            'rating'  => ['required', 'integer', 'between:1,5'],
+            'name'    => ['required', 'string', 'max:120'],
+            'email'   => ['required', 'email', 'max:160'],
+            'country' => ['nullable', 'string', 'max:120'],
+            'comment' => ['required', 'string', 'min:10', 'max:2000'],
+            // Honeypot anti-spam: debe venir vacío
+            'website' => ['nullable', 'size:0'],
+        ], [], [
+            'rating'  => 'puntuación',
+            'name'    => 'nombre',
+            'email'   => 'correo',
+            'comment' => 'comentario',
+        ]);
+
+        Testimonial::create([
+            'name'        => $data['name'],
+            'country'     => $data['country'] ?? null,
+            'quote_es'    => $data['comment'],
+            'rating'      => $data['rating'],
+            'source'      => 'Web',
+            'is_active'   => false, // pendiente de moderación
+            'is_featured' => false,
+        ]);
+
+        return redirect()
+            ->to(\App\Support\LocalizedPages::url('reviews', $locale))
+            ->with('review_status', $locale === 'en'
+                ? 'Thank you! Your review was submitted and will be published after moderation.'
+                : ($locale === 'pt'
+                    ? 'Obrigado! Sua avaliação foi enviada e será publicada após moderação.'
+                    : '¡Gracias! Tu reseña fue enviada y se publicará tras ser revisada.'))
+            ->withFragment('dejar-resena');
     }
 
     private function fetchTestimonials(): Collection

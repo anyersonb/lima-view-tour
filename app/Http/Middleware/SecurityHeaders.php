@@ -42,6 +42,10 @@ class SecurityHeaders
             ."https://maps.googleapis.com https://maps.gstatic.com "
             ."https://www.google.com https://www.gstatic.com "
             ."https://www.tripadvisor.com https://*.tripadvisor.com https://*.tacdn.com",
+        // FilePond (subida de imágenes en el panel Filament) crea un Web Worker
+        // desde un blob: para procesar/redimensionar imágenes. Sin worker-src
+        // blob: la CSP lo bloquea y la subida falla silenciosamente (queda null).
+        'worker-src'  => "'self' blob:",
         'object-src'  => "'none'",
         'base-uri'    => "'self'",
         'form-action' => "'self' https://checkout.culqi.com https://www.paypal.com https://*.paypal.com",

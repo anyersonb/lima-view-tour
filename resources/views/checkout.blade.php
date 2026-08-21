@@ -1510,8 +1510,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             <label class="cart-terms-row" id="terms-row">
                                 <input type="checkbox" name="accept_terms" id="accept_terms" value="1">
                                 <span>
-                                    {{ __('ui.terms_accept_prefix') }} <a href="{{ route('legal.terms', ['locale' => $locale]) }}">{{ __('ui.terms_link') }}</a>,
-                                    la <a href="{{ route('legal.privacy', ['locale' => $locale]) }}">{{ __('ui.privacy_link') }}</a>
+                                    {{ __('ui.terms_accept_prefix') }} <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}">{{ __('ui.terms_link') }}</a>,
+                                    la <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}">{{ __('ui.privacy_link') }}</a>
                                     {{ __('ui.contract_text') }}
                                 </span>
                             </label>

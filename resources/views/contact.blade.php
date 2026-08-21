@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
-@section('title', __('nav.contact') . ' — ' . __('seo.site_name'))
-@section('description', __('seo.contact_description'))
+{{-- Meta título/descripción administrables desde el panel Filament →
+     Páginas → "contacto" → SEO — [idioma]. Vacío = cae al texto fijo. --}}
+@section('title', $page?->metaTitle ?: (__('nav.contact') . ' — ' . __('seo.site_name')))
+@section('description', $page?->metaDescription ?: __('seo.contact_description'))
 
 @php
     $locale = app()->getLocale();
@@ -16,7 +18,18 @@
             ? \Illuminate\Support\Facades\Storage::disk('media')->url($path)
             : null;
     };
+
+    // JSON-LD manual (panel → SEO — [idioma] → Datos estructurados). Sin
+    // schema autogenerado propio para esta página: se inyecta el manual
+    // cuando existe, si está vacío no se emite nada extra aquí.
+    $customSchema = $page?->schemaJsonLd();
 @endphp
+
+@if ($customSchema)
+    @push('schema')
+    <script type="application/ld+json">{!! $customSchema !!}</script>
+    @endpush
+@endif
 
 @section('content')
 
@@ -152,9 +165,9 @@
                        class="mt-0.5 w-4 h-4 rounded border-teal-800/30 text-orange-500 focus:ring-orange-400 focus:ring-offset-0 shrink-0">
                 <span>
                     {{ __('ui.contact_privacy_accept') }}
-                    <a href="{{ route('legal.privacy', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2 hover:text-orange-500 transition-colors">{{ __('footer.privacy') }}</a>
+                    <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="text-orange-600 underline underline-offset-2 hover:text-orange-500 transition-colors">{{ __('footer.privacy') }}</a>
                     {{ __('ui.contact_privacy_and_terms') }}
-                    <a href="{{ route('legal.terms', ['locale' => $locale]) }}" class="text-orange-600 underline underline-offset-2 hover:text-orange-500 transition-colors">{{ __('footer.terms') }}</a>
+                    <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="text-orange-600 underline underline-offset-2 hover:text-orange-500 transition-colors">{{ __('footer.terms') }}</a>
                 </span>
             </label>
 

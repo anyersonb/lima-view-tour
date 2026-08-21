@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use App\Support\ImagePath;
+use App\Models\Concerns\HasLocalizedSeoMeta;
+use App\Models\Concerns\HasLocalizedSlug;
 
 class Tour extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasLocalizedSlug, HasLocalizedSeoMeta;
 
     protected $guarded = ['id'];
 
@@ -30,6 +32,7 @@ class Tour extends Model
         'excludes_en' => 'array',
         'excludes_pt' => 'array',
         'gallery' => 'array',
+        'comparison' => 'array',
         'seo_keywords' => 'array',
         'is_featured' => 'boolean',
         'is_published' => 'boolean',
@@ -125,5 +128,52 @@ class Tour extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * Devuelve el contenido del bloque comparativo ya resuelto para el idioma
+     * actual (con fallback a español), o null si el bloque no está activo o
+     * no tiene ni una columna con ítems. Pensado para consumirse en el Blade.
+     */
+    public function comparisonData(?string $locale = null): ?array
+    {
+        $c = $this->comparison;
+        if (! is_array($c) || empty($c['enabled'])) {
+            return null;
+        }
+
+        $locale = $locale ?: app()->getLocale();
+        // Resuelve una clave localizada con fallback: <key>_<locale> → <key>_es
+        $t = function (string $key, $default = '') use ($c, $locale) {
+            $val = $c["{$key}_{$locale}"] ?? null;
+            if ($val === null || $val === '' || $val === []) {
+                $val = $c["{$key}_es"] ?? $default;
+            }
+            return $val;
+        };
+
+        $conv = $t('conv', []);
+        $prem = $t('prem', []);
+        $conv = is_array($conv) ? array_values(array_filter($conv, fn ($i) => trim((string) $i) !== '')) : [];
+        $prem = is_array($prem) ? array_values(array_filter($prem, fn ($i) => trim((string) $i) !== '')) : [];
+
+        // Sin ítems en ninguna columna no vale la pena renderizar
+        if (empty($conv) && empty($prem)) {
+            return null;
+        }
+
+        return [
+            'color'      => in_array(($c['color'] ?? 'teal'), ['teal', 'orange'], true) ? $c['color'] : 'teal',
+            'badge'      => $t('badge'),
+            'title'      => $t('title'),
+            'title_hl'   => $t('title_hl'),
+            'intro'      => $t('intro'),
+            'conv_title' => $t('conv_title'),
+            'prem_title' => $t('prem_title'),
+            'conv'       => $conv,
+            'prem'       => $prem,
+            'footer'     => $t('footer'),
+            'image'      => $this->galleryUrls[0] ?? $this->cover_url,
+        ];
     }
 }

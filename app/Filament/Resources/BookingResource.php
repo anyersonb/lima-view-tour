@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BookingResource\Pages;
-use App\Filament\Resources\BookingResource\RelationManagers;
 use App\Models\Booking;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -11,17 +10,21 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class BookingResource extends Resource
 {
     protected static ?string $model = Booking::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
+
     protected static ?string $navigationGroup = 'Marketing';
+
     protected static ?string $navigationLabel = 'Reservas';
+
     protected static ?string $modelLabel = 'Reserva';
+
     protected static ?string $pluralModelLabel = 'Reservas';
+
     protected static ?int $navigationSort = 8;
 
     public static function getNavigationBadge(): ?string
@@ -55,8 +58,8 @@ class BookingResource extends Resource
                             ->label('Tour del catálogo')
                             ->relationship('tour', 'title_es')
                             ->getOptionLabelFromRecordUsing(fn (\App\Models\Tour $record) => $record->title_es
-                                . ' — US$' . number_format((float) $record->price, 2)
-                                . ' · cap. ' . ($record->max_capacity ?: '∞'))
+                                .' — US$'.number_format((float) $record->price, 2)
+                                .' · cap. '.($record->max_capacity ?: '∞'))
                             ->searchable()
                             ->preload()
                             ->required(fn (Forms\Get $get) => ! $get('use_custom_tour'))
@@ -153,14 +156,14 @@ class BookingResource extends Resource
 
                         Forms\Components\Placeholder::make('pax_hint')
                             ->label('Total de pasajeros')
-                            ->content(fn (Forms\Get $get) => ((int) $get('adults') + (int) $get('children')) . ' persona(s)'),
+                            ->content(fn (Forms\Get $get) => ((int) $get('adults') + (int) $get('children')).' persona(s)'),
 
                         // Oferta / descuento especial (manual)
                         Forms\Components\Select::make('discount_type')
                             ->label('Oferta / descuento especial')
                             ->options([
                                 'percent' => 'Porcentaje (%)',
-                                'fixed'   => 'Monto fijo (US$)',
+                                'fixed' => 'Monto fijo (US$)',
                             ])
                             ->placeholder('Sin descuento')
                             ->live()
@@ -178,7 +181,7 @@ class BookingResource extends Resource
                         Forms\Components\Placeholder::make('discount_amount_hint')
                             ->label('Descuento aplicado')
                             ->visible(fn (Forms\Get $get) => filled($get('discount_type')))
-                            ->content(fn (Forms\Get $get) => 'US$' . number_format((float) $get('discount_amount'), 2)),
+                            ->content(fn (Forms\Get $get) => 'US$'.number_format((float) $get('discount_amount'), 2)),
 
                         Forms\Components\TextInput::make('total_price')
                             ->label('TOTAL a cobrar')
@@ -204,7 +207,7 @@ class BookingResource extends Resource
                         Forms\Components\Select::make('status')
                             ->label('Estado de la reserva')
                             ->options([
-                                'pending'   => 'Pendiente',
+                                'pending' => 'Pendiente',
                                 'confirmed' => 'Confirmada',
                                 'cancelled' => 'Cancelada',
                                 'completed' => 'Completada',
@@ -215,8 +218,8 @@ class BookingResource extends Resource
                         Forms\Components\Select::make('payment_status')
                             ->label('Estado del pago')
                             ->options([
-                                'pending'  => 'Por pagar',
-                                'paid'     => 'Pagado',
+                                'pending' => 'Por pagar',
+                                'paid' => 'Pagado',
                                 'refunded' => 'Reembolsado',
                             ])
                             ->default('pending')
@@ -232,12 +235,12 @@ class BookingResource extends Resource
                         Forms\Components\Select::make('payment_method')
                             ->label('Método de pago')
                             ->options([
-                                'pay_later'    => 'Pagar luego',
-                                'paypal'       => 'PayPal',
-                                'card'         => 'Pago con tarjeta',
+                                'pay_later' => 'Pagar luego',
+                                'paypal' => 'PayPal',
+                                'card' => 'Pago con tarjeta',
                                 'payment_link' => 'Link de pago',
-                                'cash'         => 'Efectivo',
-                                'transfer'     => 'Transferencia',
+                                'cash' => 'Efectivo',
+                                'transfer' => 'Transferencia',
                             ])
                             ->default('pay_later')
                             ->native(false)
@@ -299,11 +302,11 @@ class BookingResource extends Resource
     public static function recalcTotals(Forms\Set $set, Forms\Get $get): void
     {
         $unit = (float) $get('unit_price');
-        $pax  = max(0, (int) $get('adults') + (int) $get('children'));
+        $pax = max(0, (int) $get('adults') + (int) $get('children'));
         $gross = round($unit * $pax, 2);
 
         $type = $get('discount_type');
-        $val  = (float) $get('discount_value');
+        $val = (float) $get('discount_value');
         $discount = 0.0;
 
         if ($type === 'percent') {
@@ -362,41 +365,41 @@ class BookingResource extends Resource
                     ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'pending'   => 'Pendiente',
+                        'pending' => 'Pendiente',
                         'confirmed' => 'Confirmada',
                         'cancelled' => 'Cancelada',
                         'completed' => 'Completada',
-                        default     => $state,
+                        default => $state,
                     })
                     ->color(fn (string $state) => match ($state) {
                         'confirmed', 'completed' => 'success',
-                        'cancelled'              => 'danger',
-                        default                  => 'warning',
+                        'cancelled' => 'danger',
+                        default => 'warning',
                     }),
                 Tables\Columns\TextColumn::make('payment_status')
                     ->label('Pago')
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'paid'     => 'Pagado',
-                        'pending'  => 'Por pagar',
+                        'paid' => 'Pagado',
+                        'pending' => 'Por pagar',
                         'refunded' => 'Reembolsado',
-                        default    => $state,
+                        default => $state,
                     })
                     ->color(fn (string $state) => match ($state) {
-                        'paid'     => 'success',
+                        'paid' => 'success',
                         'refunded' => 'gray',
-                        default    => 'warning',
+                        default => 'warning',
                     }),
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Método')
                     ->formatStateUsing(fn (?string $state) => match ($state) {
-                        'pay_later'    => 'Pagar luego',
-                        'paypal'       => 'PayPal',
-                        'card'         => 'Pago con tarjeta',
+                        'pay_later' => 'Pagar luego',
+                        'paypal' => 'PayPal',
+                        'card' => 'Pago con tarjeta',
                         'payment_link' => 'Link de pago',
-                        'cash'         => 'Efectivo',
-                        'transfer'     => 'Transferencia',
-                        default        => $state ?: '—',
+                        'cash' => 'Efectivo',
+                        'transfer' => 'Transferencia',
+                        default => $state ?: '—',
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('payment_reference')
@@ -426,9 +429,221 @@ class BookingResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                // ── Estado de pago / estado de la reserva ───────────────────
+                Tables\Filters\SelectFilter::make('payment_status')
+                    ->label('Estado del pago')
+                    ->options([
+                        'paid' => 'Pagado',
+                        'pending' => 'Por pagar',
+                        'failed' => 'Fallido',
+                        'refunded' => 'Reembolsado',
+                    ])
+                    ->multiple(),
+
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Estado de la reserva')
+                    ->options([
+                        'pending' => 'Pendiente',
+                        'confirmed' => 'Confirmada',
+                        'cancelled' => 'Cancelada',
+                        'completed' => 'Completada',
+                    ])
+                    ->multiple(),
+
+                // ── Fechas ───────────────────────────────────────────────────
+                Tables\Filters\Filter::make('travel_date_range')
+                    ->label('Fecha del viaje')
+                    ->form([
+                        Forms\Components\DatePicker::make('travel_from')->label('Desde')->native(false),
+                        Forms\Components\DatePicker::make('travel_until')->label('Hasta')->native(false),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query->travelingBetween(
+                        $data['travel_from'] ?? null,
+                        $data['travel_until'] ?? null,
+                    ))
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['travel_from'] ?? null) {
+                            $indicators[] = 'Viaje desde '.\Carbon\Carbon::parse($data['travel_from'])->format('d/m/Y');
+                        }
+                        if ($data['travel_until'] ?? null) {
+                            $indicators[] = 'Viaje hasta '.\Carbon\Carbon::parse($data['travel_until'])->format('d/m/Y');
+                        }
+
+                        return $indicators;
+                    }),
+
+                Tables\Filters\Filter::make('booked_date_range')
+                    ->label('Fecha de la reserva')
+                    ->form([
+                        Forms\Components\DatePicker::make('booked_from')->label('Desde')->native(false),
+                        Forms\Components\DatePicker::make('booked_until')->label('Hasta')->native(false),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query->bookedBetween(
+                        $data['booked_from'] ?? null,
+                        $data['booked_until'] ?? null,
+                    ))
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['booked_from'] ?? null) {
+                            $indicators[] = 'Reservado desde '.\Carbon\Carbon::parse($data['booked_from'])->format('d/m/Y');
+                        }
+                        if ($data['booked_until'] ?? null) {
+                            $indicators[] = 'Reservado hasta '.\Carbon\Carbon::parse($data['booked_until'])->format('d/m/Y');
+                        }
+
+                        return $indicators;
+                    }),
+
+                // ── Tour / categoría ─────────────────────────────────────────
+                // Las reservas de "tour personalizado" (tour_id null) no tienen
+                // categoría y por lo tanto NUNCA aparecen al filtrar por
+                // categoría — se ven con el toggle "Solo personalizados" de
+                // más abajo. Se documenta también en el indicador.
+                Tables\Filters\SelectFilter::make('category_id')
+                    ->label('Categoría del tour')
+                    ->options(fn () => \App\Models\Category::query()->orderBy('name_es')->pluck('name_es', 'id')->toArray())
+                    ->multiple()
+                    ->query(fn (Builder $query, array $data): Builder => $query->forCategories($data['values'] ?? []))
+                    ->indicateUsing(function (array $data): array {
+                        $values = array_filter($data['values'] ?? []);
+                        if (empty($values)) {
+                            return [];
+                        }
+                        $names = \App\Models\Category::query()->whereIn('id', $values)->orderBy('name_es')->pluck('name_es')->implode(', ');
+
+                        return ["Categoría: {$names} (no incluye tours personalizados)"];
+                    }),
+
+                // Selector buscable, sin precargar el catálogo completo
+                // (importante con muchos tours: nunca cargar todos al navegador).
+                Tables\Filters\SelectFilter::make('tour_id')
+                    ->label('Tour específico')
+                    ->relationship('tour', 'title_es')
+                    ->searchable()
+                    ->preload(false)
+                    ->multiple(),
+
+                // ── Monto ────────────────────────────────────────────────────
+                Tables\Filters\Filter::make('amount_range')
+                    ->label('Monto total (US$)')
+                    ->form([
+                        Forms\Components\TextInput::make('amount_from')->label('Desde')->numeric()->prefix('US$'),
+                        Forms\Components\TextInput::make('amount_until')->label('Hasta')->numeric()->prefix('US$'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['amount_from'] ?? null, fn (Builder $q, $v) => $q->where('total_price', '>=', $v))
+                            ->when($data['amount_until'] ?? null, fn (Builder $q, $v) => $q->where('total_price', '<=', $v));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['amount_from'] ?? null) {
+                            $indicators[] = 'Monto desde US$'.number_format((float) $data['amount_from'], 2);
+                        }
+                        if ($data['amount_until'] ?? null) {
+                            $indicators[] = 'Monto hasta US$'.number_format((float) $data['amount_until'], 2);
+                        }
+
+                        return $indicators;
+                    }),
+
+                // ── Plata en riesgo / seguimiento de cobro ──────────────────
+                Tables\Filters\Filter::make('payment_at_risk')
+                    ->label('Pago pendiente con viaje próximo (riesgo de perder la venta)')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->paymentAtRisk())
+                    ->indicateUsing(fn (array $data): array => ($data['isActive'] ?? false)
+                        ? ['Pago pendiente y viaje en 3 días o menos']
+                        : []),
+
+                Tables\Filters\Filter::make('no_reminder_sent')
+                    ->label('Pago pendiente sin recordatorio enviado')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->withoutPaymentReminder())
+                    ->indicateUsing(fn (array $data): array => ($data['isActive'] ?? false)
+                        ? ['Pendientes de contactar (sin recordatorio)']
+                        : []),
+
+                // ── Otros atributos (agrupados para no saturar el panel) ────
+                Tables\Filters\Filter::make('booking_attributes')
+                    ->label('Otros atributos')
+                    ->form([
+                        Forms\Components\Select::make('pickup')
+                            ->label('Recojo')
+                            ->options(['with' => 'Con recojo', 'without' => 'Sin recojo'])
+                            ->placeholder('Todas'),
+                        Forms\Components\Select::make('discount')
+                            ->label('Descuento')
+                            ->options(['with' => 'Con descuento', 'without' => 'Sin descuento'])
+                            ->placeholder('Todas'),
+                        Forms\Components\Toggle::make('only_custom')
+                            ->label('Solo tours personalizados'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['pickup'] ?? null, fn (Builder $q, $v) => $v === 'with'
+                                ? $q->whereNotNull('pickup_point')
+                                : $q->whereNull('pickup_point'))
+                            ->when($data['discount'] ?? null, fn (Builder $q, $v) => $v === 'with'
+                                ? $q->where('discount_amount', '>', 0)
+                                : $q->where(fn (Builder $q2) => $q2->whereNull('discount_amount')->orWhere('discount_amount', 0)))
+                            ->when($data['only_custom'] ?? false, fn (Builder $q) => $q->customTour());
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if (($data['pickup'] ?? null) === 'with') {
+                            $indicators[] = 'Con recojo';
+                        }
+                        if (($data['pickup'] ?? null) === 'without') {
+                            $indicators[] = 'Sin recojo';
+                        }
+                        if (($data['discount'] ?? null) === 'with') {
+                            $indicators[] = 'Con descuento';
+                        }
+                        if (($data['discount'] ?? null) === 'without') {
+                            $indicators[] = 'Sin descuento';
+                        }
+                        if ($data['only_custom'] ?? false) {
+                            $indicators[] = 'Solo tours personalizados';
+                        }
+
+                        return $indicators;
+                    }),
             ])
             ->actions([
+                Tables\Actions\Action::make('resendConfirmation')
+                    ->label('Reenviar correo')
+                    ->icon('heroicon-o-envelope')
+                    ->color('warning')
+                    ->modalHeading('Reenviar correo de confirmación al cliente')
+                    ->modalSubmitActionLabel('Enviar')
+                    ->form([
+                        Forms\Components\TextInput::make('email')
+                            ->label('Correo del cliente')
+                            ->email()
+                            ->required()
+                            ->helperText('Puedes corregirlo si quieres enviarlo a otra dirección.')
+                            ->default(fn (Booking $record): ?string => $record->customer_email),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        try {
+                            app(\App\Services\BookingNotifier::class)
+                                ->resendCustomerConfirmation(collect([$record]), $data['email']);
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Correo reenviado')
+                                ->body('Se envió la confirmación a '.$data['email'])
+                                ->send();
+                        } catch (\Throwable $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se pudo enviar el correo')
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                    }),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

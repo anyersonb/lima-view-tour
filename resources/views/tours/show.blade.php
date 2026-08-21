@@ -41,6 +41,17 @@
 
     $galleryUrls = $tour->gallery_urls;
     $totalImgs   = count($galleryUrls);
+    $comparison  = $tour->comparisonData($locale); // bloque "convencional VS premium" (null si desactivado)
+
+    // Idioma del tour para el badge "Guía bilingüe": si el campo trae un valor
+    // bilingüe por defecto (en cualquier idioma/variante) usa el string localizado
+    // (__('ui.spanish_english')); si es un valor realmente personalizado, se respeta.
+    $rawTourLang   = trim((string) ($tour->language ?? ''));
+    $rawTourLangN  = strtolower(str_replace(' ', '', $rawTourLang));
+    $defaultLangs  = ['español/inglés', 'español/ingles', 'espanhol/inglês', 'espanhol/ingles', 'espanhol/inglés', 'spanish/english'];
+    $tourLanguage  = ($rawTourLang === '' || in_array($rawTourLangN, $defaultLangs, true))
+        ? __('ui.spanish_english')
+        : $rawTourLang;
     $tourRating  = $tour->rating ?? 4.8;
     $reviewsCount = $tour->reviews_count ?? 30;
     $isMostBooked = ($tour->show_best_seller ?? true) && ($tour->is_most_booked ?? $tour->is_featured ?? false);
@@ -177,12 +188,29 @@
         return implode(' ', $out);
     })($tour->title);
 @endphp
-@section('title', $titleDisplay . ' — ' . __('seo.site_name'))
-@section('description', __('seo.tour_description_prefix') . $tour->title . __('seo.tour_description_suffix'))
+{{-- Meta título/descripción: panel Filament (SEO por idioma) con fallback al
+     título/descripción autogenerados como antes. Nunca queda vacío. --}}
+@section('title', $tour->metaTitle ?: ($titleDisplay . ' — ' . __('seo.site_name')))
+@section('description', $tour->metaDescription ?: (__('seo.tour_description_prefix') . $titleDisplay . __('seo.tour_description_suffix')))
+
+@php
+    // hreflang/canonical reales: el slug puede diferir por idioma (slug_en/slug_pt).
+    // Sin esto, layouts/app.blade.php asumiría el mismo slug en los 3 idiomas y
+    // apuntaría a URLs inexistentes en cuanto se cargue una traducción.
+    $localizedAlternates = [
+        'es' => url('/es/tours/detalle/' . $tour->slugFor('es')),
+        'en' => url('/en/tours/detalle/' . $tour->slugFor('en')),
+        'pt' => url('/pt/tours/detalle/' . $tour->slugFor('pt')),
+    ];
+@endphp
 
 @push('schema')
 @php
-    $canonicalUrl = route('tours.show', ['locale' => $locale, 'slug' => $tour->slug]);
+    // slugFor($locale), not $tour->slug: the ES slug column doesn't reflect
+    // slug_en/slug_pt, so under a non-Spanish locale this must resolve to the
+    // slug actually served there — otherwise Product.url/@id/offers.url point
+    // at a URL that 301-redirects, contradicting the page's own canonical.
+    $canonicalUrl = route('tours.show', ['locale' => $locale, 'slug' => $tour->slugFor($locale)]);
     $siteUrl = rtrim(config('app.url'), '/');
     $tourImages = !empty($galleryUrls) ? $galleryUrls : [$tour->cover_url];
 
@@ -260,9 +288,18 @@
             'validFrom'      => optional($tour->created_at)->toDateString(),
         ]),
     ], fn ($v) => $v !== null);
+
+    // Regla de convivencia (panel Filament → Tours → SEO — [idioma] → Datos
+    // estructurados): si el editor cargó JSON-LD manual para este idioma (o
+    // el de español como fallback), REEMPLAZA el bloque Product/TouristTrip
+    // autogenerado de arriba. Si está vacío, se usa el automático de siempre.
+    // El JSON ya se valida como parseable al guardar en el form, así que no
+    // hace falta re-validar aquí. El FAQPage de abajo es independiente (viene
+    // del repeater de FAQs, no de este campo) y nunca se reemplaza.
+    $customSchema = $tour->schemaJsonLd($locale);
 @endphp
 <script type="application/ld+json">
-{!! json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
+{!! $customSchema ?: json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
 </script>
 @if ($tourFaqs)
 <script type="application/ld+json">
@@ -885,10 +922,29 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
         var locale = flatpickr.l10ns.default;
         @endif
 
+        // Escribe la fecha elegida en TODOS los campos ocultos travel_date de
+        // forma directa (sin depender del ciclo reactivo de Alpine, que puede
+        // no haber refrescado el :value del <input hidden> en el momento del
+        // submit). Esto blinda la fecha que realmente viaja al servidor.
+        function syncTravelDate(dateStr) {
+            if (!dateStr) return;
+            if (typeof Alpine !== 'undefined' && Alpine.store('booking')) {
+                Alpine.store('booking').date = dateStr;
+            }
+            document.querySelectorAll('input[name="travel_date"]').forEach(function (h) {
+                h.value = dateStr;
+            });
+        }
+
         var config = {
             minDate:    tomorrow,
             dateFormat: 'Y-m-d',
             locale:     locale,
+            // Forzar el calendario propio de flatpickr también en móvil. El
+            // input nativo de iOS/Android (mobileInput) desincronizaba la fecha
+            // seleccionada con el campo enviado; el calendario propio usa la
+            // misma ruta verificada del escritorio.
+            disableMobile: true,
             disable: [
                 // Specific blocked dates
                 ...blockedDates,
@@ -898,10 +954,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
                 }
             ],
             onChange: function (selectedDates, dateStr) {
-                // Keep the Alpine store in sync after flatpickr selection
-                if (dateStr && typeof Alpine !== 'undefined') {
-                    Alpine.store('booking').date = dateStr;
-                }
+                syncTravelDate(dateStr);
             }
         };
 
@@ -1217,11 +1270,18 @@ if (!empty($itinerary)) {
             <div class="m-notice">🔥 {{ $bookingsWeek }} {{ __('ui.travelers_booked_week') }}</div>
             <div class="m-features">
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">🚌</div><b>{{ __('ui.pickup_included') }}</b><small>{{ __('ui.from_your_hotel') }}</small></div>
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">🌐</div><b>{{ __('ui.bilingual_guide') }}</b><small>{{ $tour->language ?: __('ui.spanish_english') }}</small></div>
+                <div class="m-feature"><div class="m-ico" aria-hidden="true">🌐</div><b>{{ __('ui.bilingual_guide') }}</b><small>{{ $tourLanguage }}</small></div>
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">🛡️</div><b>{{ __('ui.free_cancellation') }}</b><small>{{ __('ui.until_24h_before') }}</small></div>
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">👥</div><b>{{ __('ui.small_groups') }}</b><small>{{ __('ui.personalized_experience') }}</small></div>
             </div>
         </div>
+
+        {{-- 4.5 COMPARATIVA (convencional VS premium) --}}
+        @if ($comparison)
+        <div style="padding:4px 20px 8px;">
+            <x-tour-comparison :data="$comparison" variant="m" />
+        </div>
+        @endif
 
         {{-- 5. ¿QUÉ VIVIRÁS? — experience row --}}
         @if (count($highlightsFromItinerary) > 0)
@@ -1841,6 +1901,13 @@ if (!empty($itinerary)) {
             @endforeach
         </div>
         </section>
+
+        {{-- ══════════════════════════════════════
+             3.5 COMPARATIVA (convencional VS premium)
+        ══════════════════════════════════════ --}}
+        @if ($comparison)
+            <x-tour-comparison :data="$comparison" variant="d" />
+        @endif
 
         {{-- ══════════════════════════════════════
              4. ¿QUÉ VIVIRÁS? — CARRUSEL HIGHLIGHTS

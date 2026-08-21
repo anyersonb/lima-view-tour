@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BlogPost;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\View\View;
@@ -40,13 +41,24 @@ class BlogController extends Controller
      * Display a single published blog post.
      * Returns 404 if the post is not found or not yet published.
      */
-    public function show(string $locale, string $slug): View
+    public function show(string $locale, string $slug): View|RedirectResponse
     {
         App::setLocale($locale);
 
-        $post = BlogPost::published()
-            ->where('slug', $slug)
-            ->firstOrFail();
+        // Resolve by the active locale's slug column (slug_en/slug_pt) with
+        // fallback to the Spanish `slug`. 301 to the translated slug when the
+        // visitor hit the Spanish slug under a locale that has its own.
+        $resolution = BlogPost::resolveForLocale($locale, $slug, fn ($q) => $q->published());
+        $post = $resolution['model'];
+
+        abort_if(! $post, 404);
+
+        if ($resolution['redirect_slug']) {
+            return redirect()->route('blog.show', [
+                'locale' => $locale,
+                'slug' => $resolution['redirect_slug'],
+            ], 301);
+        }
 
         // Related posts: same category first, then recent — max 3
         $related = BlogPost::published()

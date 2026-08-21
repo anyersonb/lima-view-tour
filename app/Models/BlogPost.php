@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Models\Concerns\HasLocalizedSlug;
 
 class BlogPost extends Model
 {
+    use HasLocalizedSlug;
+
     /**
      * Mass-assignment guard: only id is protected.
      */
@@ -70,9 +73,20 @@ class BlogPost extends Model
     /**
      * Returns the title in the current app locale, falling back to Spanish.
      */
+    // NOTE (2026-08-19 fix): title_en/excerpt_en/body_en (and _pt) are NOT
+    // NULL columns without a DB default (see migration
+    // 2026_06_29_000010_create_blog_posts_table.php). A post saved without a
+    // translation stores '' there, never NULL. `??` only falls back on NULL,
+    // so it never fired and a solo-ES post rendered the empty string (or the
+    // generic site title, for meta_title/description) under /en or /pt
+    // instead of falling back to the Spanish content. `?:` treats '' as
+    // falsy too, so the Spanish fallback actually triggers. Applied to all
+    // five locale-aware accessors below — they share the exact same columns
+    // and the exact same bug, not just the three CRO happened to check
+    // (title, meta title, meta description).
     public function getTitleAttribute(): string
     {
-        return $this->{"title_" . app()->getLocale()} ?? $this->title_es ?? '';
+        return $this->{"title_" . app()->getLocale()} ?: $this->title_es ?: '';
     }
 
     /**
@@ -80,7 +94,7 @@ class BlogPost extends Model
      */
     public function getExcerptAttribute(): string
     {
-        return $this->{"excerpt_" . app()->getLocale()} ?? $this->excerpt_es ?? '';
+        return $this->{"excerpt_" . app()->getLocale()} ?: $this->excerpt_es ?: '';
     }
 
     /**
@@ -88,7 +102,7 @@ class BlogPost extends Model
      */
     public function getBodyAttribute(): string
     {
-        return $this->{"body_" . app()->getLocale()} ?? $this->body_es ?? '';
+        return $this->{"body_" . app()->getLocale()} ?: $this->body_es ?: '';
     }
 
     /**
@@ -100,8 +114,8 @@ class BlogPost extends Model
         $locale = app()->getLocale();
 
         return $this->{"meta_title_{$locale}"}
-            ?? $this->meta_title_es
-            ?? $this->title;
+            ?: $this->meta_title_es
+            ?: $this->title;
     }
 
     /**
@@ -113,7 +127,25 @@ class BlogPost extends Model
         $locale = app()->getLocale();
 
         return $this->{"meta_description_{$locale}"}
-            ?? $this->meta_description_es
-            ?? $this->excerpt;
+            ?: $this->meta_description_es
+            ?: $this->excerpt;
+    }
+
+    /**
+     * Custom JSON-LD for the given (or current) locale, with fallback to
+     * Spanish. Returns null when nothing is configured, in which case
+     * blog/show.blade.php falls back to its auto-generated BlogPosting schema.
+     */
+    public function schemaJsonLd(?string $locale = null): ?string
+    {
+        $locale = $locale ?: app()->getLocale();
+
+        $value = $this->{"schema_jsonld_{$locale}"} ?? null;
+
+        if ($value === null || trim((string) $value) === '') {
+            $value = $this->schema_jsonld_es ?? null;
+        }
+
+        return ($value !== null && trim((string) $value) !== '') ? $value : null;
     }
 }

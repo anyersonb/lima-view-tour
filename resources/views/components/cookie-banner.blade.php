@@ -15,7 +15,7 @@
         default => \App\Models\Setting::get('cookie_text_es') ?: __('common.cookie_text'),
     };
 
-    $privacyUrl = route('legal.privacy', ['locale' => $locale]);
+    $privacyUrl = \App\Support\LocalizedPages::url('legal.privacy', $locale);
 @endphp
 
 {{--

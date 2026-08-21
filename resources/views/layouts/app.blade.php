@@ -2,6 +2,16 @@
     $locale = app()->getLocale();
     $altLocale = $locale === 'es' ? 'en' : 'es';
     $pathWithoutLocale = ltrim(preg_replace('#^/?(es|en|pt)(/|$)#', '', request()->path()), '/');
+    // Views whose URL segment is a per-locale TRANSLATED slug (tours/detalle,
+    // blog) cannot assume "same path, different locale prefix" — that would
+    // point hreflang/canonical at URLs that may not exist. Those views define
+    // $localizedAlternates = ['es' => url, 'en' => url, 'pt' => url] with the
+    // real per-locale slug BEFORE @extends (Blade appends the parent render
+    // at the end of the compiled template, so it sees variables set anywhere
+    // in the child). Every other view keeps the old same-path assumption,
+    // which is correct for them because their path segments are fixed
+    // Spanish words (/nosotros, /contacto…), not a translatable slug column.
+    $localizedAlternates = $localizedAlternates ?? null;
     $settings = $siteSettings ?? [];
 
     $siteName = $settings['site_name'] ?? __('seo.site_name');
@@ -61,10 +71,17 @@
     @endif
 
     <link rel="canonical" href="{{ url()->current() }}">
-    <link rel="alternate" hreflang="es"      href="{{ url('/es/' . $pathWithoutLocale) }}">
-    <link rel="alternate" hreflang="en"      href="{{ url('/en/' . $pathWithoutLocale) }}">
-    <link rel="alternate" hreflang="pt"      href="{{ url('/pt/' . $pathWithoutLocale) }}">
-    <link rel="alternate" hreflang="x-default" href="{{ url('/es/' . $pathWithoutLocale) }}">
+    @if ($localizedAlternates)
+        <link rel="alternate" hreflang="es"      href="{{ $localizedAlternates['es'] }}">
+        <link rel="alternate" hreflang="en"      href="{{ $localizedAlternates['en'] }}">
+        <link rel="alternate" hreflang="pt"      href="{{ $localizedAlternates['pt'] }}">
+        <link rel="alternate" hreflang="x-default" href="{{ $localizedAlternates['es'] }}">
+    @else
+        <link rel="alternate" hreflang="es"      href="{{ url('/es/' . $pathWithoutLocale) }}">
+        <link rel="alternate" hreflang="en"      href="{{ url('/en/' . $pathWithoutLocale) }}">
+        <link rel="alternate" hreflang="pt"      href="{{ url('/pt/' . $pathWithoutLocale) }}">
+        <link rel="alternate" hreflang="x-default" href="{{ url('/es/' . $pathWithoutLocale) }}">
+    @endif
 
     {{-- GEO meta tags (solo si hay coordenadas configuradas) --}}
     @php

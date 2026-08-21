@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
-@section('title', __('nav.about') . ' — ' . __('seo.site_name'))
-@section('description', __('ui.about_meta_description'))
+{{-- Meta título/descripción administrables desde el panel Filament →
+     Páginas → "nosotros" → SEO — [idioma]. Vacío = cae al texto fijo de
+     siempre (mismo criterio que tours/show.blade.php y blog/show.blade.php). --}}
+@section('title', $page?->metaTitle ?: (__('nav.about') . ' — ' . __('seo.site_name')))
+@section('description', $page?->metaDescription ?: __('ui.about_meta_description'))
 
 @php
     $locale = app()->getLocale();
@@ -98,7 +101,19 @@
 
     // Testimonials: rating average (fallback 4.8 when table is empty)
     $avgRating = round(\App\Models\Testimonial::avg('rating') ?: 4.8, 1);
+
+    // JSON-LD manual (panel → SEO — [idioma] → Datos estructurados). Esta
+    // página no tiene un schema autogenerado propio hoy, así que el campo
+    // simplemente se inyecta cuando existe — si está vacío no se emite nada
+    // aquí (el Organization/WebSite global de <x-jsonld /> sigue igual).
+    $customSchema = $page?->schemaJsonLd();
 @endphp
+
+@if ($customSchema)
+    @push('schema')
+    <script type="application/ld+json">{!! $customSchema !!}</script>
+    @endpush
+@endif
 
 @section('content')
 
@@ -150,7 +165,7 @@
             <p class="mt-4 text-teal-800/75 leading-relaxed text-sm md:text-base">
                 {{ $b['why_intro2_'.$locale] ?? __('ui.about_why_intro2') }}
             </p>
-            <a href="{{ route('contact', ['locale' => $locale]) }}" class="btn--primary mt-7">
+            <a href="{{ \App\Support\LocalizedPages::url('contact', $locale) }}" class="btn--primary mt-7">
                 {{ $b['why_cta_label_'.$locale] ?? __('ui.contact_us') }}
             </a>
         </div>

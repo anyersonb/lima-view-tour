@@ -54,9 +54,9 @@
             <a href="{{ route('home', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('nav.home') }}</a>
             <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('nav.tours') }}</a>
             <a href="{{ route('blog.index', ['locale' => $locale]) }}" class="site-header__nav-link">Blog</a>
-            <a href="{{ route('reviews', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('ui.reviews') }}</a>
-            <a href="{{ url('/' . $locale . '/nosotros') }}" class="site-header__nav-link">{{ __('nav.about') }}</a>
-            <a href="{{ route('contact', ['locale' => $locale]) }}" class="site-header__nav-link">{{ __('nav.contact') }}</a>
+            <a href="{{ \App\Support\LocalizedPages::url('reviews', $locale) }}" class="site-header__nav-link">{{ __('ui.reviews') }}</a>
+            <a href="{{ \App\Support\LocalizedPages::url('about', $locale) }}" class="site-header__nav-link">{{ __('nav.about') }}</a>
+            <a href="{{ \App\Support\LocalizedPages::url('contact', $locale) }}" class="site-header__nav-link">{{ __('nav.contact') }}</a>
         </nav>
 
         {{-- Spacer --}}
@@ -269,7 +269,7 @@
                 </a>
 
                 {{-- Reseñas → página interna con comentarios de Google, Tripadvisor y la web --}}
-                <a href="{{ route('reviews', ['locale' => $locale]) }}" @click="open = false" class="site-menu__row">
+                <a href="{{ \App\Support\LocalizedPages::url('reviews', $locale) }}" @click="open = false" class="site-menu__row">
                     <span class="site-menu__ico">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.5a.56.56 0 011.04 0l2.12 5.11a.56.56 0 00.48.35l5.52.44c.5.04.7.66.32.99l-4.2 3.6a.56.56 0 00-.18.56l1.28 5.38a.56.56 0 01-.84.61l-4.72-2.88a.56.56 0 00-.59 0l-4.72 2.88a.56.56 0 01-.84-.61l1.28-5.38a.56.56 0 00-.18-.56l-4.2-3.6a.56.56 0 01.32-.99l5.52-.44a.56.56 0 00.48-.35L11.48 3.5z"/>
@@ -285,7 +285,7 @@
                 </a>
 
                 {{-- Nosotros --}}
-                <a href="{{ url('/' . $locale . '/nosotros') }}" @click="open = false" class="site-menu__row">
+                <a href="{{ \App\Support\LocalizedPages::url('about', $locale) }}" @click="open = false" class="site-menu__row">
                     <span class="site-menu__ico">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
@@ -301,7 +301,7 @@
                 </a>
 
                 {{-- Contacto --}}
-                <a href="{{ route('contact', ['locale' => $locale]) }}" @click="open = false" class="site-menu__row">
+                <a href="{{ \App\Support\LocalizedPages::url('contact', $locale) }}" @click="open = false" class="site-menu__row">
                     <span class="site-menu__ico">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>

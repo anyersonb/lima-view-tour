@@ -8,9 +8,32 @@
 
 @section('title', $post->metaTitle ?: $post->title)
 @section('description', $post->metaDescription ?: Str::limit(strip_tags($post->excerpt), 160))
-@section('og_image', $post->cover_image ? asset('storage/' . $post->cover_image) : null)
+{{-- OJO: el valor NO puede ser null. Blade interpreta @section('x', null)
+     como apertura de sección de bloque (ob_start sin @endsection) y deja
+     un buffer de salida abierto en todo el render. Cadena vacía = el
+     layout cae a la imagen og por defecto, que es lo que se busca. --}}
+@section('og_image', $post->cover_image ? asset('storage/' . $post->cover_image) : '')
+
+@php
+    // hreflang/canonical reales: el slug del post puede diferir por idioma
+    // (slug_en/slug_pt). Ver misma nota en resources/views/tours/show.blade.php.
+    $localizedAlternates = [
+        'es' => route('blog.show', ['locale' => 'es', 'slug' => $post->slugFor('es')]),
+        'en' => route('blog.show', ['locale' => 'en', 'slug' => $post->slugFor('en')]),
+        'pt' => route('blog.show', ['locale' => 'pt', 'slug' => $post->slugFor('pt')]),
+    ];
+
+    // Regla de convivencia (panel Filament → Blog → SEO — [idioma] → Datos
+    // estructurados): si el editor cargó JSON-LD manual para este idioma (o
+    // el de español como fallback), REEMPLAZA el bloque BlogPosting
+    // autogenerado de abajo. Vacío = se mantiene el automático de siempre.
+    $customSchema = $post->schemaJsonLd($locale);
+@endphp
 
 @push('schema')
+@if ($customSchema)
+<script type="application/ld+json">{!! $customSchema !!}</script>
+@else
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -69,6 +92,7 @@
     ]
 }
 </script>
+@endif
 @endpush
 
 @section('content')

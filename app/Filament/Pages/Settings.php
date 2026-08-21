@@ -121,9 +121,18 @@ class Settings extends Page implements HasForms
                         TextInput::make('contact_hours_es')->label('Horarios (ES)'),
                         TextInput::make('contact_hours_en')->label('Horarios (EN)'),
                         TextInput::make('booking_notification_email')
-                            ->email()
-                            ->label('Email para avisos de reserva')
-                            ->helperText('Cada vez que entre una nueva reserva, se enviará un aviso a esta dirección. Si se deja vacío se usará el correo remitente configurado en el servidor.'),
+                            ->label('Emails para avisos de reserva')
+                            ->placeholder('correo1@dominio.com, correo2@dominio.com')
+                            ->helperText('Cada vez que entre una nueva reserva se enviará un aviso a estas direcciones. Puedes poner VARIOS correos separados por coma. El cliente que reserva siempre recibe su confirmación aparte. Si se deja vacío se usará el correo remitente del servidor.')
+                            ->rule(function () {
+                                return function (string $attribute, $value, \Closure $fail) {
+                                    foreach (preg_split('/[,;\s]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY) as $email) {
+                                        if (! filter_var(trim($email), FILTER_VALIDATE_EMAIL)) {
+                                            $fail("«{$email}» no es un correo válido.");
+                                        }
+                                    }
+                                };
+                            }),
 
                         // ── Footer: descripción de la empresa ─────────────────
                         \Filament\Forms\Components\Section::make('Footer — descripción de la empresa')
@@ -199,19 +208,52 @@ class Settings extends Page implements HasForms
                     ]),
                     Tabs\Tab::make('Home')->icon('heroicon-o-home')->schema([
 
-                        // ── Hero ─────────────────────────────────────────────
-                        \Filament\Forms\Components\Section::make('Hero')
-                            ->description('Imagen y título principal del banner superior.')
+                        // ── TODAS las imágenes del Home ──────────────────────
+                        // Un solo lugar para cambiar cada imagen del home. Los
+                        // FileUpload son de nivel superior (dentro de Repeater no
+                        // persisten en esta página). Vacío = imagen por defecto.
+                        // Nota: las fotos de las tarjetas de tours ("Más Comprados",
+                        // "Ofertas", etc.) se editan en cada Tour → pestaña Imágenes.
+                        \Filament\Forms\Components\Section::make('🖼️ Imágenes del Home')
+                            ->description('Aquí cambias TODAS las imágenes editables del home: hero, destinos, tipos de tour y experiencias. Cada foto se optimiza a WebP automáticamente. Vacío = imagen por defecto.')
                             ->collapsible()
                             ->schema([
-                                FileUpload::make('home_hero_image')
-                                    ->label('Hero — imagen de fondo')
-                                    ->image()
-                                    ->disk('media')
-                                    ->directory('home')
-                                    ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1920, disk: 'media', deletePrevious: true))
-                                    ->helperText('Dejar vacío para usar la imagen por defecto (Machu Picchu). Se optimiza a WebP (máx. 1920px).')
-                                    ->columnSpanFull(),
+                                \Filament\Forms\Components\Fieldset::make('Hero (banner superior)')
+                                    ->schema([
+                                        FileUpload::make('home_hero_image')
+                                            ->label('Imagen de fondo del hero')
+                                            ->image()->disk('media')->directory('home')
+                                            ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1920, disk: 'media', deletePrevious: true))
+                                            ->helperText('Dejar vacío para usar la imagen por defecto (Machu Picchu). Máx. 1920px.')
+                                            ->columnSpanFull(),
+                                    ])->columns(1),
+                                \Filament\Forms\Components\Fieldset::make('Ciudades más visitadas (Destinos)')
+                                    ->schema([
+                                        FileUpload::make('home_destino_img_1')->label('1 · Tours en Cusco')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_destino_img_2')->label('2 · Tours en Lima')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_destino_img_3')->label('3 · Tours en Ica')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                    ])->columns(3),
+                                \Filament\Forms\Components\Fieldset::make('¿Qué tipo de tour estás buscando?')
+                                    ->schema([
+                                        FileUpload::make('home_tourtype_img_1')->label('1 · Tours Culturales')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_tourtype_img_2')->label('2 · Tours de Aventura')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_tourtype_img_3')->label('3 · Experiencias Culinarias')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_tourtype_img_4')->label('4 · Otras experiencias')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                    ])->columns(2),
+                                \Filament\Forms\Components\Fieldset::make('Descubre experiencias únicas')
+                                    ->schema([
+                                        FileUpload::make('home_exp_img_1')->label('1 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_exp_img_2')->label('2 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_exp_img_3')->label('3 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_exp_img_4')->label('4 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                    ])->columns(2),
+                            ]),
+
+                        // ── Hero (títulos) ────────────────────────────────────
+                        \Filament\Forms\Components\Section::make('Hero — títulos')
+                            ->description('Título principal del banner superior (la imagen está arriba en "Imágenes del Home").')
+                            ->collapsible()
+                            ->schema([
                                 Textarea::make('home_hero_title_es')
                                     ->label('Hero título (ES)')
                                     ->rows(3)
@@ -351,7 +393,10 @@ class Settings extends Page implements HasForms
                                         Textarea::make('desc_es')->label('Descripción (ES)')->rows(2)->columnSpanFull(),
                                         Textarea::make('desc_en')->label('Descripción (EN)')->rows(2)->columnSpanFull(),
                                         Textarea::make('desc_pt')->label('Descripción (PT)')->rows(2)->columnSpanFull(),
-                                        TextInput::make('img')->label('Nombre imagen (assets/banners/)')->placeholder('Rectangle 19218.jpg')->columnSpanFull(),
+                                        \Filament\Forms\Components\Placeholder::make('img_note')
+                                            ->label('Imagen')
+                                            ->content('La imagen de cada tarjeta se sube en la sección "Imágenes de las tarjetas del Home" (más abajo), por posición.')
+                                            ->columnSpanFull(),
                                     ])
                                     ->columns(3)
                                     ->collapsible()
@@ -429,7 +474,10 @@ class Settings extends Page implements HasForms
                                         TextInput::make('title_es')->label('Título panel (ES)'),
                                         TextInput::make('title_en')->label('Título panel (EN)'),
                                         TextInput::make('title_pt')->label('Título panel (PT)'),
-                                        TextInput::make('img')->label('Nombre imagen (assets/banners/)')->placeholder('Rectangle 19215.jpg'),
+                                        \Filament\Forms\Components\Placeholder::make('img_note')
+                                            ->label('Imagen')
+                                            ->content('La imagen se sube en la sección "Imágenes de las tarjetas del Home" (más abajo), por posición.')
+                                            ->columnSpanFull(),
                                         TextInput::make('eyebrow_es')->label('Eyebrow (ES)'),
                                         TextInput::make('eyebrow_en')->label('Eyebrow (EN)'),
                                         TextInput::make('eyebrow_pt')->label('Eyebrow (PT)'),
@@ -497,7 +545,10 @@ class Settings extends Page implements HasForms
                                         TextInput::make('badge_es')->label('Badge (ES)'),
                                         TextInput::make('badge_en')->label('Badge (EN)'),
                                         TextInput::make('badge_pt')->label('Badge (PT)'),
-                                        TextInput::make('img')->label('Nombre imagen (assets/banners/)')->placeholder('Rectangle 19216.jpg'),
+                                        \Filament\Forms\Components\Placeholder::make('img_note')
+                                            ->label('Imagen')
+                                            ->content('La imagen se sube en la sección "Imágenes de las tarjetas del Home" (más abajo), por posición.')
+                                            ->columnSpanFull(),
                                         TextInput::make('badgeBg')->label('Color badge (teal-800 / orange-500)')->placeholder('teal-800'),
                                         TextInput::make('slug')->label('Slug del tour'),
                                     ])
@@ -875,7 +926,13 @@ class Settings extends Page implements HasForms
 
     public function save(): void
     {
-        foreach ($this->data as $key => $value) {
+        // getState() deshidrata el formulario: procesa los FileUpload (mueve los
+        // archivos temporales al disco configurado y devuelve la RUTA), también
+        // los anidados dentro de Repeaters. Iterar $this->data crudo dejaba el
+        // estado de FilePond sin resolver ({uuid:{}}) y no guardaba la imagen.
+        $data = $this->form->getState();
+
+        foreach ($data as $key => $value) {
             // Serialize Repeater fields as JSON string
             $jsonRepeaterKeys = ['faqs','home_destinos','home_why_items','home_tour_type_tabs',
                                  'home_footer_features','home_exp_tours','home_reco_items','home_faqs',

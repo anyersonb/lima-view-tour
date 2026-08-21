@@ -1,7 +1,23 @@
 @extends('layouts.app')
 
-@section('title', $title . ' – Lima View Tours')
-@section('description', __('legal.last_updated'))
+{{-- Meta título/descripción administrables desde el panel Filament →
+     Páginas → slug "privacidad" → SEO — [idioma]. Vacío = cae al texto
+     fijo (ver PageController@privacy, que carga $page). --}}
+@section('title', ($page ?? null)?->metaTitle ?: ($title . ' – Lima View Tours'))
+@section('description', ($page ?? null)?->metaDescription ?: __('legal.last_updated'))
+
+@php
+    // JSON-LD manual (panel → SEO — [idioma] → Datos estructurados). Sin
+    // schema autogenerado propio para esta página: se inyecta el manual
+    // cuando existe, si está vacío no se emite nada extra aquí.
+    $customSchema = ($page ?? null)?->schemaJsonLd();
+@endphp
+
+@if ($customSchema)
+    @push('schema')
+    <script type="application/ld+json">{!! $customSchema !!}</script>
+    @endpush
+@endif
 
 @section('content')
 <div class="container mx-auto px-5 lg:px-10 py-16">

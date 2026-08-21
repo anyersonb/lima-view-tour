@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Filament\Resources\TourResource\Pages;
 use App\Models\Tour;
 use App\Support\ImageOptimizer;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TourResource extends Resource
 {
+    use HasLocalizedSeoFields;
+
     protected static ?string $model = Tour::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-globe-americas';
@@ -46,12 +49,6 @@ class TourResource extends Resource
                                         ->searchable()->preload()
                                         ->label('Categoría'),
                                 ]),
-                                Forms\Components\TextInput::make('slug')
-                                    ->label('URL del tour (slug)')
-                                    ->helperText('Es la dirección pública del tour. Se genera automáticamente del título al crear y NO se puede editar después: cambiarla rompería los enlaces ya compartidos e indexados.')
-                                    ->disabled(fn (string $operation): bool => $operation === 'edit')
-                                    ->dehydrated(fn (string $operation): bool => $operation === 'create')
-                                    ->maxLength(255),
                                 Forms\Components\Grid::make(3)->schema([
                                     Forms\Components\TextInput::make('duration')->label('Duración')->placeholder('Full Day'),
                                     Forms\Components\TextInput::make('language')->label('Idiomas')->default('Español / Inglés'),
@@ -159,6 +156,44 @@ class TourResource extends Resource
                                 ])->collapsible()->reorderable()->defaultItems(0)
                                   ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
                                   ->helperText('Se muestran como acordeón en la página del tour. Déjalo vacío si el tour no lleva FAQs.'),
+
+                                Forms\Components\Section::make('SEO — Español')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->collapsible()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('slug')
+                                            ->label('URL del tour (slug)')
+                                            ->helperText('Es la dirección pública del tour. Se genera automáticamente del título al crear y NO se puede editar después: cambiarla rompería los enlaces ya compartidos e indexados.')
+                                            ->disabled(fn (string $operation): bool => $operation === 'edit')
+                                            ->dehydrated(fn (string $operation): bool => $operation === 'create')
+                                            ->live()
+                                            // maxLength only on create: Filament still validates a
+                                            // disabled field's raw (undehydrated) value as long as it
+                                            // isn't hidden, so a flat ->maxLength(60) here would block
+                                            // EVERY edit of the 4 legacy tours whose ES slug is already
+                                            // longer than 60 chars, even though this field can't change
+                                            // it (disabled + not dehydrated on edit).
+                                            ->maxLength(fn (string $operation): ?int => $operation === 'create' ? 60 : null),
+                                        Forms\Components\Placeholder::make('slug_es_preview')
+                                            ->label('Vista previa URL')
+                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/es/tours/detalle/' . ($get('slug') ?: '{slug}')),
+                                        Forms\Components\TextInput::make('meta_title_es')
+                                            ->label('Meta título — Español')
+                                            ->maxLength(70)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_es'), 50, 60)),
+                                        Forms\Components\Textarea::make('meta_description_es')
+                                            ->label('Meta descripción — Español')
+                                            ->rows(3)
+                                            ->maxLength(160)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_es'), 150, 160)),
+                                        Forms\Components\Textarea::make('schema_jsonld_es')
+                                            ->label('Datos estructurados (JSON-LD) — Español')
+                                            ->rows(6)
+                                            ->helperText('Opcional. Si lo completas, REEMPLAZA el JSON-LD automático (Product/TouristTrip) de esta página en este idioma. Debe ser JSON válido — se valida antes de guardar. El FAQPage (preguntas frecuentes de arriba) no se ve afectado.')
+                                            ->rules([static::seoJsonLdRule()]),
+                                    ]),
                             ]),
 
                         Tabs\Tab::make('English')
@@ -182,6 +217,39 @@ class TourResource extends Resource
                                 ])->collapsible()->reorderable()->defaultItems(0)
                                   ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
                                   ->helperText('Shown as an accordion on the tour page. Falls back to Spanish if empty.'),
+
+                                Forms\Components\Section::make('SEO — English')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->collapsible()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('slug_en')
+                                            ->label('URL del tour (slug) — English')
+                                            ->maxLength(60)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_en', static::seoSanitizeSlug($state)))
+                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
+                                            ->unique(ignoreRecord: true)
+                                            ->helperText('Vacío = se usa el slug en español como fallback (no genera 404). Se guarda en minúsculas y con guiones.'),
+                                        Forms\Components\Placeholder::make('slug_en_preview')
+                                            ->label('Vista previa URL')
+                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/en/tours/detalle/' . ($get('slug_en') ?: $get('slug') ?: '{slug}')),
+                                        Forms\Components\TextInput::make('meta_title_en')
+                                            ->label('Meta title — English')
+                                            ->maxLength(70)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_en'), 50, 60)),
+                                        Forms\Components\Textarea::make('meta_description_en')
+                                            ->label('Meta description — English')
+                                            ->rows(3)
+                                            ->maxLength(160)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_en'), 150, 160)),
+                                        Forms\Components\Textarea::make('schema_jsonld_en')
+                                            ->label('Structured data (JSON-LD) — English')
+                                            ->rows(6)
+                                            ->helperText('Optional. If filled, REPLACES the auto-generated JSON-LD for this locale. Falls back to Spanish JSON-LD if empty. Must be valid JSON.')
+                                            ->rules([static::seoJsonLdRule()]),
+                                    ]),
                             ]),
 
                         Tabs\Tab::make('Português')
@@ -205,6 +273,73 @@ class TourResource extends Resource
                                 ])->collapsible()->reorderable()->defaultItems(0)
                                   ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
                                   ->helperText('Exibido como acordeão na página do tour. Se vazio, usa o espanhol.'),
+
+                                Forms\Components\Section::make('SEO — Português')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->collapsible()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('slug_pt')
+                                            ->label('URL do tour (slug) — Português')
+                                            ->maxLength(60)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_pt', static::seoSanitizeSlug($state)))
+                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
+                                            ->unique(ignoreRecord: true)
+                                            ->helperText('Vazio = usa o slug em espanhol como fallback (sem 404). Salvo em minúsculas e com hífens.'),
+                                        Forms\Components\Placeholder::make('slug_pt_preview')
+                                            ->label('Vista previa URL')
+                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/pt/tours/detalle/' . ($get('slug_pt') ?: $get('slug') ?: '{slug}')),
+                                        Forms\Components\TextInput::make('meta_title_pt')
+                                            ->label('Meta título — Português')
+                                            ->maxLength(70)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_title_pt'), 50, 60)),
+                                        Forms\Components\Textarea::make('meta_description_pt')
+                                            ->label('Meta descrição — Português')
+                                            ->rows(3)
+                                            ->maxLength(160)
+                                            ->live()
+                                            ->helperText(fn (Forms\Get $get): string => static::seoCharHelper($get('meta_description_pt'), 150, 160)),
+                                        Forms\Components\Textarea::make('schema_jsonld_pt')
+                                            ->label('Dados estruturados (JSON-LD) — Português')
+                                            ->rows(6)
+                                            ->helperText('Opcional. Se preenchido, SUBSTITUI o JSON-LD automático deste idioma. Se vazio, usa o do espanhol. Deve ser um JSON válido.')
+                                            ->rules([static::seoJsonLdRule()]),
+                                    ]),
+                            ]),
+
+                        Tabs\Tab::make('Comparativa')
+                            ->icon('heroicon-o-scale')
+                            ->schema([
+                                Forms\Components\Toggle::make('comparison.enabled')
+                                    ->label('Mostrar bloque comparativo en la página del tour')
+                                    ->helperText('Compara este tour ("experiencia premium") contra un tour convencional parecido, para que el visitante entienda la diferencia.')
+                                    ->default(false)
+                                    ->live(),
+                                Forms\Components\Group::make()
+                                    ->visible(fn (Forms\Get $get): bool => (bool) $get('comparison.enabled'))
+                                    ->schema([
+                                        Forms\Components\Select::make('comparison.color')
+                                            ->label('Color del fondo')
+                                            ->options([
+                                                'teal'   => 'Teal oscuro + acento naranja (recomendado)',
+                                                'orange' => 'Naranja cálido (atardecer)',
+                                            ])
+                                            ->default('teal')
+                                            ->native(false),
+                                        Forms\Components\Tabs::make('comparison_lang')
+                                            ->tabs([
+                                                Forms\Components\Tabs\Tab::make('Español')->schema(
+                                                    static::comparisonLocaleFields('es', true)
+                                                ),
+                                                Forms\Components\Tabs\Tab::make('English')->schema(
+                                                    static::comparisonLocaleFields('en', false)
+                                                ),
+                                                Forms\Components\Tabs\Tab::make('Português')->schema(
+                                                    static::comparisonLocaleFields('pt', false)
+                                                ),
+                                            ]),
+                                    ]),
                             ]),
 
                         Tabs\Tab::make('Imágenes')
@@ -228,32 +363,79 @@ class TourResource extends Resource
                                     ->saveUploadedFileUsing(ImageOptimizer::saver('tours/gallery', 1920))
                                     ->helperText('Cada imagen se optimiza a WebP (máx. 1920px de ancho).')
                                     ->label('Galería'),
-                            ]),
 
-                        Tabs\Tab::make('SEO')
-                            ->icon('heroicon-o-magnifying-glass')
-                            ->schema([
-                                Forms\Components\TextInput::make('seo_title')
-                                    ->maxLength(70)
-                                    ->helperText('Recomendado: 50-60 caracteres')
-                                    ->label('Title (SEO)'),
-                                Forms\Components\Textarea::make('seo_description')
-                                    ->maxLength(160)
-                                    ->rows(3)
-                                    ->helperText('Recomendado: 150-160 caracteres')
-                                    ->label('Meta description'),
-                                Forms\Components\TagsInput::make('seo_keywords')->label('Keywords'),
-                                Forms\Components\FileUpload::make('seo_image')
-                                    ->image()
-                                    ->disk('public')
-                                    ->directory('tours/seo')
-                                    ->imageEditor()
-                                    ->saveUploadedFileUsing(ImageOptimizer::saver('tours/seo', 1200, deletePrevious: true))
-                                    ->helperText('Imagen Open Graph — se optimiza a WebP (máx. 1200px).')
-                                    ->label('OG Image'),
+                                Forms\Components\Section::make('SEO — Imagen y keywords (global, sin idioma)')
+                                    ->description('El título/descripción SEO ahora viven por idioma en cada pestaña de idioma (bloque "SEO — [idioma]"). Aquí solo queda lo que se comparte entre los 3 idiomas.')
+                                    ->collapsible()
+                                    ->schema([
+                                        Forms\Components\TagsInput::make('seo_keywords')->label('Keywords'),
+                                        Forms\Components\FileUpload::make('seo_image')
+                                            ->image()
+                                            ->disk('public')
+                                            ->directory('tours/seo')
+                                            ->imageEditor()
+                                            ->saveUploadedFileUsing(ImageOptimizer::saver('tours/seo', 1200, deletePrevious: true))
+                                            ->helperText('Imagen Open Graph — se optimiza a WebP (máx. 1200px).')
+                                            ->label('OG Image'),
+                                    ]),
                             ]),
                     ]),
             ]);
+    }
+
+    /**
+     * Campos del bloque comparativo para un idioma. Solo español es obligatorio;
+     * inglés y portugués caen a español si se dejan vacíos.
+     */
+    protected static function comparisonLocaleFields(string $loc, bool $primary): array
+    {
+        $hint = $primary ? null : 'Opcional. Si lo dejas vacío se usa el español.';
+
+        return [
+            Forms\Components\TextInput::make("comparison.badge_{$loc}")
+                ->label('Etiqueta superior')
+                ->placeholder('EXPERIENCIA EXCLUSIVA')
+                ->maxLength(60)
+                ->helperText($hint),
+            Forms\Components\Grid::make(2)->schema([
+                Forms\Components\TextInput::make("comparison.title_{$loc}")
+                    ->label('Título (parte en blanco)')
+                    ->placeholder('La única experiencia que incluye')
+                    ->maxLength(120),
+                Forms\Components\TextInput::make("comparison.title_hl_{$loc}")
+                    ->label('Título (parte resaltada en naranja)')
+                    ->placeholder('atardecer y picnic en el desierto')
+                    ->maxLength(120),
+            ]),
+            Forms\Components\Textarea::make("comparison.intro_{$loc}")
+                ->label('Párrafo introductorio')
+                ->placeholder('No todos los tours se quedan para vivir el momento más mágico del día...')
+                ->rows(3),
+            Forms\Components\Grid::make(2)->schema([
+                Forms\Components\TextInput::make("comparison.conv_title_{$loc}")
+                    ->label('Título columna izquierda')
+                    ->placeholder('TOUR CONVENCIONAL')
+                    ->maxLength(60),
+                Forms\Components\TextInput::make("comparison.prem_title_{$loc}")
+                    ->label('Título columna derecha')
+                    ->placeholder('NUESTRA EXPERIENCIA PREMIUM')
+                    ->maxLength(60),
+            ]),
+            Forms\Components\Grid::make(2)->schema([
+                Forms\Components\TagsInput::make("comparison.conv_{$loc}")
+                    ->label('Ítems tour convencional (❌)')
+                    ->placeholder('Agregar ítem')
+                    ->helperText('Lo que ofrece el tour parecido/genérico.'),
+                Forms\Components\TagsInput::make("comparison.prem_{$loc}")
+                    ->label('Ítems experiencia premium (✓)')
+                    ->placeholder('Agregar ítem')
+                    ->helperText('Lo que hace único a ESTE tour.'),
+            ]),
+            Forms\Components\Textarea::make("comparison.footer_{$loc}")
+                ->label('Frase destacada final')
+                ->placeholder('El 95% de los viajeros se pierde el atardecer en Huacachina. Tú no seas uno de ellos.')
+                ->rows(2),
+        ];
     }
 
     public static function table(Table $table): Table
@@ -302,10 +484,12 @@ class TourResource extends Resource
                 Tables\Columns\TextColumn::make('order')
                     ->sortable()
                     ->label('#'),
-                Tables\Columns\TextColumn::make('featured_order')
+                Tables\Columns\TextInputColumn::make('featured_order')
+                    ->type('number')
+                    ->rules(['nullable', 'integer', 'min:1'])
                     ->sortable()
                     ->label('# Más Comprados')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->tooltip('Posición en "Más Comprados" del home: 1 = primero, 2 = segundo… Deja vacío para que se ordene solo por número de reservas.'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('region_id')

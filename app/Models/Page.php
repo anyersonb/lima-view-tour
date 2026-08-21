@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Models\Concerns\HasLocalizedSeoMeta;
+use App\Models\Concerns\HasLocalizedSlug;
 
 class Page extends Model
 {
-    use HasFactory;
+    use HasFactory, HasLocalizedSlug, HasLocalizedSeoMeta;
 
     protected $guarded = ['id'];
 

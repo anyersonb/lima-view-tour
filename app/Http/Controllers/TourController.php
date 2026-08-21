@@ -35,9 +35,24 @@ class TourController extends Controller
         ]);
     }
 
-    public function show(string $locale, string $slug): View
+    public function show(string $locale, string $slug): View|RedirectResponse
     {
-        $tour = Tour::published()->where('slug', $slug)->firstOrFail();
+        // Resolve by the active locale's slug column (slug_en/slug_pt) with
+        // fallback to the Spanish `slug`. If the visitor hit the Spanish slug
+        // under a locale that already has its own translated slug, 301 to the
+        // canonical translated URL instead of serving duplicate content.
+        $resolution = Tour::resolveForLocale($locale, $slug, fn ($q) => $q->published());
+        $tour = $resolution['model'];
+
+        abort_if(! $tour, 404);
+
+        if ($resolution['redirect_slug']) {
+            return redirect()->route('tours.show', [
+                'locale' => $locale,
+                'slug' => $resolution['redirect_slug'],
+            ], 301);
+        }
+
         $related = Tour::published()->where('id', '!=', $tour->id)
             ->when($tour->region_id, fn ($q) => $q->where('region_id', $tour->region_id))
             ->limit(4)->get();
