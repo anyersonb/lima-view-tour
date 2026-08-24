@@ -6,12 +6,14 @@
 
 @extends('layouts.app')
 
-@section('title', $L('Blog de Viajes — Lima View Tours', 'Travel Blog — Lima View Tours', 'Blog de Viagens — Lima View Tours'))
-@section('description', $L(
+{{-- Editables desde el admin: Configuración → SEO → Metas por página → Blog.
+     Vacío = los textos por defecto de abajo. --}}
+@section('title', \App\Support\PageSeo::title('blog', $L('Blog de Viajes — Lima View Tours', 'Travel Blog — Lima View Tours', 'Blog de Viagens — Lima View Tours')))
+@section('description', \App\Support\PageSeo::description('blog', $L(
     'Descubre consejos, guías de destinos y experiencias de viaje en Lima, Ica y Cusco.',
     'Discover travel tips, destination guides and travel experiences in Lima, Ica and Cusco.',
     'Descubra dicas, guias de destinos e experiências de viagem em Lima, Ica e Cusco.'
-))
+)))
 
 @section('content')
 

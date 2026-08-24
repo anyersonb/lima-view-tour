@@ -14,7 +14,15 @@ class Setting extends Model
 
     protected static function booted(): void
     {
-        $clear = fn () => Cache::forget('settings.all');
+        // Dos claves: 'settings.all' la usa Setting::get() y 'settings.all_view'
+        // el View composer de AppViewServiceProvider. Ambas son rememberForever,
+        // así que olvidar solo una dejaba el front sirviendo valores viejos
+        // (se notaba al editar metas o textos y no ver el cambio hasta un
+        // cache:clear manual).
+        $clear = function (): void {
+            Cache::forget('settings.all');
+            Cache::forget('settings.all_view');
+        };
         static::saved($clear);
         static::deleted($clear);
     }

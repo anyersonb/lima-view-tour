@@ -69,9 +69,13 @@ class RegionResource extends Resource
                     ->numeric()
                     ->default(0),
                 Forms\Components\TextInput::make('seo_title')
-                    ->maxLength(255),
+                    ->label('Meta title (los 3 idiomas)')
+                    ->maxLength(255)
+                    ->helperText('Se aplica al listado de esta región en los tres idiomas por igual. Para un title distinto por idioma usa Configuración → SEO → Metas por página, que tiene prioridad sobre este campo.'),
                 Forms\Components\TextInput::make('seo_description')
-                    ->maxLength(320),
+                    ->label('Meta description (los 3 idiomas)')
+                    ->maxLength(320)
+                    ->helperText('Mismo criterio que el title: la meta por idioma de Configuración → SEO manda sobre esto.'),
                 Forms\Components\FileUpload::make('seo_image')
                     ->image(),
             ]);

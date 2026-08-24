@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
-@section('title', __('seo.home_title'))
-@section('description', __('seo.home_description'))
+{{-- Editables desde el admin: Configuración → SEO → Metas por página → Home.
+     Si el campo está vacío cae al texto por defecto de lang/{idioma}/seo.php. --}}
+@section('title', \App\Support\PageSeo::title('home', __('seo.home_title')))
+@section('description', \App\Support\PageSeo::description('home', __('seo.home_description')))
 @section('header_variant', 'transparent')
 
 @push('schema')

@@ -23,6 +23,13 @@
         null    => $L('NUESTRO CATÁLOGO', 'OUR CATALOG', 'NOSSO CATÁLOGO'),
     ][$cat ?? null] ?? $L('NUESTRO CATÁLOGO', 'OUR CATALOG', 'NOSSO CATÁLOGO');
     $sectionTitle = $titles[$cat ?? null] ?? 'Tours';
+    $seoPageKey = \App\Support\PageSeo::toursKey($cat);
+    // `regions.seo_title` / `seo_description` son los campos viejos del CMS de
+    // Regiones: uno solo para los tres idiomas. Se respetan como escalón
+    // intermedio para no tirar lo que ya esté cargado ahí, pero lo que manda
+    // es la meta por idioma de Configuración → SEO → Metas por página.
+    $regionSeoTitle = ($region ?? null)?->seo_title ?: null;
+    $regionSeoDescription = ($region ?? null)?->seo_description ?: null;
     $bannerImg = $banners[$cat ?? null] ?? 'banner-hero.jpg';
 
     $toursCollection = isset($tours) && method_exists($tours, 'map') ? $tours : collect();
@@ -59,8 +66,11 @@
     });
 @endphp
 
-@section('title', $sectionTitle . ' — ' . __('seo.site_name'))
-@section('description', __('ui.tours_meta_description', ['section' => $sectionTitle]))
+{{-- Editables desde el admin: Configuración → SEO → Metas por página →
+     Catálogo de tours / Catálogo — Lima|Ica|Cusco (una meta por categoría,
+     porque cada una es una URL distinta). Vacío = texto por defecto. --}}
+@section('title', \App\Support\PageSeo::title($seoPageKey, $regionSeoTitle ?: ($sectionTitle . ' — ' . __('seo.site_name'))))
+@section('description', \App\Support\PageSeo::description($seoPageKey, $regionSeoDescription ?: __('ui.tours_meta_description', ['section' => $sectionTitle])))
 
 @section('content')
 

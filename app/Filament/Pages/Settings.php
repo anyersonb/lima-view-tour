@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Models\Setting;
+use App\Support\PageSeo;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -18,6 +20,7 @@ use Filament\Pages\Page;
 
 class Settings extends Page implements HasForms
 {
+    use HasLocalizedSeoFields;
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
@@ -205,6 +208,12 @@ class Settings extends Page implements HasForms
                         TextInput::make('seo_google_analytics_id')->placeholder('G-XXXXXX')->label('Google Analytics 4'),
                         TextInput::make('seo_gtm_id')->placeholder('GTM-XXXXXX')->label('Google Tag Manager'),
                         TextInput::make('seo_facebook_pixel')->label('Facebook Pixel ID'),
+                        \Filament\Forms\Components\Section::make('Metas por página')
+                            ->description('Title y description de las páginas que no son un contenido del CMS (no tienen ficha propia donde guardarlos). Si dejas un campo vacío se usa el texto por defecto del sitio. Si dejas vacío un idioma, se usa el español.')
+                            ->icon('heroicon-o-document-text')
+                            ->schema(static::seoPageFields())
+                            ->collapsible()
+                            ->collapsed(),
                     ]),
                     Tabs\Tab::make('Home')->icon('heroicon-o-home')->schema([
 
@@ -953,6 +962,50 @@ class Settings extends Page implements HasForms
             ->title('Configuración guardada correctamente')
             ->success()
             ->send();
+    }
+
+    /**
+     * Bloques "Metas por página" del tab SEO: una sección plegable por página
+     * de sistema (home, catálogo, catálogo por región, listado del blog) con
+     * meta title y meta description en los tres idiomas.
+     *
+     * Las claves las arma \App\Support\PageSeo para que el admin y el front
+     * lean exactamente el mismo nombre de setting; no escribir el patrón
+     * "seo_page_..." a mano en ningún otro lado.
+     */
+    protected static function seoPageFields(): array
+    {
+        $sections = [];
+
+        foreach (PageSeo::PAGES as $page => $pageLabel) {
+            $fields = [];
+
+            foreach (PageSeo::LOCALES as $locale => $localeLabel) {
+                $titleKey = PageSeo::settingKey($page, 'title', $locale);
+                $descKey  = PageSeo::settingKey($page, 'description', $locale);
+
+                $fields[] = TextInput::make($titleKey)
+                    ->label("Meta title — {$localeLabel}")
+                    ->maxLength(70)
+                    ->live(onBlur: true)
+                    ->helperText(fn (\Filament\Forms\Get $get): string => static::seoCharHelper($get($titleKey), 50, 60));
+
+                $fields[] = Textarea::make($descKey)
+                    ->label("Meta description — {$localeLabel}")
+                    ->rows(2)
+                    ->maxLength(160)
+                    ->live(onBlur: true)
+                    ->helperText(fn (\Filament\Forms\Get $get): string => static::seoCharHelper($get($descKey), 150, 160));
+            }
+
+            $sections[] = \Filament\Forms\Components\Section::make($pageLabel)
+                ->schema($fields)
+                ->columns(2)
+                ->collapsible()
+                ->collapsed();
+        }
+
+        return $sections;
     }
 
     protected function getFormActions(): array
