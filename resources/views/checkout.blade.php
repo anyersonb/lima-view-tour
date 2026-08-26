@@ -1144,24 +1144,16 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     <div class="cart-field">
                                         <label for="phone_local">{{ __('ui.phone_number') }} <span class="req">*</span></label>
                                         <div style="display:flex; gap:8px;">
-                                            <select id="phone_prefix" class="cart-real-select" style="max-width:128px; flex:0 0 auto;" aria-label="{{ __('ui.country_code') }}">
-                                                <option value="+51" selected>🇵🇪 +51</option>
-                                                <option value="+1">🇺🇸 +1</option>
-                                                <option value="+1">🇨🇦 +1</option>
-                                                <option value="+44">🇬🇧 +44</option>
-                                                <option value="+34">🇪🇸 +34</option>
-                                                <option value="+52">🇲🇽 +52</option>
-                                                <option value="+57">🇨🇴 +57</option>
-                                                <option value="+56">🇨🇱 +56</option>
-                                                <option value="+54">🇦🇷 +54</option>
-                                                <option value="+55">🇧🇷 +55</option>
-                                                <option value="+593">🇪🇨 +593</option>
-                                                <option value="+591">🇧🇴 +591</option>
-                                                <option value="+61">🇦🇺 +61</option>
-                                                <option value="+49">🇩🇪 +49</option>
-                                                <option value="+33">🇫🇷 +33</option>
-                                                <option value="+39">🇮🇹 +39</option>
-                                            </select>
+                                            {{-- Los 242 países salen de config/phone_codes.php. Eran 16
+                                                 escritos acá a mano y un cliente de cualquier otro país
+                                                 no tenía cómo dejar su teléfono. --}}
+                                            {{-- width:min() y no un max-width fijo: con 200px fijos el
+                                                 input del número se quedaba en 78px a 360 de ancho y no
+                                                 se podía escribir un teléfono. Ahora el selector cede
+                                                 espacio en móvil y llega a 200px cuando hay sitio. --}}
+                                            <x-phone-country-select id="phone_prefix"
+                                                                    class="cart-real-select"
+                                                                    style="flex:0 0 auto; width:min(200px, 45%); min-width:96px;" />
                                             <input type="tel" id="phone_local" placeholder="999 999 999" autocomplete="tel-national"
                                                    class="cart-real-input @error('customer_phone') border-red-500 @enderror" style="flex:1; min-width:0;">
                                         </div>
