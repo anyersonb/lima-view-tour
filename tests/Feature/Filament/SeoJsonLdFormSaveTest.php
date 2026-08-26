@@ -111,7 +111,7 @@ class SeoJsonLdFormSaveTest extends TestCase
 
         $this->actingAs($this->admin());
 
-        Livewire::test(EditTour::class, ['record' => $tour->getRouteKey()])
+        Livewire::test(EditTour::class, ['record' => $tour->getKey()])
             ->fillForm([
                 'title_es' => 'Título actualizado sin tocar SEO',
             ])
@@ -135,7 +135,7 @@ class SeoJsonLdFormSaveTest extends TestCase
 
         $this->actingAs($this->admin());
 
-        Livewire::test(EditTour::class, ['record' => $tour->getRouteKey()])
+        Livewire::test(EditTour::class, ['record' => $tour->getKey()])
             ->fillForm([
                 'title_es' => 'Edición que no toca el slug',
                 'schema_jsonld_es' => json_encode(['@context' => 'https://schema.org']),
@@ -190,7 +190,7 @@ class SeoJsonLdFormSaveTest extends TestCase
 
         $this->actingAs($this->admin());
 
-        Livewire::test(EditPage::class, ['record' => $page->getRouteKey()])
+        Livewire::test(EditPage::class, ['record' => $page->getKey()])
             ->fillForm([
                 'title_es' => 'Página editable actualizada',
             ])

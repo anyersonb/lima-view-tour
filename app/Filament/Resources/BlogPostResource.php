@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasEditableSlugField;
 use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Filament\Resources\BlogPostResource\Pages;
 use App\Models\BlogPost;
@@ -14,7 +15,7 @@ use Filament\Tables\Table;
 
 class BlogPostResource extends Resource
 {
-    use HasLocalizedSeoFields;
+    use HasLocalizedSeoFields, HasEditableSlugField;
 
     protected static ?string $model = BlogPost::class;
 
@@ -55,17 +56,8 @@ class BlogPostResource extends Resource
                                     ->icon('heroicon-o-magnifying-glass')
                                     ->collapsible()
                                     ->schema([
-                                        Forms\Components\TextInput::make('slug')
-                                            ->label('Slug (URL) — Español')
-                                            ->helperText('Se genera automáticamente del título en español si se deja vacío al crear.')
-                                            ->maxLength(60)
-                                            ->live(onBlur: true)
-                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug', static::seoSanitizeSlug($state)))
-                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
+                                        static::slugField(BlogPost::class, 'es', 'slug', 'Slug (URL) — Español')
                                             ->unique(ignoreRecord: true),
-                                        Forms\Components\Placeholder::make('slug_es_preview')
-                                            ->label('Vista previa URL')
-                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/es/blog/' . ($get('slug') ?: '{slug}')),
                                         Forms\Components\TextInput::make('meta_title_es')
                                             ->maxLength(70)
                                             ->live()
@@ -104,17 +96,8 @@ class BlogPostResource extends Resource
                                     ->icon('heroicon-o-magnifying-glass')
                                     ->collapsible()
                                     ->schema([
-                                        Forms\Components\TextInput::make('slug_en')
-                                            ->label('Slug (URL) — English')
-                                            ->maxLength(60)
-                                            ->live(onBlur: true)
-                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_en', static::seoSanitizeSlug($state)))
-                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
-                                            ->unique(ignoreRecord: true)
-                                            ->helperText('Vacío = usa el slug en español como fallback (no genera 404).'),
-                                        Forms\Components\Placeholder::make('slug_en_preview')
-                                            ->label('Vista previa URL')
-                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/en/blog/' . ($get('slug_en') ?: $get('slug') ?: '{slug}')),
+                                        static::slugField(BlogPost::class, 'en', 'slug_en', 'Slug (URL) — English', titleField: 'title_en')
+                                            ->unique(ignoreRecord: true),
                                         Forms\Components\TextInput::make('meta_title_en')
                                             ->maxLength(70)
                                             ->live()
@@ -153,17 +136,8 @@ class BlogPostResource extends Resource
                                     ->icon('heroicon-o-magnifying-glass')
                                     ->collapsible()
                                     ->schema([
-                                        Forms\Components\TextInput::make('slug_pt')
-                                            ->label('Slug (URL) — Português')
-                                            ->maxLength(60)
-                                            ->live(onBlur: true)
-                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_pt', static::seoSanitizeSlug($state)))
-                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
-                                            ->unique(ignoreRecord: true)
-                                            ->helperText('Vazio = usa o slug em espanhol como fallback (sem 404).'),
-                                        Forms\Components\Placeholder::make('slug_pt_preview')
-                                            ->label('Vista previa URL')
-                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/pt/blog/' . ($get('slug_pt') ?: $get('slug') ?: '{slug}')),
+                                        static::slugField(BlogPost::class, 'pt', 'slug_pt', 'Slug (URL) — Português', titleField: 'title_pt')
+                                            ->unique(ignoreRecord: true),
                                         Forms\Components\TextInput::make('meta_title_pt')
                                             ->maxLength(70)
                                             ->live()

@@ -6,17 +6,23 @@ use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Filament\Resources\PageResource\Pages;
 use App\Models\Page;
 use App\Support\ImagePath;
+use App\Support\LocalizedPages;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 
 class PageResource extends Resource
 {
     use HasLocalizedSeoFields;
 
     protected static ?string $model = Page::class;
+
+    /** Mismo criterio que TourResource: el panel direcciona por id, no por slug. */
+    protected static ?string $recordRouteKeyName = 'id';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = 'Contenido';
@@ -37,11 +43,27 @@ class PageResource extends Resource
                         Forms\Components\Tabs\Tab::make('General')
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema([
+                                // El slug de una Página NO arma su URL: las cinco
+                                // secciones institucionales tienen su path fijo en
+                                // routes/web.php y su slug por idioma en
+                                // config/localized_pages.php. Acá el slug es la LLAVE
+                                // que enlaza el registro del CMS con una de esas
+                                // secciones (ContactController busca 'contacto',
+                                // PageController 'nosotros'/'terminos'/'privacidad',
+                                // ReviewController 'resenas'). Escribir cualquier otra
+                                // cosa guarda contenido que ninguna vista lee, así que
+                                // el campo lo dice en vez de dejar al editor creyendo
+                                // que publicó algo.
                                 Forms\Components\TextInput::make('slug')
+                                    ->label('Sección a la que pertenece (slug)')
                                     ->required()
                                     ->maxLength(255)
+                                    ->live(onBlur: true)
                                     ->unique(ignoreRecord: true)
-                                    ->helperText('Identificador único en la URL (ej: contacto, nosotros).')
+                                    ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug', static::seoSanitizeSlug($state)))
+                                    ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
+                                    ->datalist(static::linkedSectionSlugs())
+                                    ->helperText(fn (Forms\Get $get): \Illuminate\Contracts\Support\Htmlable => static::pageSlugHelperText($get))
                                     ->columnSpanFull(),
 
                                 Forms\Components\Toggle::make('is_published')
@@ -732,6 +754,58 @@ class PageResource extends Resource
                             ]),
                     ]),
             ]);
+    }
+
+    /**
+     * Slugs que alguna vista del sitio realmente busca. Son los slugs ES de
+     * config/localized_pages.php, que es de donde salen los identificadores
+     * que consultan ContactController, PageController y ReviewController.
+     *
+     * @return array<int, string>
+     */
+    protected static function linkedSectionSlugs(): array
+    {
+        return array_values(array_unique(array_map(
+            fn (string $key): string => LocalizedPages::slugFor($key, 'es'),
+            LocalizedPages::keys()
+        )));
+    }
+
+    /**
+     * Dice si este registro está conectado a una sección del sitio y, si lo
+     * está, con qué URLs se ve. Si no lo está, lo dice sin rodeos: el
+     * contenido se guarda pero no lo lee nadie.
+     */
+    protected static function pageSlugHelperText(Forms\Get $get): Htmlable
+    {
+        $slug = static::seoSanitizeSlug($get('slug'));
+
+        if ($slug === null) {
+            return new HtmlString('Identificador de la sección: '.e(implode(', ', static::linkedSectionSlugs())).'.');
+        }
+
+        $key = collect(LocalizedPages::keys())
+            ->first(fn (string $k): bool => LocalizedPages::slugFor($k, 'es') === $slug);
+
+        if ($key === null) {
+            return new HtmlString(
+                '<span style="display:block;color:#b45309">⚠ Ninguna sección del sitio lee el slug <code>'.e($slug).'</code>: '
+                .'este contenido se guarda pero no se muestra en ninguna página.</span>'
+                .'<span style="display:block">Los slugs conectados son: '.e(implode(', ', static::linkedSectionSlugs())).'.</span>'
+            );
+        }
+
+        $links = array_map(
+            fn (string $locale): string => '<a href="'.e(LocalizedPages::url($key, $locale)).'" target="_blank" rel="noopener" style="text-decoration:underline">'
+                .e(LocalizedPages::path($key, $locale)).'</a>',
+            array_keys(LocalizedPages::slugs($key))
+        );
+
+        return new HtmlString(
+            '<span style="display:block">✔ Alimenta la sección <strong>'.e($key).'</strong>. Se ve en: '.implode(' · ', $links).'</span>'
+            .'<span style="display:block">Esas direcciones se cambian en <code>config/localized_pages.php</code>, no acá: '
+            .'el patrón de la ruta se arma al arrancar y <code>route:cache</code> congelaría lo que hubiera en BD.</span>'
+        );
     }
 
     public static function table(Table $table): Table

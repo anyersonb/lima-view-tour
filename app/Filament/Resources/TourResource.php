@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasEditableSlugField;
 use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Filament\Resources\TourResource\Pages;
 use App\Models\Tour;
@@ -18,9 +19,21 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TourResource extends Resource
 {
-    use HasLocalizedSeoFields;
+    use HasLocalizedSeoFields, HasEditableSlugField;
 
     protected static ?string $model = Tour::class;
+
+    /**
+     * El panel direcciona por id, no por slug.
+     *
+     * Tour::getRouteKeyName() devuelve 'slug', así que la URL de edición era
+     * /admin/tours/{slug}/edit. Con el slug bloqueado eso daba igual; desde
+     * que se puede editar (2026-08-25) significaría que renombrar un tour
+     * invalida su propia URL de administración y cualquier enlace guardado
+     * hacia ella — incluido el que este mismo formulario ofrece para ir a
+     * resolver un choque de rutas.
+     */
+    protected static ?string $recordRouteKeyName = 'id';
 
     protected static ?string $navigationIcon = 'heroicon-o-globe-americas';
     protected static ?string $navigationGroup = 'Catálogo';
@@ -161,22 +174,13 @@ class TourResource extends Resource
                                     ->icon('heroicon-o-magnifying-glass')
                                     ->collapsible()
                                     ->schema([
-                                        Forms\Components\TextInput::make('slug')
-                                            ->label('URL del tour (slug)')
-                                            ->helperText('Es la dirección pública del tour. Se genera automáticamente del título al crear y NO se puede editar después: cambiarla rompería los enlaces ya compartidos e indexados.')
-                                            ->disabled(fn (string $operation): bool => $operation === 'edit')
-                                            ->dehydrated(fn (string $operation): bool => $operation === 'create')
-                                            ->live()
-                                            // maxLength only on create: Filament still validates a
-                                            // disabled field's raw (undehydrated) value as long as it
-                                            // isn't hidden, so a flat ->maxLength(60) here would block
-                                            // EVERY edit of the 4 legacy tours whose ES slug is already
-                                            // longer than 60 chars, even though this field can't change
-                                            // it (disabled + not dehydrated on edit).
-                                            ->maxLength(fn (string $operation): ?int => $operation === 'create' ? 60 : null),
-                                        Forms\Components\Placeholder::make('slug_es_preview')
-                                            ->label('Vista previa URL')
-                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/es/tours/detalle/' . ($get('slug') ?: '{slug}')),
+                                        // Editable desde el 2026-08-25. Estuvo bloqueado en edición
+                                        // desde el 2026-07-02 porque renombrarlo dejaba la URL
+                                        // indexada en 404; ahora HasLocalizedSlug guarda el slug
+                                        // anterior en `slug_redirects` y la dirección vieja responde
+                                        // con un 301 sola, así que el motivo del bloqueo ya no existe.
+                                        // El choque de rutas lo vigila RouteRegistry en vivo.
+                                        static::slugField(Tour::class, 'es', 'slug', 'URL del tour (slug)', required: true),
                                         Forms\Components\TextInput::make('meta_title_es')
                                             ->label('Meta título — Español')
                                             ->maxLength(70)
@@ -222,17 +226,8 @@ class TourResource extends Resource
                                     ->icon('heroicon-o-magnifying-glass')
                                     ->collapsible()
                                     ->schema([
-                                        Forms\Components\TextInput::make('slug_en')
-                                            ->label('URL del tour (slug) — English')
-                                            ->maxLength(60)
-                                            ->live(onBlur: true)
-                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_en', static::seoSanitizeSlug($state)))
-                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
-                                            ->unique(ignoreRecord: true)
-                                            ->helperText('Vacío = se usa el slug en español como fallback (no genera 404). Se guarda en minúsculas y con guiones.'),
-                                        Forms\Components\Placeholder::make('slug_en_preview')
-                                            ->label('Vista previa URL')
-                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/en/tours/detalle/' . ($get('slug_en') ?: $get('slug') ?: '{slug}')),
+                                        static::slugField(Tour::class, 'en', 'slug_en', 'URL del tour (slug) — English', titleField: 'title_en')
+                                            ->unique(ignoreRecord: true),
                                         Forms\Components\TextInput::make('meta_title_en')
                                             ->label('Meta title — English')
                                             ->maxLength(70)
@@ -278,17 +273,8 @@ class TourResource extends Resource
                                     ->icon('heroicon-o-magnifying-glass')
                                     ->collapsible()
                                     ->schema([
-                                        Forms\Components\TextInput::make('slug_pt')
-                                            ->label('URL do tour (slug) — Português')
-                                            ->maxLength(60)
-                                            ->live(onBlur: true)
-                                            ->afterStateUpdated(fn (Forms\Set $set, ?string $state) => $set('slug_pt', static::seoSanitizeSlug($state)))
-                                            ->dehydrateStateUsing(fn (?string $state) => static::seoSanitizeSlug($state))
-                                            ->unique(ignoreRecord: true)
-                                            ->helperText('Vazio = usa o slug em espanhol como fallback (sem 404). Salvo em minúsculas e com hífens.'),
-                                        Forms\Components\Placeholder::make('slug_pt_preview')
-                                            ->label('Vista previa URL')
-                                            ->content(fn (Forms\Get $get): string => static::seoUrlPreviewHost() . '/pt/tours/detalle/' . ($get('slug_pt') ?: $get('slug') ?: '{slug}')),
+                                        static::slugField(Tour::class, 'pt', 'slug_pt', 'URL do tour (slug) — Português', titleField: 'title_pt')
+                                            ->unique(ignoreRecord: true),
                                         Forms\Components\TextInput::make('meta_title_pt')
                                             ->label('Meta título — Português')
                                             ->maxLength(70)

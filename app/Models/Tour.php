@@ -52,11 +52,32 @@ class Tour extends Model
         });
     }
 
-    public static function makeUniqueSlug(string $title): string
+    /**
+     * Slug libre a partir del título.
+     *
+     * Contaba con `like 'slug%'`, que también cuenta los slugs que SIEMPLEMENTE
+     * empiezan igual: un título nuevo cuyo slug era prefijo de otro ya
+     * publicado salía con "-2" pegado sin que existiera ningún duplicado. Así
+     * quedó en producción "...huacachina-islas-ballestas-en-paracas-2".
+     * Ahora solo desempata cuando el slug EXACTO ya está tomado, y sigue
+     * subiendo hasta encontrar uno libre (el "-2" fijo podía chocar de nuevo).
+     */
+    public static function makeUniqueSlug(string $title, ?int $ignoreId = null): string
     {
-        $slug = Str::slug($title);
-        $count = static::where('slug', 'like', $slug . '%')->count();
-        return $count ? $slug . '-' . ($count + 1) : $slug;
+        $base = Str::slug($title) ?: 'tour';
+        $slug = $base;
+        $n = 1;
+
+        while (
+            static::withTrashed()
+                ->when($ignoreId !== null, fn ($q) => $q->whereKeyNot($ignoreId))
+                ->where('slug', $slug)
+                ->exists()
+        ) {
+            $slug = $base . '-' . (++$n);
+        }
+
+        return $slug;
     }
 
     public function region(): BelongsTo
