@@ -156,6 +156,53 @@ class PayPalService
     }
 
     /**
+     * Retrieves the current state of a PayPal order (amount, currency,
+     * status) WITHOUT capturing it. Used to verify server-side, right
+     * before capturing, that the order PayPal has on file still matches
+     * what we calculated when it was created — see
+     * CheckoutController::paypalCaptureOrder().
+     *
+     * @param  string $orderId  The PayPal order ID returned by createOrder()
+     * @return array            Full PayPal order response
+     *
+     * @throws \RuntimeException on API error
+     */
+    public function getOrder(string $orderId): array
+    {
+        try {
+            $token = $this->accessToken();
+
+            $response = Http::withToken($token)
+                ->acceptJson()
+                ->get("{$this->baseUrl()}/v2/checkout/orders/{$orderId}");
+
+            if ($response->failed()) {
+                Log::error('paypal.get_order.failed', [
+                    'order_id' => $orderId,
+                    'status'   => $response->status(),
+                    'body'     => $response->body(),
+                ]);
+
+                throw new \RuntimeException(
+                    'PayPal get order failed: ' . $response->body()
+                );
+            }
+
+            return $response->json();
+
+        } catch (\RuntimeException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('paypal.get_order.exception', [
+                'order_id' => $orderId,
+                'message'  => $e->getMessage(),
+            ]);
+
+            throw new \RuntimeException('PayPal connection error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
      * Captures (finalizes) an approved PayPal order.
      *
      * @param  string $orderId  The PayPal order ID returned by createOrder()

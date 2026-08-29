@@ -134,7 +134,7 @@
                                 </label>
                                 <input type="date" id="travel_date" name="travel_date"
                                        value="{{ old('travel_date', $firstTravelDate) }}"
-                                       min="{{ now()->addDay()->format('Y-m-d') }}"
+                                       min="{{ \App\Support\BookingCalendar::earliestDate() }}"
                                        class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 focus:border-teal-600 focus:ring-teal-600 @error('travel_date') border-state-error @enderror">
                                 @error('travel_date')<p class="mt-1 text-xs text-state-error">{{ $message }}</p>@enderror
                             </div>

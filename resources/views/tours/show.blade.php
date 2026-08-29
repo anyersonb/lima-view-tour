@@ -880,6 +880,12 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 <script>
     window.LVT_BLOCKED_DATES    = @json($blockedDates ?? []);
     window.LVT_BLOCKED_WEEKDAYS = @json($blockedWeekdays ?? []);
+    // Primer día reservable, calculado en el reloj de LIMA por el servidor.
+    // Antes flatpickr hacía `new Date()` + 1 en el navegador: un visitante en
+    // Madrid y uno en Lima veían primeros días distintos para el mismo tour, y
+    // ninguno de los dos coincidía con lo que validaba el servidor (que corre
+    // en UTC). Ahora los tres miran el mismo calendario.
+    window.LVT_MIN_DATE = @json(\App\Support\BookingCalendar::earliestDate());
 </script>
 
 <script>
@@ -887,7 +893,12 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
         Alpine.store('booking', {
             adults: 1,
             children: 0,
-            date: @json(now()->addDays(7)->format('Y-m-d')),
+            // Vacía a propósito (2026-08-27). Venía pre-rellenada con hoy+7, y
+            // como el campo se ve "ya elegido", mucha gente reservaba sin abrir
+            // el calendario: se llevaban una fecha que nadie escogió y que
+            // además NO se podía cambiar en el carrito. Un cliente que quería
+            // reservar para mañana terminaba con el 4 de septiembre.
+            date: '',
         });
     });
 </script>
@@ -912,9 +923,11 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 
         var blockedDates    = window.LVT_BLOCKED_DATES    || [];
         var blockedWeekdays = window.LVT_BLOCKED_WEEKDAYS || [];
-        var tomorrow        = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
+
+        // 'YYYY-MM-DD' del servidor (hora de Lima). Se pasa como string y no
+        // como Date para que el navegador no lo reinterprete en su propio huso
+        // y termine adelantando o atrasando un día el primer hueco libre.
+        var minDate = window.LVT_MIN_DATE || null;
 
         @if($fpLocale !== 'en')
         var locale = flatpickr.l10ns['{{ $fpLocale }}'] || flatpickr.l10ns.default;
@@ -937,7 +950,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
         }
 
         var config = {
-            minDate:    tomorrow,
+            minDate:    minDate,
             dateFormat: 'Y-m-d',
             locale:     locale,
             // Forzar el calendario propio de flatpickr también en móvil. El
@@ -960,17 +973,74 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 
         // Initialize on both booking date inputs (mobile + desktop)
         document.querySelectorAll('[data-booking-date]').forEach(function (el) {
-            // Set initial value from Alpine store if available
             var initialDate = (typeof Alpine !== 'undefined')
                 ? Alpine.store('booking').date
                 : el.value;
-            config.defaultDate = initialDate || tomorrow;
+
+            // Sin fecha elegida NO se pone defaultDate. Con `|| tomorrow` el
+            // campo volvía a quedar relleno solo, y con hoy+7 el calendario
+            // abría directamente en el mes siguiente: quien quería reservar
+            // para mañana tenía que retroceder un mes para encontrarlo.
+            if (initialDate) {
+                config.defaultDate = initialDate;
+            } else {
+                delete config.defaultDate;
+            }
+
             flatpickr(el, config);
+        });
+    }
+
+    // Sin fecha no se reserva. Antes venía pre-rellenada y esto no hacía falta;
+    // ahora el campo arranca vacío, así que hay que impedir el submit y llevar
+    // al cliente al calendario en vez de mandarlo al carrito con un error de
+    // validación del servidor, que se ve como que "algo falló".
+    function guardEmptyDate() {
+        var form = document.getElementById('form-reservar');
+        if (!form) return;
+
+        form.addEventListener('submit', function (e) {
+            var chosen = (typeof Alpine !== 'undefined' && Alpine.store('booking'))
+                ? Alpine.store('booking').date
+                : '';
+
+            if (chosen) return;
+
+            e.preventDefault();
+
+            var visible = [...document.querySelectorAll('[data-booking-date]')]
+                .find(function (el) { return el.offsetParent !== null; });
+
+            if (!visible) return;
+
+            visible.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+            var box = visible.closest('.m-field, div');
+            if (box && !box.querySelector('[data-date-required]')) {
+                var msg = document.createElement('p');
+                msg.setAttribute('data-date-required', '');
+                msg.textContent = @json(__('cart.validation.date_required'));
+                msg.style.cssText = 'color:#b91c1c;font-size:11px;margin-top:4px';
+                box.appendChild(msg);
+            }
+
+            if (visible._flatpickr) {
+                visible._flatpickr.open();
+            }
+        });
+
+        // Al elegir fecha se limpia el aviso.
+        document.addEventListener('change', function (e) {
+            if (e.target.hasAttribute && e.target.hasAttribute('data-booking-date')) {
+                document.querySelectorAll('[data-date-required]').forEach(function (n) { n.remove(); });
+            }
         });
     }
 
     // Wait for DOM + Alpine to be ready
     document.addEventListener('DOMContentLoaded', function () {
+        guardEmptyDate();
+
         if (typeof Alpine !== 'undefined') {
             initFlatpickr();
         } else {
@@ -1219,8 +1289,9 @@ if (!empty($itinerary)) {
                         <div class="m-input-row">
                             <input type="date"
                                    data-booking-date
+                                   placeholder="{{ __('ui.select_tour_date') }}"
                                    x-model="$store.booking.date"
-                                   min="{{ now()->addDay()->format('Y-m-d') }}"
+                                   min="{{ \App\Support\BookingCalendar::earliestDate() }}"
                                    aria-label="{{ __('ui.tour_date') }}"
                                    style="border:none;background:transparent;font-size:12px;color:#29404a;width:100%;outline:none;">
                             <span aria-hidden="true">📅</span>
@@ -2591,9 +2662,10 @@ if (!empty($itinerary)) {
                     <label for="sb-date" class="block text-[11px] font-semibold text-teal-800 mb-1">{{ __('ui.tour_date') }}</label>
                     <input type="date" id="sb-date"
                            data-booking-date
+                           placeholder="{{ __('ui.select_tour_date') }}"
                            x-model="$store.booking.date"
                            class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
-                           min="{{ now()->addDay()->format('Y-m-d') }}"
+                           min="{{ \App\Support\BookingCalendar::earliestDate() }}"
                            aria-label="{{ __('ui.select_tour_date') }}">
                 </div>
 

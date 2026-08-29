@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\BookingCalendar;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProcessPaymentRequest extends FormRequest
@@ -28,20 +29,20 @@ class ProcessPaymentRequest extends FormRequest
     {
         return [
             // payment_timing controls whether the charge is processed now or deferred
-            'payment_timing'  => ['required', 'string', 'in:now,later'],
+            'payment_timing' => ['required', 'string', 'in:now,later'],
 
-            'customer_name'  => ['required', 'string', 'max:255'],
+            'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
             // Acepta número internacional con prefijo de país (+51, +1, etc.) tras quitar espacios
             'customer_phone' => ['required', 'string', 'regex:/^\+?\d{7,15}$/'],
-            'travel_date'    => ['required', 'date', 'after:today'],
+            'travel_date' => array_merge(['required'], BookingCalendar::dateRules()),
 
             // Pickup information (optional but captured when provided)
-            'pickup_point'   => ['nullable', 'string', 'max:100'],
-            'pickup_detail'  => ['nullable', 'string', 'max:255'],
+            'pickup_point' => ['nullable', 'string', 'max:100'],
+            'pickup_detail' => ['nullable', 'string', 'max:255'],
 
             // Only required when the customer is paying now with a card
-            'culqi_token'    => ['nullable', 'string', 'required_if:payment_timing,now'],
+            'culqi_token' => ['nullable', 'string', 'required_if:payment_timing,now'],
         ];
     }
 
@@ -49,10 +50,10 @@ class ProcessPaymentRequest extends FormRequest
     {
         return [
             'payment_timing.required' => 'Debe indicar si pagará ahora o después.',
-            'payment_timing.in'       => 'Opción de pago no válida.',
-            'customer_phone.regex'    => 'Ingresa un teléfono válido con su prefijo de país.',
-            'travel_date.after'       => 'La fecha de viaje debe ser posterior a hoy.',
+            'payment_timing.in' => 'Opción de pago no válida.',
+            'customer_phone.regex' => 'Ingresa un teléfono válido con su prefijo de país.',
             'culqi_token.required_if' => 'No se recibió el token de pago. Intente nuevamente.',
+            ...BookingCalendar::dateMessages(),
         ];
     }
 }

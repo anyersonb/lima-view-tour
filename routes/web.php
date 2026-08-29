@@ -14,7 +14,6 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\WebhookController;
@@ -47,6 +46,7 @@ Route::get('/', function () {
         $preferred = ($rawLang === 'pt') ? 'pt' : config('app.locale');
     }
     $locale = $preferred;
+
     return redirect("/{$locale}");
 });
 
@@ -62,9 +62,9 @@ Route::get('/_diag/mail', function () {
     abort_unless(request('key') === 'lvt-mail-diag-2026', 404);
 
     $mailer = config('mail.default');
-    $conn   = config("mail.mailers.{$mailer}");
+    $conn = config("mail.mailers.{$mailer}");
     $maskedUser = ($u = config('mail.mailers.smtp.username'))
-        ? substr((string) $u, 0, 3) . '***' . (str_contains((string) $u, '@') ? strstr((string) $u, '@') : '')
+        ? substr((string) $u, 0, 3).'***'.(str_contains((string) $u, '@') ? strstr((string) $u, '@') : '')
         : null;
 
     $to = request('to')
@@ -72,37 +72,37 @@ Route::get('/_diag/mail', function () {
         ?: config('mail.from.address');
 
     $config = [
-        'mail_default'   => $mailer,
-        'smtp_host'      => config('mail.mailers.smtp.host'),
-        'smtp_port'      => config('mail.mailers.smtp.port'),
-        'smtp_encryption'=> config('mail.mailers.smtp.encryption') ?? config('mail.mailers.smtp.scheme'),
-        'smtp_username'  => $maskedUser,
+        'mail_default' => $mailer,
+        'smtp_host' => config('mail.mailers.smtp.host'),
+        'smtp_port' => config('mail.mailers.smtp.port'),
+        'smtp_encryption' => config('mail.mailers.smtp.encryption') ?? config('mail.mailers.smtp.scheme'),
+        'smtp_username' => $maskedUser,
         'smtp_password_set' => (bool) config('mail.mailers.smtp.password'),
-        'from_address'   => config('mail.from.address'),
-        'from_name'      => config('mail.from.name'),
-        'app_env'        => config('app.env'),
-        'test_to'        => $to,
+        'from_address' => config('mail.from.address'),
+        'from_name' => config('mail.from.name'),
+        'app_env' => config('app.env'),
+        'test_to' => $to,
     ];
 
     try {
         \Illuminate\Support\Facades\Mail::raw(
-            'Prueba de envío SMTP desde Lima View Tours — ' . now()->toDateTimeString(),
+            'Prueba de envío SMTP desde Lima View Tours — '.now()->toDateTimeString(),
             function ($m) use ($to) {
                 $m->to($to)->subject('[TEST] Diagnóstico SMTP Lima View Tours');
             }
         );
 
         return response()->json([
-            'ok'      => true,
+            'ok' => true,
             'message' => "Correo de prueba enviado a {$to}. Revisa bandeja y SPAM.",
-            'config'  => $config,
+            'config' => $config,
         ], 200, [], JSON_PRETTY_PRINT);
     } catch (\Throwable $e) {
         return response()->json([
-            'ok'        => false,
-            'error'     => $e->getMessage(),
+            'ok' => false,
+            'error' => $e->getMessage(),
             'exception' => get_class($e),
-            'config'    => $config,
+            'config' => $config,
         ], 500, [], JSON_PRETTY_PRINT);
     }
 })->name('diag.mail');
@@ -128,7 +128,14 @@ Route::prefix('{locale}')
 
         // Cart routes (Fase 2)
         Route::get('/carrito', [CartController::class, 'index'])->name('cart.index');
-        Route::post('/carrito/agregar', [CartController::class, 'store'])->name('cart.store');
+        // Sin throttle, cart.store no tenía tope de intentos por minuto —a
+        // diferencia de cart.coupon y todo el checkout— y CartService::add()
+        // no tenía tope de filas: 400 filas en una sesión dejaban un
+        // `cart.items` de ~178 KB, copiado entero a `abandoned_carts.items`
+        // en cada guardado de contacto.
+        Route::post('/carrito/agregar', [CartController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('cart.store');
         Route::post('/carrito/cupon', [CartController::class, 'applyCoupon'])
             ->middleware('throttle:30,1')
             ->name('cart.coupon');
@@ -139,8 +146,14 @@ Route::prefix('{locale}')
             ->name('cart.contact');
         Route::get('/carrito/recuperar/{token}', [CartController::class, 'recover'])
             ->name('cart.recover');
-        Route::patch('/carrito/{rowId}', [CartController::class, 'updateItem'])->name('cart.update');
-        Route::delete('/carrito/{rowId}', [CartController::class, 'destroy'])->name('cart.destroy');
+        Route::patch('/carrito/{rowId}', [CartController::class, 'updateItem'])
+            ->middleware('throttle:60,1')
+            ->name('cart.update');
+        // Mismo throttle que store/update, por simetría: sin él, cart.destroy
+        // quedaba como la única mutación del carrito sin tope de intentos.
+        Route::delete('/carrito/{rowId}', [CartController::class, 'destroy'])
+            ->middleware('throttle:60,1')
+            ->name('cart.destroy');
 
         // Legacy /checkout alias → redirect 301 to cart.index
         Route::get('/checkout', fn (string $locale) => redirect()->route('cart.index', ['locale' => $locale], 301))->name('checkout');
@@ -151,7 +164,7 @@ Route::prefix('{locale}')
             ->middleware('throttle:checkout')
             ->name('checkout.process');
         Route::get('/checkout/gracias', [CheckoutController::class, 'thanks'])->name('checkout.thanks');
-        Route::post('/checkout/paypal/create',  [CheckoutController::class, 'paypalCreateOrder'])
+        Route::post('/checkout/paypal/create', [CheckoutController::class, 'paypalCreateOrder'])
             ->middleware('throttle:checkout')
             ->name('checkout.paypal.create');
         Route::post('/checkout/paypal/capture', [CheckoutController::class, 'paypalCaptureOrder'])

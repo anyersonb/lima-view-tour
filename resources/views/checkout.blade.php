@@ -404,6 +404,33 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 }
 .cart-policy-box b { display: block; color: var(--cart-ink); margin-bottom: 4px; }
 
+/* payment review: pago capturado con reserva pendiente / orden bloqueada por
+   revisión manual. Persistente (no se auto-oculta) y con la referencia
+   siempre legible y copiable, incluso en 390px. */
+.cart-payment-review {
+    margin-top: 10px; background: var(--cart-okbg); border: 1px solid #cfe3d6;
+    border-radius: 18px; padding: 14px 16px; color: #3b4a4b; font-size: 12.5px; line-height: 1.45;
+}
+.cart-payment-review-title { display: block; font-size: 14px; color: var(--cart-ok); margin-bottom: 6px; }
+.cart-payment-review-message { margin: 0 0 12px; }
+.cart-payment-review-ref-label {
+    display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: #798188; margin-bottom: 5px;
+}
+.cart-payment-review-ref-row { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+.cart-payment-review-ref-row code {
+    flex: 1 1 auto; min-width: 0; background: #fff; border: 1px solid var(--cart-line);
+    border-radius: 10px; padding: 9px 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; color: var(--cart-ink); user-select: all; word-break: break-all; overflow-wrap: anywhere;
+}
+.cart-payment-review-copy {
+    flex: 0 0 auto; border: 1px solid var(--cart-green2); background: #fff; color: var(--cart-green2);
+    border-radius: 10px; padding: 0 14px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.cart-payment-review-copy:hover { background: var(--cart-soft); }
+.cart-payment-review-copy:focus-visible { outline: 2px solid var(--cart-green2); outline-offset: 2px; }
+.cart-payment-review-copy.is-copied { background: var(--cart-ok); border-color: var(--cart-ok); color: #fff; }
+
 /* terms */
 .cart-terms-row {
     margin-top: 12px; display: flex; align-items: flex-start; gap: 10px;
@@ -756,6 +783,31 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                 </button>
             </nav>
 
+            {{-- Pago capturado con reserva pendiente / orden bloqueada por revisión
+                 manual (código payment_captured_booking_pending o 409
+                 payment_pending_manual_review). Persistente: no se cierra sola ni
+                 se reemplaza por el flujo de pago. A propósito FUERA de los
+                 .cart-panel de la máquina de pasos: si viene marcado desde
+                 sesión (ver más abajo, showPaymentReviewPanel() en la carga
+                 de página) debe verse en cualquier paso en el que abra el
+                 carrito, sin depender de currentStep/setStep(). --}}
+            @if ($paymentLock ?? null)
+                <div id="payment-review-panel" class="cart-payment-review" style="display:none;" role="alert" aria-live="assertive">
+                    <b class="cart-payment-review-title">{{ __('ui.payment_review_title') }}</b>
+                    <p id="payment-review-message" class="cart-payment-review-message"></p>
+                    <span class="cart-payment-review-ref-label">{{ __('ui.payment_review_reference_label') }}</span>
+                    <div class="cart-payment-review-ref-row">
+                        <code id="payment-review-reference"></code>
+                        <button type="button"
+                                id="payment-review-copy-btn"
+                                class="cart-payment-review-copy"
+                                aria-label="{{ __('ui.payment_review_copy_aria') }}">
+                            <span data-copy-label>{{ __('ui.payment_review_copy') }}</span>
+                        </button>
+                    </div>
+                </div>
+            @endif
+
             {{-- ────────────────────────────────────────
                  PANEL 1 — RESERVAS
             ──────────────────────────────────────── --}}
@@ -882,12 +934,16 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                         <div class="cart-tour-grid">
                                             <div class="cart-field-box">
                                                 <label for="date-{{ $item['row_id'] }}">{{ __('ui.tour_date') }}</label>
+                                                {{-- Editable desde el 2026-08-27. Estaba `readonly` y era
+                                                     la única fecha que existía: si el cliente llegaba
+                                                     acá con una fecha que no eligió, no tenía forma de
+                                                     cambiarla sin volver a la ficha y añadir de nuevo. --}}
                                                 <input type="date"
                                                        id="date-{{ $item['row_id'] }}"
                                                        class="cart-mini-input"
                                                        value="{{ $item['travel_date'] }}"
+                                                       min="{{ \App\Support\BookingCalendar::earliestDate() }}"
                                                        data-date-input
-                                                       readonly
                                                        title="{{ __('ui.tour_date') }}">
                                             </div>
                                             <div class="cart-field-box">
@@ -1317,17 +1373,36 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     </select>
                                 </div>
 
+                                {{-- Este campo NO es donde se elige la fecha: cada tour lleva la
+                                     suya y se edita en su tarjeta, arriba. Acá se muestra la más
+                                     próxima, que es la que viaja en `travel_date` (el checkout la
+                                     sigue exigiendo y alimenta los correos). Sigue readonly, pero
+                                     ahora es verdad que se cambia en otro sitio, y el texto de
+                                     ayuda dice en cuál. --}}
                                 <div class="cart-field">
                                     <label for="travel_date">{{ __('checkout.travel_date') }}</label>
                                     <input type="date"
                                            id="travel_date"
                                            name="travel_date"
                                            value="{{ old('travel_date', $firstTravelDate) }}"
-                                           min="{{ now()->addDay()->format('Y-m-d') }}"
+                                           min="{{ \App\Support\BookingCalendar::earliestDate() }}"
                                            readonly
                                            class="cart-real-input @error('travel_date') border-red-500 @enderror"
                                            style="background:#f1ece3; cursor:not-allowed;">
-                                    <div class="cart-field-help">{{ __('ui.travel_date_help') }}</div>
+                                    <div class="cart-field-help">
+                                        @if ($datesDiffer ?? false)
+                                            {{ __('ui.travel_date_help_multiple') }}
+                                        @else
+                                            {{ __('ui.travel_date_help') }}
+                                        @endif
+                                    </div>
+                                    @if ($datesDiffer ?? false)
+                                        <ul class="cart-field-help" style="margin-top:4px;padding-left:14px;list-style:disc">
+                                            @foreach ($items as $item)
+                                                <li>{{ $item['title_snapshot'] }} — {{ \Illuminate\Support\Carbon::parse($item['travel_date'])->translatedFormat('d M Y') }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
                                     @error('travel_date')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                 </div>
 
@@ -1462,7 +1537,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                     </div>
 
                     {{-- Timing: Pagar ahora / Pagar después --}}
-                    <div class="cart-card">
+                    <div class="cart-card" id="payment-timing-card">
                         <div class="cart-card-pad">
                             <p style="font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#798188;margin:0 0 10px;">{{ __('ui.when_to_pay') }}</p>
                             <div class="cart-timing-grid">
@@ -1669,6 +1744,47 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         if (!r.ok) throw new Error('patch failed');
         return r.json();
     }
+    // Cambiar la fecha de un tour cambia su rowId en el servidor
+    // (rowId = md5(tour_id + fecha)), y con él las tarjetas, los totales y la
+    // fecha del bloque de datos. En vez de reconstruir todo eso a mano, se
+    // recarga: cambiar la fecha es una acción puntual, no un +/- de cantidad.
+    async function patchCartDate(rowId, travelDate) {
+        const r = await fetch(`${cartBase}/${rowId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({
+                adults:      cartState.get(rowId)?.adults   ?? 1,
+                children:    cartState.get(rowId)?.children ?? 0,
+                travel_date: travelDate,
+            }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.message || 'patch failed');
+        return data;
+    }
+
+    document.querySelectorAll('[data-date-input]').forEach(input => {
+        const original = input.value;
+        const rowId    = input.closest('[data-cart-item]')?.dataset.rowId;
+        if (!rowId) return;
+
+        input.addEventListener('change', async () => {
+            if (!input.value || input.value === original) return;
+
+            input.disabled = true;
+            try {
+                await patchCartDate(rowId, input.value);
+                window.location.reload();
+            } catch (err) {
+                // Fecha bloqueada por el operador, o anterior a mañana: se
+                // devuelve el campo a lo que estaba y se dice por qué.
+                input.value    = original;
+                input.disabled = false;
+                alert(err.message);
+            }
+        });
+    });
+
     async function deleteCartItem(rowId) {
         const r = await fetch(`${cartBase}/${rowId}`, {
             method: 'DELETE',
@@ -1986,12 +2102,93 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         return true;
     }
 
+    // ── Bloqueo persistente tras un pago capturado sin reserva, o una
+    // orden nueva rechazada por revisión manual (409). En ambos casos el
+    // dinero ya se movió o hay una captura pendiente: no se ofrece
+    // reintento y se retira todo el flujo de pago de la pantalla.
+    let paymentFlowBlocked = false;
+
+    function showPaymentReviewPanel(message, reference) {
+        paymentFlowBlocked = true;
+
+        const msgEl = document.getElementById('paypal-msg');
+        if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
+        const panel   = document.getElementById('payment-review-panel');
+        const msgP    = document.getElementById('payment-review-message');
+        const refCode = document.getElementById('payment-review-reference');
+        if (msgP)    msgP.textContent = message || @json(__('ui.payment_review_fallback'));
+        if (refCode) refCode.textContent = reference || '';
+        if (panel)   panel.style.display = '';
+
+        // Vaciar (no solo ocultar) el contenedor de los botones de PayPal:
+        // ningún iframe queda montado ni clicable.
+        const ppButtons = document.getElementById('paypal-buttons');
+        if (ppButtons) ppButtons.innerHTML = '';
+
+        // Retirar también "reservar y pagar después" y el switcher: no debe
+        // quedar ninguna vía para volver a pagar ni para crear, desde esta
+        // misma pantalla, una reserva duplicada del mismo carrito.
+        document.querySelectorAll('input[name="payment_timing_ui"]').forEach(r => { r.disabled = true; });
+        const plSection   = document.getElementById('paylater-section');
+        const timingCard  = document.getElementById('payment-timing-card');
+        if (plSection)  plSection.style.display  = 'none';
+        if (timingCard) timingCard.style.display = 'none';
+
+        panel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    document.getElementById('payment-review-copy-btn')?.addEventListener('click', async function () {
+        const ref   = document.getElementById('payment-review-reference')?.textContent ?? '';
+        const label = this.querySelector('[data-copy-label]');
+        const original = label ? label.textContent : null;
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(ref);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = ref;
+                ta.style.position = 'fixed';
+                ta.style.opacity  = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            this.classList.add('is-copied');
+            if (label) label.textContent = @json(__('ui.payment_review_copied'));
+            setTimeout(() => {
+                this.classList.remove('is-copied');
+                if (label && original) label.textContent = original;
+            }, 2000);
+        } catch (e) {
+            // El texto ya es seleccionable (user-select:all): si el
+            // clipboard API falla, el cliente igual puede seleccionar y
+            // copiar a mano.
+        }
+    });
+
     // ── Mostrar/ocultar sección de pago según timing ─────────────
     function syncPaymentSection() {
-        const timing = document.querySelector('input[name="payment_timing_ui"]:checked')?.value ?? 'now';
         const ppSection  = document.getElementById('paypal-section');
         const plSection  = document.getElementById('paylater-section');
+        const timingCard = document.getElementById('payment-timing-card');
+        const timing     = document.querySelector('input[name="payment_timing_ui"]:checked')?.value ?? 'now';
         document.getElementById('payment_timing_hidden').value = timing;
+
+        if (paymentFlowBlocked) {
+            // El pago ya quedó resuelto (capturado o bloqueado): #payment-review-panel
+            // vive FUERA de la máquina de pasos (es hermano de los .cart-panel,
+            // no depende de currentStep), así que ya está visible sin que este
+            // método lo toque. Lo que sí hace falta aquí es que #paypal-section
+            // (vacío tras el bloqueo) y "pagar después" queden retirados sin
+            // importar a qué paso se navegue después.
+            if (ppSection)  ppSection.style.display  = 'none';
+            if (plSection)  plSection.style.display  = 'none';
+            if (timingCard) timingCard.style.display = 'none';
+            return;
+        }
+
         if (ppSection) ppSection.style.display  = (timing === 'now')   ? '' : 'none';
         if (plSection) plSection.style.display  = (timing === 'later') ? '' : 'none';
     }
@@ -2002,6 +2199,104 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
     // ── Inicializar PayPal Buttons ───────────────────────────────
     @if ($items->isNotEmpty() && (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')))
+    async function ppCreateOrder() {
+        if (!validateCustomer()) {
+            return Promise.reject(new Error('validation_failed'));
+        }
+        const res = await fetch(paypalCreateUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type':     'application/json',
+                'X-CSRF-TOKEN':     CSRF,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept':           'application/json',
+            },
+            body: JSON.stringify({}),
+        });
+        const data = await res.json();
+
+        // 409: hay una captura pendiente de revisión manual en esta sesión.
+        // Mismo tratamiento que el pago capturado sin reserva: se muestra
+        // el aviso persistente y NO se ofrece reintento.
+        if (res.status === 409 && data.code === 'payment_pending_manual_review') {
+            showPaymentReviewPanel(data.error, data.reference);
+            throw new Error('payment_pending_manual_review');
+        }
+
+        if (!res.ok || !data.id) {
+            throw new Error(data.error ?? 'No se pudo crear la orden.');
+        }
+        return data.id;
+    }
+
+    async function ppOnApprove(paypalData) {
+        const customer = collectCustomerData();
+        const msgEl    = document.getElementById('paypal-msg');
+        if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
+        const res = await fetch(paypalCaptureUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type':     'application/json',
+                'X-CSRF-TOKEN':     CSRF,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept':           'application/json',
+            },
+            body: JSON.stringify({
+                orderID:        paypalData.orderID,
+                customer_name:  customer.customer_name,
+                customer_email: customer.customer_email,
+                customer_phone: customer.customer_phone,
+                travel_date:    customer.travel_date,
+                pickup_point:   customer.pickup_point,
+                pickup_detail:  customer.pickup_detail,
+            }),
+        });
+        const data = await res.json();
+
+        if (data.success && data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+
+        // Pago capturado por PayPal pero la reserva no llegó a crearse.
+        // El servidor responde HTTP 200 con success:false — se discrimina
+        // por "code", nunca por res.ok ni por success a secas.
+        if (data.code === 'payment_captured_booking_pending') {
+            showPaymentReviewPanel(data.message, data.reference);
+            return;
+        }
+
+        // 409: la captura choca con un bloqueo de pago pendiente de revisión
+        // manual (misma puerta que ppCreateOrder(), ahora también consultada
+        // al capturar). Mismo tratamiento: aviso persistente, sin reintento.
+        if (res.status === 409 && data.code === 'payment_pending_manual_review') {
+            showPaymentReviewPanel(data.error, data.reference);
+            return;
+        }
+
+        // Resto de casos (fecha bloqueada, importe que no cuadra, orden
+        // desconocida, fallo genérico antes de cobrar): comportamiento sin
+        // cambios — mensaje transitorio y el flujo de pago sigue activo.
+        if (msgEl) {
+            msgEl.textContent  = data.message ?? 'El pago no pudo completarse. Por favor inténtalo de nuevo.';
+            msgEl.style.display = '';
+        }
+    }
+
+    function ppOnError(err) {
+        const msgEl = document.getElementById('paypal-msg');
+        if (msgEl) {
+            msgEl.textContent  = 'Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.';
+            msgEl.style.display = '';
+        }
+        console.error('PayPal error:', err);
+    }
+
+    function ppOnCancel() {
+        // Buyer cancelled — do nothing, keep the page open
+    }
+
     if (typeof paypal_sdk !== 'undefined') {
         paypal_sdk.Buttons({
             style: {
@@ -2010,70 +2305,10 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                 shape:  'rect',
                 label:  'pay',
             },
-            createOrder: async function () {
-                if (!validateCustomer()) {
-                    return Promise.reject(new Error('validation_failed'));
-                }
-                const res = await fetch(paypalCreateUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type':     'application/json',
-                        'X-CSRF-TOKEN':     CSRF,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept':           'application/json',
-                    },
-                    body: JSON.stringify({}),
-                });
-                const data = await res.json();
-                if (!res.ok || !data.id) {
-                    throw new Error(data.error ?? 'No se pudo crear la orden.');
-                }
-                return data.id;
-            },
-            onApprove: async function (paypalData) {
-                const customer = collectCustomerData();
-                const msgEl    = document.getElementById('paypal-msg');
-                if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
-
-                const res = await fetch(paypalCaptureUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type':     'application/json',
-                        'X-CSRF-TOKEN':     CSRF,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept':           'application/json',
-                    },
-                    body: JSON.stringify({
-                        orderID:        paypalData.orderID,
-                        customer_name:  customer.customer_name,
-                        customer_email: customer.customer_email,
-                        customer_phone: customer.customer_phone,
-                        travel_date:    customer.travel_date,
-                        pickup_point:   customer.pickup_point,
-                        pickup_detail:  customer.pickup_detail,
-                    }),
-                });
-                const data = await res.json();
-                if (data.success && data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    if (msgEl) {
-                        msgEl.textContent  = data.message ?? 'El pago no pudo completarse. Por favor inténtalo de nuevo.';
-                        msgEl.style.display = '';
-                    }
-                }
-            },
-            onError: function (err) {
-                const msgEl = document.getElementById('paypal-msg');
-                if (msgEl) {
-                    msgEl.textContent  = 'Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.';
-                    msgEl.style.display = '';
-                }
-                console.error('PayPal error:', err);
-            },
-            onCancel: function () {
-                // Buyer cancelled — do nothing, keep the page open
-            },
+            createOrder: ppCreateOrder,
+            onApprove:   ppOnApprove,
+            onError:     ppOnError,
+            onCancel:    ppOnCancel,
         }).render('#paypal-buttons');
     }
     @endif
@@ -2112,6 +2347,18 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
             });
         }
     });
+
+    @if ($paymentLock ?? null)
+    // Hallazgo de seguridad [ALTO] (2026-08-27): el aviso de "pago capturado,
+    // reserva en revisión manual" vivía solo en memoria de JS (disparado por
+    // el fetch que falló) y un F5 lo perdía por completo, resucitando el
+    // formulario de pago entero sobre un carrito que ya se cobró. El
+    // marcador vive en sesión (ver App\Services\PaymentLockService) y se lee
+    // en CartController@index; acá se reutiliza el MISMO
+    // showPaymentReviewPanel() de siempre para que una carga de página
+    // normal deje la pantalla igual que la dejaría un fetch fallido.
+    showPaymentReviewPanel(@json($paymentLock['message']), @json($paymentLock['reference']));
+    @endif
 
     // ── Inicializar step desde sesión (cuando se viene de checkout.pay) ──
     setStep(currentStep);
