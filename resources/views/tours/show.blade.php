@@ -192,6 +192,9 @@
      título/descripción autogenerados como antes. Nunca queda vacío. --}}
 @section('title', $tour->metaTitle ?: ($titleDisplay . ' — ' . __('seo.site_name')))
 @section('description', $tour->metaDescription ?: (__('seo.tour_description_prefix') . $titleDisplay . __('seo.tour_description_suffix')))
+{{-- OJO: el valor NO puede ser null (ver misma nota en blog/show.blade.php).
+     Cadena vacía = el layout cae a la imagen og por defecto global. --}}
+@section('og_image', $tour->seo_image_url ?: '')
 
 @php
     // hreflang/canonical reales: el slug puede diferir por idioma (slug_en/slug_pt).
@@ -206,113 +209,22 @@
 
 @push('schema')
 @php
-    // slugFor($locale), not $tour->slug: the ES slug column doesn't reflect
-    // slug_en/slug_pt, so under a non-Spanish locale this must resolve to the
-    // slug actually served there — otherwise Product.url/@id/offers.url point
-    // at a URL that 301-redirects, contradicting the page's own canonical.
-    $canonicalUrl = route('tours.show', ['locale' => $locale, 'slug' => $tour->slugFor($locale)]);
-    $siteUrl = rtrim(config('app.url'), '/');
-    $tourImages = !empty($galleryUrls) ? $galleryUrls : [$tour->cover_url];
-
-    // Itinerario como ItemList (lugares/paradas del recorrido).
-    $itineraryList = [];
-    foreach ($itinerary as $i => $step) {
-        $stepTitle = trim((string) ($step['title'] ?? ''));
-        if ($stepTitle === '') { continue; }
-        $itineraryList[] = [
-            '@type'    => 'ListItem',
-            'position' => count($itineraryList) + 1,
-            'item'     => array_filter([
-                '@type'       => 'TouristAttraction',
-                'name'        => $stepTitle,
-                'description' => trim((string) ($step['description'] ?? '')) ?: null,
-            ]),
-        ];
-    }
-
-    // Reseñas individuales (aprobadas) para rich results.
-    $reviewList = [];
-    foreach ($tourReviews as $rev) {
-        $body = trim((string) ($rev->{"quote_$locale"} ?? $rev->quote_es ?? ''));
-        if ($body === '') { continue; }
-        $reviewList[] = [
-            '@type'         => 'Review',
-            'author'        => ['@type' => 'Person', 'name' => $rev->name ?: 'Viajero'],
-            'datePublished' => optional($rev->created_at)->toDateString(),
-            'reviewRating'  => [
-                '@type'       => 'Rating',
-                'ratingValue' => max(1, min(5, (int) round($rev->rating ?: 5))),
-                'bestRating'  => 5,
-            ],
-            'reviewBody'    => \Illuminate\Support\Str::limit($body, 500),
-        ];
-    }
-
-    $schema = array_filter([
-        '@context'    => 'https://schema.org',
-        // Product es tipo válido para review snippets en Google; TouristTrip solo no lo es
-        '@type'       => ['Product', 'TouristTrip'],
-        '@id'         => $canonicalUrl . '#tour',
-        'name'        => $tour->title,
-        'description' => \Illuminate\Support\Str::limit(strip_tags((string) ($tour->description_es ?: (__('seo.tour_description_prefix') . $tour->title))), 300),
-        'url'         => $canonicalUrl,
-        'image'       => $tourImages,
-        'inLanguage'  => $locale,
-        'touristType' => ['Sightseeing', 'Cultural tourism', 'Adventure'],
-        'provider'    => [
-            '@type' => 'TravelAgency',
-            'name'  => 'Lima View Tours',
-            'url'   => $siteUrl,
-            'logo'  => $siteUrl . '/assets/logos/logo.png',
-            'telephone' => \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725',
-        ],
-        'aggregateRating' => $tourRating ? [
-            '@type'       => 'AggregateRating',
-            'ratingValue' => max(1, min(5, round((float) $tourRating, 1))),
-            'reviewCount' => $reviewsCount ?: 1,
-            'bestRating'  => 5,
-            'worstRating' => 1,
-        ] : null,
-        'review' => $reviewList ?: null,
-        'itinerary' => $itineraryList ? [
-            '@type'           => 'ItemList',
-            'itemListElement' => $itineraryList,
-        ] : null,
-        'offers' => array_filter([
-            '@type'          => 'Offer',
-            'price'          => (float) $tour->price,
-            'priceCurrency'  => $tour->currency ?: 'USD',
-            'availability'   => 'https://schema.org/InStock',
-            'url'            => $canonicalUrl,
-            'priceValidUntil'=> now()->addYear()->format('Y-m-d'),
-            'validFrom'      => optional($tour->created_at)->toDateString(),
-        ]),
-    ], fn ($v) => $v !== null);
-
     // Regla de convivencia (panel Filament → Tours → SEO — [idioma] → Datos
     // estructurados): si el editor cargó JSON-LD manual para este idioma (o
-    // el de español como fallback), REEMPLAZA el bloque Product/TouristTrip
-    // autogenerado de arriba. Si está vacío, se usa el automático de siempre.
-    // El JSON ya se valida como parseable al guardar en el form, así que no
-    // hace falta re-validar aquí. El FAQPage de abajo es independiente (viene
-    // del repeater de FAQs, no de este campo) y nunca se reemplaza.
+    // el de español como fallback), se imprime tal cual. El JSON ya se
+    // valida como parseable al guardar en el form, así que no hace falta
+    // re-validar aquí.
+    //
+    // Lote B (2026-08-31): se apagó el Product+TouristTrip automático que
+    // antes se pintaba cuando este campo estaba vacío, y el FAQPage
+    // automático que se generaba siempre a partir de $tourFaqs (repeater de
+    // FAQs del tour). $tourFaqs sigue alimentando el acordeón visible más
+    // abajo — solo se apagó su copia en JSON-LD. Con el campo vacío, la
+    // ficha del tour ya no emite ningún JSON-LD.
     $customSchema = $tour->schemaJsonLd($locale);
 @endphp
-<script type="application/ld+json">
-{!! $customSchema ?: json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
-</script>
-@if ($tourFaqs)
-<script type="application/ld+json">
-{!! json_encode([
-    '@context'   => 'https://schema.org',
-    '@type'      => 'FAQPage',
-    'mainEntity' => array_map(fn ($f) => [
-        '@type'          => 'Question',
-        'name'           => $f['question'],
-        'acceptedAnswer' => ['@type' => 'Answer', 'text' => $f['answer']],
-    ], $tourFaqs),
-], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}
-</script>
+@if ($customSchema)
+<x-schema-raw :json="$customSchema" />
 @endif
 @endpush
 

@@ -15,6 +15,17 @@
     'Descubra dicas, guias de destinos e experiências de viagem em Lima, Ica e Cusco.'
 )))
 
+@php
+    // Metas por página → Blog — listado → Datos estructurados.
+    // Vacío = no imprime nada extra.
+    $blogCustomSchema = \App\Support\PageSeo::schemaJsonLd('blog');
+@endphp
+@if ($blogCustomSchema)
+@push('schema')
+<x-schema-raw :json="$blogCustomSchema" />
+@endpush
+@endif
+
 @section('content')
 
     {{-- ── Hero ── --}}

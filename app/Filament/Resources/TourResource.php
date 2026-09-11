@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\HasEditableSlugField;
 use App\Filament\Concerns\HasLocalizedSeoFields;
+use App\Filament\Concerns\RoutesRecordsByKey;
 use App\Filament\Resources\TourResource\Pages;
 use App\Models\Tour;
 use App\Support\ImageOptimizer;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TourResource extends Resource
 {
-    use HasLocalizedSeoFields, HasEditableSlugField;
+    use HasEditableSlugField, HasLocalizedSeoFields, RoutesRecordsByKey;
 
     protected static ?string $model = Tour::class;
 
@@ -36,10 +37,15 @@ class TourResource extends Resource
     protected static ?string $recordRouteKeyName = 'id';
 
     protected static ?string $navigationIcon = 'heroicon-o-globe-americas';
+
     protected static ?string $navigationGroup = 'Catálogo';
+
     protected static ?string $navigationLabel = 'Tours';
+
     protected static ?string $modelLabel = 'Tour';
+
     protected static ?string $pluralModelLabel = 'Tours';
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
@@ -167,8 +173,8 @@ class TourResource extends Resource
                                     Forms\Components\TextInput::make('question')->label('Pregunta')->required(),
                                     Forms\Components\Textarea::make('answer')->label('Respuesta')->rows(3)->required(),
                                 ])->collapsible()->reorderable()->defaultItems(0)
-                                  ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
-                                  ->helperText('Se muestran como acordeón en la página del tour. Déjalo vacío si el tour no lleva FAQs.'),
+                                    ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                                    ->helperText('Se muestran como acordeón en la página del tour. Déjalo vacío si el tour no lleva FAQs.'),
 
                                 Forms\Components\Section::make('SEO — Español')
                                     ->icon('heroicon-o-magnifying-glass')
@@ -195,7 +201,7 @@ class TourResource extends Resource
                                         Forms\Components\Textarea::make('schema_jsonld_es')
                                             ->label('Datos estructurados (JSON-LD) — Español')
                                             ->rows(6)
-                                            ->helperText('Opcional. Si lo completas, REEMPLAZA el JSON-LD automático (Product/TouristTrip) de esta página en este idioma. Debe ser JSON válido — se valida antes de guardar. El FAQPage (preguntas frecuentes de arriba) no se ve afectado.')
+                                            ->helperText('Opcional. Pega solo el objeto JSON (empieza en { y termina en }), sin las etiquetas <script>. Se valida antes de guardar. Si lo dejas vacío, esta página no emite ningún JSON-LD en español.')
                                             ->rules([static::seoJsonLdRule()]),
                                     ]),
                             ]),
@@ -219,8 +225,8 @@ class TourResource extends Resource
                                     Forms\Components\TextInput::make('question')->label('Question')->required(),
                                     Forms\Components\Textarea::make('answer')->label('Answer')->rows(3)->required(),
                                 ])->collapsible()->reorderable()->defaultItems(0)
-                                  ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
-                                  ->helperText('Shown as an accordion on the tour page. Falls back to Spanish if empty.'),
+                                    ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                                    ->helperText('Shown as an accordion on the tour page. Falls back to Spanish if empty.'),
 
                                 Forms\Components\Section::make('SEO — English')
                                     ->icon('heroicon-o-magnifying-glass')
@@ -242,7 +248,7 @@ class TourResource extends Resource
                                         Forms\Components\Textarea::make('schema_jsonld_en')
                                             ->label('Structured data (JSON-LD) — English')
                                             ->rows(6)
-                                            ->helperText('Optional. If filled, REPLACES the auto-generated JSON-LD for this locale. Falls back to Spanish JSON-LD if empty. Must be valid JSON.')
+                                            ->helperText('Optional. Paste only the JSON object, without <script> tags. Validated before saving. If left empty, this page falls back to the Spanish JSON-LD.')
                                             ->rules([static::seoJsonLdRule()]),
                                     ]),
                             ]),
@@ -266,8 +272,8 @@ class TourResource extends Resource
                                     Forms\Components\TextInput::make('question')->label('Pergunta')->required(),
                                     Forms\Components\Textarea::make('answer')->label('Resposta')->rows(3)->required(),
                                 ])->collapsible()->reorderable()->defaultItems(0)
-                                  ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
-                                  ->helperText('Exibido como acordeão na página do tour. Se vazio, usa o espanhol.'),
+                                    ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                                    ->helperText('Exibido como acordeão na página do tour. Se vazio, usa o espanhol.'),
 
                                 Forms\Components\Section::make('SEO — Português')
                                     ->icon('heroicon-o-magnifying-glass')
@@ -289,7 +295,7 @@ class TourResource extends Resource
                                         Forms\Components\Textarea::make('schema_jsonld_pt')
                                             ->label('Dados estruturados (JSON-LD) — Português')
                                             ->rows(6)
-                                            ->helperText('Opcional. Se preenchido, SUBSTITUI o JSON-LD automático deste idioma. Se vazio, usa o do espanhol. Deve ser um JSON válido.')
+                                            ->helperText('Opcional. Cole apenas o objeto JSON, sem as tags <script>. É validado antes de salvar. Se vazio, usa o JSON-LD do espanhol.')
                                             ->rules([static::seoJsonLdRule()]),
                                     ]),
                             ]),
@@ -308,7 +314,7 @@ class TourResource extends Resource
                                         Forms\Components\Select::make('comparison.color')
                                             ->label('Color del fondo')
                                             ->options([
-                                                'teal'   => 'Teal oscuro + acento naranja (recomendado)',
+                                                'teal' => 'Teal oscuro + acento naranja (recomendado)',
                                                 'orange' => 'Naranja cálido (atardecer)',
                                             ])
                                             ->default('teal')
@@ -455,7 +461,7 @@ class TourResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->tooltip(fn ($record): string => filled($record->price_before) && (float) $record->price_before > (float) $record->price
-                        ? 'OFERTA ESPECIAL -' . round((1 - (float) $record->price / (float) $record->price_before) * 100) . '%'
+                        ? 'OFERTA ESPECIAL -'.round((1 - (float) $record->price / (float) $record->price_before) * 100).'%'
                         : 'Sin oferta'
                     ),
                 Tables\Columns\TextColumn::make('rating')

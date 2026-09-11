@@ -41,8 +41,8 @@ trait HasEditableSlugField
 {
     /**
      * @param  string  $modelClass  Tour::class, BlogPost::class o Page::class
-     * @param  string  $locale      Idioma del campo: es | en | pt
-     * @param  string  $name        Columna: slug | slug_en | slug_pt
+     * @param  string  $locale  Idioma del campo: es | en | pt
+     * @param  string  $name  Columna: slug | slug_en | slug_pt
      * @param  string  $titleField  Campo del que se genera el slug
      */
     protected static function slugField(
@@ -171,7 +171,7 @@ trait HasEditableSlugField
         }
 
         $slugs = static::slugFormState($get);
-        $slug  = RouteRegistry::effectiveSlug($slugs, $locale);
+        $slug = RouteRegistry::effectiveSlug($slugs, $locale);
 
         if ($slug === null) {
             return new HtmlString(
@@ -181,8 +181,8 @@ trait HasEditableSlugField
             );
         }
 
-        $url  = RouteRegistry::urlFor($modelClass, $locale, $slug);
-        $len  = mb_strlen($slug);
+        $url = RouteRegistry::urlFor($modelClass, $locale, $slug);
+        $len = mb_strlen($slug);
         $hint = $len > 60
             ? "<span style=\"color:#b45309\">{$len} caracteres · lo recomendable para SEO son 60 o menos.</span>"
             : "{$len}/60 caracteres.";
@@ -222,9 +222,9 @@ trait HasEditableSlugField
 
         foreach ($groups as $group) {
             $conflict = $group['conflict'];
-            $paths    = array_values(array_unique($group['paths']));
+            $paths = array_values(array_unique($group['paths']));
             $blocking = $conflict->isBlocking();
-            $color    = $blocking ? '#b91c1c' : '#b45309';
+            $color = $blocking ? '#b91c1c' : '#b45309';
 
             $urls = implode(', ', array_map(fn (string $p) => '<code>'.e($p).'</code>', $paths));
 
@@ -258,7 +258,7 @@ trait HasEditableSlugField
         }
 
         $original = RouteRegistry::effectiveSlug(RouteRegistry::slugsOf($record), $locale);
-        $current  = RouteRegistry::effectiveSlug(static::slugFormState($get), $locale);
+        $current = RouteRegistry::effectiveSlug(static::slugFormState($get), $locale);
 
         if ($original === null || $current === null || $original === $current) {
             return '';
@@ -302,7 +302,7 @@ trait HasEditableSlugField
             ->label('Generar desde el título')
             ->icon('heroicon-m-sparkles')
             ->color('gray')
-            ->action(function (FormsSet $set, FormsGet $get) use ($name, $titleField, $maxLength): void {
+            ->action(function (Forms\Set $set, Forms\Get $get) use ($name, $titleField, $maxLength): void {
                 $set($name, static::slugSanitize($get($titleField), $maxLength));
             });
     }
@@ -374,7 +374,7 @@ trait HasEditableSlugField
         }
 
         $slug = $base;
-        $i    = 1;
+        $i = 1;
 
         while (
             $modelClass::query()

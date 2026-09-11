@@ -72,6 +72,19 @@
 @section('title', \App\Support\PageSeo::title($seoPageKey, $regionSeoTitle ?: ($sectionTitle . ' — ' . __('seo.site_name'))))
 @section('description', \App\Support\PageSeo::description($seoPageKey, $regionSeoDescription ?: __('ui.tours_meta_description', ['section' => $sectionTitle])))
 
+@php
+    // Metas por página → Catálogo de tours / Catálogo — Lima|Ica|Cusco →
+    // Datos estructurados. Misma clave $seoPageKey que title/description de
+    // arriba, para que cada URL (catálogo completo o por región) tenga su
+    // propio schema. Vacío = no imprime nada extra.
+    $toursCustomSchema = \App\Support\PageSeo::schemaJsonLd($seoPageKey);
+@endphp
+@if ($toursCustomSchema)
+@push('schema')
+<x-schema-raw :json="$toursCustomSchema" />
+@endpush
+@endif
+
 @section('content')
 
 {{-- ───────── HERO ───────── --}}

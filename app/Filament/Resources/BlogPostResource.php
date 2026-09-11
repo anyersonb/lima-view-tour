@@ -72,7 +72,7 @@ class BlogPostResource extends Resource
                                         Forms\Components\Textarea::make('schema_jsonld_es')
                                             ->label('Datos estructurados (JSON-LD) — Español')
                                             ->rows(6)
-                                            ->helperText('Opcional. Si lo completas, REEMPLAZA el JSON-LD automático (BlogPosting) de esta entrada en este idioma. Debe ser JSON válido.')
+                                            ->helperText('Opcional. Pega solo el objeto JSON (empieza en { y termina en }), sin las etiquetas <script>. Se valida antes de guardar. Si lo dejas vacío, esta entrada no emite ningún JSON-LD en español.')
                                             ->rules([static::seoJsonLdRule()]),
                                     ]),
                             ]),

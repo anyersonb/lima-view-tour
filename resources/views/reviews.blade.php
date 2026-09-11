@@ -43,7 +43,7 @@
 
 @if ($customSchema)
     @push('schema')
-    <script type="application/ld+json">{!! $customSchema !!}</script>
+    <x-schema-raw :json="$customSchema" />
     @endpush
 @endif
 

@@ -84,10 +84,41 @@ trait HasLocalizedSeoFields
                 return;
             }
 
-            json_decode((string) $value);
+            $decoded = json_decode((string) $value, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $fail('El JSON-LD no es válido (' . json_last_error_msg() . '). Corrígelo antes de guardar: un JSON roto en el <head> es peor que no tener schema.');
+
+                return;
+            }
+
+            // Defensa en profundidad + ayuda de usabilidad. El control real
+            // contra XSS vive en el render (components/schema-raw.blade.php,
+            // JSON_HEX_TAG): esto NO lo reemplaza, porque los settings/columnas
+            // también se escriben por SQL directo (deploy-*.sql), sin pasar
+            // por este formulario. Esto solo evita el error honesto más común
+            // al copiar de un generador de schema: pegar las etiquetas
+            // <script> que lo envuelven (o un comentario HTML) junto con el
+            // JSON.
+            //
+            // Se revisa sobre los valores YA DECODIFICADOS (no el string
+            // crudo): un "/" escapado como "\/" dentro del JSON (habitual en
+            // json_encode() sin JSON_UNESCAPED_SLASHES) haría invisible un
+            // "</script" al buscarlo en el string crudo. Decodificar primero
+            // normaliza ambas formas a la misma cadena.
+            $hasForbiddenMarker = false;
+            if (is_array($decoded)) {
+                array_walk_recursive($decoded, function ($leaf) use (&$hasForbiddenMarker): void {
+                    if (is_string($leaf) && Str::contains(Str::lower($leaf), ['</script', '<!--'])) {
+                        $hasForbiddenMarker = true;
+                    }
+                });
+            } elseif (is_string($decoded) && Str::contains(Str::lower($decoded), ['</script', '<!--'])) {
+                $hasForbiddenMarker = true;
+            }
+
+            if ($hasForbiddenMarker) {
+                $fail('Pega solo el objeto JSON (el que empieza en { y termina en }), sin las etiquetas <script> que lo envuelven ni comentarios HTML. Quita cualquier </script> o <!-- del texto y vuelve a guardar.');
             }
         };
     }

@@ -137,6 +137,22 @@ class Tour extends Model
         return ImagePath::url($this->cover_image) ?? asset('assets/banners/banner-hero.jpg');
     }
 
+    /**
+     * URL absoluta de la imagen Open Graph subida por tour (panel Filament,
+     * campo "seo_image", disco "public", tours/seo/). Null si el editor no
+     * cargó una: layouts/app.blade.php debe caer entonces al og:image global
+     * (Setting seo_og_image), no a un valor inventado aquí.
+     *
+     * Mismo mecanismo que cover_url/gallery_urls (ImagePath::url), que ya
+     * resuelve la ruta relativa guardada en BD a URL absoluta vía
+     * Storage::disk('public')->url() y es idempotente si el valor ya viene
+     * con http(s).
+     */
+    public function getSeoImageUrlAttribute(): ?string
+    {
+        return ImagePath::url($this->seo_image);
+    }
+
     public function getGalleryUrlsAttribute(): array
     {
         $g = $this->gallery ?? [];

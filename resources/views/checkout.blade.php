@@ -2275,11 +2275,24 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
             return;
         }
 
+        // 402: el banco/emisor rechazó la tarjeta (PayPal INSTRUMENT_DECLINED).
+        // No se cobró nada y el flujo de pago sigue activo — a diferencia de
+        // los dos códigos de arriba, acá SÍ tiene sentido reintentar: el
+        // mensaje le dice al comprador que pruebe otra tarjeta o su saldo de
+        // PayPal, en vez del genérico "no pudo completarse, contáctanos".
+        if (data.code === 'card_declined') {
+            if (msgEl) {
+                msgEl.textContent  = data.message;
+                msgEl.style.display = '';
+            }
+            return;
+        }
+
         // Resto de casos (fecha bloqueada, importe que no cuadra, orden
         // desconocida, fallo genérico antes de cobrar): comportamiento sin
         // cambios — mensaje transitorio y el flujo de pago sigue activo.
         if (msgEl) {
-            msgEl.textContent  = data.message ?? 'El pago no pudo completarse. Por favor inténtalo de nuevo.';
+            msgEl.textContent  = data.message ?? @json(__('booking.payment_failed'));
             msgEl.style.display = '';
         }
     }

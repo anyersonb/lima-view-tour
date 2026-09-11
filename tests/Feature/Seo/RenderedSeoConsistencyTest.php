@@ -11,10 +11,20 @@ use Tests\TestCase;
 /**
  * Cierra la brecha del gate de QA que quedó sin correr (disco lleno):
  *
- *  - Hallazgo Alto de CRO: el JSON-LD autogenerado del tour declaraba
- *    Product.url / @id / offers.url con el slug ES aunque la página fuera
- *    la traducida, contradiciendo su propio <link rel=canonical>. El fix
- *    (tours/show.blade.php → slugFor($locale)) NO tenía test de render.
+ *  - Hallazgo Alto de CRO (histórico): el JSON-LD autogenerado del tour
+ *    declaraba Product.url / @id / offers.url con el slug ES aunque la
+ *    página fuera la traducida, contradiciendo su propio <link rel=canonical>.
+ *    El fix (tours/show.blade.php → slugFor($locale)) NO tenía test de render.
+ *
+ *    Lote B (2026-08-31) apagó el Product+TouristTrip automático de la
+ *    ficha de tour (ver AutomaticJsonLdDisabledTest.php): ya no hay bloque
+ *    Product que inspeccionar, así que la coherencia url/@id-vs-canonical
+ *    que este test protegía dejó de ser una invariante nuestra — el
+ *    marcado ahora lo escribe el equipo de SEO a mano y su contenido es
+ *    responsabilidad suya. Lo que SIGUE siendo nuestro es que el propio
+ *    <link rel=canonical> siga siendo correcto (layouts/app.blade.php no
+ *    depende de si el SEO llenó o no el JSON-LD manual) y que no reaparezca
+ *    ningún Product automático. El test de abajo quedó reconvertido a eso.
  *
  *  - Hallazgo Medio: el fallback ES de BlogPost solo estaba cubierto por un
  *    test unitario sobre el modelo, no sobre el <title> realmente emitido.
@@ -67,13 +77,15 @@ class RenderedSeoConsistencyTest extends TestCase
     }
 
     /** @test */
-    public function el_json_ld_del_tour_declara_la_misma_url_que_el_canonical(): void
+    public function el_canonical_del_tour_traducido_sigue_siendo_correcto_y_no_hay_producto_automatico(): void
     {
         $this->tour(['slug' => 'laguna-humantay', 'slug_en' => 'humantay-lake']);
 
         $html = $this->get('/en/tours/detalle/humantay-lake')->assertOk()->getContent();
 
-        // Canonical realmente emitido.
+        // Canonical realmente emitido: esto SIGUE siendo responsabilidad
+        // nuestra (layouts/app.blade.php), independiente de si el equipo de
+        // SEO cargó o no un JSON-LD manual — por eso sigue protegido aquí.
         preg_match('#<link rel="canonical" href="([^"]+)"#i', $html, $c);
         $this->assertNotEmpty($c[1] ?? null, 'No se emitió <link rel="canonical">.');
         $canonical = $c[1];
@@ -81,7 +93,11 @@ class RenderedSeoConsistencyTest extends TestCase
         $this->assertStringContainsString('humantay-lake', $canonical);
         $this->assertStringNotContainsString('laguna-humantay', $canonical);
 
-        // Buscar el bloque Product del JSON-LD autogenerado.
+        // Lote B apagó el Product+TouristTrip automático: ya no podemos (ni
+        // debemos) garantizar que su url/@id coincida con el canonical
+        // porque ese bloque ya no existe — lo escribe el SEO a mano y su
+        // contenido es responsabilidad suya. Lo que seguimos garantizando
+        // es que NO reaparezca ningún Product automático.
         $product = null;
         foreach ($this->jsonLdBlocks($html) as $block) {
             $types = (array) ($block['@type'] ?? []);
@@ -90,41 +106,7 @@ class RenderedSeoConsistencyTest extends TestCase
                 break;
             }
         }
-        $this->assertNotNull($product, 'No se encontró bloque JSON-LD de tipo Product.');
-
-        // El corazón del hallazgo: la URL del schema debe ser la canónica,
-        // no el slug ES bajo prefijo EN (que además hace 301).
-        // `url` debe ser exactamente el canonical.
-        $this->assertArrayHasKey('url', $product, "Product no declara 'url'.");
-        $this->assertSame(
-            $canonical,
-            $product['url'],
-            'Product.url no coincide con el canonical emitido.'
-        );
-
-        // `@id` es el canonical con un fragmento (#tour): mismo documento base.
-        $this->assertArrayHasKey('@id', $product, "Product no declara '@id'.");
-        $this->assertSame(
-            $canonical,
-            strtok($product['@id'], '#'),
-            'Product.@id no cuelga del canonical emitido.'
-        );
-
-        foreach (['url', '@id'] as $key) {
-            $this->assertStringNotContainsString(
-                'laguna-humantay',
-                $product[$key],
-                "Product.{$key} sigue apuntando al slug español."
-            );
-        }
-
-        if (isset($product['offers']['url'])) {
-            $this->assertStringNotContainsString(
-                'laguna-humantay',
-                $product['offers']['url'],
-                'offers.url sigue apuntando al slug español.'
-            );
-        }
+        $this->assertNull($product, 'Apareció un bloque JSON-LD Product: el automático debería estar apagado (Lote B).');
     }
 
     /** @test */

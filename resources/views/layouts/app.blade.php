@@ -135,7 +135,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css">
 
-    <x-jsonld />
+    @php
+        // Configuración → SEO → "Schema global del sitio". Vacío por defecto:
+        // solo imprime si el equipo SEO lo carga a mano.
+        // Lote B (2026-08-31): se apagó el Organization/WebSite automático
+        // que emitía <x-jsonld /> (components/jsonld.blade.php, ahora
+        // borrado). Con este campo vacío, ninguna página imprime JSON-LD
+        // global — todo el marcado lo carga el equipo SEO a mano.
+        $globalSchemaJsonLd = \App\Models\Setting::getLocalized('schema_jsonld_global');
+    @endphp
+    @if ($globalSchemaJsonLd)
+        <x-schema-raw :json="$globalSchemaJsonLd" />
+    @endif
     @stack('schema')
 
     {{--

@@ -6,20 +6,21 @@
 @section('description', \App\Support\PageSeo::description('home', __('seo.home_description')))
 @section('header_variant', 'transparent')
 
+{{-- Lote B (2026-08-31): se apagó el WebSite automático que se pintaba aquí
+     siempre (duplicaba el global de <x-jsonld />, hoy también apagado). Si
+     el equipo SEO quiere un WebSite para la home, lo carga en el campo de
+     abajo (Datos estructurados → Home). --}}
+
+@php
+    // Configuración → SEO → Metas por página → Home → Datos estructurados.
+    // Vacío = no imprime nada extra (el WebSite automático de arriba sigue).
+    $homeCustomSchema = \App\Support\PageSeo::schemaJsonLd('home');
+@endphp
+@if ($homeCustomSchema)
 @push('schema')
-<script type="application/ld+json">{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'WebSite',
-    'name' => __('seo.site_name'),
-    'url' => url('/' . app()->getLocale()),
-    'inLanguage' => app()->getLocale(),
-    'potentialAction' => [
-        '@type' => 'SearchAction',
-        'target' => url('/' . app()->getLocale() . '/tours?q={search_term_string}'),
-        'query-input' => 'required name=search_term_string',
-    ],
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+<x-schema-raw :json="$homeCustomSchema" />
 @endpush
+@endif
 
 @php
     $locale = app()->getLocale();
@@ -1631,6 +1632,8 @@
 
 @endsection
 
-@push('schema')
-@include('partials.faq-schema')
-@endpush
+{{-- Lote B (2026-08-31): se apagó el FAQPage automático que generaba
+     partials/faq-schema.blade.php (ahora borrado) a partir del setting
+     "faqs". El accordion visible de <x-faq-section /> sigue intacto; si el
+     equipo SEO quiere el FAQPage en JSON-LD, lo carga a mano en el campo de
+     Datos estructurados de esta página. --}}

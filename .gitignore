@@ -30,3 +30,6 @@ CLAUDE.md
 
 # Artefactos de automatización del navegador
 /.playwright-mcp
+
+# Script de deploy con credencial en duro: nunca al repo
+deploy-fix-reservas-2026-07-16.sh

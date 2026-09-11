@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\PayPalCardDeclinedException;
 use App\Exceptions\UnbookableDateException;
 use App\Http\Requests\ProcessPaymentRequest;
 use App\Mail\AccountCredentials;
@@ -293,7 +294,7 @@ class CheckoutController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'El pago no pudo completarse. Por favor inténtalo de nuevo o contáctanos.',
+                    'message' => __('booking.payment_failed'),
                 ], 422);
             }
 
@@ -370,7 +371,7 @@ class CheckoutController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'El pago no pudo completarse. Por favor inténtalo de nuevo o contáctanos.',
+                    'message' => __('booking.payment_failed'),
                 ], 422);
             }
 
@@ -409,6 +410,26 @@ class CheckoutController extends Controller
                 'success' => false,
                 'message' => __('booking.date_outdated'),
             ], 422);
+
+        } catch (PayPalCardDeclinedException $e) {
+            // El banco/emisor rechazó la tarjeta al capturar: no se movió
+            // dinero (el 422 de PayPal llega ANTES de que exista capture_id)
+            // y no es una falla nuestra, así que no comparte código, mensaje
+            // ni status con el catch genérico de abajo. 402 Payment Required
+            // es el status que mejor describe "tu instrumento de pago fue
+            // rechazado" — distinto del 500 genérico (fallo de servidor) y
+            // del 422 que ya usan más arriba fecha bloqueada/importe no
+            // coincide (esos son rechazos de la solicitud, no del banco).
+            Log::info('checkout.paypal_capture: card declined by issuer', [
+                'order_id' => $orderId,
+                'issue' => $e->issue,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'code' => 'card_declined',
+                'message' => __('booking.card_declined'),
+            ], 402);
 
         } catch (\Throwable $e) {
             // Si esto revienta DESPUÉS de capturar (captureOrder ya tuvo
@@ -466,7 +487,7 @@ class CheckoutController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'El pago no pudo completarse. Por favor inténtalo de nuevo o contáctanos.',
+                'message' => __('booking.payment_failed'),
             ], 500);
         }
     }

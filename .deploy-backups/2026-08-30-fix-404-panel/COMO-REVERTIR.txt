@@ -1,0 +1,15 @@
+Rollback del pase "fix 404 al editar tours/paginas" (2026-08-30).
+Estos son los archivos TAL COMO ESTABAN VIVOS en produccion antes del pase
+(descargados por FTP el 2026-08-30, mtime original Aug 26 07:01).
+
+Para revertir, subir cada uno a su ruta original y resetear opcache:
+
+  curl -T TourResource.php.prod-antes -u "limaweb@limaviewtours.com:<CLAVE>" \
+    "ftp://ftp.limaviewtours.com/public_html/limaprogramacion/app/Filament/Resources/TourResource.php"
+  curl -T PageResource.php.prod-antes -u "limaweb@limaviewtours.com:<CLAVE>" \
+    "ftp://ftp.limaviewtours.com/public_html/limaprogramacion/app/Filament/Resources/PageResource.php"
+  curl "https://limaviewtours.com/opcache-reset.php?key=lvt-mail-diag-2026"
+
+OJO: revertir devuelve el 404. Solo tiene sentido si el pase rompe algo PEOR.
+El archivo nuevo app/Filament/Concerns/RoutesRecordsByKey.php puede quedarse:
+sin el "use" en los Resources es inerte.

@@ -19,12 +19,12 @@ class PageSeo
 {
     /** Claves de página, en el orden en que se muestran en el admin. */
     public const PAGES = [
-        'home'        => 'Home',
-        'tours'       => 'Catálogo de tours (/tours)',
-        'tours_lima'  => 'Catálogo — Lima (/tours/categoria/lima)',
-        'tours_ica'   => 'Catálogo — Ica (/tours/categoria/ica)',
+        'home' => 'Home',
+        'tours' => 'Catálogo de tours (/tours)',
+        'tours_lima' => 'Catálogo — Lima (/tours/categoria/lima)',
+        'tours_ica' => 'Catálogo — Ica (/tours/categoria/ica)',
         'tours_cusco' => 'Catálogo — Cusco (/tours/categoria/cusco)',
-        'blog'        => 'Blog — listado (/blog)',
+        'blog' => 'Blog — listado (/blog)',
     ];
 
     public const LOCALES = ['es' => 'Español', 'en' => 'English', 'pt' => 'Português'];
@@ -40,12 +40,28 @@ class PageSeo
     }
 
     /**
+     * Custom JSON-LD for a system page (home, catálogo, catálogo por región,
+     * blog), by current locale with fallback to Spanish. Returns null (never
+     * empty) when nothing is configured, in which case the view keeps
+     * whatever automatic schema it already emits — see rule documented next
+     * to each `@push('schema')` in home/tours/blog index views.
+     *
+     * No text fallback here (unlike title()/description()): an empty schema
+     * field means "don't print anything additional", not "use a default
+     * schema" — there is no sensible default JSON-LD to fall back to.
+     */
+    public static function schemaJsonLd(string $page): ?string
+    {
+        return static::value($page, 'schema');
+    }
+
+    /**
      * Clave de página del catálogo: sin categoría es el catálogo completo.
      * `$categoria` llega de la ruta (lima|ica|cusco).
      */
     public static function toursKey(?string $categoria = null): string
     {
-        $key = $categoria ? 'tours_' . $categoria : 'tours';
+        $key = $categoria ? 'tours_'.$categoria : 'tours';
 
         return array_key_exists($key, static::PAGES) ? $key : 'tours';
     }

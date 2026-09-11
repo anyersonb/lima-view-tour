@@ -24,9 +24,13 @@ class Settings extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+
     protected static ?string $navigationGroup = 'Sistema';
+
     protected static ?string $navigationLabel = 'Configuración';
+
     protected static ?string $title = 'Configuración del sitio';
+
     protected static ?int $navigationSort = 99;
 
     protected static string $view = 'filament.pages.settings';
@@ -38,18 +42,18 @@ class Settings extends Page implements HasForms
         $rows = Setting::all()->pluck('value', 'key')->toArray();
         // Pre-rellenar credenciales de PayPal desde el .env si aún no están en la BD
         $rows['paypal_client_id'] = $rows['paypal_client_id'] ?? config('services.paypal.client_id');
-        $rows['paypal_secret']    = $rows['paypal_secret']    ?? config('services.paypal.secret');
-        $rows['paypal_mode']      = $rows['paypal_mode']      ?? config('services.paypal.mode', 'sandbox');
+        $rows['paypal_secret'] = $rows['paypal_secret'] ?? config('services.paypal.secret');
+        $rows['paypal_mode'] = $rows['paypal_mode'] ?? config('services.paypal.mode', 'sandbox');
         $rows['paypal_webhook_id'] = $rows['paypal_webhook_id'] ?? config('services.paypal.webhook_id');
 
         // Pre-rellenar keys de Google y Tripadvisor desde .env si aún no están en la BD
-        $rows['google_maps_api_key']        = $rows['google_maps_api_key']        ?? config('services.google.maps_api_key');
-        $rows['google_place_id']            = $rows['google_place_id']            ?? config('services.google.place_id');
-        $rows['google_reviews_enabled']     = isset($rows['google_reviews_enabled'])
+        $rows['google_maps_api_key'] = $rows['google_maps_api_key'] ?? config('services.google.maps_api_key');
+        $rows['google_place_id'] = $rows['google_place_id'] ?? config('services.google.place_id');
+        $rows['google_reviews_enabled'] = isset($rows['google_reviews_enabled'])
             ? filter_var($rows['google_reviews_enabled'], FILTER_VALIDATE_BOOLEAN)
             : false;
-        $rows['tripadvisor_api_key']        = $rows['tripadvisor_api_key']        ?? config('services.tripadvisor.api_key');
-        $rows['tripadvisor_location_id']    = $rows['tripadvisor_location_id']    ?? config('services.tripadvisor.location_id');
+        $rows['tripadvisor_api_key'] = $rows['tripadvisor_api_key'] ?? config('services.tripadvisor.api_key');
+        $rows['tripadvisor_location_id'] = $rows['tripadvisor_location_id'] ?? config('services.tripadvisor.location_id');
         $rows['tripadvisor_reviews_enabled'] = isset($rows['tripadvisor_reviews_enabled'])
             ? filter_var($rows['tripadvisor_reviews_enabled'], FILTER_VALIDATE_BOOLEAN)
             : false;
@@ -60,13 +64,13 @@ class Settings extends Page implements HasForms
             : false;
 
         // Pre-rellenar reCAPTCHA desde .env si aún no están en la BD
-        $rows['recaptcha_enabled']  = isset($rows['recaptcha_enabled'])
+        $rows['recaptcha_enabled'] = isset($rows['recaptcha_enabled'])
             ? filter_var($rows['recaptcha_enabled'], FILTER_VALIDATE_BOOLEAN)
             : (bool) config('services.recaptcha.enabled', false);
-        $rows['recaptcha_version']     = $rows['recaptcha_version']     ?? config('services.recaptcha.version', 'v3');
-        $rows['recaptcha_site_key']    = $rows['recaptcha_site_key']    ?? config('services.recaptcha.site_key');
-        $rows['recaptcha_secret_key']  = $rows['recaptcha_secret_key']  ?? config('services.recaptcha.secret_key');
-        $rows['recaptcha_v3_threshold']= $rows['recaptcha_v3_threshold']?? config('services.recaptcha.threshold', 0.5);
+        $rows['recaptcha_version'] = $rows['recaptcha_version'] ?? config('services.recaptcha.version', 'v3');
+        $rows['recaptcha_site_key'] = $rows['recaptcha_site_key'] ?? config('services.recaptcha.site_key');
+        $rows['recaptcha_secret_key'] = $rows['recaptcha_secret_key'] ?? config('services.recaptcha.secret_key');
+        $rows['recaptcha_v3_threshold'] = $rows['recaptcha_v3_threshold'] ?? config('services.recaptcha.threshold', 0.5);
 
         // Pre-fill cookie banner settings with defaults if not yet stored
         $rows['cookie_banner_enabled'] = isset($rows['cookie_banner_enabled'])
@@ -214,6 +218,31 @@ class Settings extends Page implements HasForms
                             ->schema(static::seoPageFields())
                             ->collapsible()
                             ->collapsed(),
+                        \Filament\Forms\Components\Section::make('Schema global del sitio')
+                            ->description('Datos estructurados (JSON-LD) que se imprimen en TODAS las páginas del sitio, por idioma. Vacío por defecto: si no lo completas, no se emite nada adicional (el schema Organization/WebSite automático de siempre sigue funcionando igual, sin cambios). Aquí es donde se carga a mano el Organization/TravelAgency que hoy sale automático, cuando se decida reemplazarlo.')
+                            ->icon('heroicon-o-globe-alt')
+                            ->collapsible()
+                            ->collapsed()
+                            ->schema([
+                                Textarea::make('schema_jsonld_global_es')
+                                    ->label('JSON-LD global — Español')
+                                    ->rows(6)
+                                    ->columnSpanFull()
+                                    ->helperText('Opcional. Se imprime en TODAS las páginas. Debe ser JSON válido — se valida antes de guardar.')
+                                    ->rules([static::seoJsonLdRule()]),
+                                Textarea::make('schema_jsonld_global_en')
+                                    ->label('JSON-LD global — English')
+                                    ->rows(6)
+                                    ->columnSpanFull()
+                                    ->helperText('Opcional. Si está vacío, cae al del español.')
+                                    ->rules([static::seoJsonLdRule()]),
+                                Textarea::make('schema_jsonld_global_pt')
+                                    ->label('JSON-LD global — Português')
+                                    ->rows(6)
+                                    ->columnSpanFull()
+                                    ->helperText('Opcional. Se vazio, usa o do espanhol.')
+                                    ->rules([static::seoJsonLdRule()]),
+                            ]),
                     ]),
                     Tabs\Tab::make('Home')->icon('heroicon-o-home')->schema([
 
@@ -669,7 +698,7 @@ class Settings extends Page implements HasForms
                                         Textarea::make('desc_pt')->label('Descripción (PT)')->rows(2)->columnSpanFull(),
                                         Select::make('icon')
                                             ->label('Icono')
-                                            ->options(['shield'=>'Escudo (shield)','star'=>'Estrella (star)','headset'=>'Auriculares (headset)','medal'=>'Medalla (medal)'])
+                                            ->options(['shield' => 'Escudo (shield)', 'star' => 'Estrella (star)', 'headset' => 'Auriculares (headset)', 'medal' => 'Medalla (medal)'])
                                             ->native(false),
                                     ])
                                     ->columns(3)
@@ -837,7 +866,7 @@ class Settings extends Page implements HasForms
                                         Select::make('type')
                                             ->label('Tipo de recogida')
                                             ->options([
-                                                'all'    => 'Todas las ubicaciones',
+                                                'all' => 'Todas las ubicaciones',
                                                 'hotels' => 'Solo hoteles',
                                             ])
                                             ->default('all')
@@ -943,16 +972,18 @@ class Settings extends Page implements HasForms
 
         foreach ($data as $key => $value) {
             // Serialize Repeater fields as JSON string
-            $jsonRepeaterKeys = ['faqs','home_destinos','home_why_items','home_tour_type_tabs',
-                                 'home_footer_features','home_exp_tours','home_reco_items','home_faqs',
-                                 'pickup_zones'];
+            $jsonRepeaterKeys = ['faqs', 'home_destinos', 'home_why_items', 'home_tour_type_tabs',
+                'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
+                'pickup_zones'];
             if (in_array($key, $jsonRepeaterKeys, true)) {
                 Setting::set($key, json_encode(is_array($value) ? $value : []));
+
                 continue;
             }
             // Store boolean toggle fields with the correct type so castValue works
             if (in_array($key, self::BOOLEAN_KEYS, true)) {
                 Setting::set($key, $value ? '1' : '0', 'boolean');
+
                 continue;
             }
             Setting::set($key, $value);
@@ -982,7 +1013,7 @@ class Settings extends Page implements HasForms
 
             foreach (PageSeo::LOCALES as $locale => $localeLabel) {
                 $titleKey = PageSeo::settingKey($page, 'title', $locale);
-                $descKey  = PageSeo::settingKey($page, 'description', $locale);
+                $descKey = PageSeo::settingKey($page, 'description', $locale);
 
                 $fields[] = TextInput::make($titleKey)
                     ->label("Meta title — {$localeLabel}")
@@ -996,6 +1027,15 @@ class Settings extends Page implements HasForms
                     ->maxLength(160)
                     ->live(onBlur: true)
                     ->helperText(fn (\Filament\Forms\Get $get): string => static::seoCharHelper($get($descKey), 150, 160));
+
+                $schemaKey = PageSeo::settingKey($page, 'schema', $locale);
+
+                $fields[] = Textarea::make($schemaKey)
+                    ->label("Datos estructurados (JSON-LD) — {$localeLabel}")
+                    ->rows(6)
+                    ->columnSpanFull()
+                    ->helperText('Opcional. Si lo completas, se imprime en el <head> de esta página en este idioma. Si el idioma actual está vacío, cae al español. Debe ser JSON válido — se valida antes de guardar.')
+                    ->rules([static::seoJsonLdRule()]);
             }
 
             $sections[] = \Filament\Forms\Components\Section::make($pageLabel)

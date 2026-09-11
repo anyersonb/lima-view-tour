@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\HasLocalizedSeoFields;
+use App\Filament\Concerns\RoutesRecordsByKey;
 use App\Filament\Resources\PageResource\Pages;
 use App\Models\Page;
 use App\Support\ImagePath;
@@ -17,7 +18,7 @@ use Illuminate\Support\HtmlString;
 
 class PageResource extends Resource
 {
-    use HasLocalizedSeoFields;
+    use HasLocalizedSeoFields, RoutesRecordsByKey;
 
     protected static ?string $model = Page::class;
 
@@ -25,10 +26,15 @@ class PageResource extends Resource
     protected static ?string $recordRouteKeyName = 'id';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
     protected static ?string $navigationGroup = 'Contenido';
+
     protected static ?string $navigationLabel = 'Páginas';
+
     protected static ?string $modelLabel = 'Página';
+
     protected static ?string $pluralModelLabel = 'Páginas';
+
     protected static ?int $navigationSort = 6;
 
     public static function form(Form $form): Form
@@ -107,7 +113,7 @@ class PageResource extends Resource
                                             ->schema([
                                                 Forms\Components\Placeholder::make('slug_es_note')
                                                     ->label('Identificador (slug)')
-                                                    ->content(fn (Forms\Get $get): string => (string) ($get('slug') ?: '—') . ' — se edita en la pestaña General.'),
+                                                    ->content(fn (Forms\Get $get): string => (string) ($get('slug') ?: '—').' — se edita en la pestaña General.'),
                                                 Forms\Components\TextInput::make('meta_title_es')
                                                     ->label('Meta título — Español')
                                                     ->maxLength(70)
@@ -863,9 +869,9 @@ class PageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListPages::route('/'),
+            'index' => Pages\ListPages::route('/'),
             'create' => Pages\CreatePage::route('/create'),
-            'edit'   => Pages\EditPage::route('/{record}/edit'),
+            'edit' => Pages\EditPage::route('/{record}/edit'),
         ];
     }
 }

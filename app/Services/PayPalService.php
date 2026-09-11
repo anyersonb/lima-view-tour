@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\PayPalCardDeclinedException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -223,11 +224,33 @@ class PayPalService
                 ->post("{$this->baseUrl()}/v2/checkout/orders/{$orderId}/capture");
 
             if ($response->failed()) {
+                $issue = $response->json('details.0.issue');
+
                 Log::error('paypal.capture_order.failed', [
                     'order_id' => $orderId,
                     'status'   => $response->status(),
+                    'issue'    => $issue,
                     'body'     => $response->body(),
                 ]);
+
+                // INSTRUMENT_DECLINED: the buyer's bank/issuer rejected the
+                // card at capture time. This is a buyer-side payment failure,
+                // not a bug in our integration, so it gets its own exception
+                // instead of the generic RuntimeException below — the
+                // controller can then answer "try another card" instead of
+                // "contact us".
+                //
+                // We deliberately do NOT fold PAYER_ACTION_REQUIRED into this
+                // same bucket: PayPal's own remediation for that issue is to
+                // redirect the buyer to the `payer-action` link to complete
+                // an extra verification step (e.g. 3-D Secure), not to retry
+                // with a different instrument. Telling the buyer to "try
+                // another card" for that issue would be wrong. Implementing
+                // that redirect flow is a separate feature, out of scope
+                // here.
+                if ($response->status() === 422 && $issue === 'INSTRUMENT_DECLINED') {
+                    throw new PayPalCardDeclinedException($issue);
+                }
 
                 throw new \RuntimeException(
                     'PayPal capture failed: ' . $response->body()

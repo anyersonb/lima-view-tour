@@ -25,73 +25,16 @@
 
     // Regla de convivencia (panel Filament → Blog → SEO — [idioma] → Datos
     // estructurados): si el editor cargó JSON-LD manual para este idioma (o
-    // el de español como fallback), REEMPLAZA el bloque BlogPosting
-    // autogenerado de abajo. Vacío = se mantiene el automático de siempre.
+    // el de español como fallback), se imprime tal cual.
+    // Lote B (2026-08-31): se apagó el @graph BlogPosting+BreadcrumbList
+    // automático que antes se pintaba cuando este campo estaba vacío — con
+    // el campo vacío, el artículo ya no emite ningún JSON-LD.
     $customSchema = $post->schemaJsonLd($locale);
 @endphp
 
 @push('schema')
 @if ($customSchema)
-<script type="application/ld+json">{!! $customSchema !!}</script>
-@else
-<script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@graph": [
-        {
-            "@type": "BlogPosting",
-            "headline": "{{ addslashes($post->title) }}",
-            "image": "{{ $post->cover_image ? asset('storage/' . $post->cover_image) : asset('assets/banners/banner-hero.jpg') }}",
-            "datePublished": "{{ $post->published_at?->toIso8601String() }}",
-            "dateModified": "{{ $post->updated_at->toIso8601String() }}",
-            "author": {
-                "@type": "Person",
-                "name": "{{ addslashes($post->author_name ?? 'Lima View Tours') }}"
-            },
-            "publisher": {
-                "@type": "Organization",
-                "name": "Lima View Tours",
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": "{{ asset('assets/logos/logo.png') }}"
-                }
-            },
-            "mainEntityOfPage": {
-                "@type": "WebPage",
-                "@id": "{{ url()->current() }}"
-            },
-            "description": "{{ addslashes(Str::limit(strip_tags($post->excerpt), 160)) }}",
-            "inLanguage": "{{ $locale }}"
-            @if ($post->tags)
-            ,"keywords": "{{ implode(', ', $post->tags) }}"
-            @endif
-        },
-        {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-                {
-                    "@type": "ListItem",
-                    "position": 1,
-                    "name": "{{ $L('Inicio', 'Home', 'Início') }}",
-                    "item": "{{ route('home', ['locale' => $locale]) }}"
-                },
-                {
-                    "@type": "ListItem",
-                    "position": 2,
-                    "name": "Blog",
-                    "item": "{{ route('blog.index', ['locale' => $locale]) }}"
-                },
-                {
-                    "@type": "ListItem",
-                    "position": 3,
-                    "name": "{{ addslashes($post->title) }}",
-                    "item": "{{ url()->current() }}"
-                }
-            ]
-        }
-    ]
-}
-</script>
+<x-schema-raw :json="$customSchema" />
 @endif
 @endpush
 

@@ -201,9 +201,19 @@ class PageLocalizedSeoRenderTest extends TestCase
         $this->assertStringContainsString('Privacy Policy', $this->title($html));
     }
 
-    // ── Convivencia: el JSON-LD manual se SUMA, no reemplaza el global ──
+    // ── Exclusividad: el JSON-LD manual es el ÚNICO bloque, ya no convive
+    //    con ningún Organization/WebSite automático ──────────────────────
 
-    public function test_custom_jsonld_is_additive_to_the_global_organization_website_schema(): void
+    /**
+     * Lote B (2026-08-31) apagó el JSON-LD automático de todo el sitio
+     * (components/jsonld.blade.php, borrado). Este test protegía lo
+     * contrario hasta ayer: que el manual se SUMABA al Organization/WebSite
+     * global. Ese comportamiento ya no existe y afirmarlo sería falso —
+     * invertido: ahora un JSON-LD manual relleno debe ser el ÚNICO bloque
+     * que la página emite, sin ningún WebSite/Organization/LocalBusiness
+     * automático de acompañamiento.
+     */
+    public function test_custom_jsonld_is_the_only_block_emitted_with_no_automatic_organization_or_website(): void
     {
         Page::create([
             'slug' => 'nosotros',
@@ -220,15 +230,13 @@ class PageLocalizedSeoRenderTest extends TestCase
 
         $types = collect($blocks)->flatMap(fn ($b) => (array) ($b['@type'] ?? []))->all();
 
-        // El Organization/WebSite global (components/jsonld.blade.php) sigue
-        // presente: el manual se agrega, no lo reemplaza (no hay schema
-        // autogenerado propio de esta página al día de hoy).
-        $this->assertContains('WebSite', $types, 'El WebSite global desapareció al agregar JSON-LD manual.');
-        $this->assertTrue(
+        $this->assertNotContains('WebSite', $types, 'Reapareció el WebSite automático: debería estar apagado (Lote B).');
+        $this->assertFalse(
             collect($types)->contains(fn ($t) => in_array($t, ['TravelAgency', 'LocalBusiness'], true)),
-            'El Organization/LocalBusiness global desapareció al agregar JSON-LD manual.'
+            'Reapareció el Organization/LocalBusiness automático: debería estar apagado (Lote B).'
         );
 
+        $this->assertCount(1, $blocks, 'Con el manual relleno solo debe emitirse ESE bloque, ninguno automático de más.');
         $found = collect($blocks)->contains(fn ($b) => ($b['name'] ?? null) === 'MARCA-JSONLD-ADITIVO');
         $this->assertTrue($found);
     }
