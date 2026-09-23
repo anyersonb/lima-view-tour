@@ -147,6 +147,9 @@ class CheckoutController extends Controller
             $bookings = $this->finalizeBookings($items, $customer, 'pay_later', null, false);
 
             $request->session()->put('last_bookings', $bookings->toArray());
+            // Consumed once by thanks() via session()->pull(): a refresh of
+            // /checkout/gracias must not re-fire the conversion event.
+            $request->session()->put('conversion_pending', true);
 
             return redirect()->route('checkout.thanks', ['locale' => $locale]);
 
@@ -393,6 +396,9 @@ class CheckoutController extends Controller
             $bookings = $this->finalizeBookings($snapshotItems, $customer, 'paypal', $captureId, true, datesAlreadyChecked: true);
 
             $request->session()->put('last_bookings', $bookings->toArray());
+            // Consumed once by thanks() via session()->pull(): a refresh of
+            // /checkout/gracias must not re-fire the conversion event.
+            $request->session()->put('conversion_pending', true);
 
             return response()->json([
                 'success' => true,
@@ -494,14 +500,58 @@ class CheckoutController extends Controller
 
     /**
      * Show the thank-you page after a successful payment.
+     *
+     * `last_bookings` stays in session across refreshes on purpose (so the
+     * page keeps showing the booking detail if the visitor reloads it).
+     * `conversion_pending`, however, is pulled (read + removed) here: it is
+     * the one-time flag that lets the view decide whether to render the
+     * purchase / reserva_pagar_despues conversion payload. A second visit
+     * to /checkout/gracias (refresh, back button) finds the flag already
+     * gone and renders no conversion event.
      */
     public function thanks(Request $request): View
     {
         $bookings = collect($request->session()->get('last_bookings', []));
+        $conversionPending = $request->session()->pull('conversion_pending', false);
 
         return view('checkout.thanks', [
             'bookings' => $bookings,
+            'conversionPayload' => $conversionPending ? $this->buildConversionPayload($bookings) : null,
         ]);
+    }
+
+    /**
+     * Builds the ecommerce payload for window.lvtTrack() on the thanks page.
+     * event = 'purchase' when the booking(s) were paid at checkout (PayPal),
+     * 'reserva_pagar_despues' when confirmed with payment pending
+     * ('pay_later') — the latter is NOT a purchase, per the agreed contract.
+     *
+     * @return array{event: string, fb: string, data: array}|null
+     */
+    private function buildConversionPayload(Collection $bookings): ?array
+    {
+        if ($bookings->isEmpty()) {
+            return null;
+        }
+
+        $first = $bookings->first();
+        $isPaid = ($first['payment_status'] ?? 'pending') === 'paid';
+
+        return [
+            'event' => $isPaid ? 'purchase' : 'reserva_pagar_despues',
+            'fb' => $isPaid ? 'Purchase' : 'Lead',
+            'data' => [
+                'transaction_id' => $first['reference'] ?? '',
+                'currency' => $first['currency'] ?? 'USD',
+                'value' => (float) $bookings->sum('total_price'),
+                'items' => $bookings->map(fn (array $b) => [
+                    'item_id' => (string) ($b['tour_id'] ?? ''),
+                    'item_name' => $b['tour_title_snapshot'] ?? '',
+                    'price' => (float) ($b['unit_price'] ?? 0),
+                    'quantity' => (int) ($b['adults'] ?? 0) + (int) ($b['children'] ?? 0),
+                ])->values()->all(),
+            ],
+        ];
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -2668,6 +2668,60 @@ if (!empty($itinerary)) {
     <input type="hidden" name="children" :value="$store.booking.children">
 </form>
 
+@push('scripts')
+{{--
+    view_item — fires once on page load. Data comes straight from the
+    server ($tour), never assembled by hand in JS.
+    add_to_cart — fires on submit of #form-reservar, BEFORE the classic
+    (non-AJAX) POST navigates away to /carrito. guardEmptyDate() (pushed
+    earlier in this same file) already listens for 'submit' and calls
+    e.preventDefault() when no date was chosen; this listener runs AFTER
+    it (scripts render/attach in @push order) and checks e.defaultPrevented
+    so a blocked submission never gets counted as an add_to_cart.
+--}}
+<script>
+(function () {
+    var lvtTourItem = {
+        item_id: @json((string) $tour->id),
+        item_name: @json($titleDisplay),
+        price: {{ (float) $tour->price }},
+        quantity: 1,
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof window.lvtTrack === 'function') {
+            window.lvtTrack('view_item', {
+                currency: 'USD',
+                value: lvtTourItem.price,
+                items: [lvtTourItem],
+            }, { fb: 'ViewContent' });
+        }
+    });
+
+    var form = document.getElementById('form-reservar');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented || typeof window.lvtTrack !== 'function') return;
+
+            var adults = (typeof Alpine !== 'undefined' && Alpine.store('booking'))
+                ? parseInt(Alpine.store('booking').adults, 10) || 1
+                : 1;
+            var children = (typeof Alpine !== 'undefined' && Alpine.store('booking'))
+                ? parseInt(Alpine.store('booking').children, 10) || 0
+                : 0;
+            var quantity = adults + children;
+
+            window.lvtTrack('add_to_cart', {
+                currency: 'USD',
+                value: lvtTourItem.price * quantity,
+                items: [Object.assign({}, lvtTourItem, { quantity: quantity })],
+            }, { fb: 'AddToCart' });
+        });
+    }
+})();
+</script>
+@endpush
+
 {{-- ─────────── BARRA FLOTANTE BOTTOM mobile — diseño mockup exacto ─────────── --}}
 {{-- Banner flotante mobile retirado: dentro de la propia interna el CTA "Ver tour" no aplica
      (el usuario ya está en el tour). La reserva se hace en la card "Reserva online" de arriba. --}}

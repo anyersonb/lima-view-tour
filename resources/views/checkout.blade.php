@@ -1699,6 +1699,18 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     </div>
 </div>
 
+@php
+    // Payload de ecommerce para begin_checkout / add_payment_info. Calculado
+    // acá (variable simple) en vez de dentro de @json() con una closure
+    // multilínea: Blade tropieza al extraer los argumentos de una llamada a
+    // directiva que abarca varias líneas con arrays anidados.
+    $checkoutEcommerceItems = $items->map(fn ($it) => [
+        'item_id' => (string) ($it['tour_id'] ?? ''),
+        'item_name' => $it['title_snapshot'] ?? '',
+        'price' => (float) ($it['unit_price'] ?? 0),
+        'quantity' => (int) ($it['adults'] ?? 0) + (int) ($it['children'] ?? 0),
+    ])->values();
+@endphp
 @push('scripts')
 @if ($items->isNotEmpty() && (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')))
 <script
@@ -1733,6 +1745,21 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         });
     });
     const serverDiscount = {{ $discount ?? 0 }};
+
+    // ── Eventos de conversión: begin_checkout / add_payment_info ──
+    // Datos siempre calculados en servidor — nunca armados a mano en JS.
+    const lvtCheckoutItems = @json($checkoutEcommerceItems);
+    const lvtCheckoutValue = {{ (float) $total }};
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (lvtCheckoutItems.length && typeof window.lvtTrack === 'function') {
+            window.lvtTrack('begin_checkout', {
+                currency: 'USD',
+                value: lvtCheckoutValue,
+                items: lvtCheckoutItems,
+            }, { fb: 'InitiateCheckout' });
+        }
+    });
 
     // ── Helpers ─────────────────────────────────────────────────
     async function patchCart(rowId, adults, children) {
@@ -2191,6 +2218,20 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
         if (ppSection) ppSection.style.display  = (timing === 'now')   ? '' : 'none';
         if (plSection) plSection.style.display  = (timing === 'later') ? '' : 'none';
+
+        // add_payment_info — fires both when entering the "pago" step
+        // (setStep() calls syncPaymentSection()) and when the shopper
+        // switches "pagar ahora" / "pagar después" (paymentFlowBlocked
+        // already returned above, so this only runs while the payment
+        // flow is still open).
+        if (lvtCheckoutItems.length && typeof window.lvtTrack === 'function') {
+            window.lvtTrack('add_payment_info', {
+                currency: 'USD',
+                value: lvtCheckoutValue,
+                payment_type: timing === 'later' ? 'pay_later' : 'paypal',
+                items: lvtCheckoutItems,
+            });
+        }
     }
 
     document.querySelectorAll('input[name="payment_timing_ui"]').forEach(radio => {

@@ -127,4 +127,26 @@
 </section>
 @endif
 
+@if ($conversionPayload)
+@push('scripts')
+{{--
+    purchase / reserva_pagar_despues — one shot, gated server-side by
+    CheckoutController@thanks via session()->pull('conversion_pending').
+    $conversionPayload is null on any second visit to this page (refresh,
+    back button), so this whole block simply doesn't render then.
+--}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof window.lvtTrack === 'function') {
+            window.lvtTrack(
+                @json($conversionPayload['event']),
+                @json($conversionPayload['data']),
+                { fb: @json($conversionPayload['fb']) }
+            );
+        }
+    });
+</script>
+@endpush
+@endif
+
 @endsection
