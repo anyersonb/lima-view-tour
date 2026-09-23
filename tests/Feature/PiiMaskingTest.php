@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Booking;
 use App\Models\Tour;
 use App\Services\CartService;
 use DOMDocument;
@@ -15,10 +14,20 @@ use Tests\TestCase;
  * Hotjar (loaded via GTM, see fix/csp 90d9923) must never record raw
  * customer PII from session replays.
  *
- * Both tests parse the rendered DOM (DOMDocument/DOMXPath) instead of doing
- * a global str_contains() on the HTML: a masking attribute silently dropped
- * from ONE specific element (but still present elsewhere on the page) must
- * fail the test, not slip through because "the word appears somewhere".
+ * Note: /checkout/gracias (checkout/thanks.blade.php) is NOT covered here.
+ * It renders tour title, dates, price, booking reference and payment
+ * status — never customer_name/email/phone/pickup/notes (confirmed by
+ * reading the view and its layout/components: no @include or <x-component>
+ * there touches session PII). There is nothing to mask on that page today,
+ * so no test is asserted against it. If a future change adds customer PII
+ * to that page, mirror the pattern below (assert the exact element that
+ * shows it carries data-clarity-mask="true" + data-hj-suppress).
+ *
+ * The test below parses the rendered DOM (DOMDocument/DOMXPath) instead of
+ * doing a global str_contains() on the HTML: a masking attribute silently
+ * dropped from ONE specific element (but still present elsewhere on the
+ * page) must fail the test, not slip through because "the word appears
+ * somewhere".
  */
 class PiiMaskingTest extends TestCase
 {
@@ -42,66 +51,6 @@ class PiiMaskingTest extends TestCase
         libxml_clear_errors();
 
         return new DOMXPath($dom);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    //  /checkout/gracias: el nombre del cliente debe ir DENTRO de un
-    //  elemento marcado para Clarity y Hotjar.
-    // ─────────────────────────────────────────────────────────────
-
-    public function test_thanks_page_renders_customer_name_inside_masked_element(): void
-    {
-        $tour = $this->tour();
-
-        $booking = Booking::create([
-            'tour_id' => $tour->id,
-            'tour_title_snapshot' => $tour->title_es,
-            'customer_name' => 'Rosa Quispe Mamani',
-            'customer_email' => 'rosa.quispe@example.com',
-            'customer_phone' => '987000111',
-            'travel_date' => now()->addDays(9)->format('Y-m-d'),
-            'adults' => 1,
-            'children' => 0,
-            'unit_price' => 150.00,
-            'total_price' => 150.00,
-            'currency' => 'USD',
-            'status' => 'confirmed',
-            'payment_status' => 'paid',
-            'payment_method' => 'paypal',
-            'payment_reference' => 'CAPTURE-MASK-1',
-            'locale' => 'es',
-        ]);
-
-        $response = $this->withSession([
-            'last_bookings' => [$booking->toArray()],
-        ])->get(route('checkout.thanks', ['locale' => self::LOCALE]));
-
-        $response->assertOk();
-
-        $xpath = $this->crawl($response->getContent());
-
-        // Extracción vacía = falla: si el nombre no aparece como texto de
-        // NINGÚN elemento, el test debe fallar aquí, no seguir de largo.
-        $nameNodes = $xpath->query("//*[normalize-space(text())='Rosa Quispe Mamani']");
-        $this->assertGreaterThan(
-            0,
-            $nameNodes->length,
-            'El nombre del cliente no se encontró como texto de ningún elemento en /checkout/gracias.'
-        );
-
-        $maskedFound = false;
-        foreach ($nameNodes as $node) {
-            if ($node->getAttribute('data-clarity-mask') === 'true'
-                && $node->hasAttribute('data-hj-suppress')) {
-                $maskedFound = true;
-                break;
-            }
-        }
-
-        $this->assertTrue(
-            $maskedFound,
-            'El nombre del cliente debe estar DENTRO de un elemento con data-clarity-mask="true" y data-hj-suppress.'
-        );
     }
 
     // ─────────────────────────────────────────────────────────────
