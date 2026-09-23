@@ -31,6 +31,12 @@
 
         <h1 class="font-display text-4xl md:text-5xl lg:text-6xl leading-tight">{{ __('checkout.thank_you_title') }}</h1>
 
+        @if ($firstName && $firstName !== 'viajero')
+            <p class="mt-3 text-white/90 text-sm md:text-base font-semibold" data-clarity-mask="true" data-hj-suppress>
+                {{ $firstName }}
+            </p>
+        @endif
+
         @if ($firstRef)
             <p class="mt-4 text-white/85 text-sm md:text-base">
                 {{ __('checkout.reference_label') }}: <strong class="text-orange-300 font-mono tracking-widest">{{ $firstRef }}</strong>

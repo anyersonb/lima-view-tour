@@ -23,17 +23,19 @@
             <input type="text" name="website" tabindex="-1" autocomplete="off"
                    style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
                    aria-hidden="true">
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-3 sm:grid-cols-2" data-hj-suppress data-clarity-mask="true">
                 <label class="block">
                     <span class="sr-only">{{ __('footer.newsletter_name') }}</span>
                     <input type="text" name="name" required
                            placeholder="{{ __('footer.newsletter_name') }}"
+                           data-hj-suppress
                            class="w-full rounded-pill bg-white/10 border border-white/25 text-white placeholder-white/50 px-5 py-3.5 text-sm focus:border-orange-400 focus:ring-orange-400 focus:ring-1 focus:outline-none">
                 </label>
                 <label class="block">
                     <span class="sr-only">{{ __('footer.newsletter_email') }}</span>
                     <input type="email" name="email" required
                            placeholder="{{ __('footer.newsletter_email') }}"
+                           data-hj-suppress
                            class="w-full rounded-pill bg-white/10 border border-white/25 text-white placeholder-white/50 px-5 py-3.5 text-sm focus:border-orange-400 focus:ring-orange-400 focus:ring-1 focus:outline-none">
                 </label>
             </div>

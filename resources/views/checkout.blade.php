@@ -1180,7 +1180,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             </div>
                         </div>
                     @else
-                    <div class="cart-card">
+                    <div class="cart-card" data-hj-suppress data-clarity-mask="true">
                         <div class="cart-card-pad">
                             <div class="cart-form-grid">
 
@@ -1192,6 +1192,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            value="{{ old('customer_name') }}"
                                            placeholder="Ej. María García López"
                                            autocomplete="name"
+                                           data-hj-suppress
                                            class="cart-real-input @error('customer_name') border-red-500 @enderror">
                                     @error('customer_name')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                 </div>
@@ -1211,9 +1212,10 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                                     class="cart-real-select"
                                                                     style="flex:0 0 auto; width:min(200px, 45%); min-width:96px;" />
                                             <input type="tel" id="phone_local" placeholder="999 999 999" autocomplete="tel-national"
+                                                   data-hj-suppress
                                                    class="cart-real-input @error('customer_phone') border-red-500 @enderror" style="flex:1; min-width:0;">
                                         </div>
-                                        <input type="hidden" name="customer_phone" id="customer_phone" value="{{ old('customer_phone') }}">
+                                        <input type="hidden" name="customer_phone" id="customer_phone" value="{{ old('customer_phone') }}" data-hj-suppress>
                                         @error('customer_phone')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                         <script>
                                         (function(){
@@ -1232,6 +1234,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                value="{{ old('customer_email') }}"
                                                placeholder="correo@ejemplo.com"
                                                autocomplete="email"
+                                               data-hj-suppress
                                                class="cart-real-input @error('customer_email') border-red-500 @enderror">
                                         @error('customer_email')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                     </div>
@@ -1282,6 +1285,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            value="{{ old('pickup_point') }}"
                                            placeholder="{{ __('ui.pickup_placeholder') }}"
                                            autocomplete="off"
+                                           data-hj-suppress
                                            class="cart-real-input @error('pickup_point') border-red-500 @enderror">
                                     <div id="pickup_zone_warn" role="alert" style="display:none;margin-top:6px;color:#c0392b;font-size:12px;font-weight:600;line-height:1.4;"></div>
                                     @if (blank($pickupMapsKey))
@@ -1410,6 +1414,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     <label for="notes">{{ __('ui.notes_label') }}</label>
                                     <textarea id="notes" name="notes" rows="3"
                                               placeholder="{{ __('ui.notes_placeholder') }}"
+                                              data-hj-suppress
                                               class="cart-real-input">{{ old('notes') }}</textarea>
                                 </div>
 

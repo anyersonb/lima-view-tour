@@ -116,13 +116,14 @@
                 </div>
             @endif
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-2" data-hj-suppress data-clarity-mask="true">
                 <label class="block">
                     <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_name') }}</span>
                     <input type="text" name="nombre" required
                            autocomplete="given-name"
                            placeholder="Johanna"
                            value="{{ old('nombre') }}"
+                           data-hj-suppress
                            class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
                 </label>
                 <label class="block">
@@ -131,32 +132,36 @@
                            autocomplete="family-name"
                            placeholder="{{ __('ui.contact_lastname_placeholder') }}"
                            value="{{ old('apellido') }}"
+                           data-hj-suppress
                            class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
                 </label>
             </div>
 
-            <label class="block mt-4">
+            <label class="block mt-4" data-hj-suppress data-clarity-mask="true">
                 <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_phone') }}</span>
                 <input type="tel" name="celular" required
                        autocomplete="tel"
                        placeholder="{{ __('ui.contact_phone_placeholder') }}"
                        value="{{ old('celular') }}"
+                       data-hj-suppress
                        class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
             </label>
 
-            <label class="block mt-4">
+            <label class="block mt-4" data-hj-suppress data-clarity-mask="true">
                 <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('customer.email') }}</span>
                 <input type="email" name="email" required
                        autocomplete="email"
                        placeholder="{{ __('ui.contact_email_placeholder') }}"
                        value="{{ old('email') }}"
+                       data-hj-suppress
                        class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
             </label>
 
-            <label class="block mt-4">
+            <label class="block mt-4" data-hj-suppress data-clarity-mask="true">
                 <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_message') }}</span>
                 <textarea name="mensaje" required rows="4"
                           placeholder="{{ __('ui.contact_message_placeholder') }}"
+                          data-hj-suppress
                           class="mt-1.5 w-full rounded-2xl border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition resize-none">{{ old('mensaje') }}</textarea>
             </label>
 

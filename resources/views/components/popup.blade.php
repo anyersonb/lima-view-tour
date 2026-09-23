@@ -32,6 +32,7 @@
                        style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
                        aria-hidden="true">
                 <input type="email" name="email" required placeholder="Tu correo electrónico"
+                       data-hj-suppress
                        class="w-full rounded-pill border border-teal-800/20 px-5 py-3 text-sm focus:border-orange-400 focus:ring-orange-400">
                 <button type="submit" class="btn--primary btn--block">Suscribirme</button>
             </form>
