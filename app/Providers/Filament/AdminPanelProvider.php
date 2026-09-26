@@ -10,6 +10,7 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -37,6 +38,16 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->favicon(asset('favicon.ico'))
             ->sidebarCollapsibleOnDesktop()
+            // Item 6 (docs/payment-links/QA.md): fallback de "copiar al
+            // portapapeles" para http (sin navigator.clipboard) — ver
+            // resources/views/filament/partials/copy-fallback-script.blade.php.
+            // Registrado UNA vez a nivel de panel para que cualquier
+            // elemento con data-copy-text="..." (tabla, acciones, formulario
+            // de Links de pago) quede copiable sin depender de ->copyable().
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => view('filament.partials.copy-fallback-script')->render(),
+            )
             ->navigationGroups([
                 'Catálogo',
                 'Contenido',

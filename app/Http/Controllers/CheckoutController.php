@@ -5,11 +5,9 @@ namespace App\Http\Controllers;
 use App\Exceptions\PayPalCardDeclinedException;
 use App\Exceptions\UnbookableDateException;
 use App\Http\Requests\ProcessPaymentRequest;
-use App\Mail\AccountCredentials;
 use App\Models\BlockedDate;
-use App\Models\Booking;
-use App\Models\Customer;
 use App\Services\AbandonedCartService;
+use App\Services\BookingCreationService;
 use App\Services\BookingNotifier;
 use App\Services\CartService;
 use App\Services\PaymentLockService;
@@ -20,11 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
@@ -36,6 +30,7 @@ class CheckoutController extends Controller
         private readonly BookingNotifier $notifier,
         private readonly AbandonedCartService $abandoned,
         private readonly PaymentLockService $paymentLock,
+        private readonly BookingCreationService $bookingCreator,
     ) {}
 
     /**
@@ -594,7 +589,6 @@ class CheckoutController extends Controller
         bool $datesAlreadyChecked = false,
     ): Collection {
         $locale = app()->getLocale();
-        $hasPickupColumns = Schema::hasColumn('bookings', 'pickup_point');
 
         if (! $datesAlreadyChecked) {
             // Última línea de defensa: revalida la fecha de CADA ítem antes
@@ -605,72 +599,16 @@ class CheckoutController extends Controller
             $this->assertBookableDates($items, $customer);
         }
 
-        // Resolve customer_id y crear los Bookings dentro de UNA transacción:
-        // un carrito de 3 tours donde el segundo revienta (BD, validación,
-        // lo que sea) no debe dejar 1 reserva pagada y 2 sin crear. Todo o
-        // nada — y si "nada", el catch de paypalCaptureOrder() decide qué
-        // hacer con un pago que ya se cobró (ver el marcador de bloqueo).
-        //
-        // OJO: el correo de credenciales de invitado (dentro de
-        // resolveCustomerId) y BookingNotifier::send() se disparan FUERA de
-        // esta transacción, después del commit. Un rollback no puede
-        // des-enviar un correo: si el correo saliera dentro y luego la
-        // transacción revirtiera, quedaría prometiendo una cuenta o una
-        // reserva que ya no existe.
-        $pendingGuestMail = null;
-
-        $bookings = DB::transaction(function () use (
-            $items, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, &$pendingGuestMail
-        ): Collection {
-            $customerId = $this->resolveCustomerId($customer, $locale, $pendingGuestMail);
-
-            return $items->map(function (array $item) use (
-                $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $customerId
-            ): Booking {
-                $attrs = [
-                    'customer_id' => $customerId,
-                    'tour_id' => $item['tour_id'],
-                    'tour_title_snapshot' => $item['title_snapshot'],
-                    'customer_name' => $customer['customer_name'],
-                    'customer_email' => $customer['customer_email'],
-                    'customer_phone' => $customer['customer_phone'],
-                    // La fecha del ÍTEM, no la del formulario. Grababa
-                    // $customer['travel_date'] en todas las reservas del carrito,
-                    // así que reservar dos tours en días distintos guardaba los dos
-                    // en la fecha del primero, sin avisar a nadie. El carrito
-                    // siempre soportó fecha por tour (rowId = md5(tour_id.fecha));
-                    // era el checkout el que la tiraba.
-                    'travel_date' => $item['travel_date'] ?? $customer['travel_date'],
-                    'adults' => $item['adults'],
-                    'children' => $item['children'],
-                    'unit_price' => $item['unit_price'],
-                    'total_price' => $item['subtotal'],
-                    'currency' => 'USD',
-                    'status' => $paid ? 'confirmed' : 'pending',
-                    'payment_status' => $paid ? 'paid' : 'pending',
-                    'payment_method' => $method,
-                    'payment_reference' => $paymentReference,
-                    'locale' => $locale,
-                ];
-
-                if ($hasPickupColumns) {
-                    $attrs['pickup_point'] = $customer['pickup_point'] ?? null;
-                    $attrs['pickup_detail'] = $customer['pickup_detail'] ?? null;
-                }
-
-                return Booking::create($attrs);
-            });
-        });
-
-        // Recién aquí, con la transacción ya confirmada, es seguro enviar el
-        // correo con las credenciales del cliente invitado recién creado.
-        if ($pendingGuestMail !== null) {
-            $this->sendGuestCredentialsMail(
-                $pendingGuestMail['customer'],
-                $pendingGuestMail['plain'],
-                $pendingGuestMail['locale'],
-            );
-        }
+        // Resolve customer_id y crear los Bookings dentro de UNA transacción
+        // (todo o nada: un carrito de 3 tours donde el segundo revienta no
+        // debe dejar 1 reserva pagada y 2 sin crear) — extraído a
+        // BookingCreationService el 2026-09-24 para que PaymentLinkController
+        // pueda crear una reserva con el MISMO contrato de datos. El correo
+        // de credenciales de invitado se dispara ahí mismo, DESPUÉS del
+        // commit (un rollback no puede des-enviar un correo).
+        $bookings = $this->bookingCreator->createBookings(
+            $items, $customer, $method, $paymentReference, $paid, $locale
+        );
 
         Log::info('checkout.finalize_bookings', [
             'method' => $method,
@@ -779,71 +717,7 @@ class CheckoutController extends Controller
         session()->put('paypal_orders', $orders);
     }
 
-    /**
-     * Returns the customer_id to attach to new bookings.
-     * - Logged-in customers: use their existing id.
-     * - Existing email (no session): reuse without sending any email.
-     * - New email: create an account with a generated temporary password.
-     *   The credentials email is NOT sent here — this method runs inside
-     *   finalizeBookings()'s DB::transaction(), and a rollback can't
-     *   un-send an email. Instead, it fills $pendingGuestMail by reference
-     *   so the caller can send it AFTER the transaction commits (see
-     *   sendGuestCredentialsMail()).
-     *
-     * @param  array{customer: \App\Models\Customer, plain: string, locale: string}|null  $pendingGuestMail
-     */
-    private function resolveCustomerId(array $customer, string $locale, ?array &$pendingGuestMail = null): int
-    {
-        $loggedIn = auth('customer')->user();
-
-        if ($loggedIn) {
-            return $loggedIn->id;
-        }
-
-        $existing = Customer::where('email', $customer['customer_email'])->first();
-
-        if ($existing) {
-            return $existing->id;
-        }
-
-        // Generate a readable temporary password (10 chars, no symbols, no ambiguous chars).
-        // Str::password() is available since Laravel 10.x.
-        $plain = Str::password(10, letters: true, numbers: true, symbols: false, spaces: false);
-
-        // Create the new guest customer — the 'hashed' cast on Customer::$password
-        // automatically bcrypts the plain string on assignment.
-        $guestCustomer = Customer::create([
-            'name' => $customer['customer_name'],
-            'email' => $customer['customer_email'],
-            'phone' => $customer['customer_phone'] ?? null,
-            'locale' => $locale,
-            'password' => $plain,
-        ]);
-
-        $pendingGuestMail = [
-            'customer' => $guestCustomer,
-            'plain' => $plain,
-            'locale' => $locale,
-        ];
-
-        return $guestCustomer->id;
-    }
-
-    /**
-     * Sends the guest account credentials email. Must be called AFTER
-     * finalizeBookings()'s DB::transaction() has committed — see
-     * resolveCustomerId(). Failure is non-fatal: log a warning and continue.
-     */
-    private function sendGuestCredentialsMail(Customer $guestCustomer, string $plain, string $locale): void
-    {
-        try {
-            Mail::to($guestCustomer->email)
-                ->send(new AccountCredentials($guestCustomer, $plain, $locale));
-        } catch (\Throwable $ex) {
-            Log::warning('checkout.guest_credentials_email.failed', [
-                'email' => $guestCustomer->email,
-                'message' => $ex->getMessage(),
-            ]);
-        }
-    }
+    // Nota: la resolución de customer_id (cuenta invitada + correo de
+    // credenciales) vive ahora en BookingCreationService::resolveCustomerId(),
+    // compartida con PaymentLinkController — ver createBookings() arriba.
 }

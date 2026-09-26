@@ -53,7 +53,13 @@
 
     <title>{{ $title }}</title>
     <meta name="description" content="{{ $description }}">
-    @if (env('NOINDEX', false))
+    {{-- $forceNoindex: variable opcional que una vista puede definir ANTES
+         de @extends (ver payment-links/show.blade.php) para pedir noindex
+         sin que el layout imprima TAMBIÉN su meta "index,follow" por
+         defecto — antes, una vista que quería noindex la agregaba con su
+         propio @push('head'), y esta etiqueta de acá se imprimía IGUAL,
+         dejando DOS <meta name="robots"> conflictivos en el HTML. --}}
+    @if (env('NOINDEX', false) || ($forceNoindex ?? false))
         <meta name="robots" content="noindex,nofollow">
     @else
         <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">

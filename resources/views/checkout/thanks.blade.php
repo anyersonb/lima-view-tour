@@ -62,7 +62,11 @@
                                     <svg class="inline w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                     </svg>
-                                    {{ \Carbon\Carbon::parse($booking['travel_date'])->format('d M Y') }}
+                                    {{-- Un link de pago puede no tener fecha fija (se coordina después
+                                         — ver PaymentLink.travel_date, nullable). Carbon::parse(null)
+                                         devolvería "ahora" en vez de avisar que falta, así que se
+                                         guarda explícito. --}}
+                                    {{ $booking['travel_date'] ? \Carbon\Carbon::parse($booking['travel_date'])->format('d M Y') : __('payment_links.date_to_be_arranged') }}
                                 </li>
                                 <li>
                                     <svg class="inline w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">

@@ -47,6 +47,16 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
+        // M-4 (docs/payment-links/SECURITY.md): el webhook de PayPal no
+        // exige autenticación previa (la firma se valida DESPUÉS de leer el
+        // body, y esa validación en sí misma llama a la API de PayPal con
+        // nuestras credenciales) — sin límite, un atacante puede amplificar
+        // tráfico contra nuestra cuenta de PayPal con solo mandar POSTs con
+        // headers inventados.
+        RateLimiter::for('paypal-webhook', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

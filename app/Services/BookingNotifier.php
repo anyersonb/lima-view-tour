@@ -23,7 +23,7 @@ class BookingNotifier
 {
     /**
      * @param  Collection  $bookings  Colección de modelos Booking (1 o varios)
-     * @param  bool         $paid      true = pagado/confirmado ("now"); false = pendiente ("later")
+     * @param  bool  $paid  true = pagado/confirmado ("now"); false = pendiente ("later")
      * @param  string|null  $customerEmail  Email destino del cliente; si es null se toma de la 1ª reserva
      */
     public function send(Collection $bookings, bool $paid, ?string $customerEmail = null): void
@@ -43,8 +43,8 @@ class BookingNotifier
      * "Reenviar correo" del panel de Reservas). Lanza excepción si falla,
      * para que la acción del panel muestre el error real.
      *
-     * @param  Collection    $bookings       Reservas a incluir en el correo
-     * @param  string|null   $customerEmail  Destino; por defecto el de la 1ª reserva
+     * @param  Collection  $bookings  Reservas a incluir en el correo
+     * @param  string|null  $customerEmail  Destino; por defecto el de la 1ª reserva
      */
     public function resendCustomerConfirmation(Collection $bookings, ?string $customerEmail = null): void
     {
@@ -61,7 +61,7 @@ class BookingNotifier
         Mail::to($customerEmail)->send(new BookingConfirmed($bookings, $customerEmail));
 
         Log::info('booking_notifier.confirmation_email.resent', [
-            'email'    => $customerEmail,
+            'email' => $customerEmail,
             'bookings' => $bookings->pluck('reference')->all(),
         ]);
     }
@@ -72,6 +72,7 @@ class BookingNotifier
             Log::warning('booking_notifier.confirmation_email.skipped_no_email', [
                 'bookings' => $bookings->pluck('reference')->all(),
             ]);
+
             return;
         }
 
@@ -80,12 +81,12 @@ class BookingNotifier
                 ->send(new BookingConfirmed($bookings, $customerEmail));
 
             Log::info('booking_notifier.confirmation_email.sent', [
-                'email'    => $customerEmail,
+                'email' => $customerEmail,
                 'bookings' => $bookings->pluck('reference')->all(),
             ]);
         } catch (\Throwable $e) {
             Log::warning('booking_notifier.confirmation_email.failed', [
-                'email'   => $customerEmail,
+                'email' => $customerEmail,
                 'message' => $e->getMessage(),
             ]);
         }
@@ -100,6 +101,7 @@ class BookingNotifier
                 Log::warning('booking_notifier.admin_notification_email.skipped_no_recipients', [
                     'bookings' => $bookings->pluck('reference')->all(),
                 ]);
+
                 return;
             }
 
@@ -110,7 +112,7 @@ class BookingNotifier
 
             Log::info('booking_notifier.admin_notification_email.sent', [
                 'admin_email' => $recipients,
-                'bookings'    => $bookings->pluck('reference')->all(),
+                'bookings' => $bookings->pluck('reference')->all(),
             ]);
         } catch (\Throwable $e) {
             Log::warning('booking_notifier.admin_notification_email.failed', [
@@ -127,9 +129,14 @@ class BookingNotifier
      * uno a uno y se descartan duplicados. Si el CMS no tiene ninguno válido
      * se cae al remitente configurado en el servidor (config('mail.from.address')).
      *
+     * Público (no solo usado internamente): PaymentLinkController lo reutiliza
+     * para avisar al admin de un cobro capturado en PayPal cuya reserva no se
+     * pudo crear (ver payment_link.capture.db_write_failed_after_paypal_capture),
+     * sin duplicar la lógica de resolución de destinatarios.
+     *
      * @return string[]
      */
-    private function adminRecipients(): array
+    public function adminRecipients(): array
     {
         $raw = (string) Setting::get('booking_notification_email');
 
@@ -142,6 +149,7 @@ class BookingNotifier
 
         if (empty($emails)) {
             $fallback = config('mail.from.address');
+
             return $fallback ? [$fallback] : [];
         }
 

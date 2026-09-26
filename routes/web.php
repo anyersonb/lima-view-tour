@@ -13,6 +13,7 @@ use App\Http\Controllers\Customer\ResetPasswordController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\PaymentLinkController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TourController;
@@ -106,6 +107,25 @@ Route::get('/_diag/mail', function () {
         ], 500, [], JSON_PRETTY_PRINT);
     }
 })->name('diag.mail');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Links de pago — /pagar/{code}. Deliberadamente FUERA del grupo {locale}: un
+// link de pago es un único enlace compartible (WhatsApp, correo, redes), no
+// una página traducida por URL. El idioma se detecta del navegador dentro del
+// propio PaymentLinkController (mismo criterio que la redirección de '/').
+// noindex,nofollow (ver la vista) y fuera del sitemap — nunca contenido a
+// indexar. 'throttle:checkout' reutiliza el mismo limitador que el checkout
+// normal (5/min por IP): create/capture mueven dinero real.
+// ─────────────────────────────────────────────────────────────────────────────
+Route::get('/pagar/{code}', [PaymentLinkController::class, 'show'])
+    ->middleware('throttle:30,1')
+    ->name('payment-links.show');
+Route::post('/pagar/{code}/paypal/create', [PaymentLinkController::class, 'createOrder'])
+    ->middleware('throttle:checkout')
+    ->name('payment-links.paypal.create');
+Route::post('/pagar/{code}/paypal/capture', [PaymentLinkController::class, 'captureOrder'])
+    ->middleware('throttle:checkout')
+    ->name('payment-links.paypal.capture');
 
 Route::prefix('{locale}')
     ->where(['locale' => 'es|en|pt'])
@@ -278,6 +298,16 @@ Route::prefix('{locale}')
 // Culqi Webhook — outside locale group, CSRF exempt
 Route::post('/webhooks/culqi', [WebhookController::class, 'culqi'])
     ->name('webhooks.culqi')
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+
+// PayPal Webhook — outside locale group, CSRF exempt (webhooks/* also
+// excluded globally in App\Http\Middleware\VerifyCsrfToken::$except, kept
+// explicit here too for parity with the Culqi route above). M-4: throttled
+// — sin autenticación previa, cada POST (headers inventados incluidos)
+// dispara una llamada saliente nuestra a la API de PayPal.
+Route::post('/webhooks/paypal', [WebhookController::class, 'paypal'])
+    ->middleware('throttle:paypal-webhook')
+    ->name('webhooks.paypal')
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 // ─────────────────────────────────────────────────────────────────────────────

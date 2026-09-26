@@ -169,7 +169,7 @@
                                         <tr>
                                             <td class="py-3.5 pr-4 font-mono text-xs text-teal-700">{{ $booking->reference }}</td>
                                             <td class="py-3.5 pr-4 font-medium text-teal-800 max-w-[160px] truncate">{{ $booking->tour_title_snapshot }}</td>
-                                            <td class="py-3.5 pr-4 text-teal-700 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->travel_date)->locale($locale)->isoFormat('D MMM YYYY') }}</td>
+                                            <td class="py-3.5 pr-4 text-teal-700 whitespace-nowrap">{{ $booking->travel_date ? \Carbon\Carbon::parse($booking->travel_date)->locale($locale)->isoFormat('D MMM YYYY') : __('payment_links.date_to_be_arranged') }}</td>
                                             <td class="py-3.5 pr-4 text-teal-700">{{ $booking->total_pax }}</td>
                                             <td class="py-3.5 pr-4 font-semibold text-teal-800">US$ {{ number_format($booking->total_price, 2) }}</td>
                                             <td class="py-3.5">
@@ -195,7 +195,7 @@
                                     </div>
                                     <div class="text-xs text-teal-700/70 space-y-0.5">
                                         <div><span class="font-medium">{{ __('customer.booking_reference') }}:</span> {{ $booking->reference }}</div>
-                                        <div><span class="font-medium">{{ __('customer.booking_date') }}:</span> {{ \Carbon\Carbon::parse($booking->travel_date)->locale($locale)->isoFormat('D MMM YYYY') }}</div>
+                                        <div><span class="font-medium">{{ __('customer.booking_date') }}:</span> {{ $booking->travel_date ? \Carbon\Carbon::parse($booking->travel_date)->locale($locale)->isoFormat('D MMM YYYY') : __('payment_links.date_to_be_arranged') }}</div>
                                         <div><span class="font-medium">{{ __('customer.booking_pax') }}:</span> {{ $booking->total_pax }}</div>
                                         <div><span class="font-medium">{{ __('customer.booking_total') }}:</span> US$ {{ number_format($booking->total_price, 2) }}</div>
                                     </div>

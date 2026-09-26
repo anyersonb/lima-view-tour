@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Log;
 class PayPalService
 {
     private string $clientId;
+
     private string $secret;
+
     private string $mode;
 
     public function __construct()
@@ -18,8 +20,8 @@ class PayPalService
         // Las credenciales son administrables desde el panel (Configuración → Pagos);
         // si no están en la BD, se usa el valor del .env como respaldo.
         $this->clientId = (string) (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id') ?: '');
-        $this->secret   = (string) (\App\Models\Setting::get('paypal_secret')    ?: config('services.paypal.secret') ?: '');
-        $this->mode     = (string) (\App\Models\Setting::get('paypal_mode')      ?: config('services.paypal.mode') ?: 'sandbox');
+        $this->secret = (string) (\App\Models\Setting::get('paypal_secret') ?: config('services.paypal.secret') ?: '');
+        $this->mode = (string) (\App\Models\Setting::get('paypal_mode') ?: config('services.paypal.mode') ?: 'sandbox');
     }
 
     /**
@@ -40,7 +42,7 @@ class PayPalService
      */
     public function accessToken(): string
     {
-        $cacheKey = 'paypal_access_token_' . $this->mode;
+        $cacheKey = 'paypal_access_token_'.$this->mode;
 
         return Cache::remember($cacheKey, 28800, function () {
             try {
@@ -53,11 +55,11 @@ class PayPalService
                 if ($response->failed()) {
                     Log::error('paypal.access_token.failed', [
                         'status' => $response->status(),
-                        'body'   => $response->body(),
+                        'body' => $response->body(),
                     ]);
 
                     throw new \RuntimeException(
-                        'PayPal token request failed: ' . $response->body()
+                        'PayPal token request failed: '.$response->body()
                     );
                 }
 
@@ -75,7 +77,7 @@ class PayPalService
                 throw $e;
             } catch (\Throwable $e) {
                 Log::error('paypal.access_token.exception', ['message' => $e->getMessage()]);
-                throw new \RuntimeException('PayPal token error: ' . $e->getMessage(), 0, $e);
+                throw new \RuntimeException('PayPal token error: '.$e->getMessage(), 0, $e);
             }
         });
     }
@@ -83,10 +85,10 @@ class PayPalService
     /**
      * Creates a PayPal order with intent=CAPTURE.
      *
-     * @param  float  $amount    Total in USD (will be formatted to 2 decimals)
-     * @param  string $currency  Currency code, e.g. "USD"
+     * @param  float  $amount  Total in USD (will be formatted to 2 decimals)
+     * @param  string  $currency  Currency code, e.g. "USD"
      * @param  array  $metadata  Optional metadata stored under purchase_units[0].custom_id
-     * @return array             Full PayPal order response (includes 'id')
+     * @return array Full PayPal order response (includes 'id')
      *
      * @throws \RuntimeException on API error
      */
@@ -96,12 +98,12 @@ class PayPalService
             $token = $this->accessToken();
 
             $payload = [
-                'intent'         => 'CAPTURE',
+                'intent' => 'CAPTURE',
                 'purchase_units' => [
                     [
-                        'amount'    => [
+                        'amount' => [
                             'currency_code' => strtoupper($currency),
-                            'value'         => number_format($amount, 2, '.', ''),
+                            'value' => number_format($amount, 2, '.', ''),
                         ],
                         'custom_id' => isset($metadata['booking_references'])
                             ? (string) $metadata['booking_references']
@@ -121,15 +123,15 @@ class PayPalService
 
             if ($response->failed()) {
                 Log::error('paypal.create_order.failed', [
-                    'status'   => $response->status(),
-                    'body'     => $response->body(),
-                    'amount'   => $amount,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'amount' => $amount,
                     'currency' => $currency,
                     'metadata' => $metadata,
                 ]);
 
                 throw new \RuntimeException(
-                    'PayPal create order failed: ' . $response->body()
+                    'PayPal create order failed: '.$response->body()
                 );
             }
 
@@ -137,7 +139,7 @@ class PayPalService
 
             Log::info('paypal.create_order.success', [
                 'order_id' => $order['id'] ?? null,
-                'amount'   => $amount,
+                'amount' => $amount,
                 'currency' => $currency,
                 'metadata' => $metadata,
             ]);
@@ -148,11 +150,11 @@ class PayPalService
             throw $e;
         } catch (\Throwable $e) {
             Log::error('paypal.create_order.exception', [
-                'message'  => $e->getMessage(),
+                'message' => $e->getMessage(),
                 'metadata' => $metadata,
             ]);
 
-            throw new \RuntimeException('PayPal connection error: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('PayPal connection error: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -163,8 +165,8 @@ class PayPalService
      * what we calculated when it was created — see
      * CheckoutController::paypalCaptureOrder().
      *
-     * @param  string $orderId  The PayPal order ID returned by createOrder()
-     * @return array            Full PayPal order response
+     * @param  string  $orderId  The PayPal order ID returned by createOrder()
+     * @return array Full PayPal order response
      *
      * @throws \RuntimeException on API error
      */
@@ -180,12 +182,12 @@ class PayPalService
             if ($response->failed()) {
                 Log::error('paypal.get_order.failed', [
                     'order_id' => $orderId,
-                    'status'   => $response->status(),
-                    'body'     => $response->body(),
+                    'status' => $response->status(),
+                    'body' => $response->body(),
                 ]);
 
                 throw new \RuntimeException(
-                    'PayPal get order failed: ' . $response->body()
+                    'PayPal get order failed: '.$response->body()
                 );
             }
 
@@ -196,18 +198,18 @@ class PayPalService
         } catch (\Throwable $e) {
             Log::error('paypal.get_order.exception', [
                 'order_id' => $orderId,
-                'message'  => $e->getMessage(),
+                'message' => $e->getMessage(),
             ]);
 
-            throw new \RuntimeException('PayPal connection error: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('PayPal connection error: '.$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Captures (finalizes) an approved PayPal order.
      *
-     * @param  string $orderId  The PayPal order ID returned by createOrder()
-     * @return array            Full capture response
+     * @param  string  $orderId  The PayPal order ID returned by createOrder()
+     * @return array Full capture response
      *
      * @throws \RuntimeException if the capture fails or status is not COMPLETED
      */
@@ -218,8 +220,16 @@ class PayPalService
 
             // PayPal exige un objeto JSON ({} o vacío) en el capture; un array []
             // (lo que produce ->post($url, [])) responde 400 MALFORMED_REQUEST_JSON.
+            //
+            // N-2 (docs/payment-links/SECURITY.md): PayPal-Request-Id
+            // derivado DETERMINÍSTICAMENTE del order_id — si nuestro propio
+            // cliente HTTP reintenta el mismo capture() (timeout, retry
+            // automático), PayPal reconoce la misma clave de idempotencia y
+            // devuelve el resultado de la captura original en vez de
+            // intentar cobrar una segunda vez.
             $response = Http::withToken($token)
                 ->acceptJson()
+                ->withHeaders(['PayPal-Request-Id' => $this->captureIdempotencyKey($orderId)])
                 ->withBody('{}', 'application/json')
                 ->post("{$this->baseUrl()}/v2/checkout/orders/{$orderId}/capture");
 
@@ -228,9 +238,9 @@ class PayPalService
 
                 Log::error('paypal.capture_order.failed', [
                     'order_id' => $orderId,
-                    'status'   => $response->status(),
-                    'issue'    => $issue,
-                    'body'     => $response->body(),
+                    'status' => $response->status(),
+                    'issue' => $issue,
+                    'body' => $response->body(),
                 ]);
 
                 // INSTRUMENT_DECLINED: the buyer's bank/issuer rejected the
@@ -253,7 +263,7 @@ class PayPalService
                 }
 
                 throw new \RuntimeException(
-                    'PayPal capture failed: ' . $response->body()
+                    'PayPal capture failed: '.$response->body()
                 );
             }
 
@@ -261,17 +271,17 @@ class PayPalService
 
             if (($capture['status'] ?? '') !== 'COMPLETED') {
                 Log::warning('paypal.capture_order.not_completed', [
-                    'order_id'       => $orderId,
+                    'order_id' => $orderId,
                     'returned_status' => $capture['status'] ?? 'unknown',
                 ]);
 
                 throw new \RuntimeException(
-                    'PayPal capture status was not COMPLETED: ' . ($capture['status'] ?? 'unknown')
+                    'PayPal capture status was not COMPLETED: '.($capture['status'] ?? 'unknown')
                 );
             }
 
             Log::info('paypal.capture_order.success', [
-                'order_id'   => $orderId,
+                'order_id' => $orderId,
                 'capture_id' => $capture['purchase_units'][0]['payments']['captures'][0]['id'] ?? null,
             ]);
 
@@ -282,10 +292,10 @@ class PayPalService
         } catch (\Throwable $e) {
             Log::error('paypal.capture_order.exception', [
                 'order_id' => $orderId,
-                'message'  => $e->getMessage(),
+                'message' => $e->getMessage(),
             ]);
 
-            throw new \RuntimeException('PayPal connection error: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('PayPal connection error: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -295,5 +305,18 @@ class PayPalService
     public function captureId(array $captureResponse): ?string
     {
         return $captureResponse['purchase_units'][0]['payments']['captures'][0]['id'] ?? null;
+    }
+
+    /**
+     * N-2: clave de idempotencia para el header PayPal-Request-Id del
+     * capture, derivada del order_id — el MISMO order_id siempre produce la
+     * MISMA clave, así que un reintento del propio proceso (no un segundo
+     * pago real: eso siempre trae un order_id distinto) no puede duplicar el
+     * cobro en el lado de PayPal. Hasheada porque PayPal-Request-Id tiene un
+     * límite de longitud; el hash de un mismo input siempre es el mismo.
+     */
+    private function captureIdempotencyKey(string $orderId): string
+    {
+        return substr(hash('sha256', 'payment-link-capture:'.$orderId), 0, 36);
     }
 }
