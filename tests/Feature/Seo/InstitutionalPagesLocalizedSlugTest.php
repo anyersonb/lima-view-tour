@@ -84,10 +84,18 @@ class InstitutionalPagesLocalizedSlugTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('<link rel="canonical" href="http://lima-tour.test/en/about-us">', false);
-        $response->assertSee('hreflang="es"      href="http://lima-tour.test/es/nosotros"', false);
-        $response->assertSee('hreflang="en"      href="http://lima-tour.test/en/about-us"', false);
-        $response->assertSee('hreflang="pt"      href="http://lima-tour.test/pt/sobre-nos"', false);
-        $response->assertSee('hreflang="x-default" href="http://lima-tour.test/es/nosotros"', false);
+        // 2026-09-24: layouts/app.blade.php pasó de 4 líneas <link> fijas a un
+        // @foreach sobre $localizedAlternates (necesario para el blog, donde
+        // una nota sin traducir omite ese idioma — ver
+        // BlogTranslationAvailabilityTest). El único cambio real es que se
+        // perdió el padding de alineación visual del código fuente
+        // ("hreflang=\"es\"      href="); el HTML sigue siendo válido y estas
+        // páginas institucionales (Tour, Page) siempre mandan los 3 idiomas,
+        // así que su hreflang sigue siendo el mismo, solo con un espacio.
+        $response->assertSee('<link rel="alternate" hreflang="es" href="http://lima-tour.test/es/nosotros">', false);
+        $response->assertSee('<link rel="alternate" hreflang="en" href="http://lima-tour.test/en/about-us">', false);
+        $response->assertSee('<link rel="alternate" hreflang="pt" href="http://lima-tour.test/pt/sobre-nos">', false);
+        $response->assertSee('<link rel="alternate" hreflang="x-default" href="http://lima-tour.test/es/nosotros">', false);
     }
 
     /** @test */

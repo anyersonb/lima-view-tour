@@ -18,7 +18,11 @@ class BlogController extends Controller
     {
         App::setLocale($locale);
 
+        // 2026-09-24: EN/PT ya no muestran el español cuando la nota no está
+        // traducida — availableIn() filtra el listado (y las categorías más
+        // abajo) a lo que realmente existe en $locale. Ver BlogPost::isAvailableIn().
         $query = BlogPost::published()
+            ->availableIn($locale)
             ->orderByDesc('published_at');
 
         if ($request->filled('categoria')) {
@@ -27,8 +31,11 @@ class BlogController extends Controller
 
         $posts = $query->paginate(12)->withQueryString();
 
-        // All distinct categories for the filter sidebar / pill nav
+        // All distinct categories for the filter sidebar / pill nav — solo de
+        // notas que existen en este idioma, para no ofrecer un filtro que
+        // lleve a un listado vacío o a notas sin traducir.
         $categories = BlogPost::published()
+            ->availableIn($locale)
             ->whereNotNull('category')
             ->distinct()
             ->orderBy('category')
@@ -39,7 +46,9 @@ class BlogController extends Controller
 
     /**
      * Display a single published blog post.
-     * Returns 404 if the post is not found or not yet published.
+     * Returns 404 if the post is not found, not yet published, or not
+     * translated into $locale (2026-09-24: no fallback to Spanish content
+     * under a non-Spanish URL — see BlogPost::isAvailableIn()).
      */
     public function show(string $locale, string $slug): View|RedirectResponse
     {
@@ -53,6 +62,11 @@ class BlogController extends Controller
 
         abort_if(! $post, 404);
 
+        // La nota existe (fue resuelta por su slug ES o EN/PT) pero no tiene
+        // traducción real a $locale: 404 directo, SIN redirigir a ningún
+        // lado y SIN caer al contenido español bajo esta URL.
+        abort_if(! $post->isAvailableIn($locale), 404);
+
         if ($resolution['redirect_slug']) {
             return redirect()->route('blog.show', [
                 'locale' => $locale,
@@ -60,8 +74,11 @@ class BlogController extends Controller
             ], 301);
         }
 
-        // Related posts: same category first, then recent — max 3
+        // Related posts: same category first, then recent — max 3.
+        // availableIn($locale) evita recomendar una nota que en este idioma
+        // daría 404.
         $related = BlogPost::published()
+            ->availableIn($locale)
             ->where('id', '!=', $post->id)
             ->when($post->category, fn ($q) => $q->orderByRaw(
                 'CASE WHEN category = ? THEN 0 ELSE 1 END',

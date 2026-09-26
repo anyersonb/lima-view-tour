@@ -17,11 +17,32 @@
 @php
     // hreflang/canonical reales: el slug del post puede diferir por idioma
     // (slug_en/slug_pt). Ver misma nota en resources/views/tours/show.blade.php.
-    $localizedAlternates = [
-        'es' => route('blog.show', ['locale' => 'es', 'slug' => $post->slugFor('es')]),
-        'en' => route('blog.show', ['locale' => 'en', 'slug' => $post->slugFor('en')]),
-        'pt' => route('blog.show', ['locale' => 'pt', 'slug' => $post->slugFor('pt')]),
-    ];
+    //
+    // 2026-09-24: a diferencia de tours (que no tiene el concepto de "nota sin
+    // traducir"), acá solo entran los idiomas donde el post SÍ tiene contenido
+    // (BlogPost::isAvailableIn()) — hreflang no debe listar un idioma cuya
+    // URL 404ea. 'es' siempre está: es obligatorio y el controlador ya
+    // garantizó (BlogController::show()) que $post->isAvailableIn($locale)
+    // es true para el locale actual, así que como mínimo ESE idioma entra.
+    $availableLocales = collect(\App\Models\BlogPost::AVAILABLE_LOCALES)
+        ->filter(fn ($l) => $post->isAvailableIn($l))
+        ->values();
+
+    $localizedAlternates = $availableLocales
+        ->mapWithKeys(fn ($l) => [$l => route('blog.show', ['locale' => $l, 'slug' => $post->slugFor($l)])])
+        ->all();
+
+    // Selector de idioma del header (x-lang-switcher): a diferencia de
+    // hreflang, acá SIEMPRE se ofrecen los 3 idiomas — un visitante que
+    // cambia de idioma no debería recibir un 404 ni ver el español bajo /en.
+    // Para el/los idioma(s) sin traducción se elige llevarlo al LISTADO del
+    // blog en ese idioma (no se oculta la opción del selector; el listado
+    // real y disponible sigue siendo mejor que un enlace muerto).
+    $langSwitcherAlternates = collect(\App\Models\BlogPost::AVAILABLE_LOCALES)
+        ->mapWithKeys(fn ($l) => [$l => $availableLocales->contains($l)
+            ? route('blog.show', ['locale' => $l, 'slug' => $post->slugFor($l)])
+            : route('blog.index', ['locale' => $l])])
+        ->all();
 
     // Regla de convivencia (panel Filament → Blog → SEO — [idioma] → Datos
     // estructurados): si el editor cargó JSON-LD manual para este idioma (o
@@ -169,7 +190,11 @@
                     @foreach ($related as $rel)
                         <article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
                                  style="flex:0 0 270px;max-width:270px;scroll-snap-align:start;">
-                            <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $rel->slug]) }}"
+                            {{-- slugFor($locale), no $rel->slug: $related ya está filtrado por
+                                 availableIn($locale) (BlogController::show()), pero el slug
+                                 traducido puede diferir del español — usar el crudo aquí
+                                 mandaría al visitante por un 301 de más. --}}
+                            <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $rel->slugFor($locale)]) }}"
                                class="block aspect-[16/9] overflow-hidden bg-cream-200" tabindex="-1" aria-hidden="true">
                                 @if ($rel->cover_image)
                                     <img src="{{ asset('storage/' . $rel->cover_image) }}"
@@ -191,7 +216,7 @@
                                     </span>
                                 @endif
                                 <h3 class="font-display text-base text-teal-800 leading-snug mb-2 line-clamp-2">
-                                    <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $rel->slug]) }}"
+                                    <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $rel->slugFor($locale)]) }}"
                                        class="hover:text-orange-600 transition-colors">
                                         {{ $rel->title }}
                                     </a>

@@ -105,7 +105,10 @@
                                  itemscope itemtype="https://schema.org/BlogPosting">
 
                             {{-- Cover image --}}
-                            <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $post->slug]) }}"
+                            {{-- slugFor($locale), no $post->slug: $posts ya está filtrado por
+                                 availableIn($locale) (BlogController::index()), pero el slug
+                                 traducido puede diferir del español. --}}
+                            <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $post->slugFor($locale)]) }}"
                                class="block aspect-[16/9] overflow-hidden bg-cream-200" tabindex="-1" aria-hidden="true">
                                 @if ($post->cover_image)
                                     <img src="{{ asset('storage/' . $post->cover_image) }}"
@@ -136,7 +139,7 @@
 
                                 {{-- Title --}}
                                 <h2 class="font-display text-xl text-teal-800 leading-snug mb-2 line-clamp-2" itemprop="headline">
-                                    <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $post->slug]) }}"
+                                    <a href="{{ route('blog.show', ['locale' => $locale, 'slug' => $post->slugFor($locale)]) }}"
                                        class="hover:text-orange-600 transition-colors">
                                         {{ $post->title }}
                                     </a>

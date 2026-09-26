@@ -6,6 +6,15 @@
 
     $flags  = ['es' => '🇪🇸', 'en' => '🇺🇸', 'pt' => '🇧🇷'];
     $labels = ['es' => 'Español', 'en' => 'English', 'pt' => 'Português'];
+
+    // 2026-09-24: contenido con slug/disponibilidad distinta por idioma
+    // (blog) pasa $alternates = ['es' => url, 'en' => url, 'pt' => url] con
+    // la URL REAL de cada idioma para ESTE contenido — puede ser la ficha
+    // traducida o, si no existe traducción, el listado del blog de ese
+    // idioma (nunca una URL que 404ee). Sin $alternates (toda página que no
+    // lo pase) se mantiene el comportamiento de siempre: mismo path, prefijo
+    // de idioma distinto.
+    $alternates = $alternates ?? null;
 @endphp
 
 <div class="relative" x-data="{ lang: false }" @click.outside="lang = false">
@@ -35,8 +44,13 @@
         role="listbox"
         class="absolute right-0 top-full mt-2 min-w-[11rem] bg-white text-teal-700 rounded-lg shadow-xl py-1 ring-1 ring-black/5 z-50">
         @foreach ($supported as $loc)
+            @php
+                $href = ($alternates && array_key_exists($loc, $alternates))
+                    ? $alternates[$loc]
+                    : url('/' . $loc . ($path ? '/' . $path : ''));
+            @endphp
             <li>
-                <a href="{{ url('/' . $loc . ($path ? '/' . $path : '')) }}"
+                <a href="{{ $href }}"
                    hreflang="{{ $loc }}"
                    rel="alternate"
                    role="option"

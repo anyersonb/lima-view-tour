@@ -72,10 +72,16 @@
 
     <link rel="canonical" href="{{ url()->current() }}">
     @if ($localizedAlternates)
-        <link rel="alternate" hreflang="es"      href="{{ $localizedAlternates['es'] }}">
-        <link rel="alternate" hreflang="en"      href="{{ $localizedAlternates['en'] }}">
-        <link rel="alternate" hreflang="pt"      href="{{ $localizedAlternates['pt'] }}">
-        <link rel="alternate" hreflang="x-default" href="{{ $localizedAlternates['es'] }}">
+        {{-- 2026-09-24: $localizedAlternates puede traer solo un subconjunto
+             de idiomas (blog: una nota sin traducir a EN/PT no debe listarse
+             en hreflang). Antes eran 3 líneas fijas asumiendo que las 3 claves
+             siempre existían — sigue siendo así para tours/páginas, que
+             siguen mandando las 3. x-default cae a 'es', que siempre está
+             presente (obligatorio en todo el sitio). --}}
+        @foreach ($localizedAlternates as $hreflangLocale => $hreflangHref)
+            <link rel="alternate" hreflang="{{ $hreflangLocale }}" href="{{ $hreflangHref }}">
+        @endforeach
+        <link rel="alternate" hreflang="x-default" href="{{ $localizedAlternates['es'] ?? reset($localizedAlternates) }}">
     @else
         <link rel="alternate" hreflang="es"      href="{{ url('/es/' . $pathWithoutLocale) }}">
         <link rel="alternate" hreflang="en"      href="{{ url('/en/' . $pathWithoutLocale) }}">
@@ -335,7 +341,14 @@
         {{ __('nav.skip_to_content') }}
     </a>
 
-    <x-header :variant="trim($__env->yieldContent('header_variant')) ?: 'solid'" />
+    {{-- 2026-09-24: $langSwitcherAlternates (blog/show.blade.php) reasigna el
+         selector de idioma del header a las URLs reales por idioma (o al
+         listado del blog cuando la nota no está traducida) en vez de asumir
+         "mismo path, distinto prefijo" — ver x-lang-switcher. Páginas que no
+         la definan (todas menos la ficha de blog) mantienen el comportamiento
+         de siempre. --}}
+    <x-header :variant="trim($__env->yieldContent('header_variant')) ?: 'solid'"
+              :alternates="$langSwitcherAlternates ?? null" />
 
     <main id="main" role="main">
         @yield('content')

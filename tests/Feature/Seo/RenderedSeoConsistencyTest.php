@@ -26,8 +26,17 @@ use Tests\TestCase;
  *    depende de si el SEO llenó o no el JSON-LD manual) y que no reaparezca
  *    ningún Product automático. El test de abajo quedó reconvertido a eso.
  *
- *  - Hallazgo Medio: el fallback ES de BlogPost solo estaba cubierto por un
- *    test unitario sobre el modelo, no sobre el <title> realmente emitido.
+ *  - Hallazgo Medio (histórico, 19/08): el fallback ES de BlogPost solo
+ *    estaba cubierto por un test unitario sobre el modelo, no sobre el
+ *    <title> realmente emitido.
+ *
+ *    Cambio de requisito (2026-09-24, mismo día del hotfix del 500): el
+ *    cliente pidió retirar ese fallback — una nota sin traducir a EN/PT ya
+ *    no debe mostrarse en ese idioma bajo ninguna forma (ni contenido, ni
+ *    <title>): 404 directo. El test de abajo queda reconvertido a probar
+ *    ESO. La cobertura completa del nuevo comportamiento (listado, sitemap,
+ *    hreflang, selector de idioma) vive en
+ *    tests/Feature/Seo/BlogTranslationAvailabilityTest.php.
  */
 class RenderedSeoConsistencyTest extends TestCase
 {
@@ -110,30 +119,27 @@ class RenderedSeoConsistencyTest extends TestCase
     }
 
     /** @test */
-    public function el_title_de_un_post_solo_en_espanol_no_cae_al_titulo_generico_del_sitio(): void
+    public function un_post_solo_en_espanol_da_404_en_ingles_en_vez_de_mostrar_su_titulo_espanol(): void
     {
         BlogPost::create([
             'slug' => 'articulo-solo-es',
             'title_es' => 'Guía para visitar Machu Picchu',
             'excerpt_es' => 'Resumen en español.',
             'body_es' => '<p>Cuerpo en español.</p>',
-            // Columnas NOT NULL sin default: sin traducción se guardan como ''.
-            'title_en' => '', 'excerpt_en' => '', 'body_en' => '',
-            'title_pt' => '', 'excerpt_pt' => '', 'body_pt' => '',
+            // Columnas nullable desde 2026_09_24_000000_make_blog_posts_i18n_columns_nullable.php:
+            // sin traducción se guardan como NULL de verdad, no como ''.
+            'title_en' => null, 'excerpt_en' => null, 'body_en' => null,
+            'title_pt' => null, 'excerpt_pt' => null, 'body_pt' => null,
             'is_published' => true,
         ]);
 
-        $html = $this->get('/en/blog/articulo-solo-es')->assertOk()->getContent();
+        $response = $this->get('/en/blog/articulo-solo-es');
 
-        preg_match('#<title>(.*?)</title>#si', $html, $t);
-        $title = trim($t[1] ?? '');
-
-        $this->assertNotSame('', $title, 'El <title> salió vacío.');
-        $this->assertStringContainsString(
-            'Machu Picchu',
-            $title,
-            "El <title> cayó al genérico del sitio en vez del título español. Emitido: [{$title}]"
-        );
+        // Antes de este cambio de requisito, la nota SÍ se mostraba en inglés
+        // cayendo al título español. Ahora el <title> en español nunca debe
+        // llegar a renderizarse bajo /en — la ruta 404 antes que eso.
+        $response->assertNotFound();
+        $response->assertDontSee('Machu Picchu');
     }
 
     /** @test */

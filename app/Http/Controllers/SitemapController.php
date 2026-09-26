@@ -102,15 +102,33 @@ class SitemapController extends Controller
         }
 
         // Blog post pages
+        // 2026-09-24: una nota sin traducción a EN/PT ya no cae al español
+        // bajo esas URLs — publicar /en/blog/x o /pt/blog/x para una nota que
+        // 404ea (o que peor, antes mostraba el español) es justo lo que un
+        // sitemap no debe hacer. Se calcula qué locales están disponibles por
+        // nota (BlogPost::isAvailableIn()) y solo esos entran, con su slug
+        // REAL por idioma (slugFor()) — antes esta sección repetía el slug
+        // español para las tres filas, apuntando a una URL que en EN/PT
+        // termina en un 301 hacia el slug traducido.
         foreach (BlogPost::published()->orderByDesc('updated_at')->get() as $post) {
-            foreach ($locales as $locale) {
+            $availableLocales = collect($locales)->filter(fn ($l) => $post->isAvailableIn($l))->values();
+
+            if ($availableLocales->isEmpty()) {
+                continue;
+            }
+
+            $alternates = $availableLocales
+                ->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/blog/' . $post->slugFor($l)])
+                ->all();
+
+            foreach ($availableLocales as $locale) {
                 $urls[] = [
-                    'loc'        => $base . '/' . $locale . '/blog/' . $post->slug,
+                    'loc'        => $base . '/' . $locale . '/blog/' . $post->slugFor($locale),
                     'lastmod'    => $post->updated_at?->toAtomString() ?? now()->toAtomString(),
                     'priority'   => '0.6',
                     'changefreq' => 'weekly',
                     'image'      => $post->cover_image ? $base . '/storage/' . ltrim($post->cover_image, '/') : null,
-                    'alternates' => collect($locales)->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/blog/' . $post->slug])->all(),
+                    'alternates' => $alternates,
                 ];
             }
         }

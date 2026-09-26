@@ -1,6 +1,9 @@
 @php
     $locale      = app()->getLocale();
     $variant     = $variant ?? 'solid'; // 'solid' | 'transparent'
+    // URLs reales por idioma para el selector (ver x-lang-switcher); null en
+    // toda página que no las pase explícitamente (comportamiento de siempre).
+    $alternates  = $alternates ?? null;
     $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
     $supportPhone = $contactPhone;
     $regions     = ['lima', 'ica', 'cusco'];
@@ -66,7 +69,7 @@
         <div class="flex items-center gap-2 sm:gap-3">
 
             {{-- Lang switcher --}}
-            <x-lang-switcher />
+            <x-lang-switcher :alternates="$alternates" />
 
             {{-- Divisor --}}
             <span class="site-header__divider" aria-hidden="true"></span>
@@ -363,7 +366,7 @@
                 </span>
                 {{ $supportPhone }}
             </a>
-            <x-lang-switcher />
+            <x-lang-switcher :alternates="$alternates" />
         </div>
     </div>
 </header>
