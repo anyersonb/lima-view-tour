@@ -82,16 +82,70 @@ class ConsentModeTest extends TestCase
         );
     }
 
-    public function test_with_banner_disabled_gtm_loads_directly_as_before(): void
+    /**
+     * Fail closed: Setting cookie_banner_enabled=false must NOT mean "track
+     * without consent". Banner does not auto-open, but consent default denied
+     * is emitted and GTM/Pixel only load behind lvt_consent=granted.
+     */
+    private function htmlBannerOff(): string
     {
         Setting::set('seo_gtm_id', 'GTM-TEST123');
+        Setting::set('seo_google_analytics_id', 'G-TEST123456');
+        Setting::set('seo_facebook_pixel', '123456789012345');
         Setting::set('cookie_banner_enabled', false, 'boolean');
 
-        $html = $this->get('/es')->assertOk()->getContent();
+        return $this->get('/es')->assertOk()->getContent();
+    }
 
-        $this->assertStringContainsString("window.lvtLoadGtm();\n", $html);
-        $this->assertStringNotContainsString("gtag('consent', 'default'", $html);
-        $this->assertStringNotContainsString('<button type="button" data-cookie-preferences', $html);
+    public function test_banner_disabled_never_loads_gtm_unconditionally(): void
+    {
+        $html = $this->htmlBannerOff();
+
+        // No bare invocation: only the two guarded ones (granted cookie / consent event).
+        $this->assertDoesNotMatchRegularExpression('/^\s*window\.lvtLoadGtm\(\);/m', $html, 'bare unconditional call');
+        $this->assertSame(2, substr_count($html, 'window.lvtLoadGtm()') + substr_count($html, 'window.lvtLoadGtm)'));
+        $this->assertStringContainsString("if (window.lvtConsent.get() === 'granted') window.lvtLoadGtm();", $html);
+        $this->assertStringContainsString("addEventListener('lvt-consent-granted', window.lvtLoadGtm)", $html);
+        $this->assertStringNotContainsString('ns.html?id=', $html);
+    }
+
+    public function test_banner_disabled_never_loads_pixel_unconditionally(): void
+    {
+        $html = $this->htmlBannerOff();
+
+        $this->assertStringContainsString('window.lvtLoadFbPixel = function', $html);
+        $this->assertDoesNotMatchRegularExpression('/^\s*window\.lvtLoadFbPixel\(\);/m', $html, 'bare unconditional call');
+        $this->assertSame(2, substr_count($html, 'window.lvtLoadFbPixel()') + substr_count($html, 'window.lvtLoadFbPixel)'));
+        $this->assertStringNotContainsString('facebook.com/tr?id=', $html, 'Pixel noscript <img> must not exist');
+    }
+
+    public function test_banner_disabled_still_emits_consent_default_denied_before_config(): void
+    {
+        $html = $this->htmlBannerOff();
+
+        $default = strpos($html, "gtag('consent', 'default'");
+        $config = strpos($html, "gtag('config'");
+        $this->assertNotFalse($default, 'consent default denied missing');
+        $this->assertNotFalse($config);
+        $this->assertLessThan($config, $default);
+        $this->assertMatchesRegularExpression("/gtag\('consent', 'default', \{[^}]*analytics_storage:\s+'denied'/s", $html);
+        $this->assertStringContainsString("gtag('consent', 'update', window.lvtConsent.granted)", $html);
+    }
+
+    public function test_banner_disabled_does_not_auto_open_but_footer_can_open_it(): void
+    {
+        $html = $this->htmlBannerOff();
+
+        $this->assertStringContainsString('<button type="button" data-cookie-preferences', $html);
+        $this->assertStringContainsString('id="lvt-cookie-banner"', $html);
+        $this->assertStringContainsString('if (false && !window.lvtConsent.get())', $html);
+    }
+
+    public function test_banner_enabled_auto_opens_for_new_visitors(): void
+    {
+        $html = $this->html();
+
+        $this->assertStringContainsString('if (true && !window.lvtConsent.get())', $html);
     }
 
     /**

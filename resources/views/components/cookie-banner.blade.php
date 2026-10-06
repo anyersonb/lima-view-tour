@@ -1,8 +1,10 @@
+@props(['autoShow' => true])
 @php
     /**
      * Cookie consent banner component.
      *
-     * Reads $cookieBannerEnabled and $cookieTexts from the parent layout.
+     * $autoShow = Setting cookie_banner_enabled: auto-opens for new visitors only when true.
+     * Always rendered so the footer "cookie preferences" button can open it.
      * Uses inline styles throughout — Tailwind purge removes arbitrary classes
      * in this project, so we follow the same pattern as the WhatsApp button.
      */
@@ -20,7 +22,7 @@
 
 {{--
     x-cloak hides the element until Alpine boots (rule already in <head>: [x-cloak]{display:none!important})
-    The component is only rendered when the banner is enabled (checked in layouts/app.blade.php).
+    Always rendered; $autoShow (admin Setting) only decides whether it opens by itself.
 --}}
 <div
     x-data="{
@@ -28,7 +30,7 @@
         root: null,
         init() {
             this.root = this.$el;
-            if (!window.lvtConsent.get()) {
+            if (@json((bool) $autoShow) && !window.lvtConsent.get()) {
                 this.show = true;
             }
             // Publica el alto del banner para que los CTAs fijos (WhatsApp, checkout, drawer de filtros) se apoyen encima

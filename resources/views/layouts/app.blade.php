@@ -37,7 +37,9 @@
     $googleVerify = $settings['seo_google_site_verification'] ?? null;
     $bingVerify = $settings['seo_bing_site_verification'] ?? null;
 
-    // Cookie consent — when banner is disabled by admin, analytics loads without requiring consent
+    // Cookie consent — fail closed: the Setting only controls whether the banner
+    // auto-opens for new visitors. GTM / Meta Pixel load ONLY with lvt_consent=granted,
+    // whatever the Setting says.
     $cookieBannerEnabled = (bool) \App\Models\Setting::get('cookie_banner_enabled', true);
 @endphp
 <!DOCTYPE html>
@@ -225,14 +227,16 @@
           4. GTM (contenedor ajeno: arrastra Clarity y Hotjar) y el Pixel NO se
              inyectan hasta que haya consentimiento; al aceptar se inyectan sin
              recargar. Sin JS no hay banner, por eso tampoco hay <noscript>.
-        Banner inactivo: todo carga como antes, sin restricciones.
+        Banner desactivado por el admin (cookie_banner_enabled=false): FALLA CERRADO.
+          Mismo flujo: consent denied, GTM/Pixel solo con lvt_consent=granted. Lo unico
+          que cambia es que el banner no se abre solo; el boton "Preferencias de
+          cookies" del footer sigue pudiendo abrirlo para dar consentimiento.
         =====================================================================
     --}}
-    @if ($gtmId || $gaId || $fbPixel || $cookieBannerEnabled)
+    {{-- Siempre se emite: el consent default denied y lvtConsent no dependen del Setting. --}}
         <script>
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
-            @if ($cookieBannerEnabled)
             gtag('consent', 'default', {
                 ad_storage:         'denied',
                 ad_user_data:       'denied',
@@ -282,7 +286,6 @@
             if (window.lvtConsent.get() === 'granted') {
                 gtag('consent', 'update', window.lvtConsent.granted);
             }
-            @endif
         </script>
 
         {{-- gtag/GA4 directo: siempre carga; bajo consent denied no crea cookies. --}}
@@ -302,15 +305,10 @@
                     window._lvtGtmLoaded = true;
                     (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
                 };
-                @if ($cookieBannerEnabled)
                 if (window.lvtConsent.get() === 'granted') window.lvtLoadGtm();
                 window.addEventListener('lvt-consent-granted', window.lvtLoadGtm);
-                @else
-                window.lvtLoadGtm();
-                @endif
             </script>
         @endif
-    @endif
 
     @if ($fbPixel)
         <script>
@@ -321,16 +319,10 @@
                 fbq('init', '{{ $fbPixel }}');
                 fbq('track', 'PageView');
             };
-            @if ($cookieBannerEnabled)
             if (window.lvtConsent.get() === 'granted') window.lvtLoadFbPixel();
             window.addEventListener('lvt-consent-granted', window.lvtLoadFbPixel);
-            @else
-            window.lvtLoadFbPixel();
-            @endif
         </script>
-        @unless ($cookieBannerEnabled)
-            <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ $fbPixel }}&ev=PageView&noscript=1"/></noscript>
-        @endunless
+        {{-- Sin <noscript><img> del Pixel: sin JS no hay consentimiento posible. --}}
     @endif
 
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
@@ -426,9 +418,8 @@
 
     @stack('scripts')
 
-    {{-- Cookie consent banner (shown when no prior decision + admin has it enabled) --}}
-    @if ($cookieBannerEnabled)
-        <x-cookie-banner />
-    @endif
+    {{-- Cookie consent banner: always rendered (so the footer "cookie preferences" button works);
+         it auto-opens for new visitors only when the admin Setting is on. --}}
+    <x-cookie-banner :auto-show="$cookieBannerEnabled" />
 </body>
 </html>
