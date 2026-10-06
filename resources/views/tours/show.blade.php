@@ -1491,7 +1491,9 @@ if (!empty($itinerary)) {
                     @endphp
                     <div class="m-rec-card">
                         <div class="m-rec-image-wrap">
-                            <img src="{{ $relCover }}" alt="{{ $relTitle }}" loading="lazy" width="126" height="142">
+                            <a href="{{ $relHref }}" tabindex="-1" aria-hidden="true" class="block">
+                                <img src="{{ $relCover }}" alt="{{ $relTitle }}" loading="lazy" width="126" height="142">
+                            </a>
                             @if ($relHasOffer)
                                 <div class="m-rec-badge">-{{ $relPct }}%</div>
                             @endif
