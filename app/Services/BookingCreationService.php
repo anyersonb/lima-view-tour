@@ -35,7 +35,7 @@ class BookingCreationService
      *                             subtotal.
      * @param  array  $customer  Keys: customer_name, customer_email,
      *                           customer_phone, travel_date (fallback),
-     *                           pickup_point, pickup_detail.
+     *                           pickup_point, pickup_detail, notes.
      * @param  string  $method  'paypal' | 'pay_later' | ...
      * @return Collection<Booking>
      */
@@ -76,6 +76,11 @@ class BookingCreationService
                     'payment_method' => $method,
                     'payment_reference' => $paymentReference,
                     'locale' => $locale,
+                    // B3: 'bookings.notes' existe desde la migración original
+                    // (create_bookings_table), a diferencia de pickup_point/
+                    // pickup_detail (agregadas después), así que se agrega
+                    // directo sin el guard de Schema::hasColumn() de abajo.
+                    'notes' => $customer['notes'] ?? null,
                 ];
 
                 if ($hasPickupColumns) {

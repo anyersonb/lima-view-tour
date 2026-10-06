@@ -79,11 +79,24 @@ class PaypalCaptureSecurityTest extends TestCase
         ]);
     }
 
-    private function createPaypalOrder(string $orderId = 'ORDER-1'): string
+    /**
+     * B4: checkout.paypal.create ahora exige accept_terms (y opcionalmente
+     * lee customer_name/email/phone para el `payer` de B2). El payload por
+     * defecto ya lo manda, así que ningún test existente que use este
+     * helper se rompe por la validación nueva.
+     */
+    private function createPaypalOrder(string $orderId = 'ORDER-1', array $overrides = []): string
     {
         $this->fakePaypalCreate($orderId);
 
-        $response = $this->postJson(route('checkout.paypal.create', ['locale' => self::LOCALE]));
+        $payload = array_merge([
+            'customer_name' => 'Juan Pérez García',
+            'customer_email' => 'juan@example.com',
+            'customer_phone' => '+51987654321',
+            'accept_terms' => true,
+        ], $overrides);
+
+        $response = $this->postJson(route('checkout.paypal.create', ['locale' => self::LOCALE]), $payload);
         $response->assertOk();
 
         return $response->json('id');
@@ -296,6 +309,7 @@ class PaypalCaptureSecurityTest extends TestCase
             'customer_phone' => '+51987000001',
             'travel_date' => now()->addDays(10)->format('Y-m-d'),
             'payment_timing' => 'later',
+            'accept_terms' => true,
         ]);
 
         $response->assertRedirectToRoute('checkout.thanks', ['locale' => self::LOCALE]);
@@ -433,6 +447,7 @@ class PaypalCaptureSecurityTest extends TestCase
             'customer_phone' => '+51987000002',
             'travel_date' => now()->addDays(10)->format('Y-m-d'),
             'payment_timing' => 'later',
+            'accept_terms' => true,
         ]);
 
         // processPayment() atrapa el \Throwable y redirige con un error
@@ -580,6 +595,7 @@ class PaypalCaptureSecurityTest extends TestCase
             'customer_phone' => '+51987654321',
             'travel_date' => now()->addDays(10)->format('Y-m-d'),
             'payment_timing' => 'later',
+            'accept_terms' => true,
         ]);
 
         $response->assertRedirectToRoute('cart.index', ['locale' => self::LOCALE]);
@@ -621,5 +637,58 @@ class PaypalCaptureSecurityTest extends TestCase
         $response->assertOk();
         $response->assertSee('showPaymentReviewPanel(', false);
         $response->assertSee("CAPTURE-{$orderId}", false);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  B4 (lote 2026-09-30): accept_terms obligatorio para CREAR una orden
+    // ─────────────────────────────────────────────────────────────
+
+    /** @test */
+    public function creating_an_order_without_accepting_terms_is_rejected_with_a_422_and_never_touches_paypal(): void
+    {
+        $tour = $this->tour(['price' => 150.00]);
+        $this->cart()->add($tour, 1, 0, now()->addDays(10)->toDateString());
+
+        // Sin configurar ningún fake: si el guard no existiera, esta llamada
+        // intentaría de verdad tocar la red de PayPal y Http::fake() (vacío)
+        // la bloquearía como "sin URL registrada" en vez de fallar por
+        // validación — la aserción de abajo (Http::assertNothingSent) separa
+        // ambos casos.
+        Http::fake();
+
+        // POST directo SIN accept_terms (bypass del checkbox del checkout).
+        $response = $this->postJson(route('checkout.paypal.create', ['locale' => self::LOCALE]), [
+            'customer_name' => 'Juan Pérez García',
+            'customer_email' => 'juan@example.com',
+            'customer_phone' => '+51987654321',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['accept_terms']);
+
+        // El guard corta ANTES de tocar PayPal: cero llamadas a la red.
+        Http::assertNothingSent();
+    }
+
+    /**
+     * Contraprueba: el mismo payload PERO con accept_terms sí crea la orden
+     * con normalidad — el 422 de arriba es específicamente por el campo que
+     * falta, no porque el endpoint esté roto en general.
+     *
+     * @test
+     */
+    public function the_accept_terms_guard_does_not_block_a_normal_order_when_the_field_is_present(): void
+    {
+        $tour = $this->tour(['price' => 150.00]);
+        $this->cart()->add($tour, 1, 0, now()->addDays(10)->toDateString());
+
+        $orderId = $this->createPaypalOrder('ORDER-TERMS-OK', [
+            'customer_name' => 'Juan Pérez García',
+            'customer_email' => 'juan@example.com',
+            'customer_phone' => '+51987654321',
+            'accept_terms' => true,
+        ]);
+
+        $this->assertNotEmpty($orderId);
     }
 }

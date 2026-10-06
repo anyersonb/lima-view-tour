@@ -4,11 +4,11 @@ namespace App\Filament\Resources\BookingResource\Pages;
 
 use App\Filament\Resources\BookingResource;
 use App\Models\Booking;
+use App\Support\BookingCalendar;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Date;
 
 class ListBookings extends ListRecords
 {
@@ -33,7 +33,8 @@ class ListBookings extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('Todas'),
+            'all' => Tab::make('Todas')
+                ->badge(fn () => Booking::query()->count()),
 
             'paid' => Tab::make('Pagadas')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('payment_status', 'paid'))
@@ -52,24 +53,43 @@ class ListBookings extends ListRecords
                 ->badge(fn () => Booking::query()->paymentAtRisk()->count())
                 ->badgeColor('danger'),
 
+            // `Date::today()` (facade de Carbon) cae en `app.timezone`, que es
+            // UTC (ver config/booking.php). Entre las 19:00 y la medianoche
+            // de Lima el servidor ya está en el día siguiente: este tab
+            // mostraba las salidas de "mañana en Lima" bajo la etiqueta
+            // "Salidas de hoy". BookingCalendar::today() es la MISMA fuente
+            // de verdad que usa el checkout para decidir qué día es hoy.
             'today' => Tab::make('Salidas de hoy')
                 ->modifyQueryUsing(fn (Builder $query) => $query->travelingBetween(
-                    Date::today()->toDateString(),
-                    Date::today()->toDateString(),
+                    BookingCalendar::today()->toDateString(),
+                    BookingCalendar::today()->toDateString(),
                 ))
                 ->badge(fn () => Booking::query()->travelingBetween(
-                    Date::today()->toDateString(),
-                    Date::today()->toDateString(),
+                    BookingCalendar::today()->toDateString(),
+                    BookingCalendar::today()->toDateString(),
                 )->count()),
 
-            'this_week' => Tab::make('Salidas de esta semana')
+            'tomorrow' => Tab::make('Mañana')
                 ->modifyQueryUsing(fn (Builder $query) => $query->travelingBetween(
-                    Date::today()->startOfWeek()->toDateString(),
-                    Date::today()->endOfWeek()->toDateString(),
+                    BookingCalendar::today()->addDay()->toDateString(),
+                    BookingCalendar::today()->addDay()->toDateString(),
                 ))
                 ->badge(fn () => Booking::query()->travelingBetween(
-                    Date::today()->startOfWeek()->toDateString(),
-                    Date::today()->endOfWeek()->toDateString(),
+                    BookingCalendar::today()->addDay()->toDateString(),
+                    BookingCalendar::today()->addDay()->toDateString(),
+                )->count()),
+
+            // B5: mismo bug que tenía 'today' — usaba Date::today() (UTC) para
+            // calcular el inicio/fin de semana. Corregido con BookingCalendar::today(),
+            // la misma fuente de verdad que el resto de tabs de este archivo.
+            'this_week' => Tab::make('Salidas de esta semana')
+                ->modifyQueryUsing(fn (Builder $query) => $query->travelingBetween(
+                    BookingCalendar::today()->startOfWeek()->toDateString(),
+                    BookingCalendar::today()->endOfWeek()->toDateString(),
+                ))
+                ->badge(fn () => Booking::query()->travelingBetween(
+                    BookingCalendar::today()->startOfWeek()->toDateString(),
+                    BookingCalendar::today()->endOfWeek()->toDateString(),
                 )->count()),
         ];
     }

@@ -25,12 +25,22 @@
 <div
     x-data="{
         show: false,
+        root: null,
         init() {
+            this.root = this.$el;
             const stored = localStorage.getItem('lvt_cookie_consent');
             // Show only when no decision has been made yet
             if (!stored) {
                 this.show = true;
             }
+            // Publica el alto del banner para que los CTAs fijos (checkout, drawer de filtros) se apoyen encima
+            this.$watch('show', () => this.syncHeight());
+            new ResizeObserver(() => this.syncHeight()).observe(this.root);
+            this.$nextTick(() => this.syncHeight());
+        },
+        syncHeight() {
+            const h = this.show ? this.root.offsetHeight : 0;
+            document.documentElement.style.setProperty('--cookie-banner-h', h + 'px');
         },
         accept() {
             localStorage.setItem('lvt_cookie_consent', 'granted');

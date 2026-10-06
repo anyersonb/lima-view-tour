@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Tour;
 use App\Models\User;
+use App\Support\BookingCalendar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -311,6 +312,30 @@ class BookingResourceFiltersTest extends TestCase
 
     // ── Pestañas rápidas ─────────────────────────────────────────────────────
 
+    /**
+     * La pestaña "Todas" lleva contador con el total de reservas, igual que
+     * el resto de pestañas. Cuenta TODAS (no depende de la pestaña activa).
+     */
+    public function test_all_tab_has_badge_with_total_bookings(): void
+    {
+        $this->actingAs($this->admin());
+
+        Booking::factory()->paid()->create();
+        Booking::factory()->pendingPayment()->create();
+        Booking::factory()->failedPayment()->create();
+
+        $component = Livewire::test(ListBookings::class);
+        $tabs = $component->instance()->getCachedTabs();
+
+        $this->assertSame(3, $tabs['all']->getBadge());
+        // Control: el contador sigue el dato, no es una constante.
+        $this->assertSame(1, $tabs['paid']->getBadge());
+
+        Booking::factory()->paid()->create();
+        $tabs = Livewire::test(ListBookings::class)->instance()->getCachedTabs();
+        $this->assertSame(4, $tabs['all']->getBadge());
+    }
+
     public function test_paid_tab_shows_only_paid_bookings(): void
     {
         $this->actingAs($this->admin());
@@ -341,16 +366,120 @@ class BookingResourceFiltersTest extends TestCase
             ->assertCanNotSeeTableRecords([$notAtRisk]);
     }
 
+    /**
+     * `travel_date` en BookingCalendar::today() (Lima), no en now()->toDateString()
+     * (UTC vía app.timezone): entre las 19:00 y la medianoche de Lima ambas
+     * fechas difieren, y este test con now() pasaba antes solo porque la
+     * implementación TAMBIÉN usaba UTC (Date::today()) — el mismo bug en
+     * ambos lados se cancelaba. Corregida la implementación, el test debe
+     * medir contra la MISMA fuente de verdad que ahora usa el tab.
+     */
     public function test_today_tab_shows_only_todays_departures(): void
     {
         $this->actingAs($this->admin());
 
-        $today = Booking::factory()->create(['travel_date' => now()->toDateString()]);
-        $tomorrow = Booking::factory()->create(['travel_date' => now()->addDay()->toDateString()]);
+        $today = Booking::factory()->create(['travel_date' => BookingCalendar::today()->toDateString()]);
+        $tomorrow = Booking::factory()->create(['travel_date' => BookingCalendar::today()->addDay()->toDateString()]);
 
         Livewire::test(ListBookings::class)
             ->set('activeTab', 'today')
             ->assertCanSeeTableRecords([$today])
             ->assertCanNotSeeTableRecords([$tomorrow]);
+    }
+
+    /**
+     * "Mañana" (tab nuevo) tiene que calcular su fecha con
+     * App\Support\BookingCalendar::today(), no con now()/Date::today(): el
+     * servidor corre en UTC (config/app.php: 'timezone' => 'UTC') y el
+     * operador está en Lima (America/Lima, ver config/booking.php). Las
+     * fechas se comparan como string Y-m-d (whereDate vía scopeTravelingBetween)
+     * a propósito: la suite corre en SQLite y producción en MySQL, y un
+     * cast de fecha entre motores da falsos verdes si se compara distinto.
+     */
+    public function test_tomorrow_tab_shows_only_next_day_departures(): void
+    {
+        $this->actingAs($this->admin());
+
+        $lima = BookingCalendar::today();
+        $tomorrowInLima = $lima->copy()->addDay()->toDateString();
+        $todayInLima = $lima->toDateString();
+
+        $tomorrow = Booking::factory()->create(['travel_date' => $tomorrowInLima]);
+        $today = Booking::factory()->create(['travel_date' => $todayInLima]);
+
+        Livewire::test(ListBookings::class)
+            ->set('activeTab', 'tomorrow')
+            ->assertCanSeeTableRecords([$tomorrow])
+            ->assertCanNotSeeTableRecords([$today]);
+    }
+
+    /**
+     * El caso que motivó el fix: a las 23:30 hora de Lima (04:30 UTC del día
+     * SIGUIENTE), una reserva con travel_date = mañana-en-Lima tiene que
+     * seguir apareciendo en el tab "Mañana", y una con la fecha de hoy-en-Lima
+     * NO debe aparecer. Antes de este fix, 'today' (y por construcción
+     * 'tomorrow' si hubiera copiado el mismo patrón con Date::today()) leía
+     * la fecha en UTC: a esa hora ya es "un día más" en el servidor, así que
+     * el tab mostraba las salidas de PASADO MAÑANA bajo la etiqueta "Mañana".
+     */
+    public function test_tomorrow_tab_uses_lima_time_not_utc_near_midnight(): void
+    {
+        $this->actingAs($this->admin());
+
+        // 2026-09-29 23:30 hora de Lima == 2026-09-30 04:30 UTC.
+        Carbon::setTestNow(Carbon::parse('2026-09-30 04:30:00', 'UTC'));
+
+        try {
+            // "Mañana" en Lima a esta hora es 2026-09-30 (no 2026-10-01, que
+            // es lo que UTC diría que es "pasado mañana" si se comparara mal).
+            $tomorrowInLima = Booking::factory()->create(['travel_date' => '2026-09-30']);
+            $todayInLima = Booking::factory()->create(['travel_date' => '2026-09-29']);
+
+            Livewire::test(ListBookings::class)
+                ->set('activeTab', 'tomorrow')
+                ->assertCanSeeTableRecords([$tomorrowInLima])
+                ->assertCanNotSeeTableRecords([$todayInLima]);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /**
+     * B5: 'this_week' tenía el MISMO bug que 'today'/'tomorrow' antes del
+     * fix de la Tarea A — calculaba el inicio/fin de semana con
+     * Date::today() (UTC vía app.timezone) en vez de BookingCalendar::today()
+     * (Lima). Mismo caso límite: 23:30 hora de Lima ya es 04:30 del día
+     * SIGUIENTE en UTC, lo que podía correr toda la ventana de la semana un
+     * día hacia adelante.
+     */
+    public function test_this_week_tab_uses_lima_time_not_utc_near_midnight(): void
+    {
+        $this->actingAs($this->admin());
+
+        // 2026-09-29 23:30 hora de Lima == 2026-09-30 04:30 UTC.
+        Carbon::setTestNow(Carbon::parse('2026-09-30 04:30:00', 'UTC'));
+
+        try {
+            $limaToday = BookingCalendar::today();
+            $startOfWeekLima = $limaToday->copy()->startOfWeek()->toDateString();
+            $endOfWeekLima = $limaToday->copy()->endOfWeek()->toDateString();
+
+            // Dentro de la semana calculada en hora de Lima: debe aparecer.
+            $inWeek = Booking::factory()->create(['travel_date' => $startOfWeekLima]);
+            // Un día después del fin de semana-en-Lima: NO debe aparecer. Si
+            // 'this_week' volviera a usar UTC, la ventana completa se corre
+            // un día hacia adelante y este caso (junto con $inWeek) se
+            // invierte — el test detectaría la regresión.
+            $outOfWeek = Booking::factory()->create([
+                'travel_date' => Carbon::parse($endOfWeekLima)->addDay()->toDateString(),
+            ]);
+
+            Livewire::test(ListBookings::class)
+                ->set('activeTab', 'this_week')
+                ->assertCanSeeTableRecords([$inWeek])
+                ->assertCanNotSeeTableRecords([$outOfWeek]);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

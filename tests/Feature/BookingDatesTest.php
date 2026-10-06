@@ -45,6 +45,9 @@ class BookingDatesTest extends TestCase
             'customer_phone' => '+51987654321',
             'payment_timing' => 'later',
             'travel_date' => BookingCalendar::earliestDate(),
+            // B4 (lote 2026-09-30): ProcessPaymentRequest ahora exige
+            // accept_terms marcado.
+            'accept_terms' => true,
         ], $overrides);
     }
 

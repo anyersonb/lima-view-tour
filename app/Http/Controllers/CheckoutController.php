@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
@@ -118,6 +119,12 @@ class CheckoutController extends Controller
                 'travel_date' => $validated['travel_date'],
                 'pickup_point' => $request->input('pickup_point'),
                 'pickup_detail' => $request->input('pickup_detail'),
+                // B3: 'notes' viaja y se persiste igual que pickup_point/
+                // pickup_detail — 'bookings.notes' existe desde la migración
+                // original. 'tour_language' NO se incluye acá a propósito:
+                // se valida en ProcessPaymentRequest pero no hay columna
+                // para guardarlo (ver la nota ahí).
+                'notes' => $validated['notes'] ?? null,
             ];
 
             // Defense-in-depth: re-verify blocked dates for every cart item
@@ -190,6 +197,12 @@ class CheckoutController extends Controller
             // vez. Deshabilitar el botón en el frontend es UX y un refresco
             // lo salta; esto no. El marcador vive en sesión y caduca solo
             // (ver PaymentLockService).
+            //
+            // Este guard va ANTES de validar el body a propósito: si hay un
+            // bloqueo activo, la respuesta tiene que seguir siendo 409 con el
+            // aviso persistente que el frontend sabe interpretar
+            // (showPaymentReviewPanel), nunca un 422 de validación que lo
+            // taparía.
             if ($lock = $this->paymentLock->current()) {
                 Log::warning('checkout.paypal_create_order: blocked, pending manual review lock', [
                     'order_id' => $lock['order_id'],
@@ -198,6 +211,32 @@ class CheckoutController extends Controller
 
                 return response()->json($this->paymentLock->blockedResponsePayload($lock), 409);
             }
+
+            // B4: aceptar términos es obligatorio para crear una orden nueva.
+            // No se repite en paypalCaptureOrder(): exigirlo ahí dejaría
+            // "cobrado sin reserva" si alguien manipula el payload de
+            // capture DESPUÉS de haber aceptado los términos al crear la
+            // orden (el dinero ya se movió en PayPal para ese momento).
+            //
+            // B1: customer_phone solo se valida como string acotado aquí: el
+            // formato lo decide buildPayer() (lo omite del payer si no sirve).
+            // Un regex estricto bloqueaba el pago por un dato de cortesía.
+            // La validación de formato real vive donde el teléfono SE GUARDA
+            // (ProcessPaymentRequest y paypalCaptureOrder).
+            //
+            // customer_name/email/phone son 'nullable' aquí (B2): si faltan
+            // o no parsean, buildPayer() simplemente los omite del payer que
+            // se manda a PayPal — es un enriquecimiento de UX, nunca un
+            // motivo para no poder pagar.
+            $validated = $request->validate([
+                'customer_name' => ['nullable', 'string', 'max:255'],
+                'customer_email' => ['nullable', 'email', 'max:255'],
+                'customer_phone' => ['nullable', 'string', 'max:50'],
+                'accept_terms' => ['required', 'accepted'],
+            ], [
+                'accept_terms.required' => __('checkout_paypal.accept_terms_required'),
+                'accept_terms.accepted' => __('checkout_paypal.accept_terms_required'),
+            ]);
 
             $items = $this->cart->items();
 
@@ -208,9 +247,15 @@ class CheckoutController extends Controller
             // Amount always calculated server-side — never trust the client
             $total = $this->cart->total();
 
+            // B2: enriquece el formulario de invitado de PayPal con lo que
+            // el cliente ya escribió (nombre, correo, teléfono) y marca la
+            // orden como "sin envío, pagar ahora" — ver PayPalService::
+            // createOrder() y buildPayer() más abajo. El monto y la moneda
+            // siguen saliendo SIEMPRE de $total (carrito en servidor), igual
+            // que antes de este cambio.
             $order = $this->paypal->createOrder($total, 'USD', [
                 'locale' => $locale,
-            ]);
+            ], $this->buildPayer($validated));
 
             // Snapshot de lo que había en el carrito EN ESTE MOMENTO: es lo
             // único que ata el orderID de PayPal a un importe y a unos ítems
@@ -227,11 +272,73 @@ class CheckoutController extends Controller
 
             return response()->json(['id' => $order['id']]);
 
+        } catch (ValidationException $e) {
+            // Deja que Laravel devuelva su 422 estándar (mismo formato que
+            // cualquier FormRequest: {message, errors}) en vez de caer en el
+            // catch genérico de abajo, que respondería 500 y ocultaría cuál
+            // campo falló (B4: el test que postea sin accept_terms espera
+            // exactamente este 422).
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('checkout.paypal_create_order.error', ['message' => $e->getMessage()]);
 
             return response()->json(['error' => 'No se pudo iniciar el pago. Inténtalo de nuevo.'], 500);
         }
+    }
+
+    /**
+     * B2: arma el objeto `payer` de la Orders v2 API a partir de lo que el
+     * cliente ya escribió en el checkout, para que el formulario de invitado
+     * de PayPal llegue prellenado (menos campos que volver a teclear). Cada
+     * pieza que falta o no parsea se omite en silencio — nunca es motivo
+     * para rechazar la creación de la orden.
+     *
+     * @param  array{customer_name?: ?string, customer_email?: ?string, customer_phone?: ?string}  $validated
+     * @return array Payload `payer` listo para PayPalService::createOrder(), o [] si no hay nada que mandar.
+     */
+    private function buildPayer(array $validated): array
+    {
+        $payer = [];
+
+        // Límites de Orders v2: given_name y surname 1-140, email 3-254 con
+        // patrón ASCII, national_number 1-14 dígitos. Cada subcampo que no
+        // cabe se trunca (nombre) u omite (correo/teléfono): el payer es solo
+        // comodidad y nunca debe hacer fallar la creación de la orden.
+        $name = trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string) ($validated['customer_name'] ?? '')));
+        if ($name !== '') {
+            // given_name = primera palabra, surname = el resto. Un nombre de
+            // una sola palabra manda la MISMA palabra en ambos: PayPal exige
+            // los dos subcampos no vacíos si se manda `name`.
+            $parts = preg_split('/\s+/u', $name, 2) ?: [$name];
+            $given = mb_substr($parts[0], 0, 140);
+            $surname = mb_substr($parts[1] ?? $parts[0], 0, 140);
+            if ($given !== '' && $surname !== '') {
+                $payer['name'] = ['given_name' => $given, 'surname' => $surname];
+            }
+        }
+
+        // FILTER_VALIDATE_EMAIL (sin flag unicode) es más estricto que la
+        // regla `email` de Laravel: exige dominio con punto (rechaza `a@b`)
+        // y solo ASCII, que es lo que el patrón de PayPal acepta.
+        $email = trim((string) ($validated['customer_email'] ?? ''));
+        if ($email !== '' && strlen($email) <= 254 && filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
+            $payer['email_address'] = $email;
+        }
+
+        // La Orders v2 API no tiene un campo separado para el código de país
+        // en `payer.phone`: se manda todo el E.164 sin el '+' en
+        // `national_number`. Se omite el teléfono completo si no quedan
+        // puros dígitos en rango 8 a 14 (el tope de PayPal para
+        // national_number es 14; customer_phone admite hasta 15).
+        $phoneDigits = preg_replace('/\D/', '', (string) ($validated['customer_phone'] ?? ''));
+        if ($phoneDigits !== '' && preg_match('/^\d{8,14}$/', $phoneDigits) === 1) {
+            $payer['phone'] = [
+                'phone_type' => 'MOBILE',
+                'phone_number' => ['national_number' => $phoneDigits],
+            ];
+        }
+
+        return $payer;
     }
 
     /**
@@ -253,7 +360,16 @@ class CheckoutController extends Controller
             'travel_date' => array_merge(['required'], BookingCalendar::dateRules()),
             'pickup_point' => ['nullable', 'string', 'max:100'],
             'pickup_detail' => ['nullable', 'string', 'max:255'],
-        ], BookingCalendar::dateMessages());
+            // B3: 'notes' se persiste (ver $customer más abajo). 'tour_language'
+            // se valida para no romper si viaja, pero NO se persiste — no
+            // hay columna en 'bookings' (reportado, sin migración en este
+            // lote).
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'tour_language' => ['nullable', 'string', 'max:5'],
+        ], array_merge(BookingCalendar::dateMessages(), [
+            'customer_phone.regex' => __('checkout_paypal.phone_invalid'),
+            'customer_phone.required' => __('checkout_paypal.phone_invalid'),
+        ]));
 
         $orderId = $validated['orderID'];
         $captureId = null;
@@ -309,6 +425,7 @@ class CheckoutController extends Controller
                 'travel_date' => $validated['travel_date'],
                 'pickup_point' => $validated['pickup_point'] ?? null,
                 'pickup_detail' => $validated['pickup_detail'] ?? null,
+                'notes' => $validated['notes'] ?? null,
             ];
 
             // Defense-in-depth: re-verify blocked dates against the SNAPSHOT

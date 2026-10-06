@@ -480,7 +480,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 /* ── Sticky footer ── */
 .cart-sticky {
     position: fixed; left: 50%; transform: translateX(-50%);
-    bottom: 12px; width: min(600px, calc(100vw - 24px));
+    bottom: calc(12px + var(--cookie-banner-h, 0px)); width: min(600px, calc(100vw - 24px));
     z-index: 40; pointer-events: none;
 }
 .cart-sticky-inner {
@@ -633,8 +633,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 .cart-flash.error { background: rgba(200,110,87,.08); border: 1px solid rgba(200,110,87,.25); color: var(--cart-danger); }
 
 /* ── Spacer sticky ── */
-.cart-sticky-spacer { height: 84px; }
-@media (max-width: 1023px) { .cart-panel.active { padding-bottom: 28px; } .cart-sticky-spacer { height: 112px; } }
+.cart-sticky-spacer { height: calc(84px + var(--cookie-banner-h, 0px)); }
+@media (max-width: 1023px) { .cart-panel.active { padding-bottom: 28px; } .cart-sticky-spacer { height: calc(112px + var(--cookie-banner-h, 0px)); } }
 /* Desktop: el sidebar ya tiene el CTA → ocultar la barra sticky inferior (evita solape) */
 @media (min-width: 1024px) { .cart-sticky, .cart-sticky-spacer { display: none !important; } }
 
@@ -1211,7 +1211,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                             <x-phone-country-select id="phone_prefix"
                                                                     class="cart-real-select"
                                                                     style="flex:0 0 auto; width:min(200px, 45%); min-width:96px;" />
-                                            <input type="tel" id="phone_local" placeholder="999 999 999" autocomplete="tel-national"
+                                            <input type="tel" id="phone_local" placeholder="999 999 999" autocomplete="tel-national" inputmode="tel" maxlength="15"
                                                    data-hj-suppress
                                                    class="cart-real-input @error('customer_phone') border-red-500 @enderror" style="flex:1; min-width:0;">
                                         </div>
@@ -1367,6 +1367,28 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     <div class="cart-field-help">
                                         {{ __('ui.pickup_help') }}
                                     </div>
+                                </div>
+
+                                {{-- B3: la columna `pickup_detail` de bookings ya se
+                                     validaba y persistía (ProcessPaymentRequest,
+                                     CheckoutController::paypalCaptureOrder(),
+                                     BookingCreationService), pero no existía este
+                                     <input> — el JS buscaba [name="pickup_detail"] y
+                                     nunca lo encontraba, así que siempre viajaba
+                                     vacío. Campo aparte de pickup_point: acá va un
+                                     detalle adicional (habitación, piso, referencia
+                                     para el conductor), no el hotel en sí. --}}
+                                <div class="cart-field">
+                                    <label for="pickup_detail">{{ __('checkout_paypal.pickup_detail_label') }} <span class="text-teal-800/40 font-normal normal-case">({{ __('ui.optional') }})</span></label>
+                                    <input type="text"
+                                           id="pickup_detail"
+                                           name="pickup_detail"
+                                           value="{{ old('pickup_detail') }}"
+                                           placeholder="{{ __('checkout.pickup_detail_placeholder') }}"
+                                           autocomplete="off"
+                                           data-hj-suppress
+                                           class="cart-real-input @error('pickup_detail') border-red-500 @enderror">
+                                    @error('pickup_detail')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                 </div>
 
                                 <div class="cart-field">
@@ -1590,9 +1612,18 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                         </div>
                     </div>
 
-                    {{-- Botones de pago PayPal (visibles solo cuando timing=now) --}}
+                    {{-- Botones de pago (visibles solo cuando timing=now). B1: tarjeta
+                         arriba (fundingSource CARD del propio SDK de PayPal, NO el botón
+                         "Debit or Credit Card"/ACDC — no está disponible para PE) y
+                         PayPal debajo, separados por un texto. Ambos comparten
+                         createOrder/onApprove/onError/onCancel y el mismo PaymentLock
+                         (ver el JS más abajo). Si CARD no es eligible en esta cuenta/
+                         país, #card-buttons y el separador quedan vacíos/ocultos y solo
+                         se ve PayPal — la página no se rompe. --}}
                     <div id="paypal-section" style="display:none; margin-top:12px;">
                         @if ((\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')))
+                            <div id="card-buttons"></div>
+                            <div id="paypal-separator" style="display:none; text-align:center; font-size:12px; font-weight:600; color:#71808a; margin:12px 0;">{{ __('checkout_paypal.or_pay_with_paypal') }}</div>
                             <div id="paypal-buttons"></div>
                             <div id="paypal-msg" role="alert" style="display:none; margin-top:10px; padding:10px 14px; border-radius:14px; font-size:13px; font-weight:600; background:rgba(200,110,87,.08); border:1px solid rgba(200,110,87,.25); color:#C86E57;"></div>
                         @else
@@ -1719,7 +1750,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 @push('scripts')
 @if ($items->isNotEmpty() && (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')))
 <script
-    src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale=es_PE"
+    src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale=es_PE&components=buttons,funding-eligibility&disable-funding=credit,paylater"
     data-namespace="paypal_sdk">
 </script>
 @endif
@@ -2034,11 +2065,11 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     function validateDatos() {
         const d = collectCustomerData();
         if (!d.customer_name || !d.customer_email || !d.customer_phone || !d.travel_date) {
-            alert('Completa tu nombre, correo, teléfono y fecha de viaje antes de continuar.');
+            alert(@json(__('checkout_paypal.validate_datos_fields')));
             return false;
         }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.customer_email)) {
-            alert('Ingresa un correo electrónico válido.');
+            alert(@json(__('checkout_paypal.validate_email')));
             return false;
         }
         return true;
@@ -2046,7 +2077,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     function canAdvanceTo(target) {
         const ti = steps.indexOf(target), ci = steps.indexOf(currentStep);
         if (ti <= ci) return true;  // volver a un paso previo siempre se permite
-        if (cartState.size === 0) { alert('Agrega al menos un tour para continuar.'); return false; }
+        if (cartState.size === 0) { alert(@json(__('checkout_paypal.validate_empty_cart'))); return false; }
         // Para llegar a "Pago" los datos deben estar completos
         if (ti >= steps.indexOf('pago') && !validateDatos()) {
             setStep('datos');
@@ -2079,7 +2110,12 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
             customer_phone: form.querySelector('#customer_phone')?.value.trim() ?? '',
             travel_date:    form.querySelector('#travel_date')?.value            ?? '',
             pickup_point:   form.querySelector('#pickup_point')?.value           ?? '',
-            pickup_detail:  form.querySelector('[name="pickup_detail"]')?.value  ?? '',
+            // B3: #pickup_detail ahora existe de verdad (antes el selector era
+            // [name="pickup_detail"] y ningún elemento lo tenía: siempre viajaba '').
+            pickup_detail:  form.querySelector('#pickup_detail')?.value          ?? '',
+            tour_language:  form.querySelector('#tour_language')?.value          ?? '',
+            notes:          form.querySelector('#notes')?.value                  ?? '',
+            accept_terms:   form.querySelector('#accept_terms')?.checked ? '1' : '',
         };
     }
 
@@ -2121,13 +2157,13 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         const d     = collectCustomerData();
         const terms = document.getElementById('accept_terms')?.checked;
         if (!d.customer_name || !d.customer_email || !d.customer_phone || !d.travel_date) {
-            alert('Por favor completa todos los campos obligatorios (nombre, correo, teléfono y fecha de viaje) antes de continuar.');
+            alert(@json(__('checkout_paypal.validate_customer_fields')));
             setStep('datos');
             document.querySelector('#customer_name')?.focus();
             return false;
         }
         if (!terms) {
-            alert('Debes aceptar los términos y condiciones para continuar.');
+            alert(@json(__('checkout_paypal.accept_terms_required')));
             document.getElementById('accept_terms')?.focus();
             return false;
         }
@@ -2153,8 +2189,13 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         if (refCode) refCode.textContent = reference || '';
         if (panel)   panel.style.display = '';
 
-        // Vaciar (no solo ocultar) el contenedor de los botones de PayPal:
-        // ningún iframe queda montado ni clicable.
+        // Vaciar (no solo ocultar) los contenedores de los botones: ningún
+        // iframe —tarjeta o PayPal— queda montado ni clicable (B1: ahora
+        // hay dos contenedores en vez de uno).
+        const cardButtonsEl = document.getElementById('card-buttons');
+        if (cardButtonsEl) cardButtonsEl.innerHTML = '';
+        const ppSeparatorEl = document.getElementById('paypal-separator');
+        if (ppSeparatorEl) ppSeparatorEl.style.display = 'none';
         const ppButtons = document.getElementById('paypal-buttons');
         if (ppButtons) ppButtons.innerHTML = '';
 
@@ -2249,6 +2290,12 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         if (!validateCustomer()) {
             return Promise.reject(new Error('validation_failed'));
         }
+        // B2/B4: nombre/correo/teléfono ya escritos por el cliente — PayPal
+        // los usa para prellenar SU propio formulario de invitado (ver
+        // CheckoutController::buildPayer()) — y accept_terms, que el
+        // servidor exige para crear una orden nueva (no se repite al
+        // capturar: ver el comentario en paypalCaptureOrder()).
+        const customer = collectCustomerData();
         const res = await fetch(paypalCreateUrl, {
             method: 'POST',
             headers: {
@@ -2257,7 +2304,12 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept':           'application/json',
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({
+                customer_name:  customer.customer_name,
+                customer_email: customer.customer_email,
+                customer_phone: customer.customer_phone,
+                accept_terms:   customer.accept_terms,
+            }),
         });
         const data = await res.json();
 
@@ -2270,9 +2322,42 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         }
 
         if (!res.ok || !data.id) {
-            throw new Error(data.error ?? 'No se pudo crear la orden.');
+            if (showServerFieldError(data.errors)) {
+                const fe = new Error('field_validation_failed');
+                fe.fieldError = true;
+                throw fe;
+            }
+            throw new Error(data.error ?? @json(__('checkout_paypal.create_order_failed')));
         }
         return data.id;
+    }
+
+    // Muestra el primer error de campo del 422 junto al campo (en el idioma
+    // que ya resolvió el servidor). Devuelve false si no hay error de campo.
+    function showServerFieldError(errors) {
+        if (!errors || typeof errors !== 'object') return false;
+        const fieldMap = {
+            customer_name: '#customer_name', customer_email: '#customer_email',
+            customer_phone: '#phone_local', accept_terms: '#accept_terms',
+        };
+        document.querySelectorAll('[data-server-field-error]').forEach(n => n.remove());
+        const key = Object.keys(errors).find(k => Array.isArray(errors[k]) && errors[k][0]);
+        if (!key) return false;
+        const input = document.querySelector(fieldMap[key] ?? '#' + key);
+        const holder = input?.closest('.cart-field') ?? input?.parentElement;
+        if (!input || !holder) return false;
+        const p = document.createElement('p');
+        p.className = 'text-xs mt-1';
+        p.setAttribute('data-server-field-error', '');
+        p.setAttribute('role', 'alert');
+        p.style.color = 'var(--cart-danger)';
+        p.textContent = errors[key][0];
+        holder.appendChild(p);
+        setStep('datos');
+        input.setAttribute('aria-invalid', 'true');
+        input.focus();
+        input.addEventListener('input', () => { p.remove(); input.removeAttribute('aria-invalid'); }, { once: true });
+        return true;
     }
 
     async function ppOnApprove(paypalData) {
@@ -2296,6 +2381,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                 travel_date:    customer.travel_date,
                 pickup_point:   customer.pickup_point,
                 pickup_detail:  customer.pickup_detail,
+                tour_language:  customer.tour_language,
+                notes:          customer.notes,
             }),
         });
         const data = await res.json();
@@ -2344,6 +2431,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     }
 
     function ppOnError(err) {
+        if (err && err.fieldError) return;
         const msgEl = document.getElementById('paypal-msg');
         if (msgEl) {
             msgEl.textContent  = 'Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.';
@@ -2357,17 +2445,45 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     }
 
     if (typeof paypal_sdk !== 'undefined') {
+        // B1: los dos botones (tarjeta y PayPal) comparten EXACTAMENTE los
+        // mismos handlers — createOrder/onApprove/onError/onCancel — y por
+        // lo tanto el mismo PaymentLock del servidor. Solo cambia
+        // fundingSource y en qué contenedor se pinta cada uno.
+        const ppHandlers = {
+            createOrder: ppCreateOrder,
+            onApprove:   ppOnApprove,
+            onError:     ppOnError,
+            onCancel:    ppOnCancel,
+        };
+
+        // Tarjeta arriba. isEligible() es la forma que documenta el SDK de
+        // PayPal para saber si este funding source de verdad se puede
+        // pintar (depende del país/cuenta) ANTES de intentar el render.
+        const cardButtons = paypal_sdk.Buttons({
+            ...ppHandlers,
+            fundingSource: paypal_sdk.FUNDING.CARD,
+            style: { layout: 'vertical', shape: 'rect', label: 'pay' },
+        });
+
+        if (cardButtons.isEligible()) {
+            cardButtons.render('#card-buttons');
+            const ppSeparator = document.getElementById('paypal-separator');
+            if (ppSeparator) ppSeparator.style.display = '';
+        }
+        // Si CARD no es elegible, #card-buttons y el separador quedan
+        // vacíos/ocultos: PayPal queda solo (como antes de este cambio) y
+        // la página no se rompe.
+
+        // PayPal debajo, siempre.
         paypal_sdk.Buttons({
+            ...ppHandlers,
+            fundingSource: paypal_sdk.FUNDING.PAYPAL,
             style: {
                 layout: 'vertical',
                 color:  'gold',
                 shape:  'rect',
                 label:  'pay',
             },
-            createOrder: ppCreateOrder,
-            onApprove:   ppOnApprove,
-            onError:     ppOnError,
-            onCancel:    ppOnCancel,
         }).render('#paypal-buttons');
     }
     @endif

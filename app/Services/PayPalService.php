@@ -55,11 +55,11 @@ class PayPalService
                 if ($response->failed()) {
                     Log::error('paypal.access_token.failed', [
                         'status' => $response->status(),
-                        'body' => $response->body(),
+                        'error' => $this->safeErrorSummary($response),
                     ]);
 
                     throw new \RuntimeException(
-                        'PayPal token request failed: '.$response->body()
+                        'PayPal token request failed: status '.$response->status().' '.json_encode($this->safeErrorSummary($response))
                     );
                 }
 
@@ -88,11 +88,20 @@ class PayPalService
      * @param  float  $amount  Total in USD (will be formatted to 2 decimals)
      * @param  string  $currency  Currency code, e.g. "USD"
      * @param  array  $metadata  Optional metadata stored under purchase_units[0].custom_id
+     * @param  array  $payer  B2 (checkout normal ÚNICAMENTE — payment-links no manda
+     *                        esto y queda sin cambios): payload `payer` de la Orders
+     *                        v2 API ya armado por el llamador (ver
+     *                        CheckoutController::buildPayer()), p.ej.
+     *                        ['name' => ['given_name' => ..., 'surname' => ...],
+     *                        'email_address' => ..., 'phone' => [...]]. Vacío = no
+     *                        se agrega `payer` ni `application_context` al payload:
+     *                        es exactamente el comportamiento de antes de este
+     *                        cambio.
      * @return array Full PayPal order response (includes 'id')
      *
      * @throws \RuntimeException on API error
      */
-    public function createOrder(float $amount, string $currency = 'USD', array $metadata = []): array
+    public function createOrder(float $amount, string $currency = 'USD', array $metadata = [], array $payer = []): array
     {
         try {
             $token = $this->accessToken();
@@ -117,21 +126,55 @@ class PayPalService
                 unset($payload['purchase_units'][0]['custom_id']);
             }
 
-            $response = Http::withToken($token)
-                ->acceptJson()
-                ->post("{$this->baseUrl()}/v2/checkout/orders", $payload);
+            // B2: prellena el formulario de invitado de PayPal con lo que el
+            // cliente ya escribió en nuestro checkout (menos campos para
+            // volver a teclear) y le dice a PayPal que esto NO es un pedido
+            // con envío físico y que arranque directo en "pagar ahora" en
+            // vez del resumen de carrito. Solo se agrega si el llamador
+            // mandó algo en $payer — payment-links sigue sin tocar.
+            //
+            // `application_context` está deprecado en Orders v2, pero se
+            // mantiene a propósito: ver docs/fixes/2026-10-05-backend-paypal-todas.md.
+            if ($payer !== []) {
+                $payload['payer'] = $payer;
+                $payload['application_context'] = [
+                    'shipping_preference' => 'NO_SHIPPING',
+                    'user_action' => 'PAY_NOW',
+                ];
+            }
+
+            $url = "{$this->baseUrl()}/v2/checkout/orders";
+            $response = Http::withToken($token)->acceptJson()->post($url, $payload);
+
+            // El payer es solo comodidad: si PayPal lo rechaza (4xx sobre
+            // /payer), se reintenta UNA vez sin él, conservando el resto
+            // del payload (importe y application_context). Nunca debe
+            // dejar al cliente sin poder pagar.
+            if ($response->failed() && isset($payload['payer']) && $this->isPayerRejection($response)) {
+                Log::warning('paypal.create_order.payer_rejected_retrying_without_payer', [
+                    'status' => $response->status(),
+                    'error' => $this->safeErrorSummary($response),
+                ]);
+
+                unset($payload['payer']);
+                $response = Http::withToken($token)->acceptJson()->post($url, $payload);
+            }
 
             if ($response->failed()) {
+                // Sin PII: el body de un 422 de PayPal puede traer details[].value
+                // con el correo/teléfono/nombre enviados. Solo ids y códigos.
+                $summary = $this->safeErrorSummary($response);
+
                 Log::error('paypal.create_order.failed', [
                     'status' => $response->status(),
-                    'body' => $response->body(),
+                    'error' => $summary,
                     'amount' => $amount,
                     'currency' => $currency,
                     'metadata' => $metadata,
                 ]);
 
                 throw new \RuntimeException(
-                    'PayPal create order failed: '.$response->body()
+                    'PayPal create order failed: status '.$response->status().' '.json_encode($summary)
                 );
             }
 
@@ -159,6 +202,49 @@ class PayPalService
     }
 
     /**
+     * True when a 4xx from create-order points at the `payer` object
+     * (details[].field starting with /payer, or "payer" in the field).
+     */
+    private function isPayerRejection(\Illuminate\Http\Client\Response $response): bool
+    {
+        if (! in_array($response->status(), [400, 422], true)) {
+            return false;
+        }
+
+        foreach ((array) $response->json('details', []) as $detail) {
+            $field = (string) ($detail['field'] ?? '');
+            if ($field !== '' && str_contains($field, 'payer')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * PII-free view of a PayPal error response: name, debug_id and
+     * details[].field/issue. Never `value`, `description` or the raw body.
+     *
+     * @return array{name: ?string, debug_id: ?string, details: array<int, array{field: ?string, issue: ?string}>}
+     */
+    private function safeErrorSummary(\Illuminate\Http\Client\Response $response): array
+    {
+        $details = [];
+        foreach ((array) $response->json('details', []) as $detail) {
+            $details[] = [
+                'field' => isset($detail['field']) ? (string) $detail['field'] : null,
+                'issue' => isset($detail['issue']) ? (string) $detail['issue'] : null,
+            ];
+        }
+
+        return [
+            'name' => $response->json('name') ?? $response->json('error'),
+            'debug_id' => $response->json('debug_id'),
+            'details' => $details,
+        ];
+    }
+
+    /**
      * Retrieves the current state of a PayPal order (amount, currency,
      * status) WITHOUT capturing it. Used to verify server-side, right
      * before capturing, that the order PayPal has on file still matches
@@ -183,11 +269,11 @@ class PayPalService
                 Log::error('paypal.get_order.failed', [
                     'order_id' => $orderId,
                     'status' => $response->status(),
-                    'body' => $response->body(),
+                    'error' => $this->safeErrorSummary($response),
                 ]);
 
                 throw new \RuntimeException(
-                    'PayPal get order failed: '.$response->body()
+                    'PayPal get order failed: status '.$response->status().' '.json_encode($this->safeErrorSummary($response))
                 );
             }
 
@@ -240,7 +326,7 @@ class PayPalService
                     'order_id' => $orderId,
                     'status' => $response->status(),
                     'issue' => $issue,
-                    'body' => $response->body(),
+                    'error' => $this->safeErrorSummary($response),
                 ]);
 
                 // INSTRUMENT_DECLINED: the buyer's bank/issuer rejected the
@@ -263,7 +349,7 @@ class PayPalService
                 }
 
                 throw new \RuntimeException(
-                    'PayPal capture failed: '.$response->body()
+                    'PayPal capture failed: status '.$response->status().' '.json_encode($this->safeErrorSummary($response))
                 );
             }
 

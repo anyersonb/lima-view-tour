@@ -50,6 +50,7 @@ class ConversionEventsTest extends TestCase
             'customer_email' => 'juan.paylater@example.com',
             'customer_phone' => '987654321',
             'travel_date' => now()->addDays(10)->format('Y-m-d'),
+            'accept_terms' => true,
         ]);
         $process->assertRedirectToRoute('checkout.thanks', ['locale' => self::LOCALE]);
 
@@ -82,6 +83,7 @@ class ConversionEventsTest extends TestCase
             'customer_email' => 'ana.paylater@example.com',
             'customer_phone' => '987000002',
             'travel_date' => now()->addDays(10)->format('Y-m-d'),
+            'accept_terms' => true,
         ])->assertRedirectToRoute('checkout.thanks', ['locale' => self::LOCALE]);
 
         $firstVisit = $this->get(route('checkout.thanks', ['locale' => self::LOCALE]));

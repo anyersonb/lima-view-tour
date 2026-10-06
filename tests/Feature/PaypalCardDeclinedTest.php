@@ -52,11 +52,21 @@ class PaypalCardDeclinedTest extends TestCase
         ]);
     }
 
+    /**
+     * B4 (lote 2026-09-30): checkout.paypal.create ahora exige accept_terms.
+     * El payload por defecto ya lo manda, así que este helper sigue
+     * funcionando igual para los tests de este archivo.
+     */
     private function createPaypalOrder(string $orderId = 'ORDER-1'): string
     {
         $this->fakePaypalCreate($orderId);
 
-        $response = $this->postJson(route('checkout.paypal.create', ['locale' => self::LOCALE]));
+        $response = $this->postJson(route('checkout.paypal.create', ['locale' => self::LOCALE]), [
+            'customer_name' => 'Juan Pérez García',
+            'customer_email' => 'juan@example.com',
+            'customer_phone' => '+51987654321',
+            'accept_terms' => true,
+        ]);
         $response->assertOk();
 
         return $response->json('id');
