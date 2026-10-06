@@ -15,4 +15,6 @@ return [
     'cookie_accept'      => 'Accept',
     'cookie_reject'      => 'Reject',
     'cookie_privacy'     => 'Privacy policy',
+    'cookie_preferences' => 'Cookie preferences',
+    'cookie_label'       => 'Cookie notice',
 ];

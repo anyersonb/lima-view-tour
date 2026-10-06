@@ -215,52 +215,77 @@
 
     {{--
         =====================================================================
-        ANALYTICS — Google Consent Mode v2 + Facebook Pixel gating
+        ANALYTICS — Google Consent Mode v2 + carga de GTM/Pixel tras consentimiento
         =====================================================================
-        When $cookieBannerEnabled is true:
-          - GTM/GA4 load with consent default = denied (Consent Mode v2).
-            They fire only conversion/analytics events after the user grants
-            consent via lvt-consent-granted or a stored 'granted' value.
-          - Facebook Pixel is NOT initialized at all until consent is granted.
-
-        When $cookieBannerEnabled is false (admin disabled the banner):
-          - Everything loads unconditionally, exactly as before.
-
-        Reference: https://developers.google.com/tag-platform/security/guides/consent
+        Banner activo ($cookieBannerEnabled):
+          1. consent default = denied (lo primero que corre, antes de gtag/GTM).
+          2. Si la preferencia guardada (cookie lvt_consent) es "granted",
+             consent update -> granted ANTES de config.
+          3. gtag/GA4 directo carga siempre, bajo denied (pings sin cookies).
+          4. GTM (contenedor ajeno: arrastra Clarity y Hotjar) y el Pixel NO se
+             inyectan hasta que haya consentimiento; al aceptar se inyectan sin
+             recargar. Sin JS no hay banner, por eso tampoco hay <noscript>.
+        Banner inactivo: todo carga como antes, sin restricciones.
         =====================================================================
     --}}
-    @if ($gtmId || $gaId)
-        @if ($cookieBannerEnabled)
-            {{-- Step 1: initialize dataLayer and set Consent Mode v2 DEFAULTS to denied
-                 This must happen BEFORE the GTM/gtag scripts load. --}}
-            <script>
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                // Default: all consent types denied until user explicitly accepts
-                gtag('consent', 'default', {
-                    ad_storage:            'denied',
-                    analytics_storage:     'denied',
-                    ad_user_data:          'denied',
-                    ad_personalization:    'denied',
-                    wait_for_update:       500
-                });
-            </script>
-        @else
-            {{-- Banner disabled: initialize dataLayer without consent restrictions --}}
-            <script>
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-            </script>
-        @endif
+    @if ($gtmId || $gaId || $fbPixel || $cookieBannerEnabled)
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            @if ($cookieBannerEnabled)
+            gtag('consent', 'default', {
+                ad_storage:         'denied',
+                ad_user_data:       'denied',
+                ad_personalization: 'denied',
+                analytics_storage:  'denied',
+                wait_for_update:    500
+            });
+            window.lvtConsent = (function () {
+                var NAME = 'lvt_consent', LEGACY = 'lvt_cookie_consent', MAX_AGE = 60 * 60 * 24 * 365;
+                var GRANTED = { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' };
+                var DENIED  = { ad_storage: 'denied',  ad_user_data: 'denied',  ad_personalization: 'denied',  analytics_storage: 'denied' };
+                function get() {
+                    try {
+                        var m = document.cookie.match(/(?:^|; )lvt_consent=(granted|denied)/);
+                        if (m) return m[1];
+                    } catch (e) {}
+                    try {
+                        var l = localStorage.getItem(LEGACY);
+                        if (l === 'granted' || l === 'denied') return l;
+                    } catch (e) {}
+                    return null;
+                }
+                function set(value) {
+                    try {
+                        document.cookie = NAME + '=' + value + '; max-age=' + MAX_AGE + '; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+                    } catch (e) {}
+                    try { localStorage.removeItem(LEGACY); } catch (e) {}
+                    return get() === value;
+                }
+                function purge() {
+                    try {
+                        var host = location.hostname, parts = host.split('.'), domains = [host, '.' + host];
+                        if (parts.length > 2) domains.push('.' + parts.slice(-2).join('.'));
+                        document.cookie.split('; ').forEach(function (c) {
+                            var n = c.split('=')[0];
+                            if (/^(_ga|_gid|_gat|_gcl|_clck|_clsk|CLID|_hj|_fbp|_fbc)/.test(n) || n === 'MR' || n === 'SM') {
+                                domains.forEach(function (d) {
+                                    document.cookie = n + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=' + d;
+                                });
+                                document.cookie = n + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+                            }
+                        });
+                    } catch (e) {}
+                }
+                return { get: get, set: set, purge: purge, granted: GRANTED, denied: DENIED };
+            })();
+            if (window.lvtConsent.get() === 'granted') {
+                gtag('consent', 'update', window.lvtConsent.granted);
+            }
+            @endif
+        </script>
 
-        {{-- Step 2: load GTM (it reads the consent state set above) --}}
-        @if ($gtmId)
-            <script>
-                (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
-            </script>
-        @endif
-
-        {{-- Step 3: load GA4 (inherits consent state from dataLayer above) --}}
+        {{-- gtag/GA4 directo: siempre carga; bajo consent denied no crea cookies. --}}
         @if ($gaId)
             <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
             <script>
@@ -269,79 +294,50 @@
             </script>
         @endif
 
-        {{-- Step 4: consent UPDATE logic — runs on page load and on user accept event.
-             When banner is enabled: update consent to 'granted' if already stored or
-             when the user clicks Accept (lvt-consent-granted event).
-             When banner is disabled: skip (already loaded without restriction). --}}
-        @if ($cookieBannerEnabled)
+        {{-- GTM: inyección dinámica, solo con consentimiento (o banner inactivo). --}}
+        @if ($gtmId)
             <script>
-                (function () {
-                    function grantConsent() {
-                        gtag('consent', 'update', {
-                            ad_storage:         'granted',
-                            analytics_storage:  'granted',
-                            ad_user_data:       'granted',
-                            ad_personalization: 'granted'
-                        });
-                    }
-                    // If user already accepted in a previous session, update immediately
-                    if (localStorage.getItem('lvt_cookie_consent') === 'granted') {
-                        grantConsent();
-                    }
-                    // Listen for Accept click fired by the cookie banner component
-                    window.addEventListener('lvt-consent-granted', grantConsent);
-                })();
+                window.lvtLoadGtm = function () {
+                    if (window._lvtGtmLoaded) return;
+                    window._lvtGtmLoaded = true;
+                    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
+                };
+                @if ($cookieBannerEnabled)
+                if (window.lvtConsent.get() === 'granted') window.lvtLoadGtm();
+                window.addEventListener('lvt-consent-granted', window.lvtLoadGtm);
+                @else
+                window.lvtLoadGtm();
+                @endif
             </script>
         @endif
     @endif
 
-    {{--
-        Facebook Pixel — no Consent Mode API; must NOT fire until consent is given.
-        When banner is enabled: register a loader function and call it only on consent.
-        When banner is disabled: load unconditionally as before.
-    --}}
     @if ($fbPixel)
-        @if ($cookieBannerEnabled)
-            <script>
-                (function () {
-                    function loadFbPixel() {
-                        if (window._fbPixelLoaded) return;
-                        window._fbPixelLoaded = true;
-                        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-                        fbq('init', '{{ $fbPixel }}');
-                        fbq('track', 'PageView');
-                    }
-                    // Load immediately if consent already granted in a previous session
-                    if (localStorage.getItem('lvt_cookie_consent') === 'granted') {
-                        loadFbPixel();
-                    }
-                    // Load when the user accepts via the banner
-                    window.addEventListener('lvt-consent-granted', loadFbPixel);
-                })();
-            </script>
-        @else
-            {{-- Banner disabled: load unconditionally --}}
-            <script>
+        <script>
+            window.lvtLoadFbPixel = function () {
+                if (window._fbPixelLoaded) return;
+                window._fbPixelLoaded = true;
                 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
                 fbq('init', '{{ $fbPixel }}');
                 fbq('track', 'PageView');
-            </script>
+            };
+            @if ($cookieBannerEnabled)
+            if (window.lvtConsent.get() === 'granted') window.lvtLoadFbPixel();
+            window.addEventListener('lvt-consent-granted', window.lvtLoadFbPixel);
+            @else
+            window.lvtLoadFbPixel();
+            @endif
+        </script>
+        @unless ($cookieBannerEnabled)
             <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ $fbPixel }}&ev=PageView&noscript=1"/></noscript>
-        @endif
+        @endunless
     @endif
 
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
 </head>
 <body class="bg-white">
-    @if ($gtmId)
-        {{-- GTM noscript fallback — only render when consent has been granted
-             (or banner disabled). A noscript fallback without JS-based consent
-             gating could set cookies without user action; rendering it here is
-             acceptable because users without JS cannot interact with the banner
-             either. Consent Mode v2 handles the JS path above. --}}
-        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ $gtmId }}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    @endif
+    {{-- Sin <noscript> de GTM: sin JS no hay banner ni consentimiento, y el iframe cargaria el contenedor (Clarity/Hotjar) sin permiso. --}}
 
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:bg-orange-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
         {{ __('nav.skip_to_content') }}
@@ -369,7 +365,7 @@
        rel="noopener noreferrer"
        aria-label="WhatsApp"
        data-wa-location="flotante"
-       style="position:fixed;bottom:24px;right:20px;z-index:9000;width:56px;height:56px;border-radius:9999px;background-color:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:transform .2s ease;color:#fff;text-decoration:none;"
+       style="position:fixed;bottom:calc(24px + var(--cookie-banner-h, 0px));right:20px;z-index:9000;width:56px;height:56px;border-radius:9999px;background-color:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:transform .2s ease;color:#fff;text-decoration:none;"
        onmouseover="this.style.transform='scale(1.1)'"
        onmouseout="this.style.transform='scale(1)'">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -387,12 +383,41 @@
     --}}
     <script>
         document.addEventListener('click', function (e) {
-            var link = e.target.closest && e.target.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
+            if (e.target.closest && e.target.closest('[data-cookie-preferences]')) {
+                window.dispatchEvent(new Event('lvt-cookie-preferences'));
+                return;
+            }
+            var link = e.target.closest && e.target.closest('a[href]');
             if (!link || typeof window.lvtTrack !== 'function') return;
+            var href = link.getAttribute('href') || '';
 
-            window.lvtTrack('whatsapp_click', {
-                ubicacion: link.dataset.waLocation || 'flotante',
-            }, { fb: null });
+            if (/wa\.me|api\.whatsapp\.com/.test(href)) {
+                window.lvtTrack('whatsapp_click', {
+                    ubicacion: link.dataset.waLocation || 'flotante',
+                }, { fb: null });
+                return;
+            }
+
+            var name = null;
+            if (/^tel:/i.test(href)) name = 'phone_click';
+            else if (/^mailto:/i.test(href)) name = 'email_click';
+            else if (/(^|\/\/)maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|goo\.gl\/maps|maps\.app\.goo\.gl/i.test(href)) name = 'maps_click';
+            if (!name) return;
+
+            var ubicacion = link.dataset.trackLocation;
+            if (!ubicacion) {
+                var holder = link.closest('[data-track-location]');
+                if (holder) ubicacion = holder.dataset.trackLocation;
+            }
+            if (!ubicacion) {
+                if (link.closest('header')) ubicacion = 'header';
+                else if (link.closest('footer')) ubicacion = 'footer';
+                else if (link.closest('#main')) {
+                    ubicacion = /contact|contacto|contato/i.test(location.pathname) ? 'contacto'
+                        : /\/(tours?|tour)\//i.test(location.pathname) ? 'ficha' : 'contenido';
+                } else ubicacion = 'otro';
+            }
+            window.lvtTrack(name, { ubicacion: ubicacion }, { fb: null });
         }, true);
     </script>
 
