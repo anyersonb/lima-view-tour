@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use App\Support\ImagePath;
 use App\Models\Concerns\HasLocalizedSeoMeta;
@@ -165,6 +166,100 @@ class Tour extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * Agregados REALES de las reseñas publicadas de este tour (nunca
+     * cableados). Contrato para la ficha de tour (secciones móvil y
+     * escritorio deben consumir exactamente esto, sin recalcular nada en
+     * Blade):
+     *
+     * [
+     *   'total'        => int,
+     *   'average'      => float|null,  // redondeado a 1 decimal; null si total=0
+     *   'distribution' => [
+     *       5 => ['count' => int, 'percent' => int],
+     *       4 => ['count' => int, 'percent' => int],
+     *       3 => ['count' => int, 'percent' => int],
+     *       2 => ['count' => int, 'percent' => int],
+     *       1 => ['count' => int, 'percent' => int],
+     *   ],
+     * ]
+     *
+     * Con 0 reseñas publicadas, 'total' => 0 y 'average' => null (NUNCA un
+     * promedio inventado) — la vista debe usar eso para ocultar el bloque
+     * entero. Los porcentajes se calculan con floor() por bucket, así que la
+     * suma nunca pasa de 100 (puede quedar por debajo por redondeo).
+     *
+     * Una sola query agregada (COUNT/AVG/SUM condicional agrupado a mano),
+     * sin traer filas a PHP. Se cachea de forma indefinida y se invalida sola
+     * desde Testimonial::booted() en cualquier alta/edición/borrado de una
+     * reseña de este tour — no hace falta limpiarla a mano.
+     *
+     * @return array{total: int, average: float|null, distribution: array<int, array{count: int, percent: int}>}
+     */
+    public function reviewStats(): array
+    {
+        return Cache::rememberForever("tour.review_stats.{$this->id}", function () {
+            $row = $this->testimonials()
+                ->published()
+                ->selectRaw(
+                    'COUNT(*) as total, '.
+                    'AVG(rating) as avg_rating, '.
+                    'SUM(CASE WHEN ROUND(rating) = 5 THEN 1 ELSE 0 END) as r5, '.
+                    'SUM(CASE WHEN ROUND(rating) = 4 THEN 1 ELSE 0 END) as r4, '.
+                    'SUM(CASE WHEN ROUND(rating) = 3 THEN 1 ELSE 0 END) as r3, '.
+                    'SUM(CASE WHEN ROUND(rating) = 2 THEN 1 ELSE 0 END) as r2, '.
+                    'SUM(CASE WHEN ROUND(rating) = 1 THEN 1 ELSE 0 END) as r1'
+                )
+                ->first();
+
+            $total = (int) ($row->total ?? 0);
+
+            if ($total === 0) {
+                return [
+                    'total' => 0,
+                    'average' => null,
+                    'distribution' => static::emptyReviewDistribution(),
+                ];
+            }
+
+            $counts = [
+                5 => (int) $row->r5,
+                4 => (int) $row->r4,
+                3 => (int) $row->r3,
+                2 => (int) $row->r2,
+                1 => (int) $row->r1,
+            ];
+
+            $distribution = [];
+            foreach ($counts as $stars => $count) {
+                $distribution[$stars] = [
+                    'count' => $count,
+                    // floor(), nunca round(): la suma de los 5 porcentajes jamás
+                    // debe superar 100, aunque quede algún punto por debajo.
+                    'percent' => (int) floor(($count / $total) * 100),
+                ];
+            }
+
+            return [
+                'total' => $total,
+                'average' => round((float) $row->avg_rating, 1),
+                'distribution' => $distribution,
+            ];
+        });
+    }
+
+    /** @return array<int, array{count: int, percent: int}> */
+    private static function emptyReviewDistribution(): array
+    {
+        return [
+            5 => ['count' => 0, 'percent' => 0],
+            4 => ['count' => 0, 'percent' => 0],
+            3 => ['count' => 0, 'percent' => 0],
+            2 => ['count' => 0, 'percent' => 0],
+            1 => ['count' => 0, 'percent' => 0],
+        ];
     }
 
     /**

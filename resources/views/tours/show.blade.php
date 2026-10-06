@@ -52,8 +52,14 @@
     $tourLanguage  = ($rawTourLang === '' || in_array($rawTourLangN, $defaultLangs, true))
         ? __('ui.spanish_english')
         : $rawTourLang;
-    $tourRating  = $tour->rating ?? 4.8;
-    $reviewsCount = $tour->reviews_count ?? 30;
+    // Única fuente de verdad: reseñas publicadas reales (Tour::reviewStats()).
+    // Sin fallback fijo — si no hay reseñas, average/total llegan null/0 y el
+    // badge no se pinta (ver guards @if($tourRating !== null) más abajo).
+    $reviewStats  = $tour->reviewStats();
+    // number_format fija un decimal (5.0, no 5) — mismo formato que
+    // <x-review-summary> en la sección "Opiniones de nuestros viajeros".
+    $tourRating   = $reviewStats['average'] !== null ? number_format($reviewStats['average'], 1) : null;
+    $reviewsCount = $reviewStats['total'];
     $isMostBooked = ($tour->show_best_seller ?? true) && ($tour->is_most_booked ?? $tour->is_featured ?? false);
     $bookingsWeek = $tour->bookings_this_week ?? 30;
 
@@ -156,20 +162,15 @@
         }, $itinerary);
     }
 
-    // Tours relacionados (excluye el actual, máx 3)
+    // Tours relacionados (excluye el actual, máx 3). Sin fallback ficticio: si
+    // no hay más tours publicados, "Otros viajeros también reservaron" no se
+    // pinta (ver guards @if($sidebarTours->isNotEmpty()) más abajo). Antes esto
+    // caía en 3 tours inventados con slug '#' y rating/reviews_count fijos.
     $sidebarTours = \App\Models\Tour::published()
         ->where('id', '!=', $tour->id)
         ->ordered()
         ->take(3)
         ->get();
-
-    if ($sidebarTours->isEmpty()) {
-        $sidebarTours = collect([
-            (object)['title' => 'Tour a Machu Picchu Full Day',        'slug' => '#', 'price' => 180, 'price_before' => null, 'rating' => 4.9, 'reviews_count' => 120, 'cover_url' => asset('assets/banners/hero-machu-picchu.png'), 'duration' => 'Full Day'],
-            (object)['title' => 'Montaña de 7 Colores Full Day',       'slug' => '#', 'price' => 75,  'price_before' => null, 'rating' => 4.8, 'reviews_count' => 85,  'cover_url' => asset('assets/banners/banner-hero.jpg'),         'duration' => 'Full Day'],
-            (object)['title' => 'City Tour Lima + Catacumbas',         'slug' => '#', 'price' => 45,  'price_before' => null, 'rating' => 4.7, 'reviews_count' => 60,  'cover_url' => asset('assets/banners/banner-hero.jpg'),         'duration' => 'Medio día'],
-        ]);
-    }
 @endphp
 
 @php
@@ -524,62 +525,6 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-info-list details > div > div { padding: 3px 0; border-bottom: 1px dashed #eee; }
 .m-info-list details > div > div:last-child { border-bottom: 0; }
 
-/* Review cards mobile */
-.m-review-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.m-platform { border: 1px solid var(--m-line); border-radius: 9px; padding: 13px; }
-.m-platform .brand { font-weight: 900; font-size: 13px; }
-.m-platform .score { font-size: 22px; font-weight: 900; margin: 9px 0 2px; }
-.m-platform small { color: #555; }
-.m-platform a { display: block; margin-top: 8px; color: #111; text-decoration: none; font-weight: 800; font-size: 12px; }
-.m-comment { display: grid; grid-template-columns: 42px 1fr; gap: 10px; padding: 15px 0; border-bottom: 1px solid var(--m-line); }
-.m-comment img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
-.m-comment b { font-size: 13px; }
-.m-comment .m-date { float: right; color: #777; font-size: 11px; font-weight: 500; }
-.m-comment p { font-size: 12px; margin: 5px 0 0; line-height: 1.35; }
-/* ── Carrusel de opiniones (mobile) ── */
-.m-reviews-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 4px 2px 10px; margin: 0 -2px; }
-.m-reviews-track::-webkit-scrollbar { display: none; }
-.m-review-slide { flex: 0 0 86%; max-width: 86%; scroll-snap-align: start; }
-.m-review-slide .m-comment { border-bottom: 0; border: 1px solid var(--m-line); border-radius: 14px; padding: 14px; background: #fff; height: 168px; overflow: hidden; }
-/* Tarjetas de comentario de tamaño uniforme: texto recortado a 4 líneas */
-.m-review-slide .m-comment p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-.m-review-more { display: inline-block; margin-top: 4px; background: none; border: 0; padding: 0; color: var(--m-orange); font-size: 11.5px; font-weight: 800; cursor: pointer; }
-.m-reviews-dots { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 2px; }
-.m-reviews-dots button { height: 8px; width: 8px; border-radius: 999px; background: #d8dcd8; border: 0; padding: 0; transition: all .2s ease; }
-.m-reviews-dots button.active { width: 22px; background: var(--m-orange); }
-/* Popup de comentario completo (mobile) */
-.m-review-modal-wrap { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.m-review-modal-overlay { position: absolute; inset: 0; background: rgba(10,50,64,.6); }
-.m-review-modal { position: relative; z-index: 1; width: 100%; max-width: 420px; max-height: 80vh; overflow-y: auto; background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
-.m-review-modal-close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: #f1f0ec; color: #111; font-size: 14px; cursor: pointer; display: grid; place-items: center; }
-.m-review-modal b { font-size: 15px; display: block; }
-.m-review-modal .m-date { display: inline-block; float: none; margin: 2px 0 6px; }
-.m-review-modal .m-stars { display: block; margin-bottom: 10px; }
-.m-review-modal p { font-size: 13px; line-height: 1.5; color: #333; margin: 0; white-space: pre-line; }
-/* ── Caja de reseñas (form estilo WooCommerce adaptado al diseño) ── */
-.m-review-flash { margin: 12px 0; padding: 11px 13px; background: #eaf6ee; border: 1px solid #bfe3cc; border-radius: 10px; color: #176a3d; font-size: 12.5px; font-weight: 700; }
-.m-reviews-empty { font-size: 12.5px; color: #6b7077; margin: 12px 0 0; }
-.m-review-form-wrap { margin-top: 14px; border: 1px solid var(--m-line); border-radius: 14px; overflow: hidden; background: #fff; }
-.m-review-toggle { display: flex; align-items: center; gap: 8px; padding: 13px 15px; cursor: pointer; font-weight: 800; font-size: 13px; color: var(--m-green); background: #f4f8f4; list-style: none; }
-.m-review-toggle::-webkit-details-marker { display: none; }
-.m-review-toggle .chev { margin-left: auto; transition: transform .25s ease; }
-.m-review-form-wrap[open] .m-review-toggle .chev { transform: rotate(180deg); }
-.m-review-form { padding: 14px 15px 16px; }
-.m-review-form .fld { margin-bottom: 11px; }
-.m-review-form label { display: block; font-size: 11px; font-weight: 800; color: #465e68; text-transform: uppercase; letter-spacing: .2px; margin-bottom: 5px; }
-.m-review-form label .req { color: #e13b2f; }
-.m-review-form textarea, .m-review-form input[type="text"], .m-review-form input[type="email"] {
-  width: 100%; border: 1px solid #d7dad9; border-radius: 10px; background: #fff; padding: 9px 11px; font-size: 13px; color: #29404a; font-family: inherit; outline: none;
-}
-.m-review-form textarea:focus, .m-review-form input:focus { border-color: var(--m-green); box-shadow: 0 0 0 2px rgba(8,59,49,.10); }
-.m-review-form textarea { min-height: 84px; resize: vertical; }
-.m-rate-stars { display: inline-flex; gap: 4px; font-size: 26px; line-height: 1; cursor: pointer; }
-.m-rate-stars span { color: #d8dcd8; transition: color .12s ease; }
-.m-rate-stars span.on { color: #ffb000; }
-.m-review-hint { font-size: 10.5px; color: #8a8f95; margin-top: 4px; }
-.m-review-errors { background: #fdecea; border: 1px solid #f5c6c0; color: #c0392b; border-radius: 9px; padding: 9px 11px; font-size: 12px; margin-bottom: 11px; font-weight: 600; }
-.m-review-submit { width: 100%; background: var(--m-green); color: #fff; border: none; border-radius: 22px; padding: 12px; font-size: 13px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 18px rgba(7,59,47,.18); }
-.m-review-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .m-outline-btn { display: block; border: 1px solid #222; border-radius: 20px; text-align: center; padding: 10px; margin: 12px 40px 4px; text-decoration: none; color: #111; font-weight: 900; font-size: 13px; }
 
 /* Rec cards mobile */
@@ -747,14 +692,6 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .d-related-nav:hover { background: #15474B; color: #fff; }
 .d-related-nav.prev { left: -14px; }
 .d-related-nav.next { right: -14px; }
-
-/* ── Carrusel "Opiniones de nuestros viajeros" (desktop) ── */
-.d-reviews-track { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding-bottom: .25rem; scrollbar-width: none; }
-.d-reviews-track::-webkit-scrollbar { display: none; }
-.d-review-slide { flex: 0 0 100%; max-width: 100%; scroll-snap-align: start; min-width: 0; }
-@media (min-width: 1024px) {
-    .d-review-slide { flex-basis: calc(50% - .5rem); max-width: calc(50% - .5rem); }
-}
 
 /* ── Modo nocturno DESACTIVADO (tema claro forzado; reactivar quitando "and (min-width:99999px)") ── */
 @media (prefers-color-scheme: dark) and (min-width: 99999px) {
@@ -1163,12 +1100,14 @@ if (!empty($itinerary)) {
         {{-- 2. TÍTULO + RATING --}}
         <div style="padding:18px 20px 0;">
             <h1 class="m-title">{{ $titleDisplay }}</h1>
+            @if ($tourRating !== null)
             <div class="m-rating">
                 <span class="m-stars" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">★★★★★</span>
                 <span>{{ $tourRating }}</span>
                 <span>({{ $reviewsCount }} {{ __('ui.verified_reviews') }})</span>
                 <span class="m-verified" aria-label="{{ __('ui.verified') }}">✓</span>
             </div>
+            @endif
 
             {{-- 3. COMPACT BOOKING --}}
             <div id="seccion-reserva" class="m-compact"
@@ -1440,156 +1379,77 @@ if (!empty($itinerary)) {
         </div>
         @endif
 
-        {{-- 8. OPINIONES / RESEÑAS (caja estilo WooCommerce, dinámica) --}}
-        {{-- x-data del popup de comentario completo (mismo patrón que home.blade.php sección Opiniones) --}}
-        <div id="reviews" style="padding:18px 20px;" x-data="{ reviewModalOpen: false, review: {} }">
-            <div class="m-h2">
-                <h2>{{ __('ui.traveler_reviews') }}</h2>
-                @if ($tourReviews->count() > 0)
-                    <span style="font-size:12px;color:#6b7077;font-weight:800;">{{ $tourReviews->count() }} {{ $tourReviews->count() === 1 ? __('ui.one_rating') : __('ui.ratings') }}</span>
-                @endif
-            </div>
-            {{-- Rating/nº editables desde Configuración → APIs; enlaces desde Configuración → Redes sociales --}}
-            @php
-                $mGoogleRating = \App\Models\Setting::get('reviews_google_rating') ?: '4.9';
-                $mGoogleCount  = \App\Models\Setting::get('reviews_google_count') ?: '123';
-                $mTaRating     = \App\Models\Setting::get('reviews_tripadvisor_rating') ?: '4.6';
-                $mTaCount      = \App\Models\Setting::get('reviews_tripadvisor_count') ?: '8';
-                $mGoogleLink   = \App\Models\Setting::get('social_google_reviews') ?: '#';
-                $mTaLink       = \App\Models\Setting::get('social_tripadvisor') ?: '#';
-            @endphp
-            <div class="m-review-cards">
-                <div class="m-platform">
-                    <div class="brand" style="color:#4285f4;">G Google</div>
-                    <div class="score">{{ $mGoogleRating }} <small>/5</small></div>
-                    <div class="m-stars">★★★★★</div>
-                    <small>{{ $mGoogleCount }} {{ __('ui.reviews') }}</small>
-                    <a href="{{ $mGoogleLink }}" @if ($mGoogleLink !== '#') target="_blank" rel="noopener nofollow" @endif>{{ __('ui.see_on_google') }} →</a>
-                </div>
-                <div class="m-platform">
-                    <div class="brand" style="color:#00a680;">● Tripadvisor</div>
-                    <div class="score">{{ $mTaRating }} <small>/5</small></div>
-                    <div class="m-stars">★★★★★</div>
-                    <small>{{ $mTaCount }} {{ __('ui.reviews') }}</small>
-                    <a href="{{ $mTaLink }}" @if ($mTaLink !== '#') target="_blank" rel="noopener nofollow" @endif>{{ __('ui.see_on_tripadvisor') }} →</a>
-                </div>
-            </div>
+        {{-- 8. OPINIONES DE NUESTROS VIAJEROS --}}
+        <div id="reviews" style="padding:18px 20px;">
+            <h2 style="font-family:Georgia,serif;margin:0 0 4px;font-size:22px;color:#111;">{{ __('ui.traveler_reviews') }}</h2>
+            <p style="font-size:12px;color:#6e7278;line-height:1.5;margin:0 0 14px;">{{ __('ui.traveler_reviews_subtitle') }}</p>
+
+            @if ($reviewStats['total'] > 0)
+                <x-review-summary :stats="$reviewStats" variant="m" />
+            @endif
+
+            @if ($stamp = \App\Models\Setting::tripadvisorStamp())
+                <x-tripadvisor-stamp :stamp="$stamp" variant="m" />
+            @endif
 
             @if (session('review_status'))
-                <div class="m-review-flash">{{ session('review_status') }}</div>
+                <div class="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-3">{{ session('review_status') }}</div>
             @endif
 
-            {{-- Lista de reseñas del tour: carrusel con paginación --}}
-            @if ($tourReviews->count() > 0)
-                <div x-data="{ current: 0, total: {{ $tourReviews->count() }} }">
-                    <div class="m-reviews-track" id="m-reviews-carousel"
-                         @scroll.debounce.100ms="
-                             let el = $el; let w = el.scrollWidth - el.clientWidth;
-                             if (w > 0) { current = Math.round((el.scrollLeft / w) * (total - 1)); }
-                         ">
-                        @foreach ($tourReviews as $rev)
-                            @php
-                                $rName        = $rev->name ?: 'Viajero';
-                                $rDate        = $rev->created_at ? \Carbon\Carbon::parse($rev->created_at)->translatedFormat('j \d\e F, Y') : '';
-                                $rTextFull    = trim((string) ($rev->{"quote_$locale"} ?: $rev->quote_es));
-                                $rTextShort   = \Illuminate\Support\Str::limit($rTextFull, 120);
-                                $rTextIsLong  = mb_strlen($rTextFull) > 120;
-                                $rRating      = max(1, min(5, (int) round($rev->rating)));
-                                $rInitial     = mb_strtoupper(mb_substr($rName,0,1,'UTF-8'),'UTF-8');
-                            @endphp
-                            {{-- Tarjeta de tamaño uniforme: texto truncado a 120 car.; "Ver más" abre el popup con el comentario completo --}}
-                            <div class="m-review-slide">
-                                <div class="m-comment">
-                                    <div style="width:38px;height:38px;border-radius:50%;background:#15474b;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:700;flex-shrink:0;" aria-hidden="true">{{ $rInitial }}</div>
-                                    <div>
-                                        <b>{{ $rName }} <span class="m-verified" aria-label="{{ __('ui.verified') }}">✓</span></b>
-                                        @if ($rDate)<span class="m-date">{{ $rDate }}</span>@endif
-                                        <div class="m-stars" aria-label="{{ __('ui.rated_with') }} {{ $rRating }} {{ __('ui.of_5') }}">{{ str_repeat('★', $rRating) }}<span style="color:#d8dcd8;">{{ str_repeat('★', 5 - $rRating) }}</span></div>
-                                        @if ($rTextShort)<p>{{ $rTextShort }}</p>@endif
-                                        @if ($rTextIsLong)
-                                            <button type="button" class="m-review-more"
-                                                    @click="review = { name: @js($rName), date: @js($rDate), quote: @js($rTextFull), rating: {{ $rRating }}, initial: @js($rInitial) }; reviewModalOpen = true">
-                                                {{ __('ui.see_more') }}
-                                            </button>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                    {{-- Dots de paginación (se ocultan si hay una sola reseña) --}}
-                    @if ($tourReviews->count() > 1)
-                        <div class="m-reviews-dots" aria-hidden="true">
-                            @for ($i = 0; $i < $tourReviews->count(); $i++)
-                                <button type="button"
-                                        @click="current = {{ $i }}; document.getElementById('m-reviews-carousel').scrollTo({ left: document.getElementById('m-reviews-carousel').scrollWidth / {{ $tourReviews->count() }} * {{ $i }}, behavior: 'smooth' });"
-                                        :class="{ 'active': current === {{ $i }} }"
-                                        :aria-label="'Ir a opinión {{ $i + 1 }}'"></button>
-                            @endfor
-                        </div>
-                    @endif
-                </div>
-            @else
-                <p class="m-reviews-empty">{{ __('ui.be_first_review') }}</p>
-            @endif
-
-            {{-- Popup: comentario completo (mobile) — se abre desde "Ver más" --}}
-            <div x-cloak x-show="reviewModalOpen" x-transition.opacity
-                 @keydown.escape.window="reviewModalOpen = false"
-                 class="m-review-modal-wrap" role="dialog" aria-modal="true">
-                <div class="m-review-modal-overlay" @click="reviewModalOpen = false"></div>
-                <div class="m-review-modal" x-show="reviewModalOpen" x-transition.scale.origin.center>
-                    <button type="button" class="m-review-modal-close" @click="reviewModalOpen = false" aria-label="Cerrar">✕</button>
-                    <b x-text="review.name"></b>
-                    <span class="m-date" x-text="review.date"></span>
-                    <div class="m-stars" x-text="'★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5))"></div>
-                    <p x-text="review.quote"></p>
-                </div>
+            {{-- Listado vertical de reseñas del tour --}}
+            <div class="mt-5 space-y-3">
+                @forelse ($tourReviews as $idx => $rev)
+                    <x-review-card :review="$rev" :color-index="$idx" variant="m" />
+                @empty
+                    <p class="text-xs text-teal-800/55">{{ __('ui.be_first_review') }}</p>
+                @endforelse
             </div>
 
             {{-- Formulario "Añade una valoración" (crea reseña pendiente de aprobación) --}}
-            <details class="m-review-form-wrap" {{ ($errors->any() || session('review_status')) ? 'open' : '' }}>
-                <summary class="m-review-toggle">
-                    <span aria-hidden="true">✍️</span> {{ __('ui.add_review') }}
-                    <span class="chev" aria-hidden="true">⌄</span>
-                </summary>
-                <form method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="m-review-form"
-                      x-data="{ rating: {{ (int) old('rating', 0) }} }">
+            <div class="mt-5 pt-5 border-t border-teal-800/10"
+                 x-data="{ open: {{ ($errors->any() || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
+                <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-teal-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    {{ __('ui.add_review') }}
+                    <svg class="w-4 h-4 transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <form x-show="open" x-cloak method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="mt-4 space-y-3">
                     @csrf
                     @if ($errors->any())
-                        <div class="m-review-errors">{{ $errors->first() }}</div>
+                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first() }}</div>
                     @endif
-                    <div class="fld">
-                        <label>{{ __('ui.your_rating') }} <span class="req">*</span></label>
-                        <div class="m-rate-stars" role="radiogroup" aria-label="{{ __('ui.rating') }}">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_rating') }} *</label>
+                        <div class="flex gap-1 text-2xl leading-none cursor-pointer" role="radiogroup" aria-label="{{ __('ui.rating') }}">
                             <template x-for="n in 5" :key="n">
-                                <span :class="{ 'on': n <= rating }" @click="rating = n" role="radio" :aria-checked="n === rating" :aria-label="`${n} estrellas`">★</span>
+                                <span @click="rating = n" :class="n <= rating ? 'text-orange-400' : 'text-teal-800/20'" role="radio" :aria-checked="n === rating" :aria-label="`${n} estrellas`">★</span>
                             </template>
                         </div>
                         <input type="hidden" name="rating" :value="rating">
                     </div>
-                    <div class="fld">
-                        <label for="rev-comment">{{ __('ui.your_review') }} <span class="req">*</span></label>
-                        <textarea id="rev-comment" name="comment" required minlength="10" maxlength="2000">{{ old('comment') }}</textarea>
+                    <div>
+                        <label for="rev-comment" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_review') }} *</label>
+                        <textarea id="rev-comment" name="comment" required minlength="10" maxlength="2000" rows="4" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">{{ old('comment') }}</textarea>
                     </div>
-                    <div class="fld">
-                        <label for="rev-name">{{ __('ui.name') }} <span class="req">*</span></label>
-                        <input id="rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name">
+                    <div>
+                        <label for="rev-name" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.name') }} *</label>
+                        <input id="rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
                     </div>
-                    <div class="fld">
-                        <label for="rev-email">{{ __('ui.email') }} <span class="req">*</span></label>
-                        <input id="rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email">
-                        <div class="m-review-hint">{{ __('ui.email_not_published') }}</div>
+                    <div>
+                        <label for="rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.email') }} *</label>
+                        <input id="rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
+                        <p class="text-[10px] text-teal-800/45 mt-1">{{ __('ui.email_not_published') }}</p>
                     </div>
                     {{-- Honeypot anti-spam --}}
-                    <input class="m-review-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-                    <button type="submit" class="m-review-submit">{{ __('ui.submit_review') }}</button>
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-bold text-sm rounded-full py-3 transition-colors">{{ __('ui.submit_review') }}</button>
                 </form>
-            </details>
+            </div>
 
         </div>
 
         {{-- 9. OTROS VIAJEROS TAMBIÉN RESERVARON — rec-cards --}}
+        @if ($sidebarTours->isNotEmpty())
         <div style="padding:12px 20px 18px;">
             <div class="m-h2">
                 <h2>{{ __('ui.others_also_booked') }}</h2>
@@ -1612,8 +1472,10 @@ if (!empty($itinerary)) {
                         })($relTitleRaw);
                         $relPrice   = (float)(is_object($rel) ? ($rel->price ?? 0) : ($rel->price ?? 0));
                         $relBefore  = is_object($rel) ? ($rel->price_before ?? null) : ($rel->price_before ?? null);
-                        $relRating  = is_object($rel) ? ($rel->rating ?? 4.8) : ($rel->rating ?? 4.8);
-                        $relReviews = is_object($rel) ? ($rel->reviews_count ?? 0) : ($rel->reviews_count ?? 0);
+                        // Única fuente de verdad: reseñas publicadas reales del tour relacionado.
+                        $relStats   = $rel->reviewStats();
+                        $relRating  = $relStats['average'] !== null ? number_format($relStats['average'], 1) : null;
+                        $relReviews = $relStats['total'];
                         $relCover   = is_object($rel) && method_exists($rel, 'getCoverUrlAttribute') ? $rel->cover_url : ($rel->cover_url ?? asset('assets/banners/banner-hero.jpg'));
                         $relDuration= is_object($rel) ? ($rel->duration ?? 'Full Day') : ($rel->duration ?? 'Full Day');
                         $relHasOffer= $relBefore && (float)$relBefore > $relPrice;
@@ -1644,7 +1506,9 @@ if (!empty($itinerary)) {
                                 @endforeach
                             </div>
                             @endif
+                            @if ($relRating !== null)
                             <div class="m-rec-rating"><span class="s">★★★★★</span>{{ $relRating }}@if($relReviews > 0) <span>({{ $relReviews }})</span>@endif</div>
+                            @endif
                         </div>
                         <div class="m-rec-side">
                             @if ($relHasOffer)
@@ -1667,6 +1531,7 @@ if (!empty($itinerary)) {
                 @endforeach
             </div>
         </div>
+        @endif
 
         {{-- 10. RESERVA CON CONFIANZA --}}
         <div class="m-confidence">
@@ -1814,6 +1679,7 @@ if (!empty($itinerary)) {
             <h1 id="tour-title" class="font-display text-2xl md:text-3xl lg:text-4xl text-teal-800 leading-tight">
                 {{ $titleDisplay }}
             </h1>
+            @if ($tourRating !== null)
             <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <span class="inline-flex gap-0.5" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">
                     @for ($s = 0; $s < 5; $s++)
@@ -1827,6 +1693,7 @@ if (!empty($itinerary)) {
                     {{ __('ui.verified') }}
                 </span>
             </div>
+            @endif
         </section>
 
         {{-- ══════════════════════════════════════
@@ -2219,59 +2086,10 @@ if (!empty($itinerary)) {
         {{-- ══════════════════════════════════════
              7. OPINIONES DE NUESTROS VIAJEROS
         ══════════════════════════════════════ --}}
-        {{-- x-data del popup de comentario completo (mismo patrón que home.blade.php sección Opiniones) --}}
-        <section aria-labelledby="reviews-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5" x-data="{ reviewModalOpen: false, review: {} }">
-            <div class="flex items-center justify-between mb-4">
+        <section aria-labelledby="reviews-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
+            <div class="mb-5">
                 <h2 id="reviews-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.traveler_reviews') }}</h2>
-                <a href="#reviews-heading" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">{{ __('ui.see_all') }}</a>
-            </div>
-            {{-- Plataformas Google + Tripadvisor: rating/nº editables desde Configuración → APIs; enlaces desde Configuración → Redes sociales --}}
-            @php
-                $dGoogleRating = \App\Models\Setting::get('reviews_google_rating') ?: '4.9';
-                $dGoogleCount  = \App\Models\Setting::get('reviews_google_count') ?: '123';
-                $dTaRating     = \App\Models\Setting::get('reviews_tripadvisor_rating') ?: '4.6';
-                $dTaCount      = \App\Models\Setting::get('reviews_tripadvisor_count') ?: '8';
-                $dGoogleLink   = \App\Models\Setting::get('social_google_reviews') ?: '#';
-                $dTaLink       = \App\Models\Setting::get('social_tripadvisor') ?: '#';
-            @endphp
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="bg-cream-100 rounded-xl p-3">
-                    <div class="flex items-center gap-1.5 mb-1">
-                        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                        <span class="text-xs font-bold text-teal-800">Google</span>
-                    </div>
-                    <p class="font-price text-xl font-bold text-teal-800">{{ $dGoogleRating }}<span class="text-teal-800/40 text-xs">/5</span></p>
-                    <div class="flex gap-0.5 my-0.5" aria-hidden="true">
-                        @for ($s=0;$s<5;$s++)<svg class="w-3 h-3 text-orange-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endfor
-                    </div>
-                    <p class="text-[11px] text-teal-800/55 mb-1.5">{{ $dGoogleCount }} {{ __('ui.reviews') }}</p>
-                    <a href="{{ $dGoogleLink }}" @if ($dGoogleLink !== '#') target="_blank" rel="noopener nofollow" @endif class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
-                        {{ __('ui.see_on_google') }} <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                    </a>
-                </div>
-                <div class="bg-cream-100 rounded-xl p-3">
-                    <div class="flex items-center gap-1.5 mb-1">
-                        {{-- Tripadvisor búho SVG --}}
-                        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <circle cx="12" cy="12" r="11" fill="#00AA6C"/>
-                            <circle cx="9" cy="10" r="2.5" fill="white"/>
-                            <circle cx="15" cy="10" r="2.5" fill="white"/>
-                            <circle cx="9" cy="10" r="1.2" fill="#00AA6C"/>
-                            <circle cx="15" cy="10" r="1.2" fill="#00AA6C"/>
-                            <path d="M7 14.5 C8.5 16.5 15.5 16.5 17 14.5" stroke="white" stroke-width="1.3" stroke-linecap="round" fill="none"/>
-                        </svg>
-                        <span class="text-xs font-bold text-teal-800">Tripadvisor</span>
-                    </div>
-                    <p class="font-price text-xl font-bold text-teal-800">{{ $dTaRating }}<span class="text-teal-800/40 text-xs">/5</span></p>
-                    <div class="flex gap-0.5 my-0.5" aria-hidden="true">
-                        @for ($s=0;$s<4;$s++)<svg class="w-3 h-3 text-orange-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endfor
-                        <svg class="w-3 h-3 text-orange-200 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                    </div>
-                    <p class="text-[11px] text-teal-800/55 mb-1.5">{{ $dTaCount }} {{ __('ui.reviews') }}</p>
-                    <a href="{{ $dTaLink }}" @if ($dTaLink !== '#') target="_blank" rel="noopener nofollow" @endif class="text-[11px] font-semibold text-teal-800 hover:text-orange-500 transition-colors flex items-center gap-0.5">
-                        {{ __('ui.see_on_tripadvisor') }} <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                    </a>
-                </div>
+                <p class="text-xs text-teal-800/55 mt-1">{{ __('ui.traveler_reviews_subtitle') }}</p>
             </div>
 
             {{-- Flash de envío --}}
@@ -2279,125 +2097,46 @@ if (!empty($itinerary)) {
                 <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold px-4 py-3">{{ session('review_status') }}</div>
             @endif
 
-            {{-- Reviews individuales del tour: carrusel con paginación --}}
-            @if($tourReviews->count() > 0)
-            <div x-data="{ current: 0, total: {{ $tourReviews->count() }} }">
-                @php
-                $avatarColors = ['bg-teal-700', 'bg-orange-500', 'bg-teal-600', 'bg-amber-600', 'bg-cyan-700'];
-                @endphp
-                <div class="d-reviews-track" id="d-reviews-carousel"
-                     @scroll.debounce.100ms="
-                         let el = $el; let w = el.scrollWidth - el.clientWidth;
-                         if (w > 0) { current = Math.round((el.scrollLeft / w) * (total - 1)); }
-                     ">
-                    @foreach ($tourReviews as $tIdx => $testimonial)
-                        @php
-                            $tName       = $testimonial->author_name ?? $testimonial->name ?? 'Viajero';
-                            $tDate       = $testimonial->created_at ? \Carbon\Carbon::parse($testimonial->created_at)->translatedFormat('j M Y') : '';
-                            $tTextFull   = trim((string) ($testimonial->{"quote_$locale"} ?? $testimonial->quote_es ?? $testimonial->{"content_$locale"} ?? $testimonial->content_es ?? $testimonial->content ?? ''));
-                            $tTextShort  = \Illuminate\Support\Str::limit($tTextFull, 120);
-                            $tTextIsLong = mb_strlen($tTextFull) > 120;
-                            $tRating     = (int)($testimonial->rating ?? 5);
-                            $tAvatar     = $testimonial->avatar_url ?? null;
-                            $tInitials = mb_strtoupper(mb_substr(trim($tName), 0, 1, 'UTF-8'), 'UTF-8');
-                            if (str_contains($tName, ' ')) {
-                                $parts = explode(' ', trim($tName));
-                                $tInitials = mb_strtoupper(mb_substr($parts[0], 0, 1, 'UTF-8') . mb_substr(end($parts), 0, 1, 'UTF-8'), 'UTF-8');
-                            }
-                            $tColor = $avatarColors[$tIdx % count($avatarColors)];
-                        @endphp
-                        {{-- Tarjeta de tamaño uniforme: texto recortado a 120 car.; "Ver más" abre el popup con el comentario completo --}}
-                        <div class="d-review-slide">
-                            <div class="p-4 bg-cream-100 rounded-2xl ring-1 ring-teal-800/5 h-full min-h-[176px] flex flex-col">
-                                <div class="flex items-start justify-between gap-2 mb-2">
-                                    <div class="flex items-center gap-2.5">
-                                        @if ($tAvatar)
-                                            <img src="{{ $tAvatar }}" alt="{{ $tName }}" class="w-9 h-9 rounded-full object-cover shrink-0" loading="lazy" width="36" height="36">
-                                        @else
-                                            <div class="w-9 h-9 rounded-full {{ $tColor }} text-white grid place-items-center text-xs font-bold shrink-0" aria-hidden="true">{{ $tInitials }}</div>
-                                        @endif
-                                        <div>
-                                            <p class="text-xs font-bold text-teal-800 flex items-center gap-1">
-                                                {{ $tName }}
-                                                <span class="inline-flex items-center gap-0.5 bg-state-success/10 text-state-success text-[9px] font-semibold px-1.5 py-0.5 rounded-full" aria-label="{{ __('ui.verified') }}">
-                                                    <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                                </span>
-                                            </p>
-                                            <div class="flex gap-0.5 mt-0.5" aria-hidden="true">
-                                                @for ($s = 0; $s < 5; $s++)
-                                                    <svg class="w-3 h-3 {{ $s < $tRating ? 'text-orange-400' : 'text-orange-200' }} fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                                                @endfor
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @if ($tDate)
-                                        <span class="text-[10px] text-teal-800/45 shrink-0">{{ $tDate }}</span>
-                                    @endif
-                                </div>
-                                @if ($tTextShort)
-                                    <p class="text-xs text-teal-800/75 leading-relaxed">{{ $tTextShort }}</p>
-                                @endif
-                                @if ($tTextIsLong)
-                                    <button type="button"
-                                            class="mt-1.5 self-start text-[11px] font-bold text-orange-600 hover:text-orange-700 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-                                            @click="review = { name: @js($tName), date: @js($tDate), quote: @js($tTextFull), rating: {{ $tRating }}, avatar: @js($tAvatar), initial: @js($tInitials), color: @js($tColor) }; reviewModalOpen = true">
-                                        {{ __('ui.see_more') }}
-                                    </button>
-                                @endif
-                            </div>
+            @php
+                $dStamp = \App\Models\Setting::tripadvisorStamp();
+                $dHasSummary = $reviewStats['total'] > 0;
+            @endphp
+            {{-- REVISIÓN 2026-09-21 (pedido del cliente tras ver la maqueta en 1440):
+                 la columna lateral fija de 300px dejaba un vacío enorme bajo una
+                 tarjeta de ~150px de alto en una columna de miles de píxeles de
+                 largo, y comprimía las tarjetas de reseña a ~360px de ancho en
+                 pantallas de 1440. Se cambia a banda horizontal de ancho completo
+                 (resumen + sello) y el listado pasa a ocupar todo el ancho de la
+                 sección debajo, en 2 columnas desde lg para no alargar demasiado
+                 la línea de lectura del texto. --}}
+            @if ($dHasSummary || $dStamp)
+                <div class="mb-6 lg:flex lg:items-center lg:gap-4">
+                    @if ($dHasSummary)
+                        <div class="lg:flex-1 min-w-0">
+                            <x-review-summary :stats="$reviewStats" variant="d" />
                         </div>
-                    @endforeach
+                    @endif
+                    @if ($dStamp)
+                        <div class="{{ $dHasSummary ? 'mt-4 lg:mt-0' : '' }} lg:shrink-0 lg:self-center">
+                            <x-tripadvisor-stamp :stamp="$dStamp" variant="d" spacing-class="" />
+                        </div>
+                    @endif
                 </div>
-                {{-- Dots de paginación (se ocultan si hay una sola reseña) --}}
-                @if ($tourReviews->count() > 1)
-                    <div class="mt-4 flex items-center justify-center gap-2" aria-hidden="true">
-                        @for ($i = 0; $i < $tourReviews->count(); $i++)
-                            <button type="button"
-                                    @click="current = {{ $i }}; document.getElementById('d-reviews-carousel').scrollTo({ left: document.getElementById('d-reviews-carousel').scrollWidth / {{ $tourReviews->count() }} * {{ $i }}, behavior: 'smooth' });"
-                                    class="transition-all duration-200 rounded-full"
-                                    :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
-                                    :aria-label="'Ir a opinión {{ $i + 1 }}'"></button>
-                        @endfor
-                    </div>
-                @endif
-            </div>
-            @else
-                <p class="text-sm text-teal-800/55">{{ __('ui.be_first_review') }}</p>
             @endif
 
-            {{-- Popup: comentario completo (desktop) — se abre desde "Ver más" --}}
-            <div x-cloak
-                 x-show="reviewModalOpen"
-                 x-transition.opacity
-                 @keydown.escape.window="reviewModalOpen = false"
-                 class="fixed inset-0 z-[70] flex items-center justify-center p-4"
-                 role="dialog" aria-modal="true">
-                <div class="absolute inset-0 bg-teal-950/60 backdrop-blur-sm" @click="reviewModalOpen = false"></div>
-                <div x-show="reviewModalOpen"
-                     x-transition.scale.origin.center
-                     class="relative z-10 w-full max-w-md bg-cream-100 rounded-3xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
-                    <button type="button" @click="reviewModalOpen = false"
-                            class="absolute top-4 right-4 w-8 h-8 grid place-items-center rounded-full bg-teal-800/10 text-teal-800 hover:bg-teal-800/20"
-                            aria-label="Cerrar">✕</button>
-                    <div class="text-orange-400 text-lg leading-none mb-3"
-                         x-text="'★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5))"></div>
-                    <blockquote class="text-sm text-teal-800/90 leading-relaxed whitespace-pre-line"
-                                x-text="'“' + (review.quote || '') + '”'"></blockquote>
-                    <div class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
-                        <template x-if="review.avatar">
-                            <img :src="review.avatar" :alt="review.name" class="w-11 h-11 rounded-full object-cover shrink-0">
-                        </template>
-                        <template x-if="!review.avatar">
-                            <span class="w-11 h-11 rounded-full text-white grid place-items-center font-display text-lg shrink-0"
-                                  :class="review.color || 'bg-teal-800'"
-                                  x-text="review.initial"></span>
-                        </template>
-                        <div class="min-w-0">
-                            <p class="font-bold text-teal-800 text-sm leading-tight" x-text="review.name"></p>
-                            <p class="text-[11px] text-teal-800/55 leading-tight" x-text="review.date"></p>
-                        </div>
+            {{-- Listado de reseñas: ancho completo de la sección, 2 columnas desde
+                 lg para no dejar líneas de texto demasiado anchas. min-w-0 en el
+                 item de grid: sin él el texto largo de una reseña puede forzar la
+                 pista más ancha que su contenedor (mismo defecto que el de la
+                 columna lateral, ver review_1024 de la vuelta anterior). --}}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                @forelse ($tourReviews as $idx => $rev)
+                    <div class="min-w-0">
+                        <x-review-card :review="$rev" :color-index="$idx" variant="d" />
                     </div>
-                </div>
+                @empty
+                    <p class="text-sm text-teal-800/55">{{ __('ui.be_first_review') }}</p>
+                @endforelse
             </div>
 
             {{-- Formulario "Añade una valoración" (desktop) — crea reseña pendiente de aprobación --}}
@@ -2446,6 +2185,7 @@ if (!empty($itinerary)) {
         {{-- ══════════════════════════════════════
              8. OTROS VIAJEROS TAMBIÉN RESERVARON
         ══════════════════════════════════════ --}}
+        @if ($sidebarTours->isNotEmpty())
         <section aria-labelledby="related-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 id="related-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.others_also_booked') }}</h2>
@@ -2460,8 +2200,10 @@ if (!empty($itinerary)) {
                         $relTitle   = is_object($rel) ? ($rel->title_es ?? $rel->title ?? 'Tour') : ($rel->title ?? 'Tour');
                         $relPrice   = is_object($rel) ? ($rel->price ?? 0) : ($rel->price ?? 0);
                         $relBefore  = is_object($rel) ? ($rel->price_before ?? null) : ($rel->price_before ?? null);
-                        $relRating  = is_object($rel) ? ($rel->rating ?? 4.8) : ($rel->rating ?? 4.8);
-                        $relReviews = is_object($rel) ? ($rel->reviews_count ?? 0) : ($rel->reviews_count ?? 0);
+                        // Única fuente de verdad: reseñas publicadas reales del tour relacionado.
+                        $relStats   = $rel->reviewStats();
+                        $relRating  = $relStats['average'] !== null ? number_format($relStats['average'], 1) : null;
+                        $relReviews = $relStats['total'];
                         $relCover   = is_object($rel) && method_exists($rel, 'getCoverUrlAttribute') ? $rel->cover_url : ($rel->cover_url ?? asset('assets/banners/banner-hero.jpg'));
                         $relDuration= is_object($rel) ? ($rel->duration ?? 'Full Day') : ($rel->duration ?? 'Full Day');
                         $relHasOffer = $relBefore && (float)$relBefore > (float)$relPrice;
@@ -2495,6 +2237,7 @@ if (!empty($itinerary)) {
                 @endif
             </div>
         </section>
+        @endif
 
         {{-- ══════════════════════════════════════
              9. RESERVA CON CONFIANZA

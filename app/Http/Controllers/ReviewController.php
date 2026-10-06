@@ -107,6 +107,7 @@ class ReviewController extends Controller
             'rating'      => $data['rating'],
             'source'      => 'Web',
             'is_active'   => false, // pendiente de moderación
+            'status'      => 'pending', // misma cola de moderación que tours.review.store
             'is_featured' => false,
         ]);
 
@@ -123,7 +124,7 @@ class ReviewController extends Controller
     private function fetchTestimonials(): Collection
     {
         try {
-            return Testimonial::active()
+            return Testimonial::published()
                 ->orderByDesc('is_featured')
                 ->orderBy('order')
                 ->orderByDesc('created_at')

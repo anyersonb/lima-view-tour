@@ -33,28 +33,22 @@
     $toursCusco    = $toursCusco    ?? collect();
     $st            = $siteSettings  ?? [];
 
-    $staticFeatured = collect([
-        (object)['title' => 'Tour de día Completo al Oasis de Huacachina + Islas Ballestas', 'price_before' => 125, 'price' => 100, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19210.jpg', 'slug' => 'huacachina-paracas-full-day'],
-        (object)['title' => 'Full Day Lima Ancestral, Colonial y Moderna', 'price_before' => 125, 'price' => 100, 'badge_text' => '5 CUPOS DE 20', 'badge_type' => 'error', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19211.jpg', 'slug' => 'lima-ancestral-colonial'],
-        (object)['title' => 'Líneas de Nazca + Oasis de Huacachina e Islas Ballestas', 'price_before' => 250, 'price' => 220, 'badge_text' => 'MÁS RESERVADO', 'badge_type' => 'success', 'rating' => '4.6', 'reviews_count' => 30, 'cover_image' => 'assets/banners/Rectangle 19212.jpg', 'slug' => 'nazca-huacachina-2-dias'],
-        (object)['title' => 'Full day a las Líneas de Nazca', 'price_before' => 350, 'price' => 300, 'badge_text' => 'CUPOS LIMITADOS', 'badge_type' => 'warn', 'rating' => '4.8', 'reviews_count' => 28, 'cover_image' => 'assets/banners/Rectangle 19214.jpg', 'slug' => 'nazca-full-day'],
-    ]);
-
-    if ($featuredTours->isEmpty()) { $featuredTours = $staticFeatured; }
-    if ($toursIca->isEmpty())      { $toursIca      = $staticFeatured; }
-    if ($toursLima->isEmpty())     { $toursLima      = $staticFeatured; }
-    if ($toursCusco->isEmpty())    { $toursCusco     = $staticFeatured; }
+    // Sin fallback ficticio: si una región no tiene tours publicados, su
+    // carrusel simplemente no se pinta (antes caía en 4 tours inventados con
+    // rating/reviews_count fijos, reutilizados en las 4 secciones).
 
     $normalizeTours = static function (\Illuminate\Support\Collection $collection): array {
         return $collection->map(static function ($t): array {
+            // Única fuente de verdad: reseñas publicadas reales del tour.
+            $stats = is_object($t) && method_exists($t, 'reviewStats') ? $t->reviewStats() : ['average' => null, 'total' => 0];
             return [
                 'title'     => is_object($t) ? $t->title                                         : $t['title'],
                 'before'    => is_object($t) ? ($t->price_before ?? null)                        : ($t['price_before'] ?? null),
                 'now'       => is_object($t) ? $t->price                                         : $t['price'],
                 'badge'     => is_object($t) ? ($t->badge_text ?? null)                          : ($t['badge_text'] ?? null),
                 'badgeType' => is_object($t) ? ($t->badge_type ?? 'warn')                        : ($t['badge_type'] ?? 'warn'),
-                'rating'    => is_object($t) ? $t->rating                                        : $t['rating'],
-                'reviews'   => is_object($t) ? ($t->reviews_count ?? 0)                         : ($t['reviews_count'] ?? 0),
+                'rating'    => $stats['average'] !== null ? number_format($stats['average'], 1) : null,
+                'reviews'   => $stats['total'],
                 'img'       => is_object($t)
                     ? (\App\Support\ImagePath::url($t->cover_image ?? null) ?? asset('assets/banners/banner-hero.jpg'))
                     : (\App\Support\ImagePath::url($t['cover_image'] ?? null) ?? asset('assets/banners/banner-hero.jpg')),
@@ -378,9 +372,8 @@
         </div>
 
         @php
-            $mcTours = $featuredTours->isNotEmpty()
-                ? $normalizeTours($featuredTours->take(8))
-                : $normalizeTours($staticFeatured);
+            // Sin demo ficticio: si no hay tours reales, el carrusel queda vacío.
+            $mcTours = $normalizeTours($featuredTours->take(8));
             $mcCount = count($mcTours);
         @endphp
 
@@ -525,11 +518,8 @@
         </div>
 
         @php
-            // Usar tours reales si existen (aunque sean pocos); solo demo si la BD está vacía.
-            $dbTours = $featuredTours->isNotEmpty()
-                ? $featuredTours->take(6)
-                : $staticFeatured;
-            $limaCuscoCols  = $normalizeTours($dbTours);
+            // Sin demo ficticio: si no hay tours reales, el carrusel queda vacío.
+            $limaCuscoCols  = $normalizeTours($featuredTours->take(6));
             $limaCuscoCount = count($limaCuscoCols);
         @endphp
 
@@ -1035,14 +1025,10 @@
                 @php
                     $eImg      = $expItem['img'] ?? '';
                     $eTitle    = $expItem['title_' . $locale] ?? $expItem['title_es'] ?? '';
-                    $eBadge    = $expItem['badge_' . $locale] ?? $expItem['badge_es'] ?? '';
-                    $eBadgeBg  = $expItem['badgeBg'] ?? 'teal-800';
                     $eSlug     = $expItem['slug'] ?? '';
                 @endphp
                     @php
-                        $eUrl = route('tours.index', ['locale' => $locale]);
-                        $eBadgeIsOrange = $eBadgeBg === 'orange-500';
-                    @endphp
+                        $eUrl = route('tours.index', ['locale' => $locale]);                    @endphp
                     <a href="{{ $eUrl }}"
                        class="tour-slide-4
                               block group rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5
@@ -1052,11 +1038,6 @@
                                  alt="{{ $eTitle }}"
                                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                  loading="lazy">
-                            <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full
-                                         {{ $eBadgeIsOrange ? 'bg-orange-500' : 'bg-teal-800' }}">
-                                <svg class="w-3 h-3 text-yellow-400 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                {{ $eBadge }}
-                            </span>
                         </div>
                         <div class="p-4">
                             <h3 class="font-display text-lg text-teal-800 leading-tight line-clamp-2 group-hover:text-orange-500 transition-colors">{{ $eTitle }}</h3>

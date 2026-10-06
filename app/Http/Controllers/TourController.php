@@ -18,7 +18,7 @@ class TourController extends Controller
             'categoria' => null,
             'tours' => Tour::published()->ordered()->get(),
             'regions' => Region::active()->orderBy('order')->get(),
-            'testimonials' => Testimonial::active()->featured()->orderBy('order')->limit(4)->get(),
+            'testimonials' => Testimonial::published()->featured()->orderBy('order')->limit(4)->get(),
         ]);
     }
 
@@ -31,7 +31,7 @@ class TourController extends Controller
             'region' => $region,
             'tours' => Tour::published()->where('region_id', $region->id)->ordered()->get(),
             'regions' => Region::active()->orderBy('order')->get(),
-            'testimonials' => Testimonial::active()->featured()->orderBy('order')->limit(4)->get(),
+            'testimonials' => Testimonial::published()->featured()->orderBy('order')->limit(4)->get(),
         ]);
     }
 
@@ -63,11 +63,18 @@ class TourController extends Controller
         return view('tours.show', [
             'tour'          => $tour,
             'related'       => $related,
-            'testimonials'  => Testimonial::active()->featured()->orderBy('order')->limit(4)->get(),
+            'testimonials'  => Testimonial::published()->featured()->orderBy('order')->limit(4)->get(),
+            // Reseñas propias del tour (sección "Opiniones de nuestros viajeros").
+            // published() exige is_active=true Y status=approved: las dos
+            // maquetas (móvil y escritorio) consumen esta MISMA colección.
             'tourReviews'   => $tour->testimonials()
-                ->where('is_active', true)
+                ->published()
                 ->latest()
                 ->get(),
+            // Agregados reales (average/total/distribution) — ver firma en
+            // Tour::reviewStats(). Ningún cálculo de promedios/porcentajes debe
+            // hacerse en el Blade: ya vienen resueltos acá.
+            'reviewStats'   => $tour->reviewStats(),
             'blockedDates'    => BlockedDate::blockedDatesFor($tour->id),
             'blockedWeekdays' => BlockedDate::blockedWeekdaysFor($tour->id),
         ]);
@@ -102,6 +109,7 @@ class TourController extends Controller
             'rating'      => $data['rating'],
             'source'      => 'Web',
             'is_active'   => false, // pendiente de moderación
+            'status'      => 'pending', // cola de moderación distinguible en el panel
             'is_featured' => false,
         ]);
 

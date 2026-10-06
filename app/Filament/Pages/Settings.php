@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Models\Setting;
 use App\Support\PageSeo;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -382,6 +383,10 @@ class Settings extends Page implements HasForms
                                     ->image()
                                     ->disk('media')
                                     ->directory('home')
+                                    // Hallazgo de seguridad #5 (2026-09-30): este campo no pasa por
+                                    // ImageOptimizer::saver() (a propósito, para conservar el archivo
+                                    // original), así que necesita su propio endurecimiento de nombre.
+                                    ->getUploadedFileNameForStorageUsing(\App\Support\ImageOptimizer::safeImageNamer())
                                     ->helperText('Dejar vacío para usar logo.png por defecto. (El logo NO se convierte para conservar la transparencia original.)')
                                     ->columnSpanFull(),
                                 TextInput::make('gracias_badge_es')->label('Badge/eyebrow (ES)')->placeholder('Tu mensaje fue enviado'),
@@ -812,6 +817,26 @@ class Settings extends Page implements HasForms
                                     ->label('Tripadvisor — Nº de reseñas (ej. 8)')
                                     ->numeric()
                                     ->helperText('Cantidad de reseñas mostrada junto al rating de Tripadvisor.'),
+                            ]),
+
+                        \Filament\Forms\Components\Section::make('Sello "Recomendado en Tripadvisor"')
+                            ->description('Dato manual mientras la API Terra de Tripadvisor no tiene key aprobada. Si dejas el % vacío, el sello NO se muestra en el sitio — no hay ningún valor por defecto.')
+                            ->collapsible()
+                            ->schema([
+                                TextInput::make('tripadvisor_recommend_percent')
+                                    ->label('% que recomienda (0-100)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->helperText('Vacío = el sello no se pinta. Ej: 96.'),
+                                TextInput::make('tripadvisor_reviews_count')
+                                    ->label('Nº de reseñas consideradas')
+                                    ->numeric()
+                                    ->minValue(0),
+                                DatePicker::make('tripadvisor_stats_updated_at')
+                                    ->label('Fecha del dato')
+                                    ->native(false)
+                                    ->helperText('Para poder mostrar "actualizado en <fecha>" junto al sello.'),
                             ]),
                     ]),
                     Tabs\Tab::make('Recogida')->icon('heroicon-o-map')->schema([

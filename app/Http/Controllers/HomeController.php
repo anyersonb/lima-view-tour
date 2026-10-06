@@ -134,7 +134,7 @@ class HomeController extends Controller
     private function fetchTestimonials(): \Illuminate\Support\Collection
     {
         try {
-            $cms = Testimonial::active()->featured()->orderBy('order')->limit(8)->get();
+            $cms = Testimonial::published()->featured()->orderBy('order')->limit(8)->get();
 
             return $this->reviews->merge($cms, app()->getLocale())->take(9);
         } catch (\Throwable $e) {

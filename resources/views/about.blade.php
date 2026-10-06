@@ -99,8 +99,15 @@
     $statsItems   = !empty($b['stats'])   ? $b['stats']   : $defaultStats;
     $pillarsItems = !empty($b['pillars']) ? $b['pillars'] : $defaultPillars;
 
-    // Testimonials: rating average (fallback 4.8 when table is empty)
-    $avgRating = round(\App\Models\Testimonial::avg('rating') ?: 4.8, 1);
+    // Testimonials: rating average. FIX (encargo "Opiniones de viajeros"): este
+    // promedio NO filtraba ni siquiera is_active — cualquier reseña pendiente o
+    // rechazada entraba al cálculo. Ahora usa published() (is_active=true AND
+    // status=approved). El "?: 4.8" cableado se retiró (encargo "sección de
+    // opiniones de la ficha de tour", 2026-09-20): sin reseñas publicadas no
+    // hay promedio real que mostrar, así que $avgRating queda null y el bloque
+    // de valoración de abajo simplemente no se pinta — nunca una cifra inventada.
+    $avgRatingRaw = \App\Models\Testimonial::published()->avg('rating');
+    $avgRating = $avgRatingRaw !== null ? round((float) $avgRatingRaw, 1) : null;
 
     // JSON-LD manual (panel → SEO — [idioma] → Datos estructurados). Esta
     // página no tiene un schema autogenerado propio hoy, así que el campo
@@ -365,10 +372,12 @@
                 <h3 class="mt-3 font-display text-3xl lg:text-4xl leading-tight">
                     {{ $b['testimonios_heading_'.$locale] ?? __('ui.clients_opinion') }}
                 </h3>
-                <p class="mt-4 inline-flex items-center gap-2 text-sm">
-                    <span class="font-semibold">{{ $avgRating }}</span>
-                    <span class="text-orange-400">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                </p>
+                @if ($avgRating)
+                    <p class="mt-4 inline-flex items-center gap-2 text-sm">
+                        <span class="font-semibold">{{ $avgRating }}</span>
+                        <span class="text-orange-400">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                    </p>
+                @endif
                 <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-auto self-start">{{ __('ui.see_tours') }}</a>
             </div>
         </article>

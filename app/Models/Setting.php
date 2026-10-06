@@ -67,6 +67,36 @@ class Setting extends Model
         return static::updateOrCreate(['key' => $key], ['value' => $stored, 'type' => $type, 'group' => $group]);
     }
 
+    /**
+     * Datos del sello "Recomendado en Tripadvisor" (Configuración → APIs),
+     * cargados a mano mientras la Content API de Tripadvisor no tiene key
+     * aprobada. Null cuando el % de recomendación no está configurado — la
+     * vista debe preguntar por el sello con esta ÚNICA llamada
+     * (`if ($stamp = Setting::tripadvisorStamp())`) y nunca pintar un
+     * porcentaje inventado.
+     *
+     * @return array{percent: int, count: int|null, updated_at: \Illuminate\Support\Carbon|null}|null
+     */
+    public static function tripadvisorStamp(): ?array
+    {
+        $percent = static::get('tripadvisor_recommend_percent');
+
+        if ($percent === null || trim((string) $percent) === '') {
+            return null;
+        }
+
+        $count = static::get('tripadvisor_reviews_count');
+        $updatedAt = static::get('tripadvisor_stats_updated_at');
+
+        return [
+            'percent' => (int) $percent,
+            'count' => ($count !== null && trim((string) $count) !== '') ? (int) $count : null,
+            'updated_at' => ($updatedAt && trim((string) $updatedAt) !== '')
+                ? \Illuminate\Support\Carbon::parse($updatedAt)
+                : null,
+        ];
+    }
+
     protected static function castValue(?string $value, string $type): mixed
     {
         return match ($type) {

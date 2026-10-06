@@ -23,12 +23,12 @@ class PageController extends Controller
         $page = Page::where('slug', 'nosotros')->first();
 
         // Active testimonials — 4 cards + 1 featured Tripadvisor quote
-        $testimonials = Testimonial::active()->latest('order')->take(4)->get();
-        $featured     = Testimonial::active()
+        $testimonials = Testimonial::published()->latest('order')->take(4)->get();
+        $featured     = Testimonial::published()
             ->where('source', 'tripadvisor')
             ->latest()
             ->first()
-            ?? Testimonial::active()->latest()->first();
+            ?? Testimonial::published()->latest()->first();
 
         return view('about', compact('page', 'testimonials', 'featured'));
     }
