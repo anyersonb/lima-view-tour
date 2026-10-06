@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RegionResource\Pages;
 use App\Filament\Resources\RegionResource\RelationManagers;
 use App\Models\Region;
+use App\Support\ImageOptimizer;
 use App\Support\ImagePath;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -52,7 +53,10 @@ class RegionResource extends Resource
                     ->label('Descrição (Português)')
                     ->columnSpanFull(),
                 Forms\Components\FileUpload::make('hero_image')
-                    ->image(),
+                    ->image()
+                    // Hallazgo de seguridad #5 (2026-09-30): nombre en disco
+                    // desde el MIME detectado, nunca la extensión del cliente.
+                    ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
                 Forms\Components\TextInput::make('eyebrow_es')
                     ->maxLength(255)
                     ->label('Eyebrow (Español)'),
@@ -77,7 +81,8 @@ class RegionResource extends Resource
                     ->maxLength(320)
                     ->helperText('Mismo criterio que el title: la meta por idioma de Configuración → SEO manda sobre esto.'),
                 Forms\Components\FileUpload::make('seo_image')
-                    ->image(),
+                    ->image()
+                    ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
             ]);
     }
 

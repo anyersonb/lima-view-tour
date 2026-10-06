@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OfferResource\Pages;
 use App\Filament\Resources\OfferResource\RelationManagers;
 use App\Models\Offer;
+use App\Support\ImageOptimizer;
 use App\Support\ImagePath;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -49,7 +50,10 @@ class OfferResource extends Resource
                     ->label('Descrição (Português)')
                     ->columnSpanFull(),
                 Forms\Components\FileUpload::make('image')
-                    ->image(),
+                    ->image()
+                    // Hallazgo de seguridad #5 (2026-09-30): nombre en disco
+                    // desde el MIME detectado, nunca la extensión del cliente.
+                    ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
                 Forms\Components\TextInput::make('price')
                     ->numeric()
                     ->prefix('$'),

@@ -54,61 +54,6 @@ Route::get('/', function () {
 Route::get('/mantenimiento', fn () => view('errors.maintenance'))->name('maintenance');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Diagnóstico SMTP temporal (2026-07-16). Protegido por token. Envía un correo
-// de prueba y devuelve la config de correo + el error exacto si falla.
-// QUITAR después de resolver el problema de envío de reservas.
-// Uso: /_diag/mail?key=lvt-mail-diag-2026&to=tucorreo@dominio.com
-// ─────────────────────────────────────────────────────────────────────────────
-Route::get('/_diag/mail', function () {
-    abort_unless(request('key') === 'lvt-mail-diag-2026', 404);
-
-    $mailer = config('mail.default');
-    $conn = config("mail.mailers.{$mailer}");
-    $maskedUser = ($u = config('mail.mailers.smtp.username'))
-        ? substr((string) $u, 0, 3).'***'.(str_contains((string) $u, '@') ? strstr((string) $u, '@') : '')
-        : null;
-
-    $to = request('to')
-        ?: \App\Models\Setting::get('booking_notification_email')
-        ?: config('mail.from.address');
-
-    $config = [
-        'mail_default' => $mailer,
-        'smtp_host' => config('mail.mailers.smtp.host'),
-        'smtp_port' => config('mail.mailers.smtp.port'),
-        'smtp_encryption' => config('mail.mailers.smtp.encryption') ?? config('mail.mailers.smtp.scheme'),
-        'smtp_username' => $maskedUser,
-        'smtp_password_set' => (bool) config('mail.mailers.smtp.password'),
-        'from_address' => config('mail.from.address'),
-        'from_name' => config('mail.from.name'),
-        'app_env' => config('app.env'),
-        'test_to' => $to,
-    ];
-
-    try {
-        \Illuminate\Support\Facades\Mail::raw(
-            'Prueba de envío SMTP desde Lima View Tours — '.now()->toDateTimeString(),
-            function ($m) use ($to) {
-                $m->to($to)->subject('[TEST] Diagnóstico SMTP Lima View Tours');
-            }
-        );
-
-        return response()->json([
-            'ok' => true,
-            'message' => "Correo de prueba enviado a {$to}. Revisa bandeja y SPAM.",
-            'config' => $config,
-        ], 200, [], JSON_PRETTY_PRINT);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'ok' => false,
-            'error' => $e->getMessage(),
-            'exception' => get_class($e),
-            'config' => $config,
-        ], 500, [], JSON_PRETTY_PRINT);
-    }
-})->name('diag.mail');
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Links de pago — /pagar/{code}. Deliberadamente FUERA del grupo {locale}: un
 // link de pago es un único enlace compartible (WhatsApp, correo, redes), no
 // una página traducida por URL. El idioma se detecta del navegador dentro del

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MediaAssetResource\Pages;
 use App\Models\MediaAsset;
+use App\Support\ImageOptimizer;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,7 +38,22 @@ class MediaAssetResource extends Resource
                             // Seguridad: tipos explícitos (sin comodín image/* ni SVG, que es vector XSS)
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'video/mp4'])
                             ->maxSize(10240)
-                            // Nombres aleatorios (no preserveFilenames): evita sobrescritura y rutas predecibles
+                            // Nombres aleatorios (no preserveFilenames): evita sobrescritura y rutas predecibles.
+                            // Hallazgo de seguridad #5 (2026-09-30, mismo patrón, campo fuera del
+                            // literal ->image() del hallazgo pero con el MISMO riesgo): "aleatorio"
+                            // por sí solo no basta si la EXTENSIÓN sigue saliendo del cliente — un
+                            // archivo aceptado como application/pdf (mime detectado) pero nombrado
+                            // "shell.php" por el cliente se guardaba igual como "<ulid>.php". Ahora
+                            // la extensión sale del MIME detectado, restringido a lo que este campo
+                            // ya acepta.
+                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer([
+                                'image/jpeg' => 'jpg',
+                                'image/png' => 'png',
+                                'image/webp' => 'webp',
+                                'image/gif' => 'gif',
+                                'application/pdf' => 'pdf',
+                                'video/mp4' => 'mp4',
+                            ]))
                             ->downloadable()
                             ->columnSpanFull()
                             ->visibleOn('create'),

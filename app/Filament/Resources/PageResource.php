@@ -6,6 +6,7 @@ use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Filament\Concerns\RoutesRecordsByKey;
 use App\Filament\Resources\PageResource\Pages;
 use App\Models\Page;
+use App\Support\ImageOptimizer;
 use App\Support\ImagePath;
 use App\Support\LocalizedPages;
 use Filament\Forms;
@@ -224,14 +225,16 @@ class PageResource extends Resource
                                     ->directory('paginas')
                                     ->image()
                                     ->imageEditor()
-                                    ->maxSize(4096),
+                                    ->maxSize(4096)
+                                    ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                 Forms\Components\FileUpload::make('seo_image')
                                     ->label('Imagen OG / Twitter Card')
                                     ->disk('media')
                                     ->directory('paginas')
                                     ->image()
-                                    ->maxSize(2048),
+                                    ->maxSize(2048)
+                                    ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
                             ])
                             ->columns(2),
 
@@ -255,6 +258,7 @@ class PageResource extends Resource
                                             ->image()
                                             ->imageEditor()
                                             ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer())
                                             ->columnSpanFull(),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_1')
@@ -264,7 +268,8 @@ class PageResource extends Resource
                                             ->directory('paginas/contacto')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_2')
                                             ->label('Collage — Superior derecha')
@@ -273,7 +278,8 @@ class PageResource extends Resource
                                             ->directory('paginas/contacto')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_3')
                                             ->label('Collage — Inferior izquierda (personas)')
@@ -282,7 +288,8 @@ class PageResource extends Resource
                                             ->directory('paginas/contacto')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_4')
                                             ->label('Collage — Inferior derecha')
@@ -291,7 +298,8 @@ class PageResource extends Resource
                                             ->directory('paginas/contacto')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
                                     ]),
 
                                 Forms\Components\Section::make('Textos hero — Contacto')
@@ -353,6 +361,7 @@ class PageResource extends Resource
                                             ->image()
                                             ->imageEditor()
                                             ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer())
                                             ->columnSpanFull(),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid1')
@@ -362,7 +371,8 @@ class PageResource extends Resource
                                             ->directory('paginas/nosotros')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid2')
                                             ->label('Grid col-2 fila-1 (Machu Picchu)')
@@ -371,7 +381,8 @@ class PageResource extends Resource
                                             ->directory('paginas/nosotros')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid3')
                                             ->label('Grid col-1 fila-2 (Cusco colonial)')
@@ -380,7 +391,8 @@ class PageResource extends Resource
                                             ->directory('paginas/nosotros')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid4')
                                             ->label('Grid col-2 fila-2 (Huacachina oasis)')
@@ -389,7 +401,8 @@ class PageResource extends Resource
                                             ->directory('paginas/nosotros')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_banner_cta')
                                             ->label('Banner CTA "Somos Lima View Tours"')
@@ -398,7 +411,8 @@ class PageResource extends Resource
                                             ->directory('paginas/nosotros')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_testimonios')
                                             ->label('Fondo tarjeta testimonios')
@@ -407,7 +421,8 @@ class PageResource extends Resource
                                             ->directory('paginas/nosotros')
                                             ->image()
                                             ->imageEditor()
-                                            ->maxSize(4096),
+                                            ->maxSize(4096)
+                                            ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
                                     ]),
 
                                 Forms\Components\Section::make('Textos hero — Nosotros')
