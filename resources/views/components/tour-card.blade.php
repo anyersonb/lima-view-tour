@@ -65,7 +65,7 @@
 
         {{-- Pill de ubicación: blanca con sombra --}}
         @if ($locationLabel)
-            <span class="absolute bottom-4 left-4 inline-flex items-center gap-2 bg-white text-teal-800 text-xs font-semibold uppercase tracking-[0.14em] px-4 py-2 rounded-full shadow-md ring-1 ring-teal-800/5">
+            <span class="pointer-events-none absolute bottom-4 left-4 inline-flex items-center gap-2 bg-white text-teal-800 text-xs font-semibold uppercase tracking-[0.14em] px-4 py-2 rounded-full shadow-md ring-1 ring-teal-800/5">
                 <svg class="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.667 3.5-8.077A8 8 0 003 11.25c0 3.41 1.556 6.064 3.5 8.077a19.58 19.58 0 002.683 2.282 16.975 16.975 0 001.144.742zM12 13.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd"/>
                 </svg>

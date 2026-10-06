@@ -542,6 +542,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-rec-image-wrap { position: relative; }
 .m-rec-card img { width: 126px; height: 142px; object-fit: cover; border-radius: 14px; }
 .m-rec-badge {
+  pointer-events: none;
   position: absolute;
   top: 10px;
   left: 0;
@@ -1499,7 +1500,7 @@ if (!empty($itinerary)) {
                             @endif
                         </div>
                         <div class="m-rec-main">
-                            <h3>{{ $relTitle }}</h3>
+                            <h3><a href="{{ $relHref }}" style="color:inherit;text-decoration:none;">{{ $relTitle }}</a></h3>
                             <div class="m-rec-duration">{{ $relDuration }}</div>
                             @if (count($relBullets) > 0)
                             <div class="m-rec-bullets">
