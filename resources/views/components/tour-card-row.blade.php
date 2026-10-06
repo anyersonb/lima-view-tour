@@ -33,18 +33,9 @@
         $pct = (int) round((1 - ((float)$now / (float)$before)) * 100);
     }
 
-    $badgeKey = $badge ? 'ui.badge_' . \Illuminate\Support\Str::slug($badge, '_') : null;
-    $badgeResolved = $badge ? (\Illuminate\Support\Facades\Lang::has($badgeKey) ? __($badgeKey) : $badge) : null;
-    $shieldText = $showBestSeller ? ($badgeResolved ?: ($isMasVendido ? 'BEST SELLER' : null)) : null;
-
-    $shieldBg = match ($badgeType) {
-        'warn'    => 'bg-orange-600',
-        'error'   => 'bg-state-error',
-        'info'    => 'bg-teal-600',
-        'gold'    => 'bg-amber-600',
-        default   => 'bg-teal-800',
-    };
-
+    // $badge, $badgeType, $isMasVendido, $showBestSeller y $showOffer ya no
+    // se pintan (badges "BEST SELLER" y "OFERTA ESPECIAL" eliminados a
+    // pedido del cliente). Se dejan como props para no romper callers.
     $durationLabel = $duration ?: 'Full Day';
     $pickupLabel   = $pickup !== null ? ($pickup ? __('ui.pickup_included') : __('ui.no_pickup')) : __('ui.pickup_included');
 
@@ -62,7 +53,7 @@
     }
 @endphp
 
-<article class="tour-card-row relative flex bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5">
+<article class="tour-card-row relative flex bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5" {{ $attributes }}>
 
     {{-- ── COL 1: IMAGEN ── --}}
     <div class="relative shrink-0 w-[33%] max-w-[150px] p-2.5">
@@ -73,15 +64,6 @@
                  onerror="this.onerror=null;this.src='{{ asset('assets/banners/banner-hero.jpg') }}'"
                  loading="lazy" width="320" height="420">
         </a>
-
-        @if ($shieldText)
-            <span class="{{ $shieldBg }} text-white absolute top-4 left-0 z-10 inline-flex items-center gap-1 pl-2 pr-2.5 py-1.5 rounded-r-lg shadow-md max-w-[88%]">
-                <svg class="w-3 h-3 text-yellow-400 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                <span class="text-[9px] font-bold uppercase leading-tight tracking-[0.04em] truncate">{{ $shieldText }}</span>
-            </span>
-        @endif
     </div>
 
     {{-- ── COL 2: CONTENIDO ── --}}
@@ -128,11 +110,7 @@
 
     {{-- ── COL 3: PRECIO + CTA ── --}}
     <div class="shrink-0 w-[30%] max-w-[140px] border-l border-teal-800/10 py-3 px-3 flex flex-col items-end text-right">
-        @if ($pct && $showOffer)
-            <p class="text-[9px] font-bold uppercase tracking-[0.08em] text-orange-500 leading-tight">{{ __('ui.special_offer') }}</p>
-        @endif
-
-        <p class="mt-1 font-price text-2xl font-bold text-teal-800 leading-none">{{ $currency }}{{ number_format((float)$now, 0) }}</p>
+        <p class="font-price text-2xl font-bold text-teal-800 leading-none">{{ $currency }}{{ number_format((float)$now, 0) }}</p>
         <p class="text-[10px] text-teal-800/55 leading-tight">{{ __('ui.per_person') }}</p>
 
         @if ($pct && $showOffer)

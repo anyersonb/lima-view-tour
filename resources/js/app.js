@@ -1,5 +1,6 @@
 import './bootstrap';
 import './owl-init';
+import './tour-filters';
 import Alpine from 'alpinejs';
 import Collapse from '@alpinejs/collapse';
 

@@ -39,11 +39,12 @@
                     </a>
                     <div class="flex flex-col justify-center">
                         <h3 class="font-display text-xl text-teal-800 leading-snug">{{ $tour->title }}</h3>
-                        @if ($tour->rating)
+                        @php $tourStats = $tour->reviewStats(); @endphp
+                        @if ($tourStats['average'] !== null)
                             <p class="mt-2 flex items-center gap-2 text-sm text-teal-800/80">
-                                <span class="font-semibold">{{ $tour->rating }}</span>
+                                <span class="font-semibold">{{ number_format($tourStats['average'], 1) }}</span>
                                 <span class="text-orange-400 tracking-tight">★★★★★</span>
-                                <span class="text-teal-800/60 text-xs">( {{ $tour->testimonials()->count() }} {{ __('ui.comments') }} )</span>
+                                <span class="text-teal-800/60 text-xs">( {{ $tourStats['total'] }} {{ __('ui.comments') }} )</span>
                             </p>
                         @endif
                         @php

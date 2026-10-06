@@ -1,0 +1,39 @@
+// ─────────────────────────────────────────────────────────────────────────
+// /tours — filtros (Tarea D)
+// El grueso del layout vive en utilidades Tailwind directamente en el Blade;
+// acá solo lo que Tailwind no resuelve limpio con utilidades sueltas:
+// el thumb del range de precio y el estado abierto/cerrado del drawer móvil.
+// ─────────────────────────────────────────────────────────────────────────
+
+.tours-filters {
+    // Drawer móvil: la transición vive en utilidades (transition-transform +
+    // translate-x-full), acá solo el tope de ancho legible en tablets grandes.
+    &__panel {
+        max-width: min(88vw, 380px);
+    }
+}
+
+// Thumb del <input type="range"> de "Precio máximo": Tailwind Forms resetea
+// el input pero no expone utilidades para el thumb en todos los navegadores.
+input[type='range'].tours-filters__price {
+    &::-webkit-slider-thumb {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        background: theme('colors.orange.500');
+        border: 2px solid #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        cursor: pointer;
+    }
+
+    &::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        background: theme('colors.orange.500');
+        border: 2px solid #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        cursor: pointer;
+    }
+}

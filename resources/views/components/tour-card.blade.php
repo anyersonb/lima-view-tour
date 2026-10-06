@@ -40,46 +40,16 @@
         $pct = (int) round((1 - ((float)$now / (float)$before)) * 100);
     }
 
-    // Texto del escudo (desactivable por tour desde el admin).
-    // badge_text viene libre desde la BD (en español); si existe una clave
-    // ui.badge_<slug> se usa su traducción para EN/PT.
-    $badgeKey = $badge ? 'ui.badge_' . \Illuminate\Support\Str::slug($badge, '_') : null;
-    $badgeResolved = $badge ? (\Illuminate\Support\Facades\Lang::has($badgeKey) ? __($badgeKey) : $badge) : null;
-    $shieldText = $showBestSeller ? ($badgeResolved ?: ($isMasVendido ? 'BEST SELLER' : null)) : null;
-    $shieldLines = [];
-    if ($shieldText) {
-        $words = preg_split('/\s+/', trim($shieldText));
-        if (count($words) <= 1) {
-            $shieldLines = [$words[0]];
-        } elseif (count($words) === 2) {
-            $shieldLines = $words;
-        } else {
-            $mid = (int) ceil(count($words) / 2);
-            $shieldLines = [
-                implode(' ', array_slice($words, 0, $mid)),
-                implode(' ', array_slice($words, $mid)),
-            ];
-        }
-    }
-
-    $shieldBg = match ($badgeType) {
-        'warn'    => 'bg-orange-600',
-        'error'   => 'bg-state-error',
-        'info'    => 'bg-teal-600',
-        'gold'    => 'bg-amber-600',
-        default   => 'bg-teal-800',
-    };
-
-    $pickupLabel = $pickup !== null ? ($pickup ? __('ui.pickup_included') : __('ui.no_pickup')) : __('ui.pickup_included');
+    // Nota: $badge, $badgeType, $isMasVendido, $showBestSeller y $showOffer
+    // ya no se pintan en esta tarjeta (badges "BEST SELLER" y "OFERTA
+    // ESPECIAL" eliminados a pedido del cliente). Se dejan como props para
+    // no romper a los callers que aún los pasan.
+    $pickupLabel   = $pickup !== null ? ($pickup ? __('ui.pickup_included') : __('ui.no_pickup')) : __('ui.pickup_included');
     $durationLabel = $duration ?? __('ui.full_day');
-    $durationDetailResolved  = $durationDetail  ?? __('ui.duration_approx');
-    $languageResolved        = $language        ?? __('ui.language_default');
-    $languageDetailResolved  = $languageDetail  ?? __('ui.bilingual_guide');
-    $pickupDetailResolved    = $pickupDetail    ?? __('ui.from_your_hotel');
-    $cancellationDetailResolved = $cancellationDetail ?? __('ui.cancellation_24h');
+    $languageResolved = $language ?? __('ui.language_default');
 @endphp
 
-<article class="tour-card flex flex-col bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5 h-full">
+<article class="tour-card flex flex-col bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5 h-full" {{ $attributes }}>
 
     {{-- ── ZONA SUPERIOR: IMAGEN ── --}}
     <div class="relative shrink-0">
@@ -92,30 +62,6 @@
                  width="640"
                  height="480">
         </a>
-
-        {{-- Badge superior-izquierdo: PILL HORIZONTAL con estrella dorada izq + texto der --}}
-        @if (! empty($shieldLines))
-            <div class="tour-card__badge {{ $shieldBg }} text-white absolute top-3 left-3 z-10 inline-flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full shadow-lg ring-1 ring-black/5">
-                <span class="w-7 h-7 rounded-full bg-white/10 grid place-items-center shrink-0" aria-hidden="true">
-                    <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                </span>
-                <span class="text-[12px] font-bold uppercase leading-[1.05] tracking-[0.06em] text-left">
-                    @foreach ($shieldLines as $line)
-                        {{ $line }}@if (! $loop->last)<br>@endif
-                    @endforeach
-                </span>
-            </div>
-        @endif
-
-        {{-- Pill OFERTA ESPECIAL top-right: blanca con chip rojo "-N%" (desactivable por tour) --}}
-        @if ($pct && $showOffer)
-            <span class="absolute top-3 right-3 inline-flex items-center gap-1.5 bg-white text-teal-800 text-[11px] font-bold uppercase tracking-[0.05em] px-3 py-2 rounded-2xl shadow-md ring-1 ring-teal-800/10">
-                <span>{{ __('ui.special_offer') }}</span>
-                <span class="inline-flex items-center bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-tight whitespace-nowrap">-{{ $pct }}%</span>
-            </span>
-        @endif
 
         {{-- Pill de ubicación: blanca con sombra --}}
         @if ($locationLabel)
@@ -154,72 +100,56 @@
         @endif
 
         {{-- Grid 2×2 de features --}}
-        <div class="mt-3 sm:mt-4">
-            <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-teal-800/70 mb-2 sm:mb-2.5 flex items-center gap-2">
-                {{ __('ui.includes') }}
-                <span class="h-px flex-1 bg-teal-800/15"></span>
-            </p>
+        <div class="mt-2 sm:mt-3">
             <ul class="grid grid-cols-2 gap-2 text-sm">
 
                 {{-- Duración --}}
-                <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2 px-2 sm:py-2.5 sm:px-2.5">
+                <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2.5 px-2.5">
                     <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-sm grid place-items-center shrink-0 text-teal-800" aria-hidden="true">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                     </span>
-                    <div class="min-w-0">
-                        <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ $durationLabel }}</p>
-                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $durationDetailResolved }}</p>
-                    </div>
+                    <p class="font-bold text-teal-800 text-[13px] leading-tight min-w-0">{{ $durationLabel }}</p>
                 </li>
 
                 {{-- Recojo --}}
-                <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2 px-2 sm:py-2.5 sm:px-2.5">
+                <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2.5 px-2.5">
                     <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-sm grid place-items-center shrink-0 text-teal-800" aria-hidden="true">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
                         </svg>
                     </span>
-                    <div class="min-w-0">
-                        <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ $pickupLabel }}</p>
-                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $pickupDetailResolved }}</p>
-                    </div>
+                    <p class="font-bold text-teal-800 text-[13px] leading-tight min-w-0">{{ $pickupLabel }}</p>
                 </li>
 
                 {{-- Idioma --}}
-                <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2 px-2 sm:py-2.5 sm:px-2.5">
+                <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2.5 px-2.5">
                     <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-sm grid place-items-center shrink-0 text-teal-800" aria-hidden="true">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                             <circle cx="12" cy="12" r="9"/>
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>
                         </svg>
                     </span>
-                    <div class="min-w-0">
-                        <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ $languageResolved }}</p>
-                        <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $languageDetailResolved }}</p>
-                    </div>
+                    <p class="font-bold text-teal-800 text-[13px] leading-tight min-w-0">{{ $languageResolved }}</p>
                 </li>
 
                 {{-- Cancelación gratuita --}}
                 @if ($freeCancellation !== false)
-                    <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2 px-2 sm:py-2.5 sm:px-2.5">
+                    <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2.5 px-2.5">
                         <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-sm grid place-items-center shrink-0 text-teal-800" aria-hidden="true">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
                             </svg>
                         </span>
-                        <div class="min-w-0">
-                            <p class="font-bold text-teal-800 text-[12px] leading-tight">{{ __('ui.free_cancellation') }}</p>
-                            <p class="text-[10px] text-teal-800/55 leading-tight truncate">{{ $cancellationDetailResolved }}</p>
-                        </div>
+                        <p class="font-bold text-teal-800 text-[13px] leading-tight min-w-0">{{ __('ui.free_cancellation') }}</p>
                     </li>
                 @endif
             </ul>
         </div>
 
         {{-- Precio + CTA — bloque unificado, mismo alto con o sin descuento --}}
-        <div class="mt-auto pt-3 sm:pt-5">
+        <div class="mt-auto pt-3 sm:pt-4">
             <div class="bg-cream-100 rounded-2xl ring-1 ring-teal-800/5 p-2.5 sm:p-3 flex flex-col gap-1.5 sm:gap-2">
                 {{-- Fila superior: pill descuento + precio antes (siempre ocupa espacio) --}}
                 <div class="flex items-center gap-2 min-h-[26px]">
