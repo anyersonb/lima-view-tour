@@ -30,9 +30,24 @@ class ListBookings extends ListRecords
      * eso, lo primero a revisar es quitar estos badges antes que tocar
      * los índices.
      */
+    public function getDefaultActiveTab(): string | int | null
+    {
+        return 'tomorrow';
+    }
+
     public function getTabs(): array
     {
         return [
+            'tomorrow' => Tab::make('Mañana')
+                ->modifyQueryUsing(fn (Builder $query) => $query->travelingBetween(
+                    BookingCalendar::today()->addDay()->toDateString(),
+                    BookingCalendar::today()->addDay()->toDateString(),
+                ))
+                ->badge(fn () => Booking::query()->travelingBetween(
+                    BookingCalendar::today()->addDay()->toDateString(),
+                    BookingCalendar::today()->addDay()->toDateString(),
+                )->count()),
+
             'all' => Tab::make('Todas')
                 ->badge(fn () => Booking::query()->count()),
 
@@ -67,16 +82,6 @@ class ListBookings extends ListRecords
                 ->badge(fn () => Booking::query()->travelingBetween(
                     BookingCalendar::today()->toDateString(),
                     BookingCalendar::today()->toDateString(),
-                )->count()),
-
-            'tomorrow' => Tab::make('Mañana')
-                ->modifyQueryUsing(fn (Builder $query) => $query->travelingBetween(
-                    BookingCalendar::today()->addDay()->toDateString(),
-                    BookingCalendar::today()->addDay()->toDateString(),
-                ))
-                ->badge(fn () => Booking::query()->travelingBetween(
-                    BookingCalendar::today()->addDay()->toDateString(),
-                    BookingCalendar::today()->addDay()->toDateString(),
                 )->count()),
 
             // B5: mismo bug que tenía 'today' — usaba Date::today() (UTC) para

@@ -8,6 +8,7 @@
     $rcSvc     = app(\App\Services\RecaptchaService::class);
     $rcSiteKey = $rcSvc->siteKey();
     $rcVersion = $rcSvc->version();
+    $rcHl      = ['es' => 'es', 'en' => 'en', 'pt' => 'pt-BR'][app()->getLocale()] ?? 'es';
 @endphp
 
 @if ($rcVersion === 'v2')
@@ -38,7 +39,7 @@
                 if (! document.getElementById('lvts-rc-api')) {
                     const s = document.createElement('script');
                     s.id = 'lvts-rc-api';
-                    s.src = 'https://www.google.com/recaptcha/api.js?onload=__lvtsAdminRcOnload&render=explicit';
+                    s.src = 'https://www.google.com/recaptcha/api.js?onload=__lvtsAdminRcOnload&render=explicit&hl={{ $rcHl }}';
                     s.async = true;
                     s.defer = true;
                     document.head.appendChild(s);
@@ -75,7 +76,7 @@
                 if (! document.getElementById('lvts-rc-api')) {
                     const s = document.createElement('script');
                     s.id = 'lvts-rc-api';
-                    s.src = 'https://www.google.com/recaptcha/api.js?render=' + encodeURIComponent(@js($rcSiteKey));
+                    s.src = 'https://www.google.com/recaptcha/api.js?render=' + encodeURIComponent(@js($rcSiteKey)) + '&hl={{ $rcHl }}';
                     s.async = true;
                     s.onload = start;
                     document.head.appendChild(s);

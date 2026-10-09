@@ -7,7 +7,7 @@
 @endphp
 
 @section('title', __('checkout.thank_you_title') . ' — ' . __('seo.site_name'))
-@section('description', 'Tu reserva en Lima View Tours ha sido confirmada. Recibirás un email con los detalles.')
+@section('description', __('checkout.thanks_meta_description'))
 
 @push('head')
 <meta name="robots" content="noindex,nofollow">
@@ -47,7 +47,7 @@
 @if ($bookings->isNotEmpty())
 <section class="bg-cream-100 py-14 lg:py-20">
     <div class="container mx-auto px-5 lg:px-10 max-w-3xl">
-        <h2 class="font-display text-2xl text-teal-800 mb-6">Detalle de tu reserva</h2>
+        <h2 class="font-display text-2xl text-teal-800 mb-6">{{ __('checkout.booking_details') }}</h2>
 
         <div class="space-y-5">
             @foreach ($bookings as $booking)
@@ -66,14 +66,17 @@
                                          — ver PaymentLink.travel_date, nullable). Carbon::parse(null)
                                          devolvería "ahora" en vez de avisar que falta, así que se
                                          guarda explícito. --}}
-                                    {{ $booking['travel_date'] ? \Carbon\Carbon::parse($booking['travel_date'])->format('d M Y') : __('payment_links.date_to_be_arranged') }}
+                                    {{ $booking['travel_date'] ? \Carbon\Carbon::parse($booking['travel_date'])->locale($locale)->translatedFormat('d M Y') : __('payment_links.date_to_be_arranged') }}
                                 </li>
                                 <li>
                                     <svg class="inline w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87M12 12a4 4 0 100-8 4 4 0 000 8z"/>
                                     </svg>
-                                    {{ ($booking['adults'] ?? 1) + ($booking['children'] ?? 0) }} personas
-                                    ({{ $booking['adults'] ?? 1 }} adultos, {{ $booking['children'] ?? 0 }} niños)
+                                    {{ trans_choice('checkout.people_count', ($booking['adults'] ?? 1) + ($booking['children'] ?? 0)) }}
+                                    {{ __('checkout.pax_breakdown', [
+                                        'adults' => trans_choice('checkout.adults_count', (int) ($booking['adults'] ?? 1)),
+                                        'children' => trans_choice('checkout.children_count', (int) ($booking['children'] ?? 0)),
+                                    ]) }}
                                 </li>
                             </ul>
                         </div>
@@ -87,20 +90,20 @@
 
                     <div class="mt-4 pt-4 border-t border-teal-800/10 flex flex-wrap gap-4 text-xs text-teal-800/70">
                         <span>
-                            Referencia: <strong class="font-mono text-teal-800">{{ $booking['reference'] }}</strong>
+                            {{ __('checkout.reference_short') }}: <strong class="font-mono text-teal-800">{{ $booking['reference'] }}</strong>
                         </span>
                         @php
                             $isPaid = ($booking['payment_status'] ?? 'pending') === 'paid';
                         @endphp
                         <span class="inline-flex items-center gap-1">
-                            Estado:
+                            {{ __('checkout.status_label') }}:
                             @if ($isPaid)
                                 <span class="inline-block rounded-full bg-state-success/10 text-state-success px-2 py-0.5 font-semibold uppercase tracking-wide text-[10px]">
-                                    Confirmada
+                                    {{ __('checkout.status_confirmed') }}
                                 </span>
                             @else
                                 <span class="inline-block rounded-full bg-orange-100 text-orange-600 px-2 py-0.5 font-semibold uppercase tracking-wide text-[10px]">
-                                    Pendiente de pago
+                                    {{ __('checkout.status_pending') }}
                                 </span>
                             @endif
                         </span>
@@ -117,7 +120,7 @@
             </a>
             <a href="{{ route('home', ['locale' => $locale]) }}"
                class="inline-flex items-center justify-center gap-2 rounded-pill border-2 border-teal-800/30 text-teal-800 px-6 py-3 text-sm font-semibold hover:border-teal-800 transition">
-                Volver al inicio
+                {{ __('checkout.back_home') }}
             </a>
         </div>
     </div>
@@ -125,8 +128,8 @@
 @else
 <section class="bg-cream-100 py-20">
     <div class="container mx-auto px-5 lg:px-10 text-center">
-        <p class="text-teal-800/70">No hay detalles de reserva disponibles.</p>
-        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-6 inline-block">Ver tours</a>
+        <p class="text-teal-800/70">{{ __('checkout.no_booking_details') }}</p>
+        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-6 inline-block">{{ __('checkout.view_tours') }}</a>
     </div>
 </section>
 @endif

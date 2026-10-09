@@ -62,9 +62,9 @@ class PaymentLinkController extends Controller
      */
     public function show(Request $request, string $code): Response
     {
-        $this->resolveLocale($request);
-
         $link = PaymentLink::with('tour')->where('code', $code)->first();
+
+        $this->resolveLocale($request, $link);
 
         if ($link) {
             $link->checkAndExpire();
@@ -578,9 +578,32 @@ class PaymentLinkController extends Controller
      * de '/' en routes/web.php — esta ruta vive FUERA del grupo {locale}
      * (un link de pago es un único enlace compartible, no traducido por URL).
      */
-    private function resolveLocale(Request $request): string
+    private function resolveLocale(Request $request, ?PaymentLink $link = null): string
     {
-        $supported = config('app.supported_locales', ['es', 'en']);
+        $supported = config('app.supported_locales', ['es', 'en', 'pt']);
+
+        // 1) ?lang= explícito (solo valores soportados). La página lo añade a
+        //    las URLs de createOrder/captureOrder para que el POST use el
+        //    MISMO idioma que se mostró, sin recalcularlo por navegador.
+        $lang = $request->query('lang');
+        if (is_string($lang) && in_array($lang, $supported, true)) {
+            app()->setLocale($lang);
+
+            return $lang;
+        }
+
+        // 2) Idioma fijado por el admin en el link.
+        if ($link === null) {
+            $code = $request->route('code');
+            $link = is_string($code) ? PaymentLink::where('code', $code)->first() : null;
+        }
+        if ($link && is_string($link->locale) && in_array($link->locale, $supported, true)) {
+            app()->setLocale($link->locale);
+
+            return $link->locale;
+        }
+
+        // 3) Accept-Language del navegador, 4) fallback.
         $preferred = $request->getPreferredLanguage($supported);
 
         if (! $preferred) {

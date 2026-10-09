@@ -31,6 +31,13 @@ class PaymentLinkResource extends Resource
 
     protected static ?int $navigationSort = 9;
 
+    /** Idiomas que el admin puede fijar para el cliente (ver PaymentLinkController::resolveLocale). */
+    public const LOCALE_OPTIONS = [
+        'es' => 'Español',
+        'en' => 'English',
+        'pt' => 'Português',
+    ];
+
     /**
      * Item 5 (docs/payment-links/QA.md, hallazgo ALTO): se calcula en CADA
      * página del panel (sidebar) — sin este guardián, si el código llega a
@@ -142,6 +149,14 @@ class PaymentLinkResource extends Resource
                         // TODO link es de un solo uso, sin excepción.
                         // PaymentLink::saving() lo fuerza siempre, así que ni
                         // siquiera hace falta un campo oculto acá.
+                        Forms\Components\Select::make('locale')
+                            ->label('Idioma del cliente')
+                            ->options(self::LOCALE_OPTIONS)
+                            ->in(array_keys(self::LOCALE_OPTIONS))
+                            ->placeholder('Automático por navegador')
+                            ->native(false)
+                            ->helperText('Idioma de la página de pago, PayPal, errores, página de gracias y correo. Vacío = según el navegador del cliente.')
+                            ->columnSpanFull(),
                         Forms\Components\Textarea::make('note')
                             ->label('Nota interna')
                             ->helperText('Solo visible en el panel — no se muestra al comprador.')
@@ -275,6 +290,11 @@ class PaymentLinkResource extends Resource
                     ->label('Tour')
                     ->description(fn (PaymentLink $record) => $record->tour_id ? null : '—')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('locale')
+                    ->label('Idioma')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => self::LOCALE_OPTIONS[$state] ?? 'Automático')
+                    ->color(fn (?string $state) => $state ? 'info' : 'gray'),
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Monto')
                     ->money('USD')

@@ -25,6 +25,8 @@
     // <meta name="robots"> conflictivos en el HTML (X-Robots-Tag va aparte,
     // como cabecera, en PaymentLinkController::show()).
     $forceNoindex = true;
+    // Locale del SDK de PayPal según el idioma resuelto del link.
+    $paypalLocale = ['es' => 'es_PE', 'en' => 'en_US', 'pt' => 'pt_BR'][$locale] ?? 'en_US';
 @endphp
 
 @section('title', __('payment_links.page_title', ['tour' => $pageTitle]) . ' — ' . __('seo.site_name'))
@@ -92,12 +94,12 @@
                 <div class="grid gap-2 text-sm border-t border-teal-800/10 pt-4 mt-4">
                     <div class="flex justify-between">
                         <span class="text-teal-800/60">{{ __('ui.passengers') }}</span>
-                        <b class="text-teal-800">{{ $link->adults }} {{ __('ui.adults') }}@if($link->children > 0), {{ $link->children }} {{ __('ui.children') }}@endif</b>
+                        <b class="text-teal-800">{{ trans_choice('payment_links.adults_count', $link->adults, ['count' => $link->adults]) }}@if($link->children > 0), {{ trans_choice('payment_links.children_count', $link->children, ['count' => $link->children]) }}@endif</b>
                     </div>
                     @if ($link->travel_date)
                         <div class="flex justify-between">
                             <span class="text-teal-800/60">{{ __('checkout.travel_date') }}</span>
-                            <b class="text-teal-800">{{ $link->travel_date->format('d M Y') }}</b>
+                            <b class="text-teal-800">{{ $link->travel_date->locale($locale)->translatedFormat('d M Y') }}</b>
                         </div>
                     @endif
                 </div>
@@ -128,7 +130,7 @@
                     </div>
                     <div>
                         <label for="pl-phone" class="block text-xs font-bold uppercase tracking-wide text-teal-800/60 mb-1">
-                            {{ __('checkout.customer_phone') }}
+                            {{ __('payment_links.phone_label') }}
                         </label>
                         <input type="tel" id="pl-phone" maxlength="20"
                                value="{{ $link->customer_phone }}"
@@ -139,7 +141,7 @@
                 <p id="payment-link-msg" class="mt-4 text-sm text-red-600" style="display:none;" role="alert"></p>
 
                 <div id="paypal-buttons" class="mt-6"></div>
-                <p class="mt-4 text-center text-[11px] text-teal-800/50">{{ __('checkout.secure_payment') }}</p>
+                <p class="mt-4 text-center text-[11px] text-teal-800/50">{{ __('payment_links.secure_payment') }}</p>
             </div>
         @endif
     </div>
@@ -149,16 +151,20 @@
 @push('scripts')
 @if (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id'))
 <script
-    src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale=es_PE"
+    src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale={{ $paypalLocale }}"
     data-namespace="paypal_sdk">
 </script>
 @endif
+@php
+    $plCreateUrl  = route('payment-links.paypal.create', ['code' => $link->code, 'lang' => $locale]);
+    $plCaptureUrl = route('payment-links.paypal.capture', ['code' => $link->code, 'lang' => $locale]);
+@endphp
 <script>
 (function () {
     'use strict';
 
-    const createUrl = @json(route('payment-links.paypal.create', ['code' => $link->code]));
-    const captureUrl = @json(route('payment-links.paypal.capture', ['code' => $link->code]));
+    const createUrl = @json($plCreateUrl);
+    const captureUrl = @json($plCaptureUrl);
 
     function showMsg(text) {
         const el = document.getElementById('payment-link-msg');
@@ -200,7 +206,7 @@
         });
         const data = await res.json();
         if (!res.ok || !data.id) {
-            throw new Error(data.error ?? 'No se pudo iniciar el pago.');
+            throw new Error(data.error ?? @json(__('payment_links.js_create_failed')));
         }
         return data.id;
     }
@@ -234,11 +240,11 @@
             return;
         }
 
-        showMsg(data.error ?? data.message ?? 'No pudimos completar el pago.');
+        showMsg(data.error ?? data.message ?? @json(__('payment_links.js_capture_failed')));
     }
 
     function ppOnError(err) {
-        showMsg('Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.');
+        showMsg(@json(__('payment_links.js_paypal_error')));
         console.error('PayPal error:', err);
     }
 

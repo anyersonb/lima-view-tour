@@ -40,11 +40,13 @@ class BookingResourceFiltersTest extends TestCase
         $failed = Booking::factory()->failedPayment()->create();
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('payment_status', ['paid'])
             ->assertCanSeeTableRecords([$paid])
             ->assertCanNotSeeTableRecords([$pending, $failed]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('payment_status', ['paid', 'failed'])
             ->assertCanSeeTableRecords([$paid, $failed])
             ->assertCanNotSeeTableRecords([$pending]);
@@ -60,6 +62,7 @@ class BookingResourceFiltersTest extends TestCase
         $pending = Booking::factory()->create(['status' => 'pending']);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('status', ['confirmed'])
             ->assertCanSeeTableRecords([$confirmed])
             ->assertCanNotSeeTableRecords([$pending]);
@@ -76,6 +79,7 @@ class BookingResourceFiltersTest extends TestCase
         $afterRange = Booking::factory()->create(['travel_date' => '2026-10-01']);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('travel_date_range', [
                 'travel_from' => '2026-09-01',
                 'travel_until' => '2026-09-30',
@@ -95,6 +99,7 @@ class BookingResourceFiltersTest extends TestCase
         $after = Booking::factory()->create(['created_at' => Carbon::parse('2026-09-01 10:00:00')]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('booked_date_range', [
                 'booked_from' => '2026-08-01',
                 'booked_until' => '2026-08-20',
@@ -120,6 +125,7 @@ class BookingResourceFiltersTest extends TestCase
         $customBooking = Booking::factory()->customTour()->create();
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('category_id', [$categoryA->id])
             ->assertCanSeeTableRecords([$bookingA])
             ->assertCanNotSeeTableRecords([$bookingB, $customBooking]);
@@ -142,6 +148,7 @@ class BookingResourceFiltersTest extends TestCase
         $customBooking = Booking::factory()->customTour()->create();
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('category_id', [$category->id])
             ->assertCanSeeTableRecords([$catalogBooking])
             ->assertCanNotSeeTableRecords([$customBooking]);
@@ -160,6 +167,7 @@ class BookingResourceFiltersTest extends TestCase
         $bookingY = Booking::factory()->create(['tour_id' => $tourY->id]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('tour_id', [$tourX->id])
             ->assertCanSeeTableRecords([$bookingX])
             ->assertCanNotSeeTableRecords([$bookingY]);
@@ -176,6 +184,7 @@ class BookingResourceFiltersTest extends TestCase
         $high = Booking::factory()->create(['total_price' => 300]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('amount_range', ['amount_from' => 100, 'amount_until' => 200])
             ->assertCanSeeTableRecords([$mid])
             ->assertCanNotSeeTableRecords([$low, $high]);
@@ -205,6 +214,7 @@ class BookingResourceFiltersTest extends TestCase
         ]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('payment_at_risk', true)
             ->assertCanSeeTableRecords([$atRisk])
             ->assertCanNotSeeTableRecords([$pendingButFar, $paidAndSoon, $pendingButPast]);
@@ -221,6 +231,7 @@ class BookingResourceFiltersTest extends TestCase
         $paidNoReminder = Booking::factory()->paid()->create(['payment_reminder_sent_at' => null]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('no_reminder_sent', true)
             ->assertCanSeeTableRecords([$uncontacted])
             ->assertCanNotSeeTableRecords([$alreadyReminded, $paidNoReminder]);
@@ -236,6 +247,7 @@ class BookingResourceFiltersTest extends TestCase
         $withoutPickup = Booking::factory()->create(['pickup_point' => null]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('booking_attributes', ['pickup' => 'with'])
             ->assertCanSeeTableRecords([$withPickup])
             ->assertCanNotSeeTableRecords([$withoutPickup]);
@@ -249,6 +261,7 @@ class BookingResourceFiltersTest extends TestCase
         $withoutDiscount = Booking::factory()->create(['discount_amount' => 0]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('booking_attributes', ['discount' => 'with'])
             ->assertCanSeeTableRecords([$withDiscount])
             ->assertCanNotSeeTableRecords([$withoutDiscount]);
@@ -262,6 +275,7 @@ class BookingResourceFiltersTest extends TestCase
         $catalog = Booking::factory()->create();
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('booking_attributes', ['only_custom' => true])
             ->assertCanSeeTableRecords([$custom])
             ->assertCanNotSeeTableRecords([$catalog]);
@@ -300,6 +314,7 @@ class BookingResourceFiltersTest extends TestCase
         ]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->filterTable('payment_status', ['paid'])
             ->filterTable('category_id', [$category->id])
             ->filterTable('travel_date_range', [
@@ -344,6 +359,7 @@ class BookingResourceFiltersTest extends TestCase
         $pending = Booking::factory()->pendingPayment()->create();
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->set('activeTab', 'paid')
             ->assertCanSeeTableRecords([$paid])
             ->assertCanNotSeeTableRecords([$pending]);
@@ -361,6 +377,7 @@ class BookingResourceFiltersTest extends TestCase
         ]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->set('activeTab', 'at_risk')
             ->assertCanSeeTableRecords([$atRisk])
             ->assertCanNotSeeTableRecords([$notAtRisk]);
@@ -382,6 +399,7 @@ class BookingResourceFiltersTest extends TestCase
         $tomorrow = Booking::factory()->create(['travel_date' => BookingCalendar::today()->addDay()->toDateString()]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->set('activeTab', 'today')
             ->assertCanSeeTableRecords([$today])
             ->assertCanNotSeeTableRecords([$tomorrow]);
@@ -408,6 +426,7 @@ class BookingResourceFiltersTest extends TestCase
         $today = Booking::factory()->create(['travel_date' => $todayInLima]);
 
         Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
             ->set('activeTab', 'tomorrow')
             ->assertCanSeeTableRecords([$tomorrow])
             ->assertCanNotSeeTableRecords([$today]);
@@ -436,6 +455,7 @@ class BookingResourceFiltersTest extends TestCase
             $todayInLima = Booking::factory()->create(['travel_date' => '2026-09-29']);
 
             Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
                 ->set('activeTab', 'tomorrow')
                 ->assertCanSeeTableRecords([$tomorrowInLima])
                 ->assertCanNotSeeTableRecords([$todayInLima]);
@@ -475,11 +495,19 @@ class BookingResourceFiltersTest extends TestCase
             ]);
 
             Livewire::test(ListBookings::class)
+            ->set('activeTab', 'all')
                 ->set('activeTab', 'this_week')
                 ->assertCanSeeTableRecords([$inWeek])
                 ->assertCanNotSeeTableRecords([$outOfWeek]);
         } finally {
             Carbon::setTestNow();
         }
+    }
+
+    public function test_default_tab_is_tomorrow(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(ListBookings::class)->assertSet('activeTab', 'tomorrow');
     }
 }

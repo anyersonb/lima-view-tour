@@ -27,4 +27,13 @@ return [
     'captured_booking_pending' => 'Your payment was processed successfully, but we had a problem confirming your booking. '
         .'Our team has been notified and will complete it manually; we will contact you shortly. '
         .'Please do NOT try to pay again. Keep this reference for any inquiry: :reference',
+
+    // i18n fix 2026-10-08
+    'adults_count' => '{1} :count Adult|[2,*] :count Adults',
+    'children_count' => '{1} :count Child|[2,*] :count Children',
+    'secure_payment' => '100% secure payment with PayPal',
+    'phone_label' => 'Phone',
+    'js_create_failed' => 'We could not start the payment.',
+    'js_capture_failed' => 'We could not complete the payment.',
+    'js_paypal_error' => 'There was an error with PayPal. Please reload the page and try again.',
 ];

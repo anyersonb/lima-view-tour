@@ -50,7 +50,7 @@
     <div class="border-t border-white/10">
         <div class="container mx-auto py-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             <section aria-labelledby="footer-brand">
-                <a href="{{ route('home', ['locale' => $locale]) }}" aria-label="Lima View Tours — Inicio" class="inline-flex items-center gap-3">
+                <a href="{{ route('home', ['locale' => $locale]) }}" aria-label="Lima View Tours — {{ __('nav.home') }}" class="inline-flex items-center gap-3">
                     <img src="{{ asset('assets/logos/logo-gold.png') }}" alt="Lima View Tours" class="h-14 w-auto">
                 </a>
                 <p class="mt-4 text-sm leading-relaxed text-white/75">
@@ -109,7 +109,7 @@
                 </ul>
 
                 <h3 class="site-footer__heading mt-6">{{ __('footer.methods_of_payment') }}</h3>
-                <ul class="mt-3 flex items-center gap-2 flex-wrap" aria-label="Métodos de pago aceptados">
+                <ul class="mt-3 flex items-center gap-2 flex-wrap" aria-label="{{ __('footer.methods_of_payment') }}">
                     {{-- Visa --}}
                     <li class="bg-white rounded px-2 py-1">
                         <svg class="h-4 w-auto" aria-label="Visa" role="img" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">

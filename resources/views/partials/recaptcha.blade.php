@@ -18,6 +18,7 @@
     $rcVersion       = $recaptchaSvc->version();
     $recaptchaAction = $recaptchaAction ?? 'submit';
     $recaptchaFormId = $recaptchaFormId ?? ('rcform-' . uniqid());
+    $rcHl            = ['es' => 'es', 'en' => 'en', 'pt' => 'pt-BR'][app()->getLocale()] ?? 'es';
 @endphp
 
 @if ($rcEnabled && $rcSiteKey)
@@ -27,7 +28,7 @@
         <div class="g-recaptcha mt-4" data-sitekey="{{ $rcSiteKey }}"></div>
 
         @push('head')
-            <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+            <script src="https://www.google.com/recaptcha/api.js?hl={{ $rcHl }}" async defer></script>
         @endpush
 
     @else
@@ -41,7 +42,7 @@
             if (!window.__recaptchaV3Loaded) {
                 window.__recaptchaV3Loaded = true;
                 var s = document.createElement('script');
-                s.src = 'https://www.google.com/recaptcha/api.js?render={{ $rcSiteKey }}';
+                s.src = 'https://www.google.com/recaptcha/api.js?render={{ $rcSiteKey }}&hl={{ $rcHl }}';
                 s.async = true;
                 document.head.appendChild(s);
             }

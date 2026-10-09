@@ -279,6 +279,7 @@ class BookingResource extends Resource
                         Forms\Components\Select::make('locale')
                             ->label('Idioma del cliente')
                             ->options(['es' => 'Español', 'en' => 'English', 'pt' => 'Português'])
+                            ->in(['es', 'en', 'pt'])
                             ->default('es')
                             ->required()
                             ->native(false),
@@ -419,6 +420,12 @@ class BookingResource extends Resource
                 ] : []),
                 Tables\Columns\TextColumn::make('locale')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('payment_reminder_sent_at')
+                    ->label('Recordatorio enviado')
+                    ->dateTime('d/m/Y H:i', \App\Support\BookingCalendar::timezone())
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -641,6 +648,56 @@ class BookingResource extends Resource
                                 ->danger()
                                 ->title('No se pudo enviar el correo')
                                 ->body($e->getMessage())
+                                ->send();
+                        }
+                    }),
+                Tables\Actions\Action::make('resendPaymentReminder')
+                    ->label('Reenviar recordatorio de pago')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('info')
+                    ->visible(fn (Booking $record): bool => $record->payment_status === 'pending'
+                        && $record->status !== 'cancelled')
+                    ->modalHeading('Reenviar recordatorio de pago')
+                    ->modalDescription('Se enviará el recordatorio de pago al cliente, en el idioma de su reserva. Solo incluye esta reserva.')
+                    ->modalSubmitActionLabel('Enviar')
+                    ->form([
+                        Forms\Components\TextInput::make('email')
+                            ->label('Correo del cliente')
+                            ->email()
+                            ->required()
+                            ->helperText('Puedes corregirlo si quieres enviarlo a otra dirección.')
+                            ->default(fn (Booking $record): ?string => $record->customer_email),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        // Defensa en servidor: la visibilidad no basta si la acción se monta a mano.
+                        if ($record->payment_status !== 'pending' || $record->status === 'cancelled') {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Esta reserva no está pendiente de pago')
+                                ->send();
+
+                            return;
+                        }
+
+                        try {
+                            app(\App\Services\BookingNotifier::class)
+                                ->resendPaymentReminder($record, $data['email']);
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Recordatorio enviado')
+                                ->body('Se envió el recordatorio de pago a '.$data['email'])
+                                ->send();
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning('booking.payment_reminder.manual_failed', [
+                                'by' => auth()->id(),
+                                'booking' => $record->reference,
+                                'message' => $e->getMessage(),
+                            ]);
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se pudo enviar el recordatorio')
+                                ->body('Revisa la dirección o inténtalo de nuevo. El detalle quedó en el registro.')
                                 ->send();
                         }
                     }),

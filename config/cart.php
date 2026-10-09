@@ -60,5 +60,14 @@ return [
         'enabled'     => true,
         'days_before' => 2,
         'batch_size'  => 100,
+        // Reservas de último momento (tour hoy/mañana): el recordatorio sale
+        // esta cantidad de horas tras crear la reserva (comando --urgent,
+        // cada hora entre urgent_window_start y urgent_window_end, hora Lima).
+        'urgent_delay_hours' => 2,
+        'urgent_window_start' => '07:00',
+        'urgent_window_end'   => '22:00',
+        // Intentos fallidos de envío por reserva antes de dejar de reintentar
+        // (contador en Cache, 3 días; sin columna ni migración).
+        'max_attempts' => 3,
     ],
 ];

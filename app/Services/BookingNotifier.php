@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Mail\BookingConfirmed;
 use App\Mail\BookingNotificationAdmin;
+use App\Mail\BookingPaymentReminder;
+use App\Models\Booking;
 use App\Models\Setting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -58,12 +60,58 @@ class BookingNotifier
             throw new \RuntimeException('La reserva no tiene un correo de cliente.');
         }
 
-        Mail::to($customerEmail)->send(new BookingConfirmed($bookings, $customerEmail));
+        // Idioma de la RESERVA, no el del panel (el admin opera en es).
+        Mail::to($customerEmail)
+            ->locale($this->safeLocale($bookings->first()?->locale))
+            ->send(new BookingConfirmed($bookings, $customerEmail));
 
         Log::info('booking_notifier.confirmation_email.resent', [
+            'by' => auth()->id(),
             'email' => $customerEmail,
+            'customer_email_original' => $bookings->first()?->customer_email,
             'bookings' => $bookings->pluck('reference')->all(),
         ]);
+    }
+
+    /**
+     * Reenvío manual del recordatorio de pago de UNA reserva (no agrupa por
+     * email+fecha como el comando automático). Marca payment_reminder_sent_at
+     * para que la tanda automática no lo duplique. Lanza si el envío falla
+     * (y en ese caso NO marca). El mailable no es ShouldQueue: sale síncrono.
+     */
+    public function resendPaymentReminder(Booking $booking, ?string $customerEmail = null): void
+    {
+        $customerEmail ??= $booking->customer_email;
+
+        if (! $customerEmail) {
+            throw new \RuntimeException('La reserva no tiene un correo de cliente.');
+        }
+
+        Mail::to($customerEmail)
+            ->locale($this->safeLocale($booking->locale))
+            ->send(new BookingPaymentReminder(collect([$booking]), $customerEmail));
+
+        // Solo cuenta como "recordado" si fue al correo REAL del cliente; un envío
+        // de prueba/otra dirección no debe apagar la tanda automática.
+        $toCustomer = strcasecmp(trim($customerEmail), trim((string) $booking->customer_email)) === 0;
+
+        if ($toCustomer) {
+            Booking::whereKey($booking->getKey())->update(['payment_reminder_sent_at' => now()]);
+        }
+
+        Log::info('booking_notifier.payment_reminder.resent', [
+            'by' => auth()->id(),
+            'email' => $customerEmail,
+            'customer_email_original' => $booking->customer_email,
+            'booking' => $booking->reference,
+            'marked_sent' => $toCustomer,
+        ]);
+    }
+
+    /** Locale de la reserva solo si está en la allowlist; si no, español. */
+    private function safeLocale(?string $locale): string
+    {
+        return in_array($locale, config('app.supported_locales', ['es', 'en', 'pt']), true) ? $locale : 'es';
     }
 
     private function sendCustomerConfirmation(Collection $bookings, ?string $customerEmail): void

@@ -60,4 +60,19 @@ return [
     'total' => 'Total',
     'tour_language' => 'Tour language',
     'travel_date' => 'Travel date',
+
+    // thanks page (i18n fix 2026-10-08)
+    'thanks_meta_description' => 'Your booking with Lima View Tours has been confirmed. You will receive an email with the details.',
+    'booking_details' => 'Your booking details',
+    'people_count' => '{1} :count person|[2,*] :count people',
+    'adults_count' => '{1} :count adult|[0,*] :count adults',
+    'children_count' => '{1} :count child|[0,*] :count children',
+    'pax_breakdown' => '(:adults, :children)',
+    'reference_short' => 'Reference',
+    'status_label' => 'Status',
+    'status_confirmed' => 'Confirmed',
+    'status_pending' => 'Payment pending',
+    'back_home' => 'Back to home',
+    'no_booking_details' => 'No booking details available.',
+    'view_tours' => 'View tours',
 ];

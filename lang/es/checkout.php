@@ -60,4 +60,19 @@ return [
     'total' => 'Total',
     'tour_language' => 'Idioma del tour',
     'travel_date' => 'Fecha del viaje',
+
+    // thanks page (i18n fix 2026-10-08)
+    'thanks_meta_description' => 'Tu reserva en Lima View Tours ha sido confirmada. Recibirás un email con los detalles.',
+    'booking_details' => 'Detalle de tu reserva',
+    'people_count' => '{1} :count persona|[2,*] :count personas',
+    'adults_count' => '{1} :count adulto|[0,*] :count adultos',
+    'children_count' => '{1} :count niño|[0,*] :count niños',
+    'pax_breakdown' => '(:adults, :children)',
+    'reference_short' => 'Referencia',
+    'status_label' => 'Estado',
+    'status_confirmed' => 'Confirmada',
+    'status_pending' => 'Pendiente de pago',
+    'back_home' => 'Volver al inicio',
+    'no_booking_details' => 'No hay detalles de reserva disponibles.',
+    'view_tours' => 'Ver tours',
 ];

@@ -27,4 +27,13 @@ return [
     'captured_booking_pending' => 'Tu pago se procesó correctamente, pero tuvimos un problema al confirmar tu reserva. '
         .'Nuestro equipo ya fue notificado y la completará de forma manual; te contactaremos en breve. '
         .'Por favor NO vuelvas a intentar el pago. Guarda esta referencia para cualquier consulta: :reference',
+
+    // i18n fix 2026-10-08
+    'adults_count' => '{1} :count adulto|[2,*] :count adultos',
+    'children_count' => '{1} :count niño|[2,*] :count niños',
+    'secure_payment' => 'Pago 100% seguro con PayPal',
+    'phone_label' => 'Teléfono',
+    'js_create_failed' => 'No se pudo iniciar el pago.',
+    'js_capture_failed' => 'No pudimos completar el pago.',
+    'js_paypal_error' => 'Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.',
 ];
