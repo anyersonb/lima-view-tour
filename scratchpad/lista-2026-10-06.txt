@@ -1,0 +1,6 @@
+lang/en/common.php
+lang/es/common.php
+lang/pt/common.php
+resources/views/components/cookie-banner.blade.php
+resources/views/components/footer.blade.php
+resources/views/layouts/app.blade.php
