@@ -19,11 +19,11 @@
 
 <div class="relative" x-data="{ lang: false }" @click.outside="lang = false">
     <button type="button"
-            class="flex items-center gap-2 border border-current/30 rounded-pill px-3 py-2 text-sm font-semibold"
+            class="flex items-center gap-2 max-[379px]:gap-1.5 border border-current/30 rounded-pill px-3 max-[379px]:px-2 py-2 text-sm max-[379px]:text-[13px] font-semibold"
             @click="lang = !lang"
             :aria-expanded="lang.toString()"
             aria-haspopup="listbox"
-            aria-label="{{ __('nav.language_label') }}">
+            aria-label="{{ __('nav.language_label') }} ({{ $labels[$current] ?? strtoupper($current) }})">
         <span aria-hidden="true" class="text-base leading-none">{{ $flags[$current] ?? '🌐' }}</span>
         <span>{{ $labels[$current] ?? strtoupper($current) }}</span>
         <svg class="w-3 h-3 transition-transform duration-150"

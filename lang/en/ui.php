@@ -395,4 +395,7 @@ culture',
     'modality_group' => 'Group',
     'modality_private' => 'Private',
     'modality_group_private' => 'Group and private',
+    'search_tour_label' => 'Search a tour',
+    'tours_list_heading' => 'Available tours',
+    'tours_search_empty' => 'We could not find tours matching your search.',
 ];

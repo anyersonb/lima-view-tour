@@ -178,6 +178,8 @@
         'seeToursOne'     => __('ui.see_tours_count_one'),
         'seeToursOther'   => __('ui.see_tours_count_other'),
         'upToPrice'       => __('ui.up_to') . ' US$:count',
+        'searchEmpty'     => __('ui.tours_search_empty'),
+        'filtersEmpty'    => __('ui.no_tours_found'),
     ];
 @endphp
 
@@ -204,51 +206,63 @@
 
 @section('content')
 
-{{-- ───────── HERO ───────── --}}
-<section class="relative isolate text-white">
-    <div class="absolute inset-0 -z-10">
-        <img src="{{ asset('assets/banners/' . $bannerImg) }}" alt="" class="w-full h-full object-cover" loading="eager" fetchpriority="high">
+{{-- ───────── HERO ─────────
+     <640: sin foto ni caja blanca. La sección sigue en el flujo y se compacta:
+     breadcrumb solo para lectores de pantalla, H1 corto visible, buscador suelto
+     y chips. Nada de esto va dentro de un contenedor con display:none (S-07).
+     ≥640: igual que siempre. --}}
+<section class="relative isolate text-teal-800 bg-[#faf9f7] sm:text-white sm:bg-transparent">
+    <div class="hidden sm:block absolute inset-0 -z-10">
+        {{-- Sin descarga en móvil (S-06): el <source> solo aplica desde 640 px; el <img> de respaldo es un GIF 1x1. --}}
+        <picture>
+            <source media="(min-width:640px)" srcset="{{ asset('assets/banners/' . rawurlencode($bannerImg)) }}">
+            <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" width="1920" height="1000" class="w-full h-full object-cover" loading="eager" fetchpriority="high">
+        </picture>
         <div class="absolute inset-0 bg-gradient-to-b from-teal-900/40 via-teal-900/50 to-teal-900/70"></div>
     </div>
 
-    <div class="container mx-auto px-5 lg:px-10">
-        <nav aria-label="Breadcrumb" class="pt-6 text-xs text-white/85">
+    <div class="container mx-auto px-4 sm:px-5 lg:px-10">
+        <nav aria-label="Breadcrumb" class="sr-only sm:not-sr-only sm:pt-6 text-xs text-white/85">
             <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">{{ __('ui.home') }}</a> &gt; <span>{{ $sectionTitle }}</span>
         </nav>
     </div>
 
-    <div class="container mx-auto px-5 lg:px-10 pt-12 pb-16 md:pb-24 max-w-3xl">
+    <div class="container mx-auto px-4 sm:px-5 lg:px-10 pt-2 pb-0 sm:pt-12 sm:pb-16 md:pb-24 max-w-3xl">
         {{-- Pill: TOURS SELECCIONADOS EN PERÚ --}}
-        <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/25 backdrop-blur-sm pl-3.5 pr-4 py-2 mb-5">
+        <span class="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/25 backdrop-blur-sm pl-3.5 pr-4 py-2 mb-5">
             <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
             <span class="text-[11px] sm:text-xs uppercase tracking-[0.18em] text-amber-200 font-bold">{{ $L('Tours seleccionados en Perú', 'Selected tours in Peru', 'Tours selecionados no Peru') }}</span>
         </span>
 
-        <h1 class="tours-hero__title font-display font-normal text-[40px] leading-[1.02] sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">
-            {{ $L('Descubre experiencias con un estilo más', 'Discover experiences with a more', 'Descubra experiências com um estilo mais') }}
-            <span class="italic text-orange-400 font-light">premium.</span>
+        {{-- Único H1 de la página: título corto en móvil, titular de marketing desde 640 px. --}}
+        <h1 class="tours-hero__title font-display font-normal text-[22px] leading-[1.2] py-2 sm:py-0 sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">
+            <span class="sm:hidden">{{ $sectionTitle }}</span>
+            <span class="hidden sm:inline">
+                {{ $L('Descubre experiencias con un estilo más', 'Discover experiences with a more', 'Descubra experiências com um estilo mais') }}
+                <span class="italic text-orange-400 font-light">premium.</span>
+            </span>
         </h1>
 
-        {{-- Buscador (estilo Image #10) --}}
-        <div class="mt-8 bg-white text-teal-800 rounded-3xl shadow-2xl ring-1 ring-black/5 p-4 sm:p-5 max-w-2xl">
-            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-800/60 mb-3">{{ $L('Buscar experiencia', 'Search experience', 'Buscar experiência') }}</p>
-            <form method="GET" action="{{ route('tours.results', ['locale' => $locale]) }}" class="flex items-center gap-2.5" role="search">
+        {{-- Buscador: suelto en móvil (filtra la lista en cliente); caja blanca desde 640 px --}}
+        <div class="sm:mt-8 sm:bg-white sm:text-teal-800 sm:rounded-3xl sm:shadow-2xl sm:ring-1 sm:ring-black/5 sm:p-5 sm:max-w-2xl">
+            <p class="hidden sm:block text-[11px] font-bold uppercase tracking-[0.18em] text-teal-800/60 mb-3">{{ $L('Buscar experiencia', 'Search experience', 'Buscar experiência') }}</p>
+            <form method="GET" action="{{ route('tours.results', ['locale' => $locale]) }}" class="flex items-center gap-2.5" role="search" data-tour-search-form>
                 <div class="relative flex-1 min-w-0">
-                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-teal-800/40" aria-hidden="true">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                    <span class="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 text-teal-800/60 sm:text-teal-800/40" aria-hidden="true">
+                        <svg class="w-[18px] h-[18px] sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                     </span>
-                    <input type="search" name="q" placeholder="{{ $L('Buscar tour...', 'Search a tour...', 'Buscar tour...') }}"
-                           class="w-full rounded-2xl border border-teal-800/15 bg-cream-100 pl-11 pr-3 py-3.5 text-base text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
-                           aria-label="{{ $L('Buscar tour', 'Search a tour', 'Buscar tour') }}">
+                    <input type="search" name="q" data-tour-search enterkeyhint="search" autocomplete="off" placeholder="{{ __('ui.search_tour') }}"
+                           class="w-full h-8 sm:h-auto rounded-lg sm:rounded-2xl border border-teal-800/15 bg-cream-100 pl-10 sm:pl-11 pr-3 py-0 sm:py-3.5 text-base text-teal-800 placeholder-teal-800/70 sm:placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
+                           aria-label="{{ __('ui.search_tour_label') }}">
                 </div>
-                <button type="submit" class="shrink-0 bg-teal-800 hover:bg-teal-900 text-white font-bold text-sm rounded-2xl px-6 py-3.5 transition">{{ $L('Buscar', 'Search', 'Buscar') }}</button>
+                <button type="submit" class="hidden sm:inline-block shrink-0 bg-teal-800 hover:bg-teal-900 text-white font-bold text-sm rounded-2xl px-6 py-3.5 transition">{{ $L('Buscar', 'Search', 'Buscar') }}</button>
             </form>
-            <div class="mt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <div class="mt-2 sm:mt-3 flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
                 <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-                   class="shrink-0 rounded-full text-sm font-bold px-5 py-2.5 transition {{ !$cat ? 'bg-teal-800 text-white' : 'bg-cream-100 text-teal-800 ring-1 ring-teal-800/10 hover:bg-cream-200' }}">{{ $L('Todos', 'All', 'Todos') }}</a>
+                   class="shrink-0 rounded-full text-[13px] sm:text-sm font-semibold sm:font-bold px-4 py-1 leading-[18px] sm:leading-5 sm:px-5 sm:py-2.5 transition {{ !$cat ? 'bg-teal-800 text-white' : 'bg-cream-100 text-teal-800 sm:ring-1 sm:ring-teal-800/10 hover:bg-cream-200' }}">{{ $L('Todos', 'All', 'Todos') }}</a>
                 @foreach (['lima' => 'Lima', 'ica' => 'Ica', 'cusco' => 'Cusco'] as $rSlug => $rLabel)
                     <a href="{{ route('tours.category', ['locale' => $locale, 'categoria' => $rSlug]) }}"
-                       class="shrink-0 rounded-full text-sm font-bold px-5 py-2.5 transition {{ $cat === $rSlug ? 'bg-teal-800 text-white' : 'bg-cream-100 text-teal-800 ring-1 ring-teal-800/10 hover:bg-cream-200' }}">{{ $rLabel }}</a>
+                       class="shrink-0 rounded-full text-[13px] sm:text-sm font-semibold sm:font-bold px-4 py-1 leading-[18px] sm:leading-5 sm:px-5 sm:py-2.5 transition {{ $cat === $rSlug ? 'bg-teal-800 text-white' : 'bg-cream-100 text-teal-800 sm:ring-1 sm:ring-teal-800/10 hover:bg-cream-200' }}">{{ $rLabel }}</a>
                 @endforeach
             </div>
         </div>
@@ -256,8 +270,9 @@
 </section>
 
 {{-- ───────── GRID DE TOURS + FILTROS (Tarea D) ───────── --}}
-<section class="bg-white py-16 lg:py-20" id="catalogo">
-    <div class="container mx-auto px-5 lg:px-10">
+<section class="bg-[#faf9f7] pt-[7px] pb-10 sm:bg-white sm:py-16 lg:py-20" id="catalogo">
+    <div class="container mx-auto px-4 sm:px-5 lg:px-10">
+        <h2 class="sr-only md:hidden">{{ __('ui.tours_list_heading') }}</h2>
         {{-- Encabezado + categorías (rutas propias, SEO): ocultos en mobile --}}
         <div class="hidden md:block mb-10">
         <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -310,6 +325,7 @@
                      aria-modal="true"
                      aria-label="{{ __('ui.filters') }}"
                      aria-hidden="true"
+                     inert
                      tabindex="-1"
                      class="tours-filters__panel fixed top-0 right-0 z-[80] h-full w-[88%] bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300"
                      style="height:auto; bottom:var(--cookie-banner-h, 0px);">
@@ -339,28 +355,31 @@
 
             {{-- RESULTADOS --}}
             <div>
-                {{-- Barra: botón Filtros (<lg) + contador + orden --}}
-                <div class="flex flex-wrap items-center gap-3 mb-6">
+                {{-- Barra: botón Filtros (<lg) + contador + orden.
+                     <640: una sola fila Filtros | separador | orden | contador. --}}
+                <div class="flex flex-nowrap sm:flex-wrap items-center gap-[15px] sm:gap-3 mb-3 sm:mb-6">
                     <button type="button" data-filters-open aria-haspopup="dialog" aria-expanded="false"
-                            class="lg:hidden inline-flex items-center gap-2 rounded-full border border-teal-800/15 bg-cream-100 px-5 py-2.5 text-sm font-bold text-teal-800 hover:border-orange-400 transition">
+                            class="order-1 sm:order-none shrink-0 lg:hidden inline-flex items-center gap-1.5 sm:gap-2 rounded-xl sm:rounded-full border border-teal-800/15 bg-cream-100 px-2.5 py-1 sm:px-5 sm:py-2.5 text-sm font-bold text-teal-800 hover:border-orange-400 transition">
                         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h18M6 9.75h12M10.5 15h3"/>
                         </svg>
                         {{ __('ui.filters') }}
                     </button>
 
+                    <span class="order-2 sm:hidden self-stretch my-1 w-px shrink-0 bg-teal-800/15" aria-hidden="true"></span>
+
                     @php
                         $tourCountKey = $totalToursCount === 0
                             ? 'ui.tours_found_zero'
                             : ($totalToursCount === 1 ? 'ui.tours_found_one' : 'ui.tours_found_other');
                     @endphp
-                    <p data-tour-count aria-live="polite" class="order-3 lg:order-none w-full lg:w-auto text-sm text-teal-800/70 font-medium">
+                    <p data-tour-count aria-live="polite" class="order-4 w-[66px] shrink-0 text-xs leading-tight sm:order-3 lg:order-none sm:w-full lg:w-auto sm:text-sm text-teal-800/70 sm:font-medium">
                         {{ __($tourCountKey, ['count' => $totalToursCount]) }}
                     </p>
 
-                    <label class="ml-auto flex items-center gap-2 text-sm text-teal-800/80">
+                    <label class="order-3 sm:order-none flex-1 min-w-0 sm:flex-none sm:ml-auto flex items-center gap-2 text-sm text-teal-800/80">
                         <span class="hidden sm:inline">{{ __('ui.sort_by') }}</span>
-                        <select data-sort class="rounded-xl border-teal-800/15 text-sm text-teal-800 focus:border-teal-600 focus:ring-1 focus:ring-teal-600">
+                        <select data-sort aria-label="{{ __('ui.sort_by') }}" class="w-full min-w-0 sm:w-auto h-[27px] sm:h-auto py-0 sm:py-2 pl-2.5 sm:pl-3 max-sm:pr-7 max-sm:text-[13px] max-sm:bg-[length:1.25rem_1.25rem] max-sm:bg-[right_0.15rem_center] rounded-lg sm:rounded-xl border-teal-800/15 text-sm text-teal-800 focus:border-teal-600 focus:ring-1 focus:ring-teal-600">
                             <option value="recommended">{{ __('ui.sort_recommended') }}</option>
                             <option value="price-asc">{{ __('ui.sort_price_asc') }}</option>
                             <option value="price-desc">{{ __('ui.sort_price_desc') }}</option>
@@ -371,9 +390,10 @@
                 </div>
 
                 {{-- MOBILE (<640): cards horizontales tipo lista --}}
-                <div class="flex flex-col gap-4 sm:hidden" data-tour-cards>
+                <div class="flex flex-col gap-4 -mx-[3px] sm:mx-0 sm:hidden" data-tour-cards>
                     @foreach ($cardData as $i => $tour)
                         <x-tour-card-row
+                            :eager="$i < 2"
                             data-tour-card
                             data-index="{{ $i }}"
                             data-price="{{ $tour['now'] }}"
@@ -444,7 +464,7 @@
 
                 {{-- Estado vacío (0 resultados tras filtrar) --}}
                 <div data-tour-empty class="hidden text-center py-16">
-                    <p class="text-teal-800/70">{{ __('ui.no_tours_found') }}</p>
+                    <p data-tour-empty-text class="text-teal-800/70">{{ __('ui.no_tours_found') }}</p>
                     <button type="button" data-filters-clear class="mt-4 inline-flex items-center rounded-full bg-teal-900 hover:bg-teal-950 text-white px-6 py-2.5 text-sm font-semibold transition">
                         {{ __('ui.clear_filters') }}
                     </button>

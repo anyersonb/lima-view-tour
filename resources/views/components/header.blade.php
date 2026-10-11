@@ -66,7 +66,7 @@
         <div class="flex-1"></div>
 
         {{-- Cluster derecho --}}
-        <div class="flex items-center gap-2 sm:gap-3">
+        <div class="flex items-center gap-2 max-[379px]:gap-1 sm:gap-3">
 
             {{-- Lang switcher --}}
             <x-lang-switcher :alternates="$alternates" />

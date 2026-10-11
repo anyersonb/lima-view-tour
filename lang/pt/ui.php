@@ -395,4 +395,7 @@ local',
     'modality_group' => 'Em grupo',
     'modality_private' => 'Privado',
     'modality_group_private' => 'Em grupo e privado',
+    'search_tour_label' => 'Buscar tour',
+    'tours_list_heading' => 'Tours disponíveis',
+    'tours_search_empty' => 'Não encontramos tours que correspondam à sua busca.',
 ];

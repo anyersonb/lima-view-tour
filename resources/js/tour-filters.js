@@ -27,6 +27,12 @@
         var countEls = Array.prototype.slice.call(root.querySelectorAll('[data-tour-count]'));
         var seeCountEls = Array.prototype.slice.call(root.querySelectorAll('[data-see-count]'));
         var emptyEl = root.querySelector('[data-tour-empty]');
+        var emptyTextEl = root.querySelector('[data-tour-empty-text]');
+        // El buscador vive en el hero (fuera de root). Solo filtra la lista en móvil (<640);
+        // en escritorio el formulario sigue enviando a /buscar.
+        var searchForm = document.querySelector('[data-tour-search-form]');
+        var searchInput = document.querySelector('[data-tour-search]');
+        var mobileMq = window.matchMedia('(max-width: 639.98px)');
         var sortSelects = Array.prototype.slice.call(root.querySelectorAll('[data-sort]'));
         var priceInputs = Array.prototype.slice.call(root.querySelectorAll('[data-filter-price]'));
         var priceOutputs = Array.prototype.slice.call(root.querySelectorAll('[data-filter-price-output]'));
@@ -44,7 +50,19 @@
             modalities: new Set(),
             onOffer: false,
             maxPrice: priceCeiling,
+            query: [],
         };
+
+        // Misma normalización que data-search (minúsculas, sin acentos).
+        function normalize(text) {
+            return String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+        }
+
+        function readQuery() {
+            if (!searchInput || !mobileMq.matches) return [];
+            var q = normalize(searchInput.value);
+            return q ? q.split(/s+/) : [];
+        }
 
         function formatTemplate(tpl, count) {
             return (tpl || '').replace(':count', count);
@@ -78,6 +96,12 @@
             }
             if (state.onOffer && !isOffer) return false;
             if (state.maxPrice !== null && price > state.maxPrice) return false;
+            if (state.query.length) {
+                var haystack = card.getAttribute('data-search') || '';
+                for (var i = 0; i < state.query.length; i++) {
+                    if (haystack.indexOf(state.query[i]) === -1) return false;
+                }
+            }
 
             return true;
         }
@@ -105,6 +129,11 @@
             seeCountEls.forEach(function (el) { el.textContent = seeToursText(visibleCount); });
 
             if (emptyEl) emptyEl.classList.toggle('hidden', visibleCount > 0);
+            if (emptyTextEl) {
+                emptyTextEl.textContent = state.query.length
+                    ? (i18n.searchEmpty || emptyTextEl.textContent)
+                    : (i18n.filtersEmpty || emptyTextEl.textContent);
+            }
 
             return visibleCount;
         }
@@ -217,6 +246,8 @@
             state.modalities.clear();
             state.onOffer = false;
             state.maxPrice = priceCeiling;
+            if (searchInput) searchInput.value = '';
+            state.query = [];
             applySort('recommended');
             applyFilters();
         }
@@ -224,6 +255,34 @@
         clearButtons.forEach(function (btn) {
             btn.addEventListener('click', resetFilters);
         });
+
+        // ── Buscador móvil: filtra la misma lista, con debounce ─────────────
+        if (searchInput) {
+            var searchTimer = null;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function () {
+                    state.query = readQuery();
+                    applyFilters();
+                }, 200);
+            });
+            if (searchForm) {
+                searchForm.addEventListener('submit', function (e) {
+                    if (!mobileMq.matches) return;
+                    e.preventDefault();
+                    clearTimeout(searchTimer);
+                    state.query = readQuery();
+                    applyFilters();
+                    searchInput.blur();
+                });
+            }
+            var onMqChange = function () {
+                state.query = readQuery();
+                applyFilters();
+            };
+            if (mobileMq.addEventListener) mobileMq.addEventListener('change', onMqChange);
+            else if (mobileMq.addListener) mobileMq.addListener(onMqChange);
+        }
 
         // ── Panel móvil: overlay + drawer + foco ────────────────────────────
         var openButtons = Array.prototype.slice.call(root.querySelectorAll('[data-filters-open]'));
@@ -252,6 +311,7 @@
             lastFocused = triggerEl || document.activeElement;
             overlay.classList.remove('hidden');
             panel.classList.remove('translate-x-full');
+            panel.removeAttribute('inert');
             panel.setAttribute('aria-hidden', 'false');
             openButtons.forEach(function (b) { b.setAttribute('aria-expanded', 'true'); });
             document.body.classList.add('overflow-hidden');
@@ -265,6 +325,7 @@
             overlay.classList.add('hidden');
             panel.classList.add('translate-x-full');
             panel.setAttribute('aria-hidden', 'true');
+            panel.setAttribute('inert', '');
             openButtons.forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
             document.body.classList.remove('overflow-hidden');
             window.removeEventListener('keydown', onKeydown);
