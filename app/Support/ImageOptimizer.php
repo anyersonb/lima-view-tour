@@ -5,8 +5,10 @@ namespace App\Support;
 use Closure;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
@@ -17,6 +19,19 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
  */
 class ImageOptimizer
 {
+    /**
+     * Absolute pixel cap (40 MP), independent of memory_limit (which may be -1).
+     * A tiny file can declare a huge canvas (decompression bomb): GD would try
+     * to allocate ~5 bytes/pixel. Checked from the header BEFORE decoding.
+     * Single source for ImageOptimizer and TourThumbnail.
+     */
+    public const MAX_PIXELS = 40_000_000;
+
+    public static function exceedsPixelLimit(int $w, int $h): bool
+    {
+        return $w * $h > self::MAX_PIXELS;
+    }
+
     /**
      * Hallazgo de seguridad #5 (2026-09-30): la extensión en disco NUNCA sale
      * del cliente (`getClientOriginalExtension()`), siempre del MIME
@@ -98,6 +113,15 @@ class ImageOptimizer
         $directory = trim($directory, '/');
         $raw = @file_get_contents($file->getRealPath());
 
+        // Reject oversized canvases from the header, before any decoding.
+        $info = $raw !== false ? @getimagesizefromstring($raw) : false;
+
+        if ($info !== false && self::exceedsPixelLimit($info[0], $info[1])) {
+            Log::warning('image_optimizer.too_many_pixels', ['width' => $info[0], 'height' => $info[1], 'limit' => self::MAX_PIXELS, 'directory' => $directory]);
+
+            throw new ImageTooLargeException($info[0], $info[1]);
+        }
+
         // GD con WebP disponible? Si no, o si GD no decodifica el origen
         // (p.ej. AVIF), guardar el archivo original intacto — nunca falla.
         $gdReady = function_exists('imagewebp') && function_exists('imagecreatefromstring');
@@ -161,7 +185,12 @@ class ImageOptimizer
                 }
             }
 
-            return self::store($file, $directory, $maxWidth, $quality, $disk);
+            try {
+                return self::store($file, $directory, $maxWidth, $quality, $disk);
+            } catch (ImageTooLargeException $e) {
+                // Clear field error in the panel instead of a 500.
+                throw ValidationException::withMessages([$component->getStatePath() => $e->getMessage()]);
+            }
         };
     }
 }

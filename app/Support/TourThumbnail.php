@@ -108,7 +108,7 @@ class TourThumbnail
 
         // GD holds ~4-5 bytes per pixel decoded (+ the resized copy). Refuse
         // instead of dying with a fatal memory error in a web request.
-        if (! self::fitsInMemory($w, $h)) {
+        if (ImageOptimizer::exceedsPixelLimit($w, $h) || ! self::fitsInMemory($w, $h)) {
             return 'too_big';
         }
 
