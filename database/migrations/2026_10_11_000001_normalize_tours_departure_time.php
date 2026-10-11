@@ -15,8 +15,12 @@ use Illuminate\Support\Facades\Storage;
  *
  * Values that cannot be read with certainty (ranges, "Todo el día", a bare
  * number...) become NULL => the default departure time of config/booking.php
- * applies. Every change is logged and saved to a JSON backup so down() can
- * restore the original text.
+ * applies.
+ *
+ * Safety: the backup (id => {from, to}) is computed and written to disk BEFORE
+ * any update, and the updates run in one transaction. If the backup cannot be
+ * written, the migration aborts without touching data. down() only restores
+ * rows whose current value is still the one this migration wrote.
  */
 return new class extends Migration
 {
@@ -24,48 +28,61 @@ return new class extends Migration
 
     public function up(): void
     {
-        $backup = [];
-        $unparsed = [];
+        $changes = []; // id => ['from' => original, 'to' => normalized|null]
 
         DB::table('tours')
             ->whereNotNull('departure_time')
             ->orderBy('id')
             ->select(['id', 'departure_time'])
-            ->chunkById(200, function ($rows) use (&$backup, &$unparsed) {
+            ->chunkById(200, function ($rows) use (&$changes) {
                 foreach ($rows as $row) {
                     $raw = (string) $row->departure_time;
                     $normalized = DepartureTime::normalize($raw);
 
-                    if ($normalized === $raw) {
-                        continue;
+                    if ($normalized !== $raw) {
+                        $changes[$row->id] = ['from' => $raw, 'to' => $normalized];
                     }
-
-                    $backup[$row->id] = $raw;
-
-                    if ($normalized === null) {
-                        $unparsed[$row->id] = $raw;
-                    }
-
-                    DB::table('tours')->where('id', $row->id)->update(['departure_time' => $normalized]);
                 }
             });
 
-        if ($backup !== []) {
-            // Merge with an earlier backup so re-running never loses the first original.
-            $previous = Storage::disk('local')->exists(self::BACKUP)
-                ? (json_decode(Storage::disk('local')->get(self::BACKUP), true) ?: [])
-                : [];
+        if ($changes === []) {
+            Log::info('tours.departure_time normalized: 0 changed.');
 
-            Storage::disk('local')->put(self::BACKUP, json_encode($previous + $backup, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            return;
         }
 
-        $summary = 'tours.departure_time normalized: '.count($backup).' changed, '.count($unparsed).' set to NULL (unparseable).';
-        Log::info($summary, ['unparsed' => $unparsed]);
+        // 1) Backup first. Any failure here (invalid UTF-8, unwritable disk) throws
+        //    before a single row is modified.
+        $disk = Storage::disk('local');
+        $previous = $disk->exists(self::BACKUP)
+            ? (json_decode($disk->get(self::BACKUP), true, 512, JSON_THROW_ON_ERROR) ?: [])
+            : [];
 
-        // Only talk when something changed, so fresh installs and test runs stay quiet.
-        if ($backup !== []) {
-            echo '  '.$summary.($unparsed ? ' NULL ids: '.json_encode($unparsed, JSON_UNESCAPED_UNICODE) : '').PHP_EOL;
+        // Keep the FIRST original when re-running: earlier entries win.
+        $merged = $previous + $changes;
+        $payload = json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        if (! $disk->put(self::BACKUP, $payload)) {
+            throw new RuntimeException('Cannot write the departure_time backup; migration aborted, no data touched.');
         }
+
+        // 2) Updates, all or nothing. The WHERE guards against rows edited since the read.
+        DB::transaction(function () use ($changes) {
+            foreach ($changes as $id => $change) {
+                DB::table('tours')
+                    ->where('id', $id)
+                    ->where('departure_time', $change['from'])
+                    ->update(['departure_time' => $change['to']]);
+            }
+        });
+
+        $unparsed = array_filter($changes, fn ($c) => $c['to'] === null);
+
+        // Log only: this runs from the Maintenance page (Livewire) where any echo
+        // would be glued to the JSON response.
+        Log::info('tours.departure_time normalized: '.count($changes).' changed, '.count($unparsed).' set to NULL (unparseable).', [
+            'unparsed' => array_map(fn ($c) => $c['from'], $unparsed),
+        ]);
     }
 
     public function down(): void
@@ -76,9 +93,20 @@ return new class extends Migration
             return;
         }
 
-        foreach (json_decode($disk->get(self::BACKUP), true) ?: [] as $id => $original) {
-            DB::table('tours')->where('id', $id)->update(['departure_time' => $original]);
-        }
+        $entries = json_decode($disk->get(self::BACKUP), true, 512, JSON_THROW_ON_ERROR) ?: [];
+
+        DB::transaction(function () use ($entries) {
+            foreach ($entries as $id => $change) {
+                // Only roll back rows still holding the value this migration set;
+                // anything an admin typed afterwards is kept.
+                $query = DB::table('tours')->where('id', $id);
+                $change['to'] === null
+                    ? $query->whereNull('departure_time')
+                    : $query->where('departure_time', $change['to']);
+
+                $query->update(['departure_time' => $change['from']]);
+            }
+        });
 
         $disk->delete(self::BACKUP);
     }

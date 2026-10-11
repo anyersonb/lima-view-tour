@@ -714,4 +714,53 @@ class BookingDatesTest extends TestCase
         $this->captureLink($this->paymentLink($tour, '2026-10-11'))->assertOk();
         $this->assertSame(1, Booking::where('payment_method', 'payment_link')->count());
     }
+
+    // ── Hardening (informe de seguridad 2026-10-11) ────────────────────
+
+    /** @test */
+    public function a_cart_item_whose_tour_no_longer_exists_is_not_bookable(): void
+    {
+        $alive = $this->tour();
+        $deleted = $this->tour();
+        $date = BookingCalendar::earliestDate();
+        $deleted->delete(); // soft delete
+
+        $items = collect([
+            ['row_id' => 'a', 'tour_id' => $alive->id, 'travel_date' => $date, 'title_snapshot' => 'Vivo'],
+            ['row_id' => 'b', 'tour_id' => $deleted->id, 'travel_date' => $date, 'title_snapshot' => 'Borrado'],
+            ['row_id' => 'c', 'tour_id' => 999999, 'travel_date' => $date, 'title_snapshot' => 'Inexistente'],
+        ]);
+
+        $bad = BookingCalendar::unbookableItems($items);
+
+        $this->assertSame(['b', 'c'], array_column($bad, 'row_id'));
+    }
+
+    /** @test */
+    public function is_bookable_only_accepts_strict_y_m_d_dates(): void
+    {
+        $tour = $this->tour();
+        $ok = BookingCalendar::earliestDate($tour);
+
+        $this->assertTrue(BookingCalendar::isBookable($ok, $tour));
+
+        foreach ([$ok.'x', '+2 days', '@1792000000', $ok.' 10:00:00', '2026-02-30', 'tomorrow'] as $bad) {
+            $this->assertFalse(BookingCalendar::isBookable($bad, $tour), "Should reject: {$bad}");
+        }
+    }
+
+    /** @test */
+    public function date_rules_require_the_y_m_d_format(): void
+    {
+        $this->assertContains('date_format:Y-m-d', BookingCalendar::dateRules());
+        $this->assertContains('date_format:Y-m-d', BookingCalendar::formDateRules());
+
+        $ok = BookingCalendar::earliestDate();
+        $rules = ['d' => BookingCalendar::dateRules()];
+
+        $this->assertFalse(validator(['d' => $ok], $rules)->fails());
+        $this->assertTrue(validator(['d' => $ok.'x'], $rules)->fails());
+        $this->assertTrue(validator(['d' => '+2 days'], $rules)->fails());
+        $this->assertTrue(validator(['d' => '@1792000000'], ['d' => BookingCalendar::formDateRules()])->fails());
+    }
 }

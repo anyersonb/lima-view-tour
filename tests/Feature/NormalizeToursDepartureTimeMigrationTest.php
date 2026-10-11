@@ -81,4 +81,72 @@ class NormalizeToursDepartureTimeMigrationTest extends TestCase
 
         $this->assertSame('', $out);
     }
+
+    public function test_backup_is_written_before_updates_and_failure_aborts_without_touching_data(): void
+    {
+        Storage::fake('local');
+        $id = $this->legacyTour('05:00 AM');
+
+        // Invalid UTF-8 makes json_encode throw => nothing may be updated.
+        $bad = $this->legacyTour('5:00 '.chr(0xB1).chr(0x31).' am');
+
+        try {
+            $this->migration()->up();
+            $this->fail('Migration should abort when the backup cannot be encoded.');
+        } catch (\JsonException) {
+            // expected
+        }
+
+        $this->assertSame('05:00 AM', DB::table('tours')->where('id', $id)->value('departure_time'));
+        $this->assertFalse(Storage::disk('local')->exists('migrations/tours_departure_time_backup.json'));
+        $this->assertNotNull(DB::table('tours')->where('id', $bad)->value('departure_time'));
+    }
+
+    public function test_unwritable_backup_aborts_without_touching_data(): void
+    {
+        $id = $this->legacyTour('05:00 AM');
+
+        $disk = \Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+        $disk->shouldReceive('exists')->andReturn(false);
+        $disk->shouldReceive('put')->andReturn(false);
+        Storage::shouldReceive('disk')->with('local')->andReturn($disk);
+
+        try {
+            $this->migration()->up();
+            $this->fail('Migration should abort when the backup cannot be written.');
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $this->assertSame('05:00 AM', DB::table('tours')->where('id', $id)->value('departure_time'));
+    }
+
+    public function test_down_only_restores_rows_that_still_hold_the_migrated_value(): void
+    {
+        Storage::fake('local');
+        $untouched = $this->legacyTour('05:00 AM');
+        $edited = $this->legacyTour('5 am');
+
+        $this->migration()->up();
+
+        // An admin sets a new time after the migration.
+        DB::table('tours')->where('id', $edited)->update(['departure_time' => '07:30']);
+
+        $this->migration()->down();
+
+        $this->assertSame('05:00 AM', DB::table('tours')->where('id', $untouched)->value('departure_time'));
+        $this->assertSame('07:30', DB::table('tours')->where('id', $edited)->value('departure_time'));
+    }
+
+    public function test_up_never_echoes_even_when_it_changes_rows(): void
+    {
+        Storage::fake('local');
+        $this->legacyTour('05:00 AM');
+
+        ob_start();
+        $this->migration()->up();
+        $out = ob_get_clean();
+
+        $this->assertSame('', $out);
+    }
 }

@@ -197,6 +197,7 @@ class BookingCalendar
     {
         return [
             'date',
+            'date_format:Y-m-d',
             'after_or_equal:'.static::earliestDate($tour),
             'before_or_equal:'.static::latestDate(),
         ];
@@ -216,6 +217,7 @@ class BookingCalendar
         // time is per item.
         return [
             'date',
+            'date_format:Y-m-d',
             'after_or_equal:'.static::today()->toDateString(),
             'before_or_equal:'.static::latestDate(),
         ];
@@ -243,6 +245,7 @@ class BookingCalendar
         return [
             "{$field}.required" => __('cart.validation.date_required'),
             "{$field}.date" => __('cart.validation.date_invalid'),
+            "{$field}.date_format" => __('cart.validation.date_invalid'),
             "{$field}.after_or_equal" => __('cart.validation.date_future', [
                 'date' => $first,
                 'time' => static::departureTime($tour),
@@ -262,7 +265,12 @@ class BookingCalendar
         }
 
         try {
-            $parsed = Carbon::parse($date, static::timezone())->startOfDay();
+            // Strict Y-m-d: Carbon::parse() would accept "+2 days", "@1792000000" or "2026-10-13x".
+            $parsed = Carbon::createFromFormat('!Y-m-d', $date, static::timezone());
+
+            if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+                return false;
+            }
 
             return $parsed->greaterThanOrEqualTo(static::earliest($tour))
                 && $parsed->lessThanOrEqualTo(static::latest());
@@ -323,7 +331,11 @@ class BookingCalendar
             $tour = $tours->get($item['tour_id'] ?? null);
             $date = $item['travel_date'] ?? $fallbackDate;
 
-            if (static::isBookable($date, $tour)) {
+            // A cart item pointing at a tour that no longer exists (or is soft-deleted)
+            // is not bookable: never fall back to the default departure time.
+            $tourMissing = ($item['tour_id'] ?? null) && ! $tour;
+
+            if (! $tourMissing && static::isBookable($date, $tour)) {
                 continue;
             }
 
