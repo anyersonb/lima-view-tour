@@ -444,6 +444,8 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-total strong { font-family: Georgia, serif; font-size: 23px; line-height: 1; color: #0a3240; font-weight: 800; }
 .m-total .m-total-sub { display: block; font-size: 10px; font-weight: 600; color: #5f7466; letter-spacing: .2px; margin-top: 2px; }
 .m-cta { margin-top: 8px; background: #dc9343; color: #fff; border-radius: 20px; text-align: center; padding: 10px 8px; font-size: 12px; font-weight: 900; letter-spacing: .12px; cursor: pointer; border: none; width: 100%; display: block; }
+.m-date-notice { margin: 5px 0 0; font-size: 10.5px; line-height: 1.35; color: #465e68; }
+.m-date-error { margin: 6px 0 0; padding: 7px 9px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 11.5px; font-weight: 600; line-height: 1.35; }
 .m-foot { margin-top: 7px; text-align: center; color: #7d8b93; font-size: 9.5px; }
 
 /* Trust row mobile */
@@ -886,9 +888,20 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
         });
     }
 
+    // El servidor rechazó la fecha (redirect back): llevar la vista al aviso del
+    // calendario visible. Salto instantáneo.
+    function revealServerDateError() {
+        var err = [...document.querySelectorAll('[data-date-server-error]')]
+            .find(function (n) { return n.offsetParent !== null; });
+        if (!err) return;
+        err.style.scrollMarginTop = '80px';
+        err.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }
+
     // Wait for DOM + Alpine to be ready
     document.addEventListener('DOMContentLoaded', function () {
         guardEmptyDate();
+        revealServerDateError();
 
         if (typeof Alpine !== 'undefined') {
             initFlatpickr();
@@ -1147,6 +1160,10 @@ if (!empty($itinerary)) {
                                    style="border:none;background:transparent;font-size:12px;color:#29404a;width:100%;outline:none;">
                             <span aria-hidden="true">📅</span>
                         </div>
+                        <p class="m-date-notice">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime]) }}</p>
+                        @error('travel_date')
+                            <p class="m-date-error" role="alert" data-date-server-error>{{ $message }}</p>
+                        @enderror
                     </div>
                     {{-- Adultos / Niños --}}
                     <div class="m-mini-grid">
@@ -1407,7 +1424,7 @@ if (!empty($itinerary)) {
 
             {{-- Formulario "Añade una valoración" (crea reseña pendiente de aprobación) --}}
             <div class="mt-5 pt-5 border-t border-teal-800/10"
-                 x-data="{ open: {{ ($errors->any() || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
+                 x-data="{ open: {{ ($errors->hasAny(['rating','comment','name','email']) || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
                 <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-teal-800">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     {{ __('ui.add_review') }}
@@ -1415,8 +1432,8 @@ if (!empty($itinerary)) {
                 </button>
                 <form x-show="open" x-cloak method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="mt-4 space-y-3">
                     @csrf
-                    @if ($errors->any())
-                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first() }}</div>
+                    @if ($errors->hasAny(['rating','comment','name','email']))
+                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first('rating') ?: $errors->first('comment') ?: $errors->first('name') ?: $errors->first('email') }}</div>
                     @endif
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_rating') }} *</label>
@@ -2140,7 +2157,7 @@ if (!empty($itinerary)) {
             </div>
 
             {{-- Formulario "Añade una valoración" (desktop) — crea reseña pendiente de aprobación --}}
-            <div class="mt-5 pt-5 border-t border-teal-800/10" x-data="{ open: {{ ($errors->any() || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
+            <div class="mt-5 pt-5 border-t border-teal-800/10" x-data="{ open: {{ ($errors->hasAny(['rating','comment','name','email']) || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
                 <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-teal-800">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     {{ __('ui.add_review') }}
@@ -2148,8 +2165,8 @@ if (!empty($itinerary)) {
                 </button>
                 <form x-show="open" x-cloak method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="mt-4 space-y-3">
                     @csrf
-                    @if ($errors->any())
-                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first() }}</div>
+                    @if ($errors->hasAny(['rating','comment','name','email']))
+                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first('rating') ?: $errors->first('comment') ?: $errors->first('name') ?: $errors->first('email') }}</div>
                     @endif
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_rating') }} *</label>
@@ -2321,7 +2338,12 @@ if (!empty($itinerary)) {
                            x-model="$store.booking.date"
                            class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
                            min="{{ $bookingMinDate }}"
-                           aria-label="{{ __('ui.select_tour_date') }}">
+                           aria-label="{{ __('ui.select_tour_date') }}"
+                           aria-describedby="sb-date-notice">
+                    <p id="sb-date-notice" class="mt-1.5 text-[11px] leading-snug text-teal-800/75">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime]) }}</p>
+                    @error('travel_date')
+                        <p class="mt-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2" role="alert" data-date-server-error>{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Adultos --}}

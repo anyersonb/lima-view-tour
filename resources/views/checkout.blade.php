@@ -161,6 +161,10 @@
     width: 5px;
     background: linear-gradient(180deg, var(--cart-gold), #e9c68b);
 }
+.cart-tour-card.is-date-expired { border-color: rgba(200,110,87,.55); }
+.cart-tour-card.is-date-expired::before { background: var(--cart-danger); }
+.cart-tour-card.is-date-expired [data-date-input] { border-color: var(--cart-danger); background: rgba(200,110,87,.08); }
+.cart-date-expired { margin: 8px 0 0; padding: 9px 12px; border-radius: 12px; font-size: 12.5px; font-weight: 600; line-height: 1.4; background: rgba(200,110,87,.1); border: 1px solid rgba(200,110,87,.3); color: #8f3e2a; }
 .cart-tour-card.removing {
     opacity: 0;
     transform: translateX(-12px);
@@ -870,7 +874,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                         $isBest      = (bool) ($item['is_featured'] ?? false) || $hasDiscount;
                                     @endphp
 
-                                    <article class="cart-tour-card"
+                                    @php $dateExpired = (bool) ($item['date_expired'] ?? false); @endphp
+                                    <article class="cart-tour-card{{ $dateExpired ? ' is-date-expired' : '' }}"
                                              data-cart-item
                                              data-row-id="{{ $item['row_id'] }}"
                                              data-unit-price="{{ $item['unit_price'] }}"
@@ -944,6 +949,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                        value="{{ $item['travel_date'] }}"
                                                        min="{{ $item['min_date'] ?? \App\Support\BookingCalendar::earliestDate() }}"
                                                        data-date-input
+                                                       @if ($dateExpired) aria-invalid="true" aria-describedby="date-expired-{{ $item['row_id'] }}" @endif
                                                        title="{{ __('ui.tour_date') }}">
                                             </div>
                                             <div class="cart-field-box">
@@ -957,6 +963,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                 </select>
                                             </div>
                                         </div>
+
+                                        <p class="cart-date-expired" id="date-expired-{{ $item['row_id'] }}" data-date-expired-msg @if (! $dateExpired) hidden @endif>{{ $dateExpired ? ($item['date_expired_message'] ?? '') : '' }}</p>
 
                                         <div class="cart-pax-shell">
                                             <div class="cart-pax-head">
@@ -2327,6 +2335,12 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                 fe.fieldError = true;
                 throw fe;
             }
+            if (data.code === 'date_unavailable') {
+                markExpiredItems(data.items);
+                const de = new Error(data.error ?? @json(__('checkout_paypal.create_order_failed')));
+                de.dateUnavailable = true;
+                throw de;
+            }
             throw new Error(data.error ?? @json(__('checkout_paypal.create_order_failed')));
         }
         return data.id;
@@ -2430,11 +2444,29 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         }
     }
 
+    // Marca en el carrito los ítems que el servidor rechazó por fecha
+    // (422 date_unavailable), sin recargar: mismo aspecto que al cargar /carrito.
+    function markExpiredItems(items) {
+        (items || []).forEach(it => {
+            const card = document.querySelector(`[data-cart-item][data-row-id="${it.row_id}"]`);
+            if (!card) return;
+            card.classList.add('is-date-expired');
+            const input = card.querySelector('[data-date-input]');
+            const msg   = card.querySelector('[data-date-expired-msg]');
+            if (input) input.setAttribute('aria-invalid', 'true');
+            if (msg) { msg.textContent = it.message || ''; msg.hidden = false; }
+        });
+        const first = document.querySelector('.is-date-expired');
+        if (first) first.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }
+
     function ppOnError(err) {
         if (err && err.fieldError) return;
         const msgEl = document.getElementById('paypal-msg');
         if (msgEl) {
-            msgEl.textContent  = 'Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.';
+            msgEl.textContent  = (err && err.dateUnavailable && err.message)
+                ? err.message
+                : 'Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.';
             msgEl.style.display = '';
         }
         console.error('PayPal error:', err);
