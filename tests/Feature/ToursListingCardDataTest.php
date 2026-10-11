@@ -38,18 +38,68 @@ class ToursListingCardDataTest extends TestCase
         return substr($html, $start, $end - $start);
     }
 
-    public function test_mobile_card_does_not_promise_pickup_or_free_cancellation_the_tour_does_not_have(): void
+    /** @return array{0: string, 1: string} [mobile cards, desktop cards] */
+    private function bothCards(string $locale = 'es'): array
     {
-        $this->tour();
+        $html = $this->get("/{$locale}/tours")->assertOk()->getContent();
 
-        $cards = $this->mobileCards($this->get('/es/tours')->assertOk()->getContent());
+        return [$this->mobileCards($html), substr($html, strpos($html, 'hidden sm:grid'))];
+    }
 
-        $this->assertStringContainsString('tour-card-row', $cards);
-        $this->assertStringNotContainsString(__('ui.pickup_included', [], 'es'), $cards);
-        $this->assertStringNotContainsString(__('ui.free_cancellation', [], 'es'), $cards);
-        // Control: what the tour does have is still there.
-        $this->assertStringContainsString('11 horas', $cards);
-        $this->assertStringContainsString('Español / Inglés', $cards);
+    public function test_cards_show_pickup_and_free_cancellation_when_the_tour_switches_are_on(): void
+    {
+        $this->tour(['pickup_included' => true, 'free_cancellation' => true]);
+
+        foreach ($this->bothCards() as $cards) {
+            $this->assertStringContainsString('Recojo incluido', $cards);
+            $this->assertStringContainsString('Cancelación gratuita', $cards);
+        }
+    }
+
+    public function test_cards_hide_each_feature_when_its_switch_is_off(): void
+    {
+        $this->tour(['pickup_included' => false, 'free_cancellation' => true]);
+        foreach ($this->bothCards() as $cards) {
+            $this->assertStringNotContainsString('Recojo incluido', $cards);
+            $this->assertStringContainsString('Cancelación gratuita', $cards);
+            $this->assertStringNotContainsString('Sin recojo', $cards);
+        }
+
+        Tour::query()->update(['pickup_included' => true, 'free_cancellation' => false]);
+        foreach ($this->bothCards() as $cards) {
+            $this->assertStringContainsString('Recojo incluido', $cards);
+            $this->assertStringNotContainsString('Cancelación gratuita', $cards);
+        }
+    }
+
+    public function test_switches_default_to_on_for_a_tour_created_without_them(): void
+    {
+        $tour = Tour::factory()->create()->fresh();
+
+        $this->assertTrue($tour->pickup_included);
+        $this->assertTrue($tour->free_cancellation);
+    }
+
+    public function test_migration_leaves_existing_tours_with_both_switches_on(): void
+    {
+        $a = $this->tour();
+        $b = $this->tour();
+        \Illuminate\Support\Facades\DB::table('tours')->update(['pickup_included' => false, 'free_cancellation' => false]);
+
+        $migration = require database_path('migrations/2026_10_11_000002_add_pickup_and_cancellation_flags_to_tours_table.php');
+        $migration->up(); // already has the columns: must be a safe re-run
+
+        foreach ([$a, $b] as $t) {
+            $row = \Illuminate\Support\Facades\DB::table('tours')->find($t->id);
+            $this->assertEquals(1, $row->pickup_included);
+            $this->assertEquals(1, $row->free_cancellation);
+        }
+
+        $migration->down();
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('tours', 'pickup_included'));
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('tours', 'free_cancellation'));
+        $migration->up();
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn('tours', 'free_cancellation'));
     }
 
     public function test_duration_and_language_are_localized_in_en_and_pt(): void

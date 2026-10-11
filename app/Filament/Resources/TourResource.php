@@ -158,6 +158,14 @@ class TourResource extends Resource
                                         ->label('Badge "Oferta especial"')
                                         ->helperText('Muestra u oculta la pastilla OFERTA ESPECIAL −N% (solo aplica si hay precio antes).')
                                         ->default(true),
+                                    Forms\Components\Toggle::make('pickup_included')
+                                        ->label('Incluye recojo')
+                                        ->helperText('Apagado: la tarjeta del listado no muestra "Recojo incluido".')
+                                        ->default(true),
+                                    Forms\Components\Toggle::make('free_cancellation')
+                                        ->label('Cancelación gratuita (hasta 24 h antes)')
+                                        ->helperText('Apagado: la tarjeta del listado no muestra "Cancelación gratuita".')
+                                        ->default(true),
                                 ]),
                             ]),
 

@@ -98,6 +98,9 @@
             'slug' => is_object($t) ? ($t->slug ?? '') : ($t['slug'] ?? ''),
             'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true) : ($t['show_best_seller'] ?? true)),
             'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true) : ($t['show_offer_badge'] ?? true)),
+            // Interruptores por tour del CMS (null = columna aún sin migrar => como antes: visibles).
+            'pickup' => (bool) (is_object($t) ? ($t->pickup_included ?? true) : ($t['pickup_included'] ?? true)),
+            'freeCancellation' => (bool) (is_object($t) ? ($t->free_cancellation ?? true) : ($t['free_cancellation'] ?? true)),
             // Facetas de filtro (Tarea D) — normalizadas del dato real.
             'durationBucket' => $durationInfo['bucket'],
             'durationWeight' => $durationInfo['weight'],
@@ -396,6 +399,8 @@
                             :badge-type="$tour['badgeType']"
                             :showBestSeller="$tour['showBestSeller']"
                             :showOffer="$tour['showOffer']"
+                            :pickup="$tour['pickup']"
+                            :free-cancellation="$tour['freeCancellation']"
                             :location-label="$cat ? ucfirst($cat) : null"
                             currency="US$"
                         />
@@ -430,6 +435,8 @@
                             :badge-type="$tour['badgeType']"
                             :showBestSeller="$tour['showBestSeller']"
                             :showOffer="$tour['showOffer']"
+                            :pickup="$tour['pickup']"
+                            :free-cancellation="$tour['freeCancellation']"
                             currency="US$"
                         />
                     @endforeach

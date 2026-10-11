@@ -44,7 +44,8 @@
     // ya no se pintan en esta tarjeta (badges "BEST SELLER" y "OFERTA
     // ESPECIAL" eliminados a pedido del cliente). Se dejan como props para
     // no romper a los callers que aún los pasan.
-    $pickupLabel   = $pickup !== null ? ($pickup ? __('ui.pickup_included') : __('ui.no_pickup')) : __('ui.pickup_included');
+    // $pickup / $freeCancellation === false (switch apagado en el CMS) => la fila no se pinta.
+    $pickupLabel   = __('ui.pickup_included');
     $durationLabel = $duration ?? __('ui.full_day');
     $languageResolved = $language ?? __('ui.language_default');
 @endphp
@@ -114,6 +115,7 @@
                 </li>
 
                 {{-- Recojo --}}
+                @if ($pickup !== false)
                 <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2.5 px-2.5">
                     <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-sm grid place-items-center shrink-0 text-teal-800" aria-hidden="true">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -122,6 +124,7 @@
                     </span>
                     <p class="font-bold text-teal-800 text-[13px] leading-tight min-w-0">{{ $pickupLabel }}</p>
                 </li>
+                @endif
 
                 {{-- Idioma --}}
                 <li class="flex items-center gap-2 bg-cream-100 rounded-xl ring-1 ring-teal-800/5 py-2.5 px-2.5">
