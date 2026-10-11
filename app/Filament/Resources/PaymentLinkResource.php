@@ -114,7 +114,7 @@ class PaymentLinkResource extends Resource
                         Forms\Components\DatePicker::make('travel_date')
                             ->label('Fecha del tour (opcional)')
                             ->native(false)
-                            ->helperText('Déjalo vacío si la fecha se coordinará después.'),
+                            ->helperText('Déjalo vacío si la fecha se coordinará después. No aplica la antelación de 1 día de la web: solo se rechaza una salida que ya pasó.'),
 
                         Forms\Components\DateTimePicker::make('expires_at')
                             ->label('Vence el (opcional)')

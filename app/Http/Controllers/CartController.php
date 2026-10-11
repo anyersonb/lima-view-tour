@@ -43,15 +43,35 @@ class CartController extends Controller
             // Enriquecer items con datos de descuento/badge del tour (sin tocar BD)
             if ($items->isNotEmpty()) {
                 $tourMeta = Tour::whereIn('id', $items->pluck('tour_id')->filter()->all())
-                    ->get(['id', 'price_before', 'is_featured'])
+                    ->get(['id', 'price_before', 'is_featured', 'departure_time'])
                     ->keyBy('id');
-                $items = $items->map(function (array $it) use ($tourMeta) {
+
+                // Items whose saved date no longer meets the lead time (the
+                // cart sat open past the cut-off). They are flagged, never
+                // removed silently: the customer picks another date.
+                $expired = collect(BookingCalendar::unbookableItems($items))->keyBy('row_id');
+
+                $items = $items->map(function (array $it) use ($tourMeta, $expired) {
                     $t = $tourMeta->get($it['tour_id'] ?? null);
                     $it['price_before'] = $t?->price_before;
                     $it['is_featured'] = (bool) ($t?->is_featured ?? false);
+                    // First bookable date for THIS tour (min="" of its date input).
+                    $it['min_date'] = BookingCalendar::earliestDate($t);
+                    $it['departure_time'] = BookingCalendar::departureTime($t);
+                    $bad = $expired->get($it['row_id'] ?? null);
+                    $it['date_expired'] = $bad !== null;
+                    $it['date_expired_message'] = $bad['message'] ?? null;
 
                     return $it;
                 });
+
+                $expiredMessages = $expired->pluck('message')->values()->all();
+
+                // Warn without needing new markup: reuse the existing flash
+                // box unless another error is already queued.
+                if ($expiredMessages !== [] && ! session()->has('error')) {
+                    session()->now('error', implode(' ', $expiredMessages));
+                }
             }
 
             // Related tours — fallback to empty collection on error
@@ -89,6 +109,9 @@ class CartController extends Controller
         // lo mismo si el cliente agregó primero el tour más lejano.
         $itemDates = $items->pluck('travel_date')->filter()->sort()->values();
         $firstTravelDate = $itemDates->first() ?? BookingCalendar::earliestDate();
+        // min="" of the readonly form date: the earliest first-date among the cart's tours.
+        $formMinDate = BookingCalendar::earliestDateForItems($items);
+        $expiredMessages ??= [];
         $datesDiffer = $itemDates->unique()->count() > 1;
 
         // Hallazgo de seguridad [ALTO] (2026-08-27, "puerta 3"): un pago
@@ -118,6 +141,8 @@ class CartController extends Controller
             'public_key',
             'total_centavos',
             'firstTravelDate',
+            'formMinDate',
+            'expiredMessages',
             'datesDiffer',
             'paymentLock',
         ));
@@ -200,6 +225,11 @@ class CartController extends Controller
     public function updateItem(Request $request, string $locale, string $rowId): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         try {
+            // The date rule depends on the row's tour (departure time), so the
+            // tour is resolved from the cart row BEFORE validating.
+            $rowTourId = $this->cart->items()->firstWhere('row_id', $rowId)['tour_id'] ?? null;
+            $rowTour = $rowTourId ? Tour::find($rowTourId) : null;
+
             $validated = $request->validate([
                 'adults' => ['required', 'integer', 'min:1', 'max:20'],
                 'children' => ['required', 'integer', 'min:0', 'max:20'],
@@ -208,13 +238,13 @@ class CartController extends Controller
                 // antes el carrito aceptaba `after_or_equal:today` y el pago
                 // exigía `after:today`, así que se podía meter al carrito una
                 // fecha que el pago iba a rechazar al final.
-                'travel_date' => array_merge(['sometimes', 'required'], BookingCalendar::dateRules()),
-            ], BookingCalendar::dateMessages());
+                'travel_date' => array_merge(['sometimes', 'required'], BookingCalendar::dateRules($rowTour)),
+            ], BookingCalendar::dateMessages('travel_date', $rowTour));
 
             // Misma comprobación de fechas bloqueadas que al añadir al carrito:
             // si no, se puede esquivar el bloqueo editando la fecha acá.
             if (isset($validated['travel_date'])) {
-                $tourId = $this->cart->items()->firstWhere('row_id', $rowId)['tour_id'] ?? null;
+                $tourId = $rowTourId;
 
                 if (BlockedDate::isBlocked($validated['travel_date'], $tourId)) {
                     Log::info('CartController@updateItem: blocked date rejected', [

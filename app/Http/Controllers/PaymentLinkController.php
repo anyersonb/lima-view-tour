@@ -260,7 +260,10 @@ class PaymentLinkController extends Controller
                 if ($link->travel_date) {
                     $travelDate = $link->travel_date->toDateString();
 
-                    if (! BookingCalendar::isBookable($travelDate)) {
+                    // Operator-created links are exempt from the 24 h lead time
+                    // (the operator decides); only a departure that already
+                    // happened (Lima clock, tour's departure time) is refused.
+                    if (! BookingCalendar::isUpcoming($travelDate, $link->tour)) {
                         throw new UnbookableDateException($travelDate, $link->tour_id);
                     }
 

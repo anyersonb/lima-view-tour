@@ -35,7 +35,10 @@ class ProcessPaymentRequest extends FormRequest
             'customer_email' => ['required', 'email', 'max:255'],
             // Acepta número internacional con prefijo de país (+51, +1, etc.) tras quitar espacios
             'customer_phone' => ['required', 'string', 'regex:/^\+?\d{7,15}$/'],
-            'travel_date' => array_merge(['required'], BookingCalendar::dateRules()),
+            // Form field only: format and horizon. The lead-time rule depends on
+            // each tour's departure time, so it is checked per cart ITEM in
+            // CheckoutController::assertBookableDates().
+            'travel_date' => array_merge(['required'], BookingCalendar::formDateRules()),
 
             // Pickup information (optional but captured when provided)
             'pickup_point' => ['nullable', 'string', 'max:100'],

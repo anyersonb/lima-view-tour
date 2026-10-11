@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\Tour;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Qué día es "hoy" y desde cuándo se puede reservar, según el reloj del
@@ -54,23 +56,111 @@ class BookingCalendar
     }
 
     /**
-     * Primer día reservable (por defecto, mañana en Lima).
+     * Antelación mínima en horas entre "ahora" (Lima) y la SALIDA del tour.
      *
-     * `(int) '' === 0`: un `BOOKING_MIN_DAYS_AHEAD=` vacío en el `.env`
-     * pasaba `max(0, 0)` y habilitaba reservas para el mismo día sin que
-     * nadie lo decidiera a propósito. Se exige un mínimo de 1 en vez de 0.
+     * `config('booking.min_hours_ahead', 24)` no cubre un `.env` con la
+     * clave vacía (`BOOKING_MIN_HOURS_AHEAD=` devuelve '' y `(int) ''` es 0,
+     * o sea "sin antelación" por accidente): un valor vacío, no numérico o
+     * negativo cae a 24, igual que la zona horaria cae a America/Lima.
      */
-    public static function earliest(): Carbon
+    public static function minHoursAhead(): int
     {
-        $minDaysAhead = (int) config('booking.min_days_ahead', 1);
+        $raw = config('booking.min_hours_ahead', 24);
 
-        return static::today()->addDays(max(1, $minDaysAhead));
+        if (is_int($raw) || (is_string($raw) && preg_match('/^\d+$/', trim($raw)))) {
+            $hours = (int) $raw;
+
+            return $hours >= 0 ? $hours : 24;
+        }
+
+        return 24;
+    }
+
+    /**
+     * Hora de salida que se usa cuando el tour no tiene `departure_time`
+     * (o no se puede leer). Configurable; inválida o vacía => '06:00'.
+     */
+    public static function defaultDepartureTime(): string
+    {
+        return DepartureTime::normalize((string) config('booking.default_departure_time', '06:00')) ?? '06:00';
+    }
+
+    /**
+     * Hora de salida efectiva de un tour, 'HH:MM' en hora de Lima. Pasa por
+     * DepartureTime::normalize() también al leer, así que un valor legado
+     * ("05:00 AM") sigue funcionando aunque la migración aún no haya corrido.
+     */
+    public static function departureTime(?Tour $tour = null): string
+    {
+        return DepartureTime::normalize($tour?->departure_time) ?? static::defaultDepartureTime();
+    }
+
+    /** ¿El tour tiene una hora de salida propia (no el fallback)? */
+    public static function hasOwnDepartureTime(?Tour $tour = null): bool
+    {
+        return DepartureTime::normalize($tour?->departure_time) !== null;
+    }
+
+    /** Instante de salida del tour el día $date, en hora de Lima. */
+    public static function departureAt(string $date, ?Tour $tour = null): Carbon
+    {
+        [$h, $m] = array_map('intval', explode(':', static::departureTime($tour)));
+
+        return Carbon::parse($date, static::timezone())->startOfDay()->setTime($h, $m);
+    }
+
+    /**
+     * Primer día reservable para un tour: la menor fecha D (>= mañana, o lo que
+     * diga min_days_ahead) tal que D + hora de salida (Lima) >= ahora (Lima) +
+     * min_hours_ahead. Sin tour usa la hora de salida por defecto.
+     *
+     * Ejemplo, tour de 05:00 con 24 h: a las 04:59 la primera fecha es mañana;
+     * a las 05:01 pasa a ser pasado mañana.
+     *
+     * `(int) ''` === 0: un `BOOKING_MIN_DAYS_AHEAD=` vacío habilitaba reservas
+     * para el mismo día sin que nadie lo decidiera, por eso el piso es 1.
+     */
+    public static function earliest(?Tour $tour = null): Carbon
+    {
+        $floor = static::today()->addDays(max(1, (int) config('booking.min_days_ahead', 1)));
+        $cutoff = Carbon::now(static::timezone())->addHours(static::minHoursAhead());
+        $candidate = $floor->copy();
+
+        // La salida más tardía del día D es D+23:59, así que como mucho hay que
+        // avanzar minHoursAhead/24 + 1 días; el tope evita un bucle absurdo si
+        // alguien configura miles de horas.
+        for ($i = 0; $i < 400; $i++) {
+            if (static::departureAt($candidate->toDateString(), $tour)->greaterThanOrEqualTo($cutoff)) {
+                return $candidate;
+            }
+
+            $candidate->addDay();
+        }
+
+        return $candidate;
     }
 
     /** Primer día reservable en 'Y-m-d', para los `min` y las validaciones. */
-    public static function earliestDate(): string
+    public static function earliestDate(?Tour $tour = null): string
     {
-        return static::earliest()->toDateString();
+        return static::earliest($tour)->toDateString();
+    }
+
+    /**
+     * Menor primera fecha entre los tours de un carrito (para el campo
+     * `travel_date` del formulario, que lleva la fecha más temprana).
+     *
+     * @param  iterable<int, array<string, mixed>>  $items
+     */
+    public static function earliestDateForItems(iterable $items): string
+    {
+        $items = collect($items);
+        $tours = Tour::query()
+            ->whereIn('id', $items->pluck('tour_id')->filter()->all())
+            ->get(['id', 'departure_time']);
+
+        return $tours->map(fn (Tour $t) => static::earliestDate($t))->sort()->first()
+            ?? static::earliestDate();
     }
 
     /**
@@ -98,13 +188,35 @@ class BookingCalendar
      * al añadir y `after:today` al pagar): se podía meter al carrito una fecha
      * que el pago iba a rechazar después.
      *
+     * Con la regla de antelación la fecha mínima depende del TOUR (su hora de
+     * salida): se calcula por ítem, nunca con una regla global.
+     *
      * @return array<int, string>
      */
-    public static function dateRules(): array
+    public static function dateRules(?Tour $tour = null): array
     {
         return [
             'date',
-            'after_or_equal:'.static::earliestDate(),
+            'after_or_equal:'.static::earliestDate($tour),
+            'before_or_equal:'.static::latestDate(),
+        ];
+    }
+
+    /**
+     * Regla del campo `travel_date` del FORMULARIO de pago: formato, no pasado
+     * y horizonte. Ese campo lleva la fecha más temprana del carrito, que no
+     * pertenece a un tour concreto; la antelación se valida por ÍTEM
+     * (unbookableItems()) con el tour de cada uno.
+     *
+     * @return array<int, string>
+     */
+    public static function formDateRules(): array
+    {
+        // after_or_equal:today only discards plainly past dates; the real lead
+        // time is per item.
+        return [
+            'date',
+            'after_or_equal:'.static::today()->toDateString(),
             'before_or_equal:'.static::latestDate(),
         ];
     }
@@ -120,24 +232,30 @@ class BookingCalendar
      * @param  string  $field  Nombre del campo, por si no se llama travel_date
      * @return array<string, string>
      */
-    public static function dateMessages(string $field = 'travel_date'): array
+    public static function dateMessages(string $field = 'travel_date', ?Tour $tour = null): array
     {
         // isoFormat('LL') y no un patrón a mano: un 'D [de] MMMM' escrito para
         // el español daba "27 de August" en inglés. 'LL' es el formato largo
         // que cada idioma usa de verdad.
-        $first = static::earliest()->locale(app()->getLocale())->isoFormat('LL');
+        $first = static::earliest($tour)->locale(app()->getLocale())->isoFormat('LL');
         $last = static::latest()->locale(app()->getLocale())->isoFormat('LL');
 
         return [
             "{$field}.required" => __('cart.validation.date_required'),
             "{$field}.date" => __('cart.validation.date_invalid'),
-            "{$field}.after_or_equal" => __('cart.validation.date_future', ['date' => $first]),
+            "{$field}.after_or_equal" => __('cart.validation.date_future', [
+                'date' => $first,
+                'time' => static::departureTime($tour),
+            ]),
             "{$field}.before_or_equal" => __('cart.validation.date_too_far', ['date' => $last]),
         ];
     }
 
-    /** ¿Esta fecha es reservable (ni muy pronto ni más allá del horizonte)? */
-    public static function isBookable(?string $date): bool
+    /**
+     * ¿Esta fecha es reservable para este tour (con la antelación mínima y sin
+     * pasarse del horizonte)? Sin tour usa la hora de salida por defecto.
+     */
+    public static function isBookable(?string $date, ?Tour $tour = null): bool
     {
         if (! $date) {
             return false;
@@ -146,10 +264,81 @@ class BookingCalendar
         try {
             $parsed = Carbon::parse($date, static::timezone())->startOfDay();
 
-            return $parsed->greaterThanOrEqualTo(static::earliest())
+            return $parsed->greaterThanOrEqualTo(static::earliest($tour))
                 && $parsed->lessThanOrEqualTo(static::latest());
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /**
+     * ¿La salida de este tour en esa fecha todavía no ocurrió (hora de Lima)?
+     * Es la comprobación que usan los links de pago creados por un operador:
+     * exentos de la antelación mínima, pero no se cobra una salida ya pasada.
+     */
+    public static function isUpcoming(?string $date, ?Tour $tour = null): bool
+    {
+        if (! $date) {
+            return false;
+        }
+
+        try {
+            return static::departureAt($date, $tour)->greaterThanOrEqualTo(Carbon::now(static::timezone()));
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Mensaje por ítem: nombra el tour, la primera fecha disponible y la hora
+     * de salida, en el idioma activo.
+     */
+    public static function itemMessage(string $tourTitle, ?Tour $tour = null): string
+    {
+        return __('booking.date_item_unavailable', [
+            'tour' => $tourTitle,
+            'date' => static::earliest($tour)->locale(app()->getLocale())->isoFormat('LL'),
+            'time' => static::departureTime($tour),
+        ]);
+    }
+
+    /**
+     * Ítems del carrito cuya fecha ya no es reservable, cada uno validado con
+     * SU tour. Una sola consulta para todos los tours.
+     *
+     * @param  Collection<int, array<string, mixed>>  $items
+     * @param  string|null  $fallbackDate  fecha del formulario para ítems sin fecha propia
+     * @return array<int, array{row_id: ?string, tour_id: mixed, title: string, date: ?string, first_date: string, message: string}>
+     */
+    public static function unbookableItems(Collection $items, ?string $fallbackDate = null): array
+    {
+        $tours = Tour::query()
+            ->whereIn('id', $items->pluck('tour_id')->filter()->all())
+            ->get()
+            ->keyBy('id');
+
+        $bad = [];
+
+        foreach ($items as $item) {
+            $tour = $tours->get($item['tour_id'] ?? null);
+            $date = $item['travel_date'] ?? $fallbackDate;
+
+            if (static::isBookable($date, $tour)) {
+                continue;
+            }
+
+            $title = (string) ($item['title_snapshot'] ?? $tour?->title ?? '');
+
+            $bad[] = [
+                'row_id' => $item['row_id'] ?? null,
+                'tour_id' => $item['tour_id'] ?? null,
+                'title' => $title,
+                'date' => $date,
+                'first_date' => static::earliestDate($tour),
+                'message' => static::itemMessage($title, $tour),
+            ];
+        }
+
+        return $bad;
     }
 }

@@ -16,7 +16,7 @@ return [
     'terms_s3_body'  => 'Bookings are confirmed only upon receipt of full payment or a 50% deposit of the tour value, as indicated in each offer. Payment can be made by credit/debit card (Visa, Mastercard, American Express) through our secure Culqi payment platform. Lima View Tours does not store card data; processing is managed entirely by the certified payment provider.',
 
     'terms_s4_title' => 'Cancellations and Refunds',
-    'terms_s4_body'  => 'Cancellations made more than 48 hours before the tour date will receive an 80% refund of the amount paid. Cancellations made between 24 and 48 hours before the tour are entitled to a 50% refund. No refunds will be made for cancellations less than 24 hours in advance or for no-shows at the departure point. In cases of force majeure (natural disasters, strikes, government restrictions), rescheduling will be offered at no additional charge.',
+    'terms_s4_body'  => 'Cancellations made up to 24 hours before the tour departure will receive a 100% refund of the amount paid. No refunds will be made for cancellations less than 24 hours before departure or for no-shows at the departure point. In cases of force majeure (natural disasters, strikes, government restrictions), rescheduling will be offered at no additional charge.',
 
     'terms_s5_title' => 'Contact',
     'terms_s5_body'  => 'For any queries related to these terms, you may contact us via the form on our contact page, by email or by calling +51 935 542 384. Our team is available Monday to Sunday from 9:00 a.m. to 6:30 p.m. (GMT-5). Lima View Tours — Jr. Lampa 209, Lima Center, Lima, Peru.',

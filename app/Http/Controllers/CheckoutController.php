@@ -168,7 +168,7 @@ class CheckoutController extends Controller
 
             return redirect()
                 ->route('cart.index', ['locale' => $locale])
-                ->with('error', __('booking.date_outdated'));
+                ->with('error', $e->userMessage ?? __('booking.date_outdated'));
 
         } catch (\Throwable $e) {
             Log::error('checkout.process_payment.error', [
@@ -242,6 +242,28 @@ class CheckoutController extends Controller
 
             if ($items->isEmpty()) {
                 return response()->json(['error' => 'El carrito está vacío.'], 422);
+            }
+
+            // Reject a stale date BEFORE the buyer approves anything in the
+            // PayPal popup, so they hear about it now and not after paying.
+            // Each item is checked against its own tour's departure time.
+            $badItems = BookingCalendar::unbookableItems($items);
+
+            if ($badItems !== []) {
+                Log::info('checkout.paypal_create_order: item date no longer bookable', [
+                    'items' => array_map(fn (array $b) => ['tour_id' => $b['tour_id'], 'date' => $b['date']], $badItems),
+                ]);
+
+                return response()->json([
+                    'code' => 'date_unavailable',
+                    'error' => implode(' ', array_column($badItems, 'message')),
+                    'items' => array_map(fn (array $b) => [
+                        'row_id' => $b['row_id'],
+                        'tour_id' => $b['tour_id'],
+                        'first_date' => $b['first_date'],
+                        'message' => $b['message'],
+                    ], $badItems),
+                ], 422);
             }
 
             // Amount always calculated server-side — never trust the client
@@ -357,7 +379,8 @@ class CheckoutController extends Controller
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
             'customer_phone' => ['required', 'string', 'regex:/^\+?\d{7,15}$/'],
-            'travel_date' => array_merge(['required'], BookingCalendar::dateRules()),
+            // Format and horizon only; lead time is checked per item (assertBookableDates).
+            'travel_date' => array_merge(['required'], BookingCalendar::formDateRules()),
             'pickup_point' => ['nullable', 'string', 'max:100'],
             'pickup_detail' => ['nullable', 'string', 'max:255'],
             // B3: 'notes' se persiste (ver $customer más abajo). 'tour_language'
@@ -526,7 +549,7 @@ class CheckoutController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => __('booking.date_outdated'),
+                'message' => $e->userMessage ?? __('booking.date_outdated'),
             ], 422);
 
         } catch (PayPalCardDeclinedException $e) {
@@ -766,12 +789,15 @@ class CheckoutController extends Controller
      */
     private function assertBookableDates(Collection $items, array $customer): void
     {
-        foreach ($items as $item) {
-            $travelDate = $item['travel_date'] ?? $customer['travel_date'];
+        // Each item is checked against ITS tour's departure time.
+        $bad = BookingCalendar::unbookableItems($items, $customer['travel_date'] ?? null);
 
-            if (! BookingCalendar::isBookable($travelDate)) {
-                throw new UnbookableDateException($travelDate, $item['tour_id'] ?? null);
-            }
+        if ($bad !== []) {
+            throw new UnbookableDateException(
+                $bad[0]['date'],
+                $bad[0]['tour_id'],
+                implode(' ', array_column($bad, 'message')),
+            );
         }
     }
 

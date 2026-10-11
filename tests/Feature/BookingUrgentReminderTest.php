@@ -7,6 +7,8 @@ use App\Models\Booking;
 use App\Models\Tour;
 use App\Support\BookingCalendar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -121,6 +123,43 @@ class BookingUrgentReminderTest extends TestCase
         $this->artisan('bookings:send-payment-reminders --urgent')->assertSuccessful();
 
         Mail::assertNothingSent();
+    }
+
+    public function test_has_departed_works_with_the_structured_hh_mm_format_at_the_exact_minute(): void
+    {
+        // The clock is fixed BEFORE creating the bookings so created_at and the
+        // Lima "today" both come from the same fake instant.
+        Mail::fake();
+        Carbon::setTestNow(Carbon::parse('2026-10-11 09:59:00', 'America/Lima'));
+        $this->booking(0, 3, [], '10:00');
+
+        // 09:59 en Lima: el tour de las 10:00 todavía no salió -> se envía.
+        $this->artisan('bookings:send-payment-reminders --urgent')->assertSuccessful();
+        Mail::assertSent(BookingPaymentReminder::class, 1);
+
+        Mail::fake();
+        Carbon::setTestNow(Carbon::parse('2026-10-11 10:00:00', 'America/Lima'));
+        $this->booking(0, 3, [], '10:00');
+
+        // 10:00 en Lima: ya salió -> no se envía.
+        $this->artisan('bookings:send-payment-reminders --urgent')->assertSuccessful();
+        Mail::assertNothingSent();
+
+        Carbon::setTestNow();
+    }
+
+    public function test_has_departed_still_reads_a_legacy_am_pm_value_not_yet_migrated(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow(Carbon::parse('2026-10-11 08:00:00', 'America/Lima'));
+        $b = $this->booking(0, 3, [], '05:00');
+        // Valor legado escrito por debajo del mutator del modelo.
+        DB::table('tours')->where('id', $b->tour_id)->update(['departure_time' => '5:00 AM']);
+
+        $this->artisan('bookings:send-payment-reminders --urgent')->assertSuccessful();
+
+        Mail::assertNothingSent();
+        Carbon::setTestNow();
     }
 
     public function test_urgent_still_sends_today_tour_with_unreadable_departure_time(): void

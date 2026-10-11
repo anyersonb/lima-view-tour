@@ -27,7 +27,7 @@ return [
         'children_min' => 'El número de niños no puede ser negativo.',
         'date_required' => 'Selecciona la fecha del tour.',
         'date_invalid' => 'La fecha no tiene un formato válido.',
-        'date_future' => 'La primera fecha disponible es el :date.',
+        'date_future' => 'La primera fecha disponible es el :date (salida a las :time). Se reserva con al menos 1 día de anticipación.',
         'date_too_far' => 'La fecha máxima disponible para reservar es el :date.',
         'max_quantity' => 'La cantidad máxima permitida es 20.',
     ],

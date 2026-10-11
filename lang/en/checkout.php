@@ -10,7 +10,7 @@ return [
     'back_to_cart' => 'Back to cart',
     'back_to_tours' => 'Explore more tours',
     'book_now_pay_later' => 'Book now, pay later',
-    'cancel_until' => 'Until 9:00 on :date.',
+    'cancel_until' => 'Up to 24 hours before departure.',
     'choose_when_to_pay' => 'Choose when to pay',
     'coming_soon_badge' => 'Soon',
     'coupon_code' => 'Coupon code',

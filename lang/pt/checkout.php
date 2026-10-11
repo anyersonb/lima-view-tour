@@ -10,7 +10,7 @@ return [
     'back_to_cart' => 'Voltar ao carrinho',
     'back_to_tours' => 'Ver mais tours',
     'book_now_pay_later' => 'Reservar agora e pagar depois',
-    'cancel_until' => 'Até as 9:00 do dia :date.',
+    'cancel_until' => 'Até 24 horas antes da saída.',
     'choose_when_to_pay' => 'Escolha quando pagar',
     'coming_soon_badge' => 'Breve',
     'coupon_code' => 'Código do cupom',

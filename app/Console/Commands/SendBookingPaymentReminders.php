@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Mail\BookingPaymentReminder;
 use App\Models\Booking;
 use App\Support\BookingCalendar;
+use App\Support\DepartureTime;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -31,18 +32,17 @@ class SendBookingPaymentReminders extends Command
             return false;
         }
 
-        $raw = trim((string) ($booking->tour?->departure_time ?? ''));
+        // Same parser as the booking rule: "HH:MM" (new format) and legacy
+        // "05:00 AM" both resolve. Unlike the booking rule there is NO default
+        // time here: an unreadable departure keeps sending the reminder.
+        $time = DepartureTime::normalize($booking->tour?->departure_time);
 
-        if (! preg_match('/^\d{1,2}:\d{2}\s*([ap]\.?m\.?)?$/i', $raw)) {
+        if ($time === null) {
             return false;
         }
 
-        try {
-            $departure = Carbon::parse($raw, BookingCalendar::timezone())
-                ->setDateFrom($today);
-        } catch (Throwable) {
-            return false;
-        }
+        [$h, $m] = array_map('intval', explode(':', $time));
+        $departure = Carbon::parse($today->toDateString(), BookingCalendar::timezone())->setTime($h, $m);
 
         return $departure->lte(Carbon::now(BookingCalendar::timezone()));
     }
@@ -93,8 +93,8 @@ class SendBookingPaymentReminders extends Command
 
         if ($urgent) {
             // Tour de HOY que ya salió: el recordatorio no tiene sentido.
-            // Best-effort: tours.departure_time es texto libre; solo se usa si
-            // es una hora clara (HH:MM [am/pm]). Si no se puede leer, se envía.
+            // Best-effort: tours.departure_time es "HH:MM" (o texto legado que
+            // DepartureTime sabe leer). Si no se puede leer, se envía.
             $bookings = $bookings->reject(fn (Booking $b) => $this->hasDeparted($b, $today))->values();
         }
 

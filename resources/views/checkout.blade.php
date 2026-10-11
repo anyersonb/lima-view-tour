@@ -942,7 +942,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                        id="date-{{ $item['row_id'] }}"
                                                        class="cart-mini-input"
                                                        value="{{ $item['travel_date'] }}"
-                                                       min="{{ \App\Support\BookingCalendar::earliestDate() }}"
+                                                       min="{{ $item['min_date'] ?? \App\Support\BookingCalendar::earliestDate() }}"
                                                        data-date-input
                                                        title="{{ __('ui.tour_date') }}">
                                             </div>
@@ -1411,7 +1411,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            id="travel_date"
                                            name="travel_date"
                                            value="{{ old('travel_date', $firstTravelDate) }}"
-                                           min="{{ \App\Support\BookingCalendar::earliestDate() }}"
+                                           min="{{ $formMinDate ?? \App\Support\BookingCalendar::earliestDate() }}"
                                            readonly
                                            class="cart-real-input @error('travel_date') border-red-500 @enderror"
                                            style="background:#f1ece3; cursor:not-allowed;">

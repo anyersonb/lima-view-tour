@@ -19,6 +19,9 @@ class UnbookableDateException extends \RuntimeException
     public function __construct(
         public readonly ?string $travelDate,
         public readonly int|string|null $tourId,
+        // Mensaje para el cliente (nombra el tour y la primera fecha). Null =>
+        // el genérico booking.date_outdated.
+        public readonly ?string $userMessage = null,
     ) {
         parent::__construct("Travel date [{$travelDate}] is not bookable for tour [{$tourId}].");
     }

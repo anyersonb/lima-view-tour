@@ -734,7 +734,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
     // Madrid y uno en Lima veían primeros días distintos para el mismo tour, y
     // ninguno de los dos coincidía con lo que validaba el servidor (que corre
     // en UTC). Ahora los tres miran el mismo calendario.
-    window.LVT_MIN_DATE = @json(\App\Support\BookingCalendar::earliestDate());
+    window.LVT_MIN_DATE = @json($bookingMinDate);
 </script>
 
 <script>
@@ -1142,7 +1142,7 @@ if (!empty($itinerary)) {
                                    data-booking-date
                                    placeholder="{{ __('ui.select_tour_date') }}"
                                    x-model="$store.booking.date"
-                                   min="{{ \App\Support\BookingCalendar::earliestDate() }}"
+                                   min="{{ $bookingMinDate }}"
                                    aria-label="{{ __('ui.tour_date') }}"
                                    style="border:none;background:transparent;font-size:12px;color:#29404a;width:100%;outline:none;">
                             <span aria-hidden="true">📅</span>
@@ -2320,7 +2320,7 @@ if (!empty($itinerary)) {
                            placeholder="{{ __('ui.select_tour_date') }}"
                            x-model="$store.booking.date"
                            class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
-                           min="{{ \App\Support\BookingCalendar::earliestDate() }}"
+                           min="{{ $bookingMinDate }}"
                            aria-label="{{ __('ui.select_tour_date') }}">
                 </div>
 

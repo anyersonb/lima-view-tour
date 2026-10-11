@@ -74,7 +74,14 @@ class TourResource extends Resource
                                     Forms\Components\TextInput::make('group_type')->label('Tipo de grupo')->default('Grupal'),
                                 ]),
                                 Forms\Components\Grid::make(3)->schema([
-                                    Forms\Components\TextInput::make('departure_time')->label('Hora salida')->placeholder('05:00 AM'),
+                                    Forms\Components\TimePicker::make('departure_time')
+                                        ->label('Hora salida')
+                                        ->seconds(false)
+                                        ->format('H:i')
+                                        ->displayFormat('H:i')
+                                        ->native(false)
+                                        ->rule('date_format:H:i')
+                                        ->helperText('Hora de Lima (24 h). Si se deja vacío se usa '.\App\Support\BookingCalendar::defaultDepartureTime().' para calcular la antelación.'),
                                     Forms\Components\TextInput::make('return_time')->label('Hora retorno')->placeholder('10:30 PM'),
                                     Forms\Components\TextInput::make('max_capacity')->numeric()->label('Capacidad máxima'),
                                 ]),

@@ -36,6 +36,22 @@ return [
     'min_days_ahead' => (int) env('BOOKING_MIN_DAYS_AHEAD', 1),
 
     /*
+     | Antelación mínima en HORAS entre "ahora" (Lima) y la salida del tour
+     | (fecha + tours.departure_time, hora de Lima). Un tour solo se puede
+     | reservar si sale al menos estas horas después de ahora. Vacío, no
+     | numérico o negativo => 24 (ver BookingCalendar::minHoursAhead()).
+     | min_days_ahead sigue actuando como piso (nunca antes de mañana).
+     */
+    'min_hours_ahead' => env('BOOKING_MIN_HOURS_AHEAD', 24),
+
+    /*
+     | Hora de salida (HH:MM, 24 h, Lima) que se asume cuando el tour no tiene
+     | hora propia. Vacía o inválida => 06:00 (ver
+     | BookingCalendar::defaultDepartureTime()).
+     */
+    'default_departure_time' => env('BOOKING_DEFAULT_DEPARTURE_TIME', '06:00'),
+
+    /*
      | Horizonte máximo de reserva, en meses desde hoy (hora de Lima). Sin
      | esto, `dateRules()` solo comprobaba el mínimo y una fecha como
      | 9999-12-31 pasaba la validación igual que una razonable.

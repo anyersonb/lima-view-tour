@@ -4,6 +4,8 @@ return [
     'date_blocked' => 'Esa fecha no está disponible para reservar. Elige otra.',
     // Carrito abierto en una pestaña días atrás: la fecha guardada ya no
     // cumple la antelación mínima o quedó fuera del horizonte de reservas.
+    // Per-item message at cart/checkout: names the tour and its first bookable date.
+    'date_item_unavailable' => 'La fecha de «:tour» ya no está disponible. La primera fecha disponible es el :date (salida a las :time; se reserva con al menos 1 día de anticipación).',
     'date_outdated' => 'La fecha de uno de tus tours ya no está disponible (cambió mientras tenías el carrito abierto). Revisa las fechas y vuelve a intentarlo.',
     // PayPal capture 422 con details[0].issue = INSTRUMENT_DECLINED: el
     // banco/emisor rechazó la tarjeta, no cobramos nada. El comprador sigue

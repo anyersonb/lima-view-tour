@@ -27,7 +27,7 @@ class TourSeeder extends Seeder
                 'price' => 100,
                 'price_before' => 125,
                 'duration' => 'Full Day',
-                'departure_time' => '05:00 AM',
+                'departure_time' => '05:00',
                 'return_time' => '10:30 PM',
                 'max_capacity' => 20,
                 'cover_image' => 'assets/banners/Rectangle 19210.jpg',

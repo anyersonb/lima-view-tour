@@ -121,6 +121,16 @@ class Tour extends Model
         return $query->orderBy('order')->orderByDesc('created_at');
     }
 
+    /**
+     * departure_time se guarda siempre como "HH:MM" (24 h) o NULL. Lo que no
+     * se pueda leer con certeza queda NULL (=> hora por defecto de
+     * config/booking.php) en vez de persistir texto libre.
+     */
+    public function setDepartureTimeAttribute(?string $value): void
+    {
+        $this->attributes['departure_time'] = \App\Support\DepartureTime::normalize($value);
+    }
+
     public function getTitleAttribute(): string
     {
         $locale = app()->getLocale();
