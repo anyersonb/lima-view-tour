@@ -61,7 +61,7 @@
         function readQuery() {
             if (!searchInput || !mobileMq.matches) return [];
             var q = normalize(searchInput.value);
-            return q ? q.split(/s+/) : [];
+            return q ? q.split(/\s+/).filter(Boolean) : [];
         }
 
         function formatTemplate(tpl, count) {

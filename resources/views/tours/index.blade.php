@@ -390,7 +390,7 @@
                 </div>
 
                 {{-- MOBILE (<640): cards horizontales tipo lista --}}
-                <div class="flex flex-col gap-4 -mx-[3px] sm:mx-0 sm:hidden" data-tour-cards>
+                <div class="flex flex-col gap-2 -mx-[3px] sm:mx-0 sm:hidden" data-tour-cards>
                     @foreach ($cardData as $i => $tour)
                         <x-tour-card-row
                             :eager="$i < 2"
