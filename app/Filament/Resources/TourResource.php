@@ -80,10 +80,14 @@ class TourResource extends Resource
                                         ->format('H:i')
                                         ->displayFormat('H:i')
                                         ->native(false)
-                                        ->dehydrateStateUsing(fn (?string $state): ?string => \App\Support\DepartureTime::normalizePickerState($state))
+                                        ->dehydrateStateUsing(fn (mixed $state): ?string => \App\Support\DepartureTime::normalizePickerState($state))
                                         ->rule(fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
                                             // Validate what really arrives (H:i, H:i:s or a full datetime from the picker), not a fixed format.
-                                            if (filled($value) && \App\Support\DepartureTime::normalizePickerState((string) $value) === null) {
+                                            if ($value === null || $value === '') {
+                                                return;
+                                            }
+
+                                            if (! is_string($value) || \App\Support\DepartureTime::normalizePickerState($value) === null) {
                                                 $fail('Hora inválida. Usa el formato HH:MM (24 h).');
                                             }
                                         })

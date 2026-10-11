@@ -95,6 +95,32 @@ class TourDepartureTimeFormTest extends TestCase
     }
 
     /** @test */
+    public function a_forged_array_departure_time_is_a_validation_error_not_a_500(): void
+    {
+        $tour = $this->editTour('13:18');
+
+        Livewire::test(EditTour::class, ['record' => $tour->getKey()])
+            ->fillForm(['departure_time' => ['x' => '07:45']])
+            ->call('save')
+            ->assertHasFormErrors(['departure_time']);
+
+        $this->assertSame('13:18', $tour->refresh()->departure_time);
+    }
+
+    /** @test */
+    public function a_forged_int_departure_time_is_a_validation_error_not_a_500(): void
+    {
+        $tour = $this->editTour('13:18');
+
+        Livewire::test(EditTour::class, ['record' => $tour->getKey()])
+            ->fillForm(['departure_time' => 745])
+            ->call('save')
+            ->assertHasFormErrors(['departure_time']);
+
+        $this->assertSame('13:18', $tour->refresh()->departure_time);
+    }
+
+    /** @test */
     public function a_tour_can_be_created_with_a_departure_time(): void
     {
         $this->actingAs(User::factory()->create(['email' => 'qa@webtilia.com']));
