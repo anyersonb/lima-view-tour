@@ -364,6 +364,7 @@ class TourResource extends Resource
                                     ->directory('tours/covers')
                                     ->imageEditor()
                                     ->saveUploadedFileUsing(ImageOptimizer::saver('tours/covers', 1600, deletePrevious: true))
+                                    ->fetchFileInformation(false)
                                     ->helperText('Se optimiza automáticamente a WebP (máx. 1600px de ancho).')
                                     ->label('Imagen de portada'),
                                 Forms\Components\FileUpload::make('gallery')
@@ -374,6 +375,7 @@ class TourResource extends Resource
                                     ->reorderable()
                                     ->panelLayout('grid')
                                     ->saveUploadedFileUsing(ImageOptimizer::saver('tours/gallery', 1920))
+                                    ->fetchFileInformation(false)
                                     ->helperText('Cada imagen se optimiza a WebP (máx. 1920px de ancho).')
                                     ->label('Galería'),
 
@@ -388,6 +390,7 @@ class TourResource extends Resource
                                             ->directory('tours/seo')
                                             ->imageEditor()
                                             ->saveUploadedFileUsing(ImageOptimizer::saver('tours/seo', 1200, deletePrevious: true))
+                                            ->fetchFileInformation(false)
                                             ->helperText('Imagen Open Graph — se optimiza a WebP (máx. 1200px).')
                                             ->label('OG Image'),
                                     ]),
