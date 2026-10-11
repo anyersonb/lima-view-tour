@@ -305,7 +305,8 @@ local',
     'tour_date' => 'Fecha del tour',
     'tour_itinerary' => 'Itinerario del tour',
     'tour_language_label' => 'Idioma del tour',
-    'tours_meta_description' => 'Descubre nuestros tours por :section. Itinerarios con guías expertos, transporte cómodo y experiencias auténticas en Perú.',
+    'tours_meta_description_all' => 'Descubre nuestros tours en Lima, Ica y Cusco. Itinerarios con guías expertos, transporte cómodo y experiencias auténticas en Perú.',
+    'tours_meta_description_region' => 'Tours en :region con guías expertos, transporte cómodo y experiencias auténticas en Perú. Reserva online con Lima View Tours.',
     'travel_date_help' => 'Es la fecha del tour. Para cambiarla, edítala en la tarjeta del tour, arriba.',
     'travel_date_help_multiple' => 'Tus tours tienen fechas distintas. Cada uno se reserva en la suya; aquí se muestra la más próxima.',
     'traveler_reviews' => 'Opiniones de nuestros viajeros',
@@ -386,4 +387,12 @@ local',
     // Ficha del tour, junto al calendario. Dice "día" y no "24 h" a propósito: las
     // 24 h ya son la política de cancelación y no deben confundirse.
     'booking_departure_notice' => 'Salida :time · Reserva con al menos 1 día de anticipación',
+    // Listado: duración/modalidad localizadas (TourListing).
+    'duration_hours_one' => ':count hora',
+    'duration_hours_other' => ':count horas',
+    'duration_days_one' => ':count día',
+    'duration_days_other' => ':count días',
+    'modality_group' => 'Grupal',
+    'modality_private' => 'Privado',
+    'modality_group_private' => 'Grupal y privado',
 ];

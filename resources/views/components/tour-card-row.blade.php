@@ -10,7 +10,12 @@
     'rating'             => null,
     'reviews'            => 0,
     'duration'           => null,
-    'language'           => __('ui.spanish_english'),
+    // Ya localizados (es/en/pt) por el caller; null = el tour no tiene el dato => no se pinta.
+    'language'           => null,
+    // Modalidad normalizada y localizada (Grupal/Privado/...). Aún no se pinta; queda como prop para el maquetador.
+    'modality'           => null,
+    // true = el tour lo promete en el CMS; false/null = no se pinta "Recojo incluido" / "Cancelación gratuita".
+    // Hoy el modelo Tour NO tiene esos campos, así que el listado envía null (ver informe backend-fix).
     'pickup'             => null,
     'freeCancellation'   => null,
     'locationLabel'      => null,
@@ -36,19 +41,26 @@
     // $badge, $badgeType, $isMasVendido, $showBestSeller y $showOffer ya no
     // se pintan (badges "BEST SELLER" y "OFERTA ESPECIAL" eliminados a
     // pedido del cliente). Se dejan como props para no romper callers.
-    $durationLabel = $duration ?: 'Full Day';
-    $pickupLabel   = $pickup !== null ? ($pickup ? __('ui.pickup_included') : __('ui.no_pickup')) : __('ui.pickup_included');
+    $durationLabel = filled($duration) ? $duration : null;
 
     // Subtítulo: "Full Day desde Lima" — usa el explícito o lo arma con duración + ubicación.
-    $sub = $subtitle ?: trim($durationLabel . ($locationLabel ? ' ' . __('ui.from_location') . ' ' . $locationLabel : ''));
+    $sub = $subtitle ?: ($durationLabel
+        ? trim($durationLabel . ($locationLabel ? ' ' . __('ui.from_location') . ' ' . $locationLabel : ''))
+        : null);
 
-    // Features compactas (icono + label) para la columna central.
-    $features = [
-        ['label' => $durationLabel, 'icon' => 'clock'],
-        ['label' => $pickupLabel,   'icon' => 'truck'],
-        ['label' => $language,      'icon' => 'globe'],
-    ];
-    if ($freeCancellation !== false) {
+    // Features compactas (icono + label) para la columna central. Solo entran
+    // las que el tour realmente tiene: nada de promesas por defecto.
+    $features = [];
+    if ($durationLabel) {
+        $features[] = ['label' => $durationLabel, 'icon' => 'clock'];
+    }
+    if ($pickup === true) {
+        $features[] = ['label' => __('ui.pickup_included'), 'icon' => 'truck'];
+    }
+    if (filled($language)) {
+        $features[] = ['label' => $language, 'icon' => 'globe'];
+    }
+    if ($freeCancellation === true) {
         $features[] = ['label' => __('ui.free_cancellation'), 'icon' => 'shield'];
     }
 @endphp

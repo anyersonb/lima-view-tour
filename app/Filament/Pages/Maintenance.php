@@ -9,11 +9,15 @@ use Illuminate\Support\Facades\Artisan;
 
 class Maintenance extends Page
 {
-    protected static ?string $navigationIcon    = 'heroicon-o-wrench-screwdriver';
-    protected static ?string $navigationGroup   = 'Sistema';
-    protected static ?string $navigationLabel   = 'Mantenimiento';
-    protected static ?string $title             = 'Mantenimiento del sitio';
-    protected static ?int    $navigationSort    = 100;
+    protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+
+    protected static ?string $navigationGroup = 'Sistema';
+
+    protected static ?string $navigationLabel = 'Mantenimiento';
+
+    protected static ?string $title = 'Mantenimiento del sitio';
+
+    protected static ?int $navigationSort = 100;
 
     protected static string $view = 'filament.pages.maintenance';
 
@@ -92,6 +96,24 @@ class Maintenance extends Page
                         ->title('Migraciones ejecutadas')
                         ->body(trim(Artisan::output()) ?: 'No había migraciones pendientes.')
                         ->success()
+                        ->send();
+                }),
+
+            Action::make('tour_thumbnails')
+                ->label('Generar miniaturas de tours')
+                ->icon('heroicon-o-photo')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Generar miniaturas de portadas')
+                ->modalDescription('Crea una versión liviana (WebP, 480 px) de la portada de cada tour para las tarjetas del listado en móvil. Solo procesa las que faltan; se puede ejecutar varias veces.')
+                ->modalSubmitActionLabel('Sí, generar')
+                ->action(function () {
+                    $exit = Artisan::call('tours:thumbnails');
+
+                    Notification::make()
+                        ->title($exit === 0 ? 'Miniaturas generadas' : 'Miniaturas con errores')
+                        ->body(trim(Artisan::output()) ?: 'Sin cambios.')
+                        ->{$exit === 0 ? 'success' : 'warning'}()
                         ->send();
                 }),
 

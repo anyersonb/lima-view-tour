@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedSeoMeta;
+use App\Models\Concerns\HasLocalizedSlug;
+use App\Support\ImagePath;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,13 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use App\Support\ImagePath;
-use App\Models\Concerns\HasLocalizedSeoMeta;
-use App\Models\Concerns\HasLocalizedSlug;
 
 class Tour extends Model
 {
-    use HasFactory, SoftDeletes, HasLocalizedSlug, HasLocalizedSeoMeta;
+    use HasFactory, HasLocalizedSeoMeta, HasLocalizedSlug, SoftDeletes;
 
     protected $guarded = ['id'];
 
@@ -46,8 +46,22 @@ class Tour extends Model
 
     protected static function booted(): void
     {
+        // Thumbnail for the listing card whenever the cover changes. Best effort:
+        // a failure here must never block saving the tour.
+        static::saved(function (self $tour) {
+            if (! $tour->cover_image || ! ($tour->wasRecentlyCreated || $tour->wasChanged('cover_image'))) {
+                return;
+            }
+
+            try {
+                \App\Support\TourThumbnail::generate($tour->cover_image);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('tour thumbnail failed', ['tour_id' => $tour->id, 'error' => $e->getMessage()]);
+            }
+        });
+
         static::creating(function (self $tour) {
-            if (empty($tour->slug) && !empty($tour->title_es)) {
+            if (empty($tour->slug) && ! empty($tour->title_es)) {
                 $tour->slug = static::makeUniqueSlug($tour->title_es);
             }
         });
@@ -75,7 +89,7 @@ class Tour extends Model
                 ->where('slug', $slug)
                 ->exists()
         ) {
-            $slug = $base . '-' . (++$n);
+            $slug = $base.'-'.(++$n);
         }
 
         return $slug;
@@ -134,12 +148,14 @@ class Tour extends Model
     public function getTitleAttribute(): string
     {
         $locale = app()->getLocale();
+
         return $this->{"title_{$locale}"} ?: $this->title_es;
     }
 
     public function getDescriptionAttribute(): ?string
     {
         $locale = app()->getLocale();
+
         return $this->{"description_{$locale}"} ?: $this->description_es;
     }
 
@@ -170,6 +186,7 @@ class Tour extends Model
         if (! is_array($g) || count($g) === 0) {
             return [$this->cover_url];
         }
+
         return array_values(array_filter(array_map(fn ($p) => ImagePath::url($p), $g)));
     }
 
@@ -291,6 +308,7 @@ class Tour extends Model
             if ($val === null || $val === '' || $val === []) {
                 $val = $c["{$key}_es"] ?? $default;
             }
+
             return $val;
         };
 
@@ -305,17 +323,17 @@ class Tour extends Model
         }
 
         return [
-            'color'      => in_array(($c['color'] ?? 'teal'), ['teal', 'orange'], true) ? $c['color'] : 'teal',
-            'badge'      => $t('badge'),
-            'title'      => $t('title'),
-            'title_hl'   => $t('title_hl'),
-            'intro'      => $t('intro'),
+            'color' => in_array(($c['color'] ?? 'teal'), ['teal', 'orange'], true) ? $c['color'] : 'teal',
+            'badge' => $t('badge'),
+            'title' => $t('title'),
+            'title_hl' => $t('title_hl'),
+            'intro' => $t('intro'),
             'conv_title' => $t('conv_title'),
             'prem_title' => $t('prem_title'),
-            'conv'       => $conv,
-            'prem'       => $prem,
-            'footer'     => $t('footer'),
-            'image'      => $this->galleryUrls[0] ?? $this->cover_url,
+            'conv' => $conv,
+            'prem' => $prem,
+            'footer' => $t('footer'),
+            'image' => $this->galleryUrls[0] ?? $this->cover_url,
         ];
     }
 }

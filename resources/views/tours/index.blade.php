@@ -43,59 +43,11 @@
     // y data-idiomas="" cuando el dato no existía: aquí, si no hay dato, la
     // faceta correspondiente queda null/vacía y el tour simplemente no
     // aparece bajo ESA faceta (no se inventa un valor para que "calce").
-    $normalizeAscii = function (?string $s): string {
-        return \Illuminate\Support\Str::of((string) $s)->lower()->ascii()->trim()->toString();
-    };
-
-    $classifyDuration = function (?string $raw) use ($normalizeAscii): array {
-        $n = $normalizeAscii($raw);
-        if ($n === '') {
-            return ['bucket' => null, 'weight' => null];
-        }
-        if (preg_match('/(\d+)\s*(?:d|dias?|days?)\b/', $n, $m)) {
-            $days = (int) $m[1];
-            if ($days >= 3) return ['bucket' => '3-mas-dias', 'weight' => $days * 24];
-            if ($days === 2) return ['bucket' => '2-dias', 'weight' => 48];
-            // 1 día declarado explícitamente ⇒ jornada completa.
-        }
-        if (preg_match('/full\s*day|dia completo|todo el dia/', $n)) {
-            return ['bucket' => 'full-day', 'weight' => 8];
-        }
-        if (preg_match('/(\d+)\s*(?:h|horas?|hours?)\b/', $n, $m)) {
-            $hours = (int) $m[1];
-            return $hours <= 5
-                ? ['bucket' => 'medio-dia', 'weight' => $hours]
-                : ['bucket' => 'full-day', 'weight' => $hours];
-        }
-        if (preg_match('/medio\s*dia|half\s*day/', $n)) {
-            return ['bucket' => 'medio-dia', 'weight' => 4];
-        }
-        // Texto real que no matchea ningún patrón conocido: se agrupa en
-        // "Otros" (visible solo si hay ≥1 tour así) en vez de desaparecer.
-        return ['bucket' => 'otros', 'weight' => 999];
-    };
-
-    $classifyLanguages = function (?string $raw) use ($normalizeAscii): array {
-        $n = $normalizeAscii($raw);
-        if ($n === '') return [];
-        $parts = preg_split('/[\/,&+]| y | e | and /', $n) ?: [];
-        $codes = [];
-        foreach ($parts as $p) {
-            $p = trim($p);
-            if ($p === '') continue;
-            $code = match (true) {
-                str_contains($p, 'espan') || str_contains($p, 'spanish') || $p === 'es' => 'es',
-                str_contains($p, 'ingl') || str_contains($p, 'english') || $p === 'en' => 'en',
-                str_contains($p, 'portugu') || $p === 'pt' => 'pt',
-                str_contains($p, 'franc') || str_contains($p, 'french') || $p === 'fr' => 'fr',
-                default => \Illuminate\Support\Str::slug($p) ?: null,
-            };
-            if ($code && ! in_array($code, $codes, true)) {
-                $codes[] = $code;
-            }
-        }
-        return $codes;
-    };
+    // La normalización vive en App\Support\TourListing (testeada); aquí solo
+    // se enlazan los nombres que usa el resto de la vista.
+    $normalizeAscii = fn (?string $s): string => \App\Support\TourListing::ascii($s);
+    $classifyDuration = fn (?string $raw): array => \App\Support\TourListing::classifyDuration($raw);
+    $classifyLanguages = fn (?string $raw): array => \App\Support\TourListing::languageCodes($raw);
 
     $regionsById = (isset($regions) ? $regions : collect())->keyBy('id');
 
@@ -111,6 +63,16 @@
         $durationRaw = is_object($t) ? ($t->duration ?? '') : ($t['duration'] ?? '');
         $languageRaw = is_object($t) ? ($t->language ?? '') : ($t['language'] ?? '');
         $groupRaw = trim(is_object($t) ? ($t->group_type ?? '') : ($t['group_type'] ?? ''));
+        $modality = \App\Support\TourListing::modality($groupRaw);
+        // Título en los 3 idiomas (sin acentos, minúsculas) para que el buscador
+        // en cliente encuentre el tour sin importar el idioma activo.
+        $searchTitles = collect(['es', 'en', 'pt'])
+            ->map(fn ($l) => is_object($t) ? ($t->{'title_'.$l} ?? null) : ($t['title_'.$l] ?? null))
+            ->push($titleVal)
+            ->filter()
+            ->map(fn ($v) => $normalizeAscii((string) $v))
+            ->unique()
+            ->implode(' ');
         $regionId = is_object($t) ? ($t->region_id ?? null) : ($t['region_id'] ?? null);
         $region = $regionId ? $regionsById->get($regionId) : null;
         $durationInfo = $classifyDuration($durationRaw);
@@ -124,9 +86,15 @@
             'rating' => $stats['average'] !== null ? number_format($stats['average'], 1) : null,
             'reviews' => $stats['total'],
             'duration' => $durationRaw,
+            // Etiquetas ya localizadas (es/en/pt); null = el tour no tiene el dato => la card no lo pinta.
+            'durationLabel' => \App\Support\TourListing::durationLabel($durationRaw),
             'lang' => $languageRaw,
+            'languageLabel' => \App\Support\TourListing::languageLabel($languageRaw),
             'group' => $groupRaw,
+            'modalityLabel' => $modality['label'] ?? null,
             'img' => \App\Support\ImagePath::url($img) ?? asset('assets/banners/banner-hero.jpg'),
+            // Miniatura liviana (480 px) para la card móvil; cae a la original si no existe.
+            'imgThumb' => \App\Support\TourThumbnail::url($img) ?? asset('assets/banners/banner-hero.jpg'),
             'slug' => is_object($t) ? ($t->slug ?? '') : ($t['slug'] ?? ''),
             'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true) : ($t['show_best_seller'] ?? true)),
             'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true) : ($t['show_offer_badge'] ?? true)),
@@ -134,7 +102,8 @@
             'durationBucket' => $durationInfo['bucket'],
             'durationWeight' => $durationInfo['weight'],
             'languageCodes'  => $classifyLanguages($languageRaw),
-            'groupSlug'      => $groupRaw !== '' ? (\Illuminate\Support\Str::slug($groupRaw) ?: null) : null,
+            'groupSlug'      => $modality['slug'] ?? null,
+            'searchText'     => $searchTitles,
             'regionSlug'     => $region?->slug,
             'isOffer'        => $before !== null && $before > $now,
             'nameSort'       => $normalizeAscii($titleVal),
@@ -184,7 +153,7 @@
 
     $groupOptions = $cardData->filter(fn ($c) => $c['groupSlug'])
         ->groupBy('groupSlug')
-        ->map(fn ($items, $slug) => ['value' => $slug, 'label' => $items->first()['group'], 'count' => $items->count()])
+        ->map(fn ($items, $slug) => ['value' => $slug, 'label' => $items->first()['modalityLabel'], 'count' => $items->count()])
         ->sortByDesc('count')
         ->values();
 
@@ -213,7 +182,9 @@
      Catálogo de tours / Catálogo — Lima|Ica|Cusco (una meta por categoría,
      porque cada una es una URL distinta). Vacío = texto por defecto. --}}
 @section('title', \App\Support\PageSeo::title($seoPageKey, $regionSeoTitle ?: ($sectionTitle . ' — ' . __('seo.site_name'))))
-@section('description', \App\Support\PageSeo::description($seoPageKey, $regionSeoDescription ?: __('ui.tours_meta_description', ['section' => $sectionTitle])))
+@section('description', \App\Support\PageSeo::description($seoPageKey, $regionSeoDescription ?: ($cat
+    ? __('ui.tours_meta_description_region', ['region' => ($region ?? null)?->name ?: ucfirst($cat)])
+    : __('ui.tours_meta_description_all'))))
 
 @php
     // Metas por página → Catálogo de tours / Catálogo — Lima|Ica|Cusco →
@@ -410,15 +381,17 @@
                             data-region="{{ $tour['regionSlug'] }}"
                             data-offer="{{ $tour['isOffer'] ? '1' : '0' }}"
                             data-name="{{ $tour['nameSort'] }}"
+                            data-search="{{ $tour['searchText'] }}"
                             :title="$tour['title']"
                             :slug="$tour['slug']"
-                            :img="$tour['img']"
+                            :img="$tour['imgThumb']"
                             :before="$tour['before']"
                             :now="$tour['now']"
                             :rating="$tour['rating']"
                             :reviews="$tour['reviews']"
-                            :duration="$tour['duration']"
-                            :language="$tour['lang']"
+                            :duration="$tour['durationLabel']"
+                            :language="$tour['languageLabel']"
+                            :modality="$tour['modalityLabel']"
                             :badge="$tour['badge']"
                             :badge-type="$tour['badgeType']"
                             :showBestSeller="$tour['showBestSeller']"
@@ -443,6 +416,7 @@
                             data-region="{{ $tour['regionSlug'] }}"
                             data-offer="{{ $tour['isOffer'] ? '1' : '0' }}"
                             data-name="{{ $tour['nameSort'] }}"
+                            data-search="{{ $tour['searchText'] }}"
                             :title="$tour['title']"
                             :slug="$tour['slug']"
                             :img="$tour['img']"
@@ -450,8 +424,8 @@
                             :now="$tour['now']"
                             :rating="$tour['rating']"
                             :reviews="$tour['reviews']"
-                            :duration="$tour['duration']"
-                            :language="$tour['lang']"
+                            :duration="$tour['durationLabel']"
+                            :language="$tour['languageLabel']"
                             :badge="$tour['badge']"
                             :badge-type="$tour['badgeType']"
                             :showBestSeller="$tour['showBestSeller']"
