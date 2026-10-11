@@ -58,10 +58,22 @@
             return String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
         }
 
+        // Palabras genéricas (es/en/pt) que no discriminan: "tours", "excursión", "trip", "passeios"...
+        var STOP_WORDS = ['tour', 'tours', 'excursion', 'excursiones', 'trip', 'trips', 'passeio', 'passeios', 'excursao', 'excursoes'];
+
         function readQuery() {
             if (!searchInput || !mobileMq.matches) return [];
             var q = normalize(searchInput.value);
-            return q ? q.split(/\s+/).filter(Boolean) : [];
+            if (!q) return [];
+            return q.split(/\s+/).filter(function (w) { return w && STOP_WORDS.indexOf(w) === -1; });
+        }
+
+        // Coincide la palabra o, si termina en "es"/"s" y no aparece, su forma sin esa terminación (mínimo 3 letras).
+        function wordMatches(haystack, word) {
+            if (haystack.indexOf(word) !== -1) return true;
+            if (/es$/.test(word) && word.length - 2 >= 3 && haystack.indexOf(word.slice(0, -2)) !== -1) return true;
+            if (/s$/.test(word) && word.length - 1 >= 3 && haystack.indexOf(word.slice(0, -1)) !== -1) return true;
+            return false;
         }
 
         function formatTemplate(tpl, count) {
@@ -99,7 +111,7 @@
             if (state.query.length) {
                 var haystack = card.getAttribute('data-search') || '';
                 for (var i = 0; i < state.query.length; i++) {
-                    if (haystack.indexOf(state.query[i]) === -1) return false;
+                    if (!wordMatches(haystack, state.query[i])) return false;
                 }
             }
 
