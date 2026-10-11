@@ -178,15 +178,18 @@ class ImageOptimizer
         bool $deletePrevious = false
     ): Closure {
         return function (TemporaryUploadedFile $file, FileUpload $component) use ($directory, $maxWidth, $quality, $disk, $deletePrevious) {
-            if ($deletePrevious) {
-                $old = $component->getRecord()?->getAttribute($component->getName());
-                if (is_string($old) && $old !== '' && Storage::disk($disk)->exists($old)) {
-                    Storage::disk($disk)->delete($old);
-                }
-            }
+            // Capture the previous path now, but delete it only AFTER the new file is
+            // stored: a rejected upload must not leave the record pointing to a deleted file.
+            $old = $deletePrevious ? $component->getRecord()?->getAttribute($component->getName()) : null;
 
             try {
-                return self::store($file, $directory, $maxWidth, $quality, $disk);
+                $path = self::store($file, $directory, $maxWidth, $quality, $disk);
+
+                if (is_string($old) && $old !== '' && $old !== $path && Storage::disk($disk)->exists($old)) {
+                    Storage::disk($disk)->delete($old);
+                }
+
+                return $path;
             } catch (ImageTooLargeException $e) {
                 // Clear field error in the panel instead of a 500.
                 throw ValidationException::withMessages([$component->getStatePath() => $e->getMessage()]);

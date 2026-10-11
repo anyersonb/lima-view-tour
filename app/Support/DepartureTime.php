@@ -14,6 +14,19 @@ namespace App\Support;
 class DepartureTime
 {
     /**
+     * Same as normalize(), but also accepts a full datetime ("2026-10-11 07:45:00")
+     * as the Filament TimePicker may send it: only the trailing clock part counts.
+     */
+    public static function normalizePickerState(?string $raw): ?string
+    {
+        if ($raw !== null && preg_match('/\d{4}-\d{2}-\d{2}[T\s]+(\d{1,2}:\d{2}(?::\d{2})?)/', $raw, $m)) {
+            $raw = $m[1];
+        }
+
+        return self::normalize($raw);
+    }
+
+    /**
      * @return string|null "HH:MM" (24 h) or null when unreadable
      */
     public static function normalize(?string $raw): ?string

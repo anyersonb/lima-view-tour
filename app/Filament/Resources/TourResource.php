@@ -80,7 +80,13 @@ class TourResource extends Resource
                                         ->format('H:i')
                                         ->displayFormat('H:i')
                                         ->native(false)
-                                        ->rule('date_format:H:i')
+                                        ->dehydrateStateUsing(fn (?string $state): ?string => \App\Support\DepartureTime::normalizePickerState($state))
+                                        ->rule(fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                                            // Validate what really arrives (H:i, H:i:s or a full datetime from the picker), not a fixed format.
+                                            if (filled($value) && \App\Support\DepartureTime::normalizePickerState((string) $value) === null) {
+                                                $fail('Hora inválida. Usa el formato HH:MM (24 h).');
+                                            }
+                                        })
                                         ->helperText('Hora de Lima (24 h). Si se deja vacío se usa '.\App\Support\BookingCalendar::defaultDepartureTime().' para calcular la antelación.'),
                                     Forms\Components\TextInput::make('return_time')->label('Hora retorno')->placeholder('10:30 PM'),
                                     Forms\Components\TextInput::make('max_capacity')->numeric()->label('Capacidad máxima'),
