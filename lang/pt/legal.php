@@ -13,7 +13,7 @@ return [
     'terms_s2_body'  => 'A Lima View Tours é uma empresa dedicada à organização e comercialização de tours e experiências turísticas em Lima, Ica, Cusco e outras regiões do Peru. Nossos serviços incluem planejamento de roteiros, transporte, guias turísticos certificados e atividades culturais. Os preços, disponibilidade e roteiros podem ser alterados sem aviso prévio por motivos operacionais ou de força maior.',
 
     'terms_s3_title' => 'Reservas e Pagamentos',
-    'terms_s3_body'  => 'As reservas são confirmadas somente após o recebimento do pagamento total ou de um depósito de 50% do valor do tour, conforme indicado em cada oferta. O pagamento pode ser realizado com cartão de crédito/débito (Visa, Mastercard, American Express) por meio de nossa plataforma de pagamentos segura Culqi. A Lima View Tours não armazena dados de cartões; o processamento é gerenciado integralmente pelo provedor de pagamento certificado.',
+    'terms_s3_body'  => 'As reservas são confirmadas somente após o recebimento do pagamento total do tour. Ao reservar você pode escolher entre duas opções: pagar agora o valor total, e a reserva fica confirmada na hora; ou reservar sem pagamento inicial e pagar depois, antes da data do tour, por meio do link de pagamento que enviaremos por e-mail ou combinando com a nossa equipe. Neste segundo caso a reserva fica registrada, mas não é confirmada até recebermos o pagamento. O pagamento pode ser feito com cartão de débito ou crédito, ou com a sua conta PayPal, por meio da plataforma de pagamentos segura PayPal. A Lima View Tours não armazena dados de cartões; o processamento é gerenciado integralmente pelo provedor de pagamento certificado.',
 
     'terms_s4_title' => 'Cancelamentos e Reembolsos',
     'terms_s4_body'  => 'Os cancelamentos realizados até 24 horas antes da saída do tour receberão reembolso de 100% do valor pago. Não haverá reembolso por cancelamentos com menos de 24 horas de antecedência da saída nem por ausências no ponto de partida. Em casos de força maior (desastres naturais, greves, restrições governamentais), será oferecida remarcação sem custo adicional.',
@@ -23,13 +23,13 @@ return [
 
     // Privacy sections
     'privacy_s1_title' => 'Dados que Coletamos',
-    'privacy_s1_body'  => 'A Lima View Tours coleta apenas os dados estritamente necessários para prestar nossos serviços. Isso inclui: nome completo, e-mail e número de telefone ao realizar uma reserva ou assinar a newsletter; dados de navegação anônimos (cookies de análise) para melhorar a experiência do usuário; e informações de pagamento que são processadas diretamente pela Culqi e não são armazenadas em nossos servidores.',
+    'privacy_s1_body'  => 'A Lima View Tours coleta apenas os dados estritamente necessários para prestar nossos serviços. Isso inclui: nome completo, e-mail e número de telefone ao realizar uma reserva ou assinar a newsletter; dados de navegação anônimos (cookies de análise) para melhorar a experiência do usuário; e informações de pagamento que são processadas diretamente pelo PayPal e não são armazenadas em nossos servidores.',
 
     'privacy_s2_title' => 'Uso dos Dados',
     'privacy_s2_body'  => 'Utilizamos suas informações pessoais exclusivamente para: confirmar e gerenciar reservas, enviar comunicações relacionadas ao seu tour, melhorar nossos serviços por meio de análise agregada e, com seu consentimento expresso, enviar newsletters com ofertas e novidades. Não utilizaremos seus dados para tomada de decisões automatizadas nem para criação de perfis sem o seu consentimento.',
 
     'privacy_s3_title' => 'Compartilhamento de Informações',
-    'privacy_s3_body'  => 'A Lima View Tours não vende, aluga nem comercializa suas informações pessoais a terceiros. Compartilhamos dados apenas com fornecedores operacionais indispensáveis (plataforma de pagamento Culqi, serviço de envio de e-mails transacionais) que se comprometem contratualmente a tratar os dados com o mesmo nível de proteção. Podemos divulgar informações quando exigido por lei ou para proteger nossos direitos legais.',
+    'privacy_s3_body'  => 'A Lima View Tours não vende, aluga nem comercializa suas informações pessoais a terceiros. Compartilhamos dados apenas com fornecedores operacionais indispensáveis (plataforma de pagamento PayPal, serviço de envio de e-mails transacionais) que se comprometem contratualmente a tratar os dados com o mesmo nível de proteção. Podemos divulgar informações quando exigido por lei ou para proteger nossos direitos legais.',
 
     'privacy_s4_title' => 'Cookies',
     'privacy_s4_body'  => 'Utilizamos cookies próprios para o funcionamento do carrinho de compras e o gerenciamento de sessões, bem como cookies de terceiros do Google Analytics (anônimos) para análise de tráfego. Você pode configurar seu navegador para recusar cookies; observe que isso pode afetar a funcionalidade do site. Ao continuar navegando, você aceita nossa política de cookies.',
