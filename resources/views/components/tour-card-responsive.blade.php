@@ -17,6 +17,8 @@
     'img'              => null,
     'imgThumb'         => null,
     'imgAlt'           => null,
+    // Ruta guardada de la portada (p. ej. tours/covers/x.jpg): habilita srcset 480/960/1440 si existen las variantes WebP.
+    'imgPath'          => null,
     'before'           => null,
     'now'              => 0,
     'currency'         => 'US$',
@@ -42,6 +44,13 @@
     $imgSmall = $imgThumb ?: $imgFull;
     $altText = $imgAlt ?? $title;
     $imgFallback = asset('assets/banners/banner-hero.jpg');
+
+    // Variantes WebP responsive (ImageVariants::srcset devuelve null si no hay ninguna => se mantiene el <picture> de siempre).
+    $variantSrcset = ($imgPath && class_exists(\App\Support\ImageVariants::class)) ? \App\Support\ImageVariants::srcset($imgPath) : null;
+    if ($variantSrcset && ! str_contains($variantSrcset, ' 1440w')) {
+        $variantSrcset .= ', ' . $imgFull . ' 1441w'; // el original cubre lo que las variantes no alcanzan
+    }
+    $imgSizes = $isHome ? '(min-width:768px) 342px, 190px' : '(min-width:1024px) 300px, (min-width:640px) 352px, 160px';
 
     $pct = $discountPct;
     if (! $pct && $before && $now && (float) $before > (float) $now) {
@@ -97,10 +106,10 @@
     <div class="relative shrink-0 w-[44%] bg-cream-100 {{ $bp('sm:w-full sm:bg-transparent', 'md:w-full') }}">
         <a href="{{ $url }}" tabindex="-1" aria-hidden="true" class="absolute inset-0 block {{ $bp('sm:static sm:aspect-[4/3] sm:bg-cream-100', 'md:static md:aspect-[6/5] md:bg-cream-100') }}">
             <picture class="contents">
-                @if ($imgSmall !== $imgFull)
+                @if (! $variantSrcset && $imgSmall !== $imgFull)
                     <source media="{{ $bp('(min-width:640px)', '(min-width:768px)') }}" srcset="{{ $imgFull }}">
                 @endif
-                <img src="{{ $imgSmall }}" alt="{{ $altText }}"
+                <img src="{{ $variantSrcset ? \App\Support\ImageVariants::responsive($imgPath, 480) : $imgSmall }}" @if ($variantSrcset) srcset="{{ $variantSrcset }}" sizes="{{ $imgSizes }}" @endif alt="{{ $altText }}"
                      class="absolute inset-0 w-full h-full object-cover object-center text-transparent {{ $bp('sm:static', 'md:static') }}"
                      onerror="this.onerror=null;this.src='{{ $imgFallback }}'"
                      @if (! $eager) loading="lazy" @endif decoding="async" width="640" height="480">

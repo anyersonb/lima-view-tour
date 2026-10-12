@@ -41,11 +41,14 @@
         <a href="{{ route('home', ['locale' => $locale]) }}"
            class="site-header__logo flex items-center shrink-0 py-3"
            aria-label="Lima View Tours — {{ __('nav.home') }}">
-            <img src="{{ asset('assets/logos/logo-gold.png') }}"
-                 alt="Lima View Tours"
-                 class="h-8 sm:h-10 lg:h-12 w-auto select-none"
-                 draggable="false"
-                 width="266" height="107">
+            <picture>
+                <source type="image/webp" srcset="{{ asset('assets/logos/logo-gold.webp') }}">
+                <img src="{{ asset('assets/logos/logo-gold.png') }}"
+                     alt="Lima View Tours"
+                     class="h-8 sm:h-10 lg:h-12 w-auto select-none"
+                     draggable="false"
+                     width="266" height="107" fetchpriority="high">
+            </picture>
         </a>
 
         {{-- Spacer --}}

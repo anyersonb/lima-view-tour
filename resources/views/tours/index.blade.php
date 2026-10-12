@@ -92,6 +92,7 @@
             'languageLabel' => \App\Support\TourListing::languageLabel($languageRaw),
             'group' => $groupRaw,
             'modalityLabel' => $modality['label'] ?? null,
+            'imgPath' => $img ?: null,
             'img' => \App\Support\ImagePath::url($img) ?? asset('assets/banners/banner-hero.jpg'),
             // Miniatura liviana (480 px) para la card móvil; cae a la original si no existe.
             'imgThumb' => \App\Support\TourThumbnail::url($img) ?? asset('assets/banners/banner-hero.jpg'),
@@ -218,6 +219,9 @@
     <div class="hidden sm:block absolute inset-0 -z-10">
         {{-- Sin descarga en móvil (S-06): el <source> solo aplica desde 640 px; el <img> de respaldo es un GIF 1x1. --}}
         <picture>
+            @if ($bannerImg === 'banner-hero.jpg')
+                <source media="(min-width:640px)" type="image/webp" sizes="100vw" srcset="{{ collect([640, 1024, 1600, 1920])->map(fn ($w) => asset('assets/banners/banner-hero-' . $w . 'w.webp') . ' ' . $w . 'w')->implode(', ') }}">
+            @endif
             <source media="(min-width:640px)" srcset="{{ asset('assets/banners/' . rawurlencode($bannerImg)) }}">
             <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" width="1920" height="1000" class="w-full h-full object-cover" loading="eager" fetchpriority="high">
         </picture>
@@ -423,6 +427,7 @@
                             :slug="$tour['slug']"
                             :img="$tour['img']"
                             :img-thumb="$tour['imgThumb']"
+                            :img-path="$tour['imgPath']"
                             :before="$tour['before']"
                             :now="$tour['now']"
                             :rating="$tour['rating']"

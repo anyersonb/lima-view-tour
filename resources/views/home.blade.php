@@ -56,6 +56,7 @@
                 'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true)       : ($t['show_best_seller'] ?? true)),
                 'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true)       : ($t['show_offer_badge'] ?? true)),
                 // Datos reales para la card de escritorio (nada de valores por defecto inventados).
+                'imgPath'   => is_object($t) ? ($t->cover_image ?: null) : null,
                 'imgThumb'  => is_object($t) ? (\App\Support\TourThumbnail::url($t->cover_image ?? null) ?? null) : null,
                 'duration'  => \App\Support\TourListing::durationLabel(data_get($t, 'duration')),
                 'language'  => (is_object($t) && method_exists($t, 'getLanguagesLabelAttribute'))
@@ -103,6 +104,23 @@
     $destUrl = fn (?string $dest): string => $dest
         ? route('tours.category', ['locale' => $locale, 'categoria' => $dest])
         : route('tours.index', ['locale' => $locale]);
+
+    // Imagen subida al disco "media" con variantes WebP: src + srcset/sizes si existen; ['src' => null] si no (se usa el fallback de siempre).
+    $mediaVariants = static function ($path, string $sizes): array {
+        $path = is_string($path) && $path !== '' ? $path : null;
+        $set  = $path ? \App\Support\ImageVariants::srcset($path, null, 'media') : null;
+        if (! $set) {
+            return ['src' => null, 'attrs' => ''];
+        }
+        if (! str_contains($set, ' 1440w')) {
+            $set .= ', ' . \App\Support\ImageVariants::url($path, 'media') . ' 1441w';
+        }
+
+        return [
+            'src'   => \App\Support\ImageVariants::responsive($path, 480, 'media'),
+            'attrs' => ' srcset="' . e($set) . '" sizes="' . e($sizes) . '"',
+        ];
+    };
 
     // Separador decorativo reutilizable
     $sep = '<div class="flex items-center justify-center gap-2 mt-4 mb-0" aria-hidden="true">
@@ -206,11 +224,29 @@
         $heroImgUrl = ($heroImgSetting !== '' && $heroImgSetting !== '[]' && $heroImgSetting !== '""')
             ? \Illuminate\Support\Facades\Storage::disk('media')->url($heroImgSetting)
             : asset('assets/banners/hero-machu-picchu.png');
+        // Hero por defecto: derivadas WebP 640/1024/1600/1717 (nativo). `sizes` usa el ancho que de verdad
+        // cubre el hero (object-cover sobre ~700 px de alto en móvil exige ~1300 px de imagen).
+        $heroIsDefault = $heroImgUrl === asset('assets/banners/hero-machu-picchu.png');
+        $heroSizes     = 'max(100vw, 1300px)';
+        $heroSrcset    = collect([640, 1024, 1600, 1717])
+            ->map(fn ($w) => asset('assets/banners/hero-machu-picchu-' . $w . 'w.webp') . ' ' . $w . 'w')
+            ->implode(', ');
     @endphp
+    @if ($heroIsDefault)
+        @push('head')
+            <link rel="preload" as="image" type="image/webp" imagesrcset="{{ $heroSrcset }}" imagesizes="{{ $heroSizes }}" fetchpriority="high">
+        @endpush
+    @endif
     <div class="absolute inset-0 -z-10">
-        <img src="{{ $heroImgUrl }}" alt=""
-             class="w-full h-full object-cover object-[60%_center] lg:object-center"
-             loading="eager" fetchpriority="high">
+        <picture class="contents">
+            @if ($heroIsDefault)
+                <source type="image/webp" srcset="{{ $heroSrcset }}" sizes="{{ $heroSizes }}">
+            @endif
+            <img src="{{ $heroImgUrl }}" alt=""
+                 class="w-full h-full object-cover object-[60%_center] lg:object-center"
+                 width="1717" height="916"
+                 loading="eager" fetchpriority="high" decoding="async">
+        </picture>
         <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/75"></div>
     </div>
 
@@ -465,6 +501,7 @@
                             :slug="$mct['slug']"
                             :img="$mct['img']"
                             :img-thumb="$mct['imgThumb']"
+                            :img-path="$mct['imgPath']"
                             :before="$mct['before']"
                             :now="$mct['now']"
                             :rating="$mct['rating']"
@@ -577,6 +614,7 @@
                             :slug="$lct['slug']"
                             :img="$lct['img']"
                             :img-thumb="$lct['imgThumb']"
+                            :img-path="$lct['imgPath']"
                             :before="$lct['before']"
                             :now="$lct['now']"
                             :rating="$lct['rating']"
@@ -698,7 +736,8 @@
             @foreach ($destinos as $dIdx => $destino)
                 <article class="relative block w-full rounded-3xl overflow-hidden shadow-md min-h-[280px] lg:min-h-0 lg:aspect-[3/4]">
                     {{-- Imagen de fondo --}}
-                    <img src="{{ \App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1))) ?: (\App\Support\ImagePath::homeImage($destino['img'] ?? null) ?: asset('assets/banners/Rectangle 19218.jpg')) }}"
+                    @php $dv = $mediaVariants(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1)), '(min-width:1024px) 400px, 100vw'); @endphp
+                    <img src="{{ $dv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1))) ?: (\App\Support\ImagePath::homeImage($destino['img'] ?? null) ?: asset('assets/banners/Rectangle 19218.jpg'))) }}"{!! $dv['attrs'] !!}
                          alt="{{ $destino['title_' . $locale] ?? $destino['title_es'] ?? '' }}"
                          class="absolute inset-0 w-full h-full object-cover object-center"
                          loading="lazy"
@@ -951,9 +990,10 @@
 
                 {{-- Imagen --}}
                 <div class="relative">
-                    <img src="{{ \App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1))) ?: (\App\Support\ImagePath::homeImage($tImg) ?: asset('assets/banners/Rectangle 19215.jpg')) }}"
+                    @php $tv = $mediaVariants(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1)), '(min-width:1024px) 512px, (min-width:672px) 672px, 100vw'); @endphp
+                    <img src="{{ $tv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1))) ?: (\App\Support\ImagePath::homeImage($tImg) ?: asset('assets/banners/Rectangle 19215.jpg'))) }}"{!! $tv['attrs'] !!}
                          alt="{{ $tTitle }}"
-                         class="w-full h-48 lg:h-full object-cover" loading="lazy">
+                         class="w-full h-48 lg:h-full object-cover" loading="lazy" decoding="async" width="672" height="192">
                     <span class="absolute top-4 left-4 inline-flex items-center gap-2 bg-teal-800 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
                         <svg class="w-3 h-3 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         {{ $tEyebrow }}
@@ -1072,10 +1112,11 @@
                               block group rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5
                               bg-white hover:shadow-md transition-shadow">
                         <div class="relative aspect-[4/3] overflow-hidden">
-                            <img src="{{ \App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_exp_img_' . ($i + 1))) ?: (\App\Support\ImagePath::homeImage($eImg) ?: asset('assets/banners/Rectangle 19216.jpg')) }}"
+                            @php $ev = $mediaVariants(\App\Models\Setting::get('home_exp_img_' . ($i + 1)), '(min-width:1024px) 300px, (min-width:768px) 45vw, (min-width:640px) 60vw, 88vw'); @endphp
+                            <img src="{{ $ev['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_exp_img_' . ($i + 1))) ?: (\App\Support\ImagePath::homeImage($eImg) ?: asset('assets/banners/Rectangle 19216.jpg'))) }}"{!! $ev['attrs'] !!}
                                  alt="{{ $eTitle }}"
                                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                 loading="lazy">
+                                 loading="lazy" decoding="async" width="640" height="480">
                         </div>
                         <div class="p-4">
                             <h3 class="font-display text-lg text-teal-800 leading-tight line-clamp-2 group-hover:text-orange-700 transition-colors">{{ $eTitle }}</h3>
