@@ -171,7 +171,7 @@ class CheckoutTest extends TestCase
                 'customer_name' => 'Test User',
                 'customer_email' => 'not-an-email',
                 'customer_phone' => '12345',          // invalid format
-                'travel_date' => now()->subDay()->format('Y-m-d'), // past date
+                'travel_date' => \App\Support\BookingCalendar::today()->subDay()->format('Y-m-d'), // past date
                 'culqi_token' => 'tkn_test',
             ]
         );

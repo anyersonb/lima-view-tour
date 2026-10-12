@@ -244,7 +244,7 @@ class CartTest extends TestCase
 
         $response = $this->post(
             route('cart.store', ['locale' => self::LOCALE]),
-            $this->validPayload($tour, ['travel_date' => now()->subDay()->format('Y-m-d')])
+            $this->validPayload($tour, ['travel_date' => \App\Support\BookingCalendar::today()->subDay()->format('Y-m-d')])
         );
 
         $response->assertSessionHasErrors(['travel_date']);
