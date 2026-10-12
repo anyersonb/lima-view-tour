@@ -1306,9 +1306,9 @@
                  'a_pt'=>'A maioria de nossos tours é adequada para todas as idades e níveis físicos. Consulte-nos para detalhes.',
                  'iconPath'=>'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486'],
                 ['q_es'=>'¿Incluyen recojo desde el hotel?','q_en'=>'Do you offer hotel pickup?','q_pt'=>'Vocês oferecem traslado do hotel?',
-                 'a_es'=>'Sí, todos nuestros tours en Lima, Ica y Cusco incluyen recojo y retorno a tu hotel sin costo adicional.',
-                 'a_en'=>'Yes, all our tours in Lima, Ica and Cusco include hotel pickup and drop-off at no extra cost.',
-                 'a_pt'=>'Sim, todos os nossos tours em Lima, Ica e Cusco incluem busca e retorno ao hotel sem custo adicional.',
+                 'a_es'=>__('ui.home_faq_pickup_answer', [], 'es'),
+                 'a_en'=>__('ui.home_faq_pickup_answer', [], 'en'),
+                 'a_pt'=>__('ui.home_faq_pickup_answer', [], 'pt'),
                  'iconPath'=>'M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12'],
                 ['q_es'=>'¿Cómo puedo reservar un tour?','q_en'=>'How can I book a tour?','q_pt'=>'Como posso reservar um tour?',
                  'a_es'=>'Puedes reservar online seleccionando tu tour, fecha y número de pasajeros. Te enviaremos la confirmación al instante.',
@@ -1330,31 +1330,32 @@
             $faqs = (is_array($rawHomeFaqs) && count($rawHomeFaqs)) ? $rawHomeFaqs : $defaultHomeFaqs;
         @endphp
 
-        {{-- Accordion --}}
-        <div class="space-y-3 mb-6 max-w-2xl mx-auto lg:max-w-4xl lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+        {{-- Accordion (único bloque de FAQ de la home; microdatos FAQPage == texto visible) --}}
+        <div class="space-y-3 mb-6 max-w-2xl mx-auto lg:max-w-4xl lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0" itemscope itemtype="https://schema.org/FAQPage">
             @foreach ($faqs as $i => $faqItem)
             @php
                 $q        = $faqItem['q_' . $locale] ?? $faqItem['q_es'] ?? '';
                 $a        = $faqItem['a_' . $locale] ?? $faqItem['a_es'] ?? '';
                 $iconPath = $faqItem['iconPath'] ?? '';
             @endphp
-                <div class="bg-white rounded-2xl shadow-sm ring-1 ring-teal-800/5 overflow-hidden">
+                <div class="bg-white rounded-2xl shadow-sm ring-1 ring-teal-800/5 overflow-hidden" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
                     <button type="button"
                             @click="open = open === {{ $i }} ? null : {{ $i }}"
                             :aria-expanded="open === {{ $i }} ? 'true' : 'false'"
+                            aria-controls="home-faq-answer-{{ $i }}"
                             class="w-full flex items-center gap-4 px-4 py-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500">
                         <span class="w-11 h-11 rounded-xl bg-teal-800 grid place-items-center shrink-0">
                             <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath }}"/>
                             </svg>
                         </span>
-                        <span class="flex-1 font-display text-base text-teal-800 leading-tight">{{ $q }}</span>
+                        <span class="flex-1 font-display text-base text-teal-800 leading-tight" itemprop="name">{{ $q }}</span>
                         <span class="w-7 h-7 grid place-items-center text-orange-700 text-2xl font-light shrink-0 transition-transform duration-200"
                               :class="open === {{ $i }} ? 'rotate-45' : ''"
                               aria-hidden="true">+</span>
                     </button>
-                    <div x-show="open === {{ $i }}" x-collapse>
-                        <p class="px-4 pb-4 text-sm text-teal-800/75 leading-relaxed">{{ $a }}</p>
+                    <div id="home-faq-answer-{{ $i }}" x-show="open === {{ $i }}" x-collapse itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+                        <p class="px-4 pb-4 text-sm text-teal-800/75 leading-relaxed" itemprop="text">{{ $a }}</p>
                     </div>
                 </div>
             @endforeach
@@ -1644,15 +1645,9 @@
     </div>
 </section>
 
-{{-- ============================================================
-     SECCIÓN FAQ — AEO accordion (renderiza solo si hay FAQs)
-     ============================================================ --}}
-<x-faq-section />
-
 @endsection
 
 {{-- Lote B (2026-08-31): se apagó el FAQPage automático que generaba
      partials/faq-schema.blade.php (ahora borrado) a partir del setting
-     "faqs". El accordion visible de <x-faq-section /> sigue intacto; si el
-     equipo SEO quiere el FAQPage en JSON-LD, lo carga a mano en el campo de
-     Datos estructurados de esta página. --}}
+     "faqs". La home tiene UN solo bloque de FAQ (sección 7, con microdatos
+     FAQPage == texto visible); no lo repitas con <x-faq-section />. --}}
