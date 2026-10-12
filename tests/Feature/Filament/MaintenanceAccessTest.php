@@ -5,7 +5,6 @@ namespace Tests\Feature\Filament;
 use App\Filament\Pages\Maintenance;
 use App\Models\User;
 use App\Support\MaintenanceOutput;
-use Filament\Notifications\Notification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
