@@ -40,6 +40,14 @@ class AppViewServiceProvider extends ServiceProvider
                 return;
             }
 
+            // A section holding a View object (not rendered text) cannot go
+            // through HtmlString: leave the whole table alone in that case.
+            foreach ($sections as $content) {
+                if (! is_string($content)) {
+                    return;
+                }
+            }
+
             // Factory::inject() escapes plain strings again and cannot overwrite
             // an existing section, so rebuild the section table: HtmlString is
             // stored untouched by e().
