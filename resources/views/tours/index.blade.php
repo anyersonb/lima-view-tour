@@ -505,10 +505,6 @@
             <div class="relative h-full p-8 flex flex-col">
                 <p class="text-[11px] uppercase tracking-[0.2em] font-semibold">{{ __('ui.happy_clients') }}</p>
                 <h3 class="mt-3 font-display text-3xl lg:text-4xl leading-tight">{{ __('ui.clients_opinion') }}</h3>
-                <p class="mt-4 inline-flex items-center gap-2 text-sm">
-                    <span class="font-semibold">4.8</span>
-                    <span class="text-orange-400">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                </p>
                 <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary mt-auto self-start">{{ __('ui.see_tours') }}</a>
             </div>
         </article>
