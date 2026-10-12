@@ -392,10 +392,11 @@
                     </label>
                 </div>
 
-                {{-- MOBILE (<640): cards horizontales tipo lista --}}
-                <div class="flex flex-col gap-2 -mx-[3px] sm:mx-0 sm:hidden" data-tour-cards>
+                {{-- UN solo <article> por tour: fila compacta <640, card vertical (2/3 col.) desde 640 --}}
+                <div class="flex flex-col gap-2 -mx-[3px] sm:mx-0 sm:grid sm:gap-6 sm:grid-cols-2 lg:grid-cols-3" data-tour-cards>
                     @foreach ($cardData as $i => $tour)
-                        <x-tour-card-row
+                        <x-tour-card-responsive
+                            variant="list"
                             :eager="$i < 2"
                             data-tour-card
                             data-index="{{ $i }}"
@@ -411,55 +412,15 @@
                             data-search="{{ $tour['searchText'] }}"
                             :title="$tour['title']"
                             :slug="$tour['slug']"
-                            :img="$tour['imgThumb']"
-                            :before="$tour['before']"
-                            :now="$tour['now']"
-                            :rating="$tour['rating']"
-                            :reviews="$tour['reviews']"
-                            :duration="$tour['durationLabel']"
-                            :language="$tour['languageLabel']"
-                            :modality="$tour['modalityLabel']"
-                            :badge="$tour['badge']"
-                            :badge-type="$tour['badgeType']"
-                            :showBestSeller="$tour['showBestSeller']"
-                            :showOffer="$tour['showOffer']"
-                            :pickup="$tour['pickup']"
-                            :free-cancellation="$tour['freeCancellation']"
-                            :location-label="$cat ? ucfirst($cat) : null"
-                            currency="US$"
-                        />
-                    @endforeach
-                </div>
-
-                {{-- TABLET / DESKTOP (≥640): grid de cards verticales --}}
-                <div class="hidden sm:grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-tour-cards>
-                    @foreach ($cardData as $i => $tour)
-                        <x-tour-card
-                            data-tour-card
-                            data-index="{{ $i }}"
-                            :style="$i >= $pageSize ? 'display:none' : null"
-                            data-price="{{ $tour['now'] }}"
-                            data-duration="{{ $tour['durationBucket'] }}"
-                            data-duration-weight="{{ $tour['durationWeight'] }}"
-                            data-languages="{{ implode(',', $tour['languageCodes']) }}"
-                            data-group="{{ $tour['groupSlug'] }}"
-                            data-region="{{ $tour['regionSlug'] }}"
-                            data-offer="{{ $tour['isOffer'] ? '1' : '0' }}"
-                            data-name="{{ $tour['nameSort'] }}"
-                            data-search="{{ $tour['searchText'] }}"
-                            :title="$tour['title']"
-                            :slug="$tour['slug']"
                             :img="$tour['img']"
+                            :img-thumb="$tour['imgThumb']"
                             :before="$tour['before']"
                             :now="$tour['now']"
                             :rating="$tour['rating']"
                             :reviews="$tour['reviews']"
                             :duration="$tour['durationLabel']"
                             :language="$tour['languageLabel']"
-                            :badge="$tour['badge']"
-                            :badge-type="$tour['badgeType']"
-                            :showBestSeller="$tour['showBestSeller']"
-                            :showOffer="$tour['showOffer']"
+                            :show-offer="$tour['showOffer']"
                             :pickup="$tour['pickup']"
                             :free-cancellation="$tour['freeCancellation']"
                             currency="US$"
