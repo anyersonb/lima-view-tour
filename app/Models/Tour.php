@@ -161,6 +161,57 @@ class Tour extends Model
         return $this->{"description_{$locale}"} ?: $this->description_es;
     }
 
+    /**
+     * Translatable content with a CLEAN fallback to Spanish: the translated value
+     * when it has something in it, otherwise the Spanish one.
+     *
+     * Reading "{field}_{locale} ?? {field}_es" is not enough: the panel stores
+     * an untouched PT/EN repeater or tags field as [] and an empty textarea can
+     * be '', neither is null, so the page printed an empty section instead of
+     * the Spanish content while the translation is still being loaded.
+     *
+     * $field is the column name without the locale suffix: 'itinerary',
+     * 'includes', 'excludes', 'faqs', 'recommendations', 'notes', 'subtitle'...
+     */
+    public function localized(string $field, ?string $locale = null): mixed
+    {
+        $locale ??= app()->getLocale();
+
+        if ($locale !== 'es') {
+            $value = $this->getAttribute("{$field}_{$locale}");
+
+            if (! static::isBlankContent($value)) {
+                return $value;
+            }
+        }
+
+        return $this->getAttribute("{$field}_es");
+    }
+
+    /** null, '', whitespace, [] or a list whose every cell is blank. */
+    protected static function isBlankContent(mixed $value): bool
+    {
+        if ($value === null) {
+            return true;
+        }
+
+        if (is_string($value)) {
+            return trim($value) === '';
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if (! static::isBlankContent($item)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     public function getCoverUrlAttribute(): string
     {
         return ImagePath::url($this->cover_image) ?? asset('assets/banners/banner-hero.jpg');

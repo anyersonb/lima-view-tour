@@ -133,6 +133,7 @@ class TourController extends Controller
             ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
                 $w->where('title_es', 'like', "%{$q}%")
                   ->orWhere('title_en', 'like', "%{$q}%")
+                  ->orWhere('title_pt', 'like', "%{$q}%")
                   ->orWhere('description_es', 'like', "%{$q}%");
             }))
             ->ordered()->paginate(12)->withQueryString();
