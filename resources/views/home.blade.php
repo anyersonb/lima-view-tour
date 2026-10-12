@@ -59,8 +59,8 @@
                 'imgPath'   => is_object($t) ? ($t->cover_image ?: null) : null,
                 'imgThumb'  => is_object($t) ? (\App\Support\TourThumbnail::url($t->cover_image ?? null) ?? null) : null,
                 'duration'  => \App\Support\TourListing::durationLabel(data_get($t, 'duration')),
-                'language'  => (is_object($t) && method_exists($t, 'getLanguagesLabelAttribute'))
-                    ? $t->languagesLabel
+                'language'  => (is_object($t) && method_exists($t, 'languagesLabel'))
+                    ? $t->languagesLabel()
                     : \App\Support\TourListing::languageLabel(data_get($t, 'language')),
                 'pickup'    => (bool) data_get($t, 'pickup_included', true),
                 'freeCancellation' => (bool) data_get($t, 'free_cancellation', true),
@@ -1369,6 +1369,21 @@
             ];
             $rawHomeFaqs = \App\Models\Setting::get('home_faqs');
             $faqs = (is_array($rawHomeFaqs) && count($rawHomeFaqs)) ? $rawHomeFaqs : $defaultHomeFaqs;
+
+            // Fuente única del texto: Setting 'faqs' (question_/answer_, el bloque que ya llevaba microdatos FAQPage).
+            // home_faqs / defaults solo aportan el icono por posición. Si 'faqs' está vacío se usa home_faqs / defaults.
+            $rawAeoFaqs = \App\Models\Setting::get('faqs');
+            if (is_string($rawAeoFaqs)) { $rawAeoFaqs = json_decode($rawAeoFaqs, true); }
+            $aeoFaqs = collect(is_array($rawAeoFaqs) ? $rawAeoFaqs : [])
+                ->filter(fn ($x) => ! empty($x['question_' . $locale] ?? ($x['question_es'] ?? null)))
+                ->values();
+            if ($aeoFaqs->isNotEmpty()) {
+                $faqs = $aeoFaqs->map(fn ($x, $k) => [
+                    'q_' . $locale => $x['question_' . $locale] ?? $x['question_es'],
+                    'a_' . $locale => $x['answer_' . $locale] ?? ($x['answer_es'] ?? ''),
+                    'iconPath'     => ($faqs[$k] ?? $defaultHomeFaqs[$k % count($defaultHomeFaqs)])['iconPath'] ?? '',
+                ])->all();
+            }
         @endphp
 
         {{-- Accordion (único bloque de FAQ de la home; microdatos FAQPage == texto visible) --}}

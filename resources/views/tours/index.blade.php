@@ -190,10 +190,10 @@
 {{-- Editables desde el admin: Configuración → SEO → Metas por página →
      Catálogo de tours / Catálogo — Lima|Ica|Cusco (una meta por categoría,
      porque cada una es una URL distinta). Vacío = texto por defecto. --}}
-@section('title', \App\Support\PageSeo::title($seoPageKey, $regionSeoTitle ?: ($sectionTitle . ' — ' . __('seo.site_name'))))
-@section('description', \App\Support\PageSeo::description($seoPageKey, $regionSeoDescription ?: ($cat
+@section('title', \App\Support\PageSeo::title($seoPageKey, $regionSeoTitle ?: (\App\Support\PageSeo::langDefault($seoPageKey, 'title') ?? ($sectionTitle . ' — ' . __('seo.site_name')))))
+@section('description', \App\Support\PageSeo::description($seoPageKey, $regionSeoDescription ?: (\App\Support\PageSeo::langDefault($seoPageKey, 'description') ?? ($cat
     ? __('ui.tours_meta_description_region', ['region' => ($region ?? null)?->name ?: ucfirst($cat)])
-    : __('ui.tours_meta_description_all'))))
+    : __('ui.tours_meta_description_all')))))
 
 @php
     // Metas por página → Catálogo de tours / Catálogo — Lima|Ica|Cusco →
@@ -244,7 +244,7 @@
         {{-- Único H1 de la página. Categorías: "Tours en {Destino}" en todos los tamaños y el eslogan pasa a <p>.
              /tours: título corto en móvil, titular de marketing desde 640 px (sin cambios). --}}
         @if ($cat)
-            <h1 class="tours-hero__title font-display font-normal text-[22px] leading-[1.2] py-2 sm:py-0 sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">{{ \Illuminate\Support\Facades\Lang::has('seo.tours_h1_' . $cat) ? __('seo.tours_h1_' . $cat) : $sectionTitle }}</h1>
+            <h1 class="tours-hero__title font-display font-normal text-[22px] leading-[1.2] py-2 sm:py-0 sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">{{ \App\Support\PageSeo::toursHeading($cat) }}</h1>
             <p class="tours-hero__tagline hidden sm:block mt-4 font-display font-normal text-[24px] leading-[1.15] md:text-[30px] text-white/95">
                 {{ $L('Descubre experiencias con un estilo más', 'Discover experiences with a more', 'Descubra experiências com um estilo mais') }}
                 <span class="italic text-orange-400 font-light">premium.</span>
