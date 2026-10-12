@@ -237,14 +237,23 @@
             <span class="text-[11px] sm:text-xs uppercase tracking-[0.18em] text-amber-200 font-bold">{{ $L('Tours seleccionados en Perú', 'Selected tours in Peru', 'Tours selecionados no Peru') }}</span>
         </span>
 
-        {{-- Único H1 de la página: título corto en móvil, titular de marketing desde 640 px. --}}
-        <h1 class="tours-hero__title font-display font-normal text-[22px] leading-[1.2] py-2 sm:py-0 sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">
-            <span class="sm:hidden">{{ $sectionTitle }}</span>
-            <span class="hidden sm:inline">
+        {{-- Único H1 de la página. Categorías: "Tours en {Destino}" en todos los tamaños y el eslogan pasa a <p>.
+             /tours: título corto en móvil, titular de marketing desde 640 px (sin cambios). --}}
+        @if ($cat)
+            <h1 class="tours-hero__title font-display font-normal text-[22px] leading-[1.2] py-2 sm:py-0 sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">{{ \Illuminate\Support\Facades\Lang::has('seo.tours_h1_' . $cat) ? __('seo.tours_h1_' . $cat) : $sectionTitle }}</h1>
+            <p class="tours-hero__tagline hidden sm:block mt-4 font-display font-normal text-[24px] leading-[1.15] md:text-[30px] text-white/95">
                 {{ $L('Descubre experiencias con un estilo más', 'Discover experiences with a more', 'Descubra experiências com um estilo mais') }}
                 <span class="italic text-orange-400 font-light">premium.</span>
-            </span>
-        </h1>
+            </p>
+        @else
+            <h1 class="tours-hero__title font-display font-normal text-[22px] leading-[1.2] py-2 sm:py-0 sm:text-[54px] sm:leading-[0.98] md:text-[64px] lg:text-[72px] lg:leading-[0.96]">
+                <span class="sm:hidden">{{ $sectionTitle }}</span>
+                <span class="hidden sm:inline">
+                    {{ $L('Descubre experiencias con un estilo más', 'Discover experiences with a more', 'Descubra experiências com um estilo mais') }}
+                    <span class="italic text-orange-400 font-light">premium.</span>
+                </span>
+            </h1>
+        @endif
 
         {{-- Buscador: suelto en móvil (filtra la lista en cliente); caja blanca desde 640 px --}}
         <div class="sm:mt-8 sm:bg-white sm:text-teal-800 sm:rounded-3xl sm:shadow-2xl sm:ring-1 sm:ring-black/5 sm:p-5 sm:max-w-2xl">
