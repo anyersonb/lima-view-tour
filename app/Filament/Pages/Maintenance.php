@@ -168,17 +168,17 @@ class Maintenance extends Page
                     $this->runCommands(['migrate' => ['--force' => true]], 'Migraciones ejecutadas', 'No había migraciones pendientes.', 'Las migraciones fallaron');
                 }),
 
-            Action::make('tour_thumbnails')
-                ->label('Generar miniaturas de tours')
+            Action::make('optimized_images')
+                ->label('Generar imágenes optimizadas')
                 ->icon('heroicon-o-photo')
                 ->color('gray')
                 ->authorize(fn (): bool => MaintenanceAccess::allows(auth()->user()))
                 ->requiresConfirmation()
-                ->modalHeading('Generar miniaturas de portadas')
-                ->modalDescription('Crea una versión liviana (WebP, 480 px) de la portada de cada tour para las tarjetas del listado en móvil. Solo procesa las que faltan; se puede ejecutar varias veces.')
+                ->modalHeading('Generar imágenes optimizadas')
+                ->modalDescription('Crea versiones livianas en WebP (480, 960 y 1440 px) de todas las imágenes subidas, más las miniaturas de portada de los tours. Solo procesa las que faltan y trabaja por tandas de ~60 segundos: si quedan pendientes, el mensaje lo indica y basta con pulsar de nuevo.')
                 ->modalSubmitActionLabel('Sí, generar')
                 ->action(function () {
-                    $this->runCommands(['tours:thumbnails' => []], 'Miniaturas generadas', 'Sin cambios.', 'Miniaturas con errores');
+                    $this->runCommands(['images:variants' => ['--max-seconds' => 60]], 'Imágenes optimizadas', 'Sin cambios.', 'La optimización de imágenes tuvo errores');
                 }),
 
             Action::make('view_sitemap')

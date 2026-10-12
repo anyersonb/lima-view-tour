@@ -27,6 +27,9 @@ class ImageOptimizer
      */
     public const MAX_PIXELS = 40_000_000;
 
+    /** Longest side an uploaded original is kept at (px). */
+    public const MAX_SIDE = 2000;
+
     public static function exceedsPixelLimit(int $w, int $h): bool
     {
         return $w * $h > self::MAX_PIXELS;
@@ -138,9 +141,13 @@ class ImageOptimizer
         $w = imagesx($img);
         $h = imagesy($img);
 
-        if ($w > $maxWidth) {
-            $nw = $maxWidth;
-            $nh = (int) round($h * ($maxWidth / $w));
+        // Never keep an original bigger than MAX_SIDE on either side (the page
+        // serves responsive variants; the original is only the source for them).
+        $scale = min(1, $maxWidth / $w, self::MAX_SIDE / $w, self::MAX_SIDE / $h);
+
+        if ($scale < 1) {
+            $nw = max(1, (int) round($w * $scale));
+            $nh = max(1, (int) round($h * $scale));
             $resized = imagecreatetruecolor($nw, $nh);
             // Preserva transparencia (PNG/WebP con alfa).
             imagealphablending($resized, false);
@@ -185,8 +192,21 @@ class ImageOptimizer
             try {
                 $path = self::store($file, $directory, $maxWidth, $quality, $disk);
 
+                // Responsive variants next to the original. Best effort: a failure here
+                // must never lose the upload (images:variants fills the gaps later).
+                try {
+                    ImageVariants::generate($path, $disk);
+                } catch (\Throwable $e) {
+                    Log::warning('image variants failed', ['path' => $path, 'error' => $e->getMessage()]);
+                }
+
                 if (is_string($old) && $old !== '' && $old !== $path && Storage::disk($disk)->exists($old)) {
                     Storage::disk($disk)->delete($old);
+
+                    // Its responsive variants are orphans now.
+                    foreach (ImageVariants::WIDTHS as $w) {
+                        Storage::disk($disk)->delete(ImageVariants::variantPath($old, $w));
+                    }
                 }
 
                 return $path;

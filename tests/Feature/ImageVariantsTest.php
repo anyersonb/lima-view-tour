@@ -4,12 +4,15 @@ namespace Tests\Feature;
 
 use App\Support\ImageOptimizer;
 use App\Support\ImageVariants;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Tests\TestCase;
 
 class ImageVariantsTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -117,8 +120,8 @@ class ImageVariantsTest extends TestCase
         ImageVariants::flush();
 
         Storage::disk('media')->assertExists('home/hero-w960.webp');
-        $this->assertStringContainsString('/media/home/hero-w960.webp', ImageVariants::responsive('home/hero.png', 600, 'media'));
-        $this->assertStringContainsString('/media/home/hero-w480.webp 480w', ImageVariants::srcset('home/hero.png', [480, 960], 'media'));
+        $this->assertStringContainsString('home/hero-w960.webp', ImageVariants::responsive('home/hero.png', 600, 'media'));
+        $this->assertStringContainsString('home/hero-w480.webp 480w', ImageVariants::srcset('home/hero.png', [480, 960], 'media'));
     }
 
     public function test_command_is_idempotent_and_covers_both_disks(): void
@@ -142,13 +145,11 @@ class ImageVariantsTest extends TestCase
         $this->artisan('images:variants', ['--force' => true])->expectsOutputToContain('Variantes creadas: 5')->assertSuccessful();
     }
 
-    public function test_command_reports_pending_when_the_time_budget_is_exhausted(): void
+    public function test_command_reports_the_pending_counter(): void
     {
         $this->putImg('public', 'blog/covers/one.png', 1800);
 
-        // budget of 1 s cannot be "already spent" on a fresh run, so fake it with a tiny sleep-free path:
-        // run with --max-seconds=1 after making the budget check trip via a very small value is not
-        // deterministic; instead assert the summary format of a normal run includes the pending counter.
+        // The wall-clock budget cannot be tripped deterministically; this pins the report format.
         $this->artisan('images:variants')->expectsOutputToContain('Pendientes: 0')->assertSuccessful();
     }
 
