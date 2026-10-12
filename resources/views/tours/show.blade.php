@@ -225,7 +225,7 @@
     // FAQs del tour). $tourFaqs sigue alimentando el acordeón visible más
     // abajo — solo se apagó su copia en JSON-LD. Con el campo vacío, la
     // ficha del tour ya no emite ningún JSON-LD.
-    $customSchema = $tour->schemaJsonLd($locale);
+    $customSchema = \App\Support\TourJsonLd::for($tour, $locale);
 @endphp
 @if ($customSchema)
 <x-schema-raw :json="$customSchema" />
