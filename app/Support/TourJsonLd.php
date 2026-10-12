@@ -31,6 +31,84 @@ final class TourJsonLd
     {
         $locale = $locale ?: app()->getLocale();
 
+        return self::withFaqPage(self::custom($tour, $locale), $tour, $locale);
+    }
+
+    /**
+     * FAQPage built from the FAQs the page shows (Tour::localized('faqs'), same
+     * Spanish fallback and same "complete pairs only" filter as the Blade view).
+     * Null when the page shows none, so nothing is emitted without visible FAQs.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function faqPage(Tour $tour, ?string $locale = null): ?array
+    {
+        $locale = $locale ?: app()->getLocale();
+
+        $entities = [];
+        foreach ((array) ($tour->localized('faqs', $locale) ?: []) as $faq) {
+            $q = is_array($faq) ? trim((string) ($faq['question'] ?? '')) : '';
+            $a = is_array($faq) ? trim((string) ($faq['answer'] ?? '')) : '';
+
+            if ($q === '' || $a === '') {
+                continue;
+            }
+
+            $entities[] = [
+                '@type' => 'Question',
+                'name' => $q,
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $a],
+            ];
+        }
+
+        if ($entities === []) {
+            return null;
+        }
+
+        return ['@type' => 'FAQPage', 'mainEntity' => $entities];
+    }
+
+    /** Adds the FAQPage to the editor's JSON-LD (as @graph member) or emits it alone. */
+    private static function withFaqPage(?string $custom, Tour $tour, string $locale): ?string
+    {
+        $faq = self::faqPage($tour, $locale);
+        $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+
+        if ($faq === null) {
+            return $custom;
+        }
+
+        if ($custom === null) {
+            return json_encode(['@context' => 'https://schema.org'] + $faq, $flags);
+        }
+
+        $data = json_decode($custom, true);
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($data)) {
+            return $custom;
+        }
+
+        $nodes = isset($data['@graph']) && is_array($data['@graph'])
+            ? $data['@graph']
+            : [array_diff_key($data, ['@context' => 1])];
+
+        // The editor already wrote a FAQPage by hand: do not duplicate it.
+        foreach ($nodes as $node) {
+            if (is_array($node) && in_array('FAQPage', (array) ($node['@type'] ?? []), true)) {
+                return $custom;
+            }
+        }
+
+        $nodes[] = $faq;
+
+        return json_encode(
+            ['@context' => $data['@context'] ?? 'https://schema.org', '@graph' => array_values($nodes)],
+            $flags
+        );
+    }
+
+    private static function custom(Tour $tour, string $locale): ?string
+    {
+
         $own = self::filled($tour->{"schema_jsonld_{$locale}"} ?? null);
         if ($own !== null) {
             return $own;

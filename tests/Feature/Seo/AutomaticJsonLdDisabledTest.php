@@ -101,20 +101,30 @@ class AutomaticJsonLdDisabledTest extends TestCase
         return Tour::factory()->create(array_merge(['is_published' => true], $overrides));
     }
 
-    public function test_tour_show_emits_no_jsonld_when_every_field_is_empty(): void
+    public function test_tour_show_emits_no_jsonld_when_every_field_is_empty_and_there_are_no_faqs(): void
     {
-        // Incluye FAQs del tour rellenas: el FAQPage automático que las leía
-        // está apagado, así que igual deben dar 0 bloques.
-        $tour = $this->tour([
-            'slug' => 'city-tour-lima',
-            'faqs_es' => [
-                ['question' => '¿Pregunta?', 'answer' => 'Respuesta.'],
-            ],
-        ]);
+        $tour = $this->tour(['slug' => 'city-tour-lima', 'faqs_es' => [], 'faqs_en' => [], 'faqs_pt' => []]);
 
         $html = $this->get("/es/tours/detalle/{$tour->slug}")->assertOk()->getContent();
 
-        $this->assertsZeroJsonLd($html, 'la ficha del tour');
+        $this->assertsZeroJsonLd($html, 'la ficha del tour sin FAQs');
+    }
+
+    public function test_tour_show_emits_only_a_faqpage_when_the_tour_has_visible_faqs_and_no_custom_schema(): void
+    {
+        // Decision 2026-10-12: FAQPage built from the visible FAQs (TourJsonLd::faqPage);
+        // the rest of the automatic schema stays off.
+        $tour = $this->tour([
+            'slug' => 'city-tour-lima',
+            'faqs_es' => [['question' => '¿Pregunta?', 'answer' => 'Respuesta.']],
+        ]);
+
+        $html = $this->get("/es/tours/detalle/{$tour->slug}")->assertOk()->getContent();
+        $blocks = $this->jsonLdBlocks($html);
+
+        $this->assertCount(1, $blocks);
+        $this->assertStringContainsString('FAQPage', $blocks[0]);
+        $this->assertStringNotContainsString('TouristTrip', $blocks[0]);
     }
 
     public function test_tour_show_emits_exactly_one_jsonld_block_when_the_custom_schema_is_filled(): void
