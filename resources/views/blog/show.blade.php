@@ -65,7 +65,7 @@
     <nav aria-label="{{ $L('Ruta de navegación', 'Breadcrumb', 'Caminho de navegação') }}"
          class="bg-cream-100 border-b border-cream-200">
         <div class="container mx-auto px-5 lg:px-10 py-3">
-            <ol class="flex items-center gap-2 text-sm text-teal-800/60 flex-wrap" itemscope itemtype="https://schema.org/BreadcrumbList">
+            <ol class="flex items-center gap-2 text-sm text-teal-800/70 flex-wrap" itemscope itemtype="https://schema.org/BreadcrumbList">
                 <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
                     <a itemprop="item" href="{{ route('home', ['locale' => $locale]) }}"
                        class="hover:text-teal-800 transition-colors">
@@ -110,7 +110,7 @@
                 </h1>
 
                 {{-- Meta: author + date + reading time --}}
-                <div class="flex flex-wrap items-center gap-4 text-sm text-teal-800/60">
+                <div class="flex flex-wrap items-center gap-4 text-sm text-teal-800/70">
                     <span class="flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
@@ -168,7 +168,7 @@
             {{-- Tags --}}
             @if (! empty($post->tags))
                 <div class="mt-8 pt-6 border-t border-cream-200 flex flex-wrap gap-2">
-                    <span class="text-sm font-semibold text-teal-800/60 mr-1">{{ $L('Etiquetas:', 'Tags:', 'Etiquetas:') }}</span>
+                    <span class="text-sm font-semibold text-teal-800/70 mr-1">{{ $L('Etiquetas:', 'Tags:', 'Etiquetas:') }}</span>
                     @foreach ($post->tags as $tag)
                         <span class="px-3 py-1 rounded-full text-xs font-medium bg-cream-100 text-teal-800 border border-cream-200">
                             {{ $tag }}
@@ -222,7 +222,7 @@
                                     </a>
                                 </h3>
                                 @if ($rel->published_at)
-                                    <time class="text-xs text-teal-800/50 mt-auto pt-3" datetime="{{ $rel->published_at->toIso8601String() }}">
+                                    <time class="text-xs text-teal-800/70 mt-auto pt-3" datetime="{{ $rel->published_at->toIso8601String() }}">
                                         {{ $rel->published_at->translatedFormat('d M Y') }}
                                     </time>
                                 @endif

@@ -93,19 +93,19 @@
 
                 <div class="grid gap-2 text-sm border-t border-teal-800/10 pt-4 mt-4">
                     <div class="flex justify-between">
-                        <span class="text-teal-800/60">{{ __('ui.passengers') }}</span>
+                        <span class="text-teal-800/70">{{ __('ui.passengers') }}</span>
                         <b class="text-teal-800">{{ trans_choice('payment_links.adults_count', $link->adults, ['count' => $link->adults]) }}@if($link->children > 0), {{ trans_choice('payment_links.children_count', $link->children, ['count' => $link->children]) }}@endif</b>
                     </div>
                     @if ($link->travel_date)
                         <div class="flex justify-between">
-                            <span class="text-teal-800/60">{{ __('checkout.travel_date') }}</span>
+                            <span class="text-teal-800/70">{{ __('checkout.travel_date') }}</span>
                             <b class="text-teal-800">{{ $link->travel_date->locale($locale)->translatedFormat('d M Y') }}</b>
                         </div>
                     @endif
                 </div>
 
                 <div class="mt-5 bg-cream-100 rounded-xl p-4 flex items-center justify-between">
-                    <span class="text-xs font-bold uppercase tracking-wide text-teal-800/60">{{ __('checkout.total') }}</span>
+                    <span class="text-xs font-bold uppercase tracking-wide text-teal-800/70">{{ __('checkout.total') }}</span>
                     <span class="font-price text-2xl text-teal-800">US${{ number_format((float) $link->amount, 2) }}</span>
                 </div>
 
@@ -114,14 +114,14 @@
                      en servidor en captureOrder() — esto es solo UX. --}}
                 <div class="mt-6 grid gap-4">
                     <div>
-                        <label for="pl-name" class="block text-xs font-bold uppercase tracking-wide text-teal-800/60 mb-1">
+                        <label for="pl-name" class="block text-xs font-bold uppercase tracking-wide text-teal-800/70 mb-1">
                             {{ __('checkout.customer_name') }} <span class="text-red-500">*</span>
                         </label>
                         <input type="text" id="pl-name" required maxlength="255"
                                class="w-full h-11 rounded-lg border border-teal-800/20 px-3 text-sm">
                     </div>
                     <div>
-                        <label for="pl-email" class="block text-xs font-bold uppercase tracking-wide text-teal-800/60 mb-1">
+                        <label for="pl-email" class="block text-xs font-bold uppercase tracking-wide text-teal-800/70 mb-1">
                             {{ __('checkout.customer_email') }} <span class="text-red-500">*</span>
                         </label>
                         <input type="email" id="pl-email" required maxlength="255"
@@ -129,7 +129,7 @@
                                class="w-full h-11 rounded-lg border border-teal-800/20 px-3 text-sm">
                     </div>
                     <div>
-                        <label for="pl-phone" class="block text-xs font-bold uppercase tracking-wide text-teal-800/60 mb-1">
+                        <label for="pl-phone" class="block text-xs font-bold uppercase tracking-wide text-teal-800/70 mb-1">
                             {{ __('payment_links.phone_label') }}
                         </label>
                         <input type="tel" id="pl-phone" maxlength="20"
@@ -141,7 +141,7 @@
                 <p id="payment-link-msg" class="mt-4 text-sm text-red-600" style="display:none;" role="alert"></p>
 
                 <div id="paypal-buttons" class="mt-6"></div>
-                <p class="mt-4 text-center text-[11px] text-teal-800/50">{{ __('payment_links.secure_payment') }}</p>
+                <p class="mt-4 text-center text-[11px] text-teal-800/70">{{ __('payment_links.secure_payment') }}</p>
             </div>
         @endif
     </div>

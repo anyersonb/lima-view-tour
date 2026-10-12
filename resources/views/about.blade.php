@@ -159,7 +159,7 @@
 <section class="bg-white py-16 lg:py-20" aria-labelledby="about-why-title">
     <div class="container mx-auto px-5 lg:px-10 grid gap-12 lg:grid-cols-2 items-center">
         <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/60 font-semibold inline-flex items-center gap-2 mb-3">
+            <p class="text-[11px] uppercase tracking-[0.2em] text-teal-800/70 font-semibold inline-flex items-center gap-2 mb-3">
                 <x-icon-compass class="w-8 h-8 text-teal-700" />
                 {{ __('nav.about') }}
             </p>
@@ -300,7 +300,7 @@
             <span class="w-10 h-10 rounded-full bg-cream-200"></span>
             <span class="leading-tight">
                 <span class="block font-semibold text-teal-800">{{ $tadAuthor ?? 'Valeriy Roberts' }}</span>
-                <span class="block text-xs text-teal-800/60">{{ __('ui.verified_client') }}</span>
+                <span class="block text-xs text-teal-800/70">{{ __('ui.verified_client') }}</span>
             </span>
         </figcaption>
     </div>
@@ -320,7 +320,7 @@
                             </blockquote>
                             <p class="mt-3 text-orange-400 text-sm" aria-hidden="true">
                                 @for ($i = 0; $i < (int) round($testimonial->rating); $i++)&#9733;@endfor
-                                <span class="text-teal-800/60">{{ $testimonial->source }}</span>
+                                <span class="text-teal-800/70">{{ $testimonial->source }}</span>
                             </p>
                         </div>
                         <figcaption class="bg-teal-700 text-white px-5 py-3 flex items-center gap-3 mt-auto">
@@ -347,7 +347,7 @@
                             <blockquote class="mt-2 text-sm text-teal-800/85 leading-relaxed">
                                 {{ __('ui.about_fallback_quote') }}
                             </blockquote>
-                            <p class="mt-3 text-orange-400 text-sm" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733; <span class="text-teal-800/60">Google</span></p>
+                            <p class="mt-3 text-orange-400 text-sm" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733; <span class="text-teal-800/70">Google</span></p>
                         </div>
                         <figcaption class="bg-teal-700 text-white px-5 py-3 flex items-center gap-3 mt-auto">
                             <span class="w-9 h-9 rounded-full bg-cream-200"></span>

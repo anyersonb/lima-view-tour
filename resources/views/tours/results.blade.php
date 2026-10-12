@@ -7,7 +7,7 @@
 @section('content')
 <section class="bg-cream-100 pt-8 pb-4">
     <nav aria-label="Breadcrumb" class="container mx-auto px-5 lg:px-10 text-xs text-teal-800/70">
-        <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-500">{{ __('ui.home') }}</a> &gt;
+        <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-700">{{ __('ui.home') }}</a> &gt;
         <span>{{ __('ui.search_results') }}</span>
     </nav>
 </section>
@@ -44,7 +44,7 @@
                             <p class="mt-2 flex items-center gap-2 text-sm text-teal-800/80">
                                 <span class="font-semibold">{{ number_format($tourStats['average'], 1) }}</span>
                                 <span class="text-orange-400 tracking-tight">★★★★★</span>
-                                <span class="text-teal-800/60 text-xs">( {{ $tourStats['total'] }} {{ __('ui.comments') }} )</span>
+                                <span class="text-teal-800/70 text-xs">( {{ $tourStats['total'] }} {{ __('ui.comments') }} )</span>
                             </p>
                         @endif
                         @php
@@ -69,9 +69,9 @@
                         <div class="p-4 text-center">
                             <p class="text-sm">
                                 @if ($tour->price_before && $tour->price_before > $tour->price)
-                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60">{{ __('ui.before') }}</span>
-                                    <span class="font-price text-base text-teal-800/60 line-through ml-1">${{ number_format((float) $tour->price_before, 0) }}</span>
-                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/60 ml-2">{{ __('ui.now') }}</span>
+                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/70">{{ __('ui.before') }}</span>
+                                    <span class="font-price text-base text-teal-800/70 line-through ml-1">${{ number_format((float) $tour->price_before, 0) }}</span>
+                                    <span class="text-[11px] tracking-[0.2em] uppercase text-teal-800/70 ml-2">{{ __('ui.now') }}</span>
                                 @endif
                                 <span class="font-price text-2xl text-state-error ml-1">${{ number_format((float) $tour->price, 0) }}</span>
                             </p>

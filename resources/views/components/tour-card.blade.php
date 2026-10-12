@@ -80,14 +80,14 @@
 
         {{-- Título --}}
         <h3 class="font-display text-lg sm:text-2xl text-teal-800 leading-tight">
-            <a href="{{ $url }}" class="hover:text-orange-500 transition-colors">
+            <a href="{{ $url }}" class="hover:text-orange-700 transition-colors">
                 {{ $title }}
             </a>
         </h3>
 
         {{-- Subtítulo opcional --}}
         @if ($subtitle)
-            <p class="mt-1 text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ $subtitle }}</p>
+            <p class="mt-1 text-[11px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ $subtitle }}</p>
         @endif
 
         {{-- Rating con reseñas --}}
@@ -95,8 +95,8 @@
             <p class="mt-2 sm:mt-3 flex items-center gap-2 text-[13px] sm:text-sm">
                 <span class="text-orange-400 text-base sm:text-lg leading-none tracking-tight" aria-hidden="true">★★★★★</span>
                 <span class="font-semibold text-teal-800">{{ $rating }}</span>
-                <span class="text-teal-800/55">·</span>
-                <span class="text-teal-800/55">{{ number_format((int)$reviews) }} {{ __('ui.reviews') }}</span>
+                <span class="text-teal-800/70">·</span>
+                <span class="text-teal-800/70">{{ number_format((int)$reviews) }} {{ __('ui.reviews') }}</span>
             </p>
         @endif
 
@@ -157,15 +157,15 @@
                 {{-- Fila superior: pill descuento + precio antes (siempre ocupa espacio) --}}
                 <div class="flex items-center gap-2 min-h-[26px]">
                     @if ($pct && $before)
-                        <span class="inline-flex items-center gap-1 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap leading-tight shrink-0">
+                        <span class="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap leading-tight shrink-0">
                             <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
                             </svg>
                             {{ $pct }}% {{ __('ui.discount_label') }}
                         </span>
                         <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-teal-800/50 font-medium uppercase tracking-wide leading-none">{{ __('ui.before_price') }}</span>
-                            <span class="font-price text-[13px] text-teal-800/45 line-through leading-none">{{ $currency }}{{ number_format((float)$before, 0) }}</span>
+                            <span class="text-[10px] text-teal-800/70 font-medium uppercase tracking-wide leading-none">{{ __('ui.before_price') }}</span>
+                            <span class="font-price text-[13px] text-teal-800/70 line-through leading-none">{{ $currency }}{{ number_format((float)$before, 0) }}</span>
                         </div>
                     @else
                         {{-- Espaciador invisible para mantener altura uniforme --}}
@@ -175,9 +175,9 @@
                 {{-- Fila inferior: precio actual + CTA --}}
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-[9px] font-bold uppercase tracking-widest text-emerald-600 leading-none">{{ __('ui.now_price') }}</span>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-emerald-700 leading-none">{{ __('ui.now_price') }}</span>
                         <span class="font-price text-[22px] sm:text-[26px] font-bold text-teal-800 leading-none">{{ $currency }}{{ number_format((float)$now, 0) }}</span>
-                        <span class="inline-flex items-center gap-0.5 text-[10px] text-teal-800/55 mt-0.5 leading-none">
+                        <span class="inline-flex items-center gap-0.5 text-[10px] text-teal-800/70 mt-0.5 leading-none">
                             <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd"/></svg>
                             {{ __('ui.per_person') }}
                         </span>

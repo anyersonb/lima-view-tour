@@ -118,51 +118,51 @@
 
             <div class="grid gap-4 sm:grid-cols-2" data-hj-suppress data-clarity-mask="true">
                 <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_name') }}</span>
+                    <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.contact_name') }}</span>
                     <input type="text" name="nombre" required
                            autocomplete="given-name"
                            placeholder="Johanna"
                            value="{{ old('nombre') }}"
                            data-hj-suppress
-                           class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
+                           class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
                 </label>
                 <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_lastname') }}</span>
+                    <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.contact_lastname') }}</span>
                     <input type="text" name="apellido" required
                            autocomplete="family-name"
                            placeholder="{{ __('ui.contact_lastname_placeholder') }}"
                            value="{{ old('apellido') }}"
                            data-hj-suppress
-                           class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
+                           class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
                 </label>
             </div>
 
             <label class="block mt-4" data-hj-suppress data-clarity-mask="true">
-                <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_phone') }}</span>
+                <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.contact_phone') }}</span>
                 <input type="tel" name="celular" required
                        autocomplete="tel"
                        placeholder="{{ __('ui.contact_phone_placeholder') }}"
                        value="{{ old('celular') }}"
                        data-hj-suppress
-                       class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
+                       class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
             </label>
 
             <label class="block mt-4" data-hj-suppress data-clarity-mask="true">
-                <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('customer.email') }}</span>
+                <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('customer.email') }}</span>
                 <input type="email" name="email" required
                        autocomplete="email"
                        placeholder="{{ __('ui.contact_email_placeholder') }}"
                        value="{{ old('email') }}"
                        data-hj-suppress
-                       class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
+                       class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
             </label>
 
             <label class="block mt-4" data-hj-suppress data-clarity-mask="true">
-                <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.contact_message') }}</span>
+                <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.contact_message') }}</span>
                 <textarea name="mensaje" required rows="4"
                           placeholder="{{ __('ui.contact_message_placeholder') }}"
                           data-hj-suppress
-                          class="mt-1.5 w-full rounded-2xl border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/35 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition resize-none">{{ old('mensaje') }}</textarea>
+                          class="mt-1.5 w-full rounded-2xl border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition resize-none">{{ old('mensaje') }}</textarea>
             </label>
 
             <label class="mt-4 flex items-start gap-2.5 text-xs text-teal-800/70 cursor-pointer">
@@ -170,9 +170,9 @@
                        class="mt-0.5 w-4 h-4 rounded border-teal-800/30 text-orange-500 focus:ring-orange-400 focus:ring-offset-0 shrink-0">
                 <span>
                     {{ __('ui.contact_privacy_accept') }}
-                    <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="text-orange-600 underline underline-offset-2 hover:text-orange-500 transition-colors">{{ __('footer.privacy') }}</a>
+                    <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="text-orange-700 underline underline-offset-2 hover:text-orange-800 transition-colors">{{ __('footer.privacy') }}</a>
                     {{ __('ui.contact_privacy_and_terms') }}
-                    <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="text-orange-600 underline underline-offset-2 hover:text-orange-500 transition-colors">{{ __('footer.terms') }}</a>
+                    <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="text-orange-700 underline underline-offset-2 hover:text-orange-800 transition-colors">{{ __('footer.terms') }}</a>
                 </span>
             </label>
 
@@ -202,9 +202,9 @@
                     </svg>
                 </span>
                 <h3 class="font-display text-xl text-teal-800">{{ $title }}</h3>
-                <p class="mt-2 text-xs text-teal-800/65 max-w-[14rem]">{{ $line1 }}</p>
+                <p class="mt-2 text-xs text-teal-800/70 max-w-[14rem]">{{ $line1 }}</p>
                 <a href="{{ $href }}"
-                   class="mt-3 text-orange-600 text-sm font-semibold tracking-wide hover:text-orange-500 transition-colors underline-offset-2 hover:underline">
+                   class="mt-3 text-orange-700 text-sm font-semibold tracking-wide hover:text-orange-800 transition-colors underline-offset-2 hover:underline">
                     {{ $value }}
                 </a>
             </div>

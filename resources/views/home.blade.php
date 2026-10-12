@@ -362,7 +362,7 @@
 
         {{-- Header --}}
         <div class="text-center mb-8">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">
+            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">
                 {{ \App\Models\Setting::get('home_sec_featured_eyebrow_' . $locale) ?: 'NUESTROS TOURS' }}
             </p>
             <h2 id="bestseller-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800">
@@ -485,7 +485,7 @@
         {{-- Link ver todos (mobile, centrado debajo del hint) --}}
         <div class="mt-6 text-center lg:hidden">
             <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-               class="inline-flex items-center gap-2 text-teal-800 hover:text-orange-500 transition text-sm font-semibold uppercase tracking-wider">
+               class="inline-flex items-center gap-2 text-teal-800 hover:text-orange-700 transition text-sm font-semibold uppercase tracking-wider">
                 Ver todos los tours
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
             </a>
@@ -611,7 +611,7 @@
 
         {{-- Header --}}
         <div class="text-center mb-8">
-            <p class="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">
+            <p class="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">
                 <span class="h-px w-6 bg-orange-500/50"></span>{{ \App\Models\Setting::get('home_sec_destinos_eyebrow_' . $locale) ?: 'MÁS VISITADOS' }}<span class="h-px w-6 bg-orange-500/50"></span>
             </p>
             <h2 id="destinos-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
@@ -717,7 +717,7 @@
             <svg class="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/>
             </svg>
-            {{ \App\Models\Setting::get('home_destinos_footer_' . $locale) ?: 'Experiencias auténticas, memorias inolvidables. Viaja con' }} <span class="text-amber-600 font-semibold ml-1">Lima View Tours.</span>
+            {{ \App\Models\Setting::get('home_destinos_footer_' . $locale) ?: 'Experiencias auténticas, memorias inolvidables. Viaja con' }} <span class="text-orange-700 font-semibold ml-1">Lima View Tours.</span>
         </p>
     </div>
 </section>
@@ -731,7 +731,7 @@
 
         {{-- Header centrado --}}
         <div class="text-center mb-8 max-w-lg mx-auto">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">{{ \App\Models\Setting::get('home_sec_why_eyebrow_' . $locale) ?: 'VIAJA CON CONFIANZA' }}</p>
+            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_why_eyebrow_' . $locale) ?: 'VIAJA CON CONFIANZA' }}</p>
             <h2 id="why-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">{!! \App\Models\Setting::get('home_sec_why_title_' . $locale) ?: '¿Por qué elegir<br>Lima View Tours?' !!}</h2>
             {!! $sep !!}
             <p class="mt-5 text-sm text-teal-800/70">{!! \App\Models\Setting::get('home_sec_why_subtitle_' . $locale) ?: 'Más que un tour, te ofrecemos<br>experiencias inolvidables.' !!}</p>
@@ -785,7 +785,7 @@
                     </span>
                     <span class="flex-1 min-w-0">
                         <span class="block font-bold text-teal-800 text-[15px] lg:text-base leading-tight">{{ $wTitle }}</span>
-                        <span class="block text-xs lg:text-sm text-teal-800/60 leading-snug mt-1">{{ $wDesc }}</span>
+                        <span class="block text-xs lg:text-sm text-teal-800/70 leading-snug mt-1">{{ $wDesc }}</span>
                     </span>
                     <svg class="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
@@ -798,7 +798,7 @@
                 <svg class="w-6 h-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
             </span>
             <p class="flex-1 text-sm text-teal-800 leading-tight relative z-10">
-                {!! \App\Models\Setting::get('home_trust_banner_' . $locale) ?: 'Reserva fácil, segura y<br><strong class="font-bold text-orange-500">100% garantizada</strong>' !!}
+                {!! \App\Models\Setting::get('home_trust_banner_' . $locale) ?: 'Reserva fácil, segura y<br><strong class="font-bold text-orange-800">100% garantizada</strong>' !!}
             </p>
             <svg class="absolute right-0 top-0 h-full w-1/2 text-orange-400/40 pointer-events-none" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="1" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
                 <path d="M0 60 L20 45 L35 55 L50 30 L70 50 L85 25 L100 45 L120 35 L120 80 L0 80 Z"/>
@@ -819,7 +819,7 @@
         {{-- Header --}}
         <div class="text-center mb-8">
             {!! $brujula !!}
-            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">{{ \App\Models\Setting::get('home_sec_types_eyebrow_' . $locale) ?: 'CATEGORÍAS' }}</p>
+            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_types_eyebrow_' . $locale) ?: 'CATEGORÍAS' }}</p>
             <h2 id="tour-type-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
                 {!! \App\Models\Setting::get('home_sec_types_title_' . $locale) ?: '¿Qué tipo de tour <br class="sm:hidden">estás buscando?' !!}
             </h2>
@@ -933,14 +933,14 @@
                         </span>
                         <h3 class="font-display text-2xl text-teal-800 leading-tight">{{ $tTitle }}</h3>
                     </div>
-                    <p class="mt-2 text-[11px] uppercase tracking-[0.15em] text-orange-600 font-bold">{{ $tEyebrow }}</p>
+                    <p class="mt-2 text-[11px] uppercase tracking-[0.15em] text-orange-700 font-bold">{{ $tEyebrow }}</p>
                     <p class="mt-3 text-sm text-teal-800/75 leading-relaxed">{{ $tDesc }}</p>
                     <hr class="my-5 border-cream-200/80">
                     <div class="flex items-center justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.from') }}</p>
+                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.from') }}</p>
                             <p class="font-price text-2xl text-teal-800 font-semibold leading-none">US${{ $tPrice }}</p>
-                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/60 font-semibold">{{ __('ui.per_person') }}</p>
+                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.per_person') }}</p>
                         </div>
                         <a href="{{ route('tours.index', ['locale' => $locale]) }}"
                            class="inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-5 py-3 font-semibold text-xs uppercase tracking-wider transition shrink-0">
@@ -988,7 +988,7 @@
         {{-- Header --}}
         <div class="text-center mb-8">
             {!! $brujula !!}
-            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">{{ \App\Models\Setting::get('home_sec_exp_eyebrow_' . $locale) ?: 'EXPERIENCIAS' }}</p>
+            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_exp_eyebrow_' . $locale) ?: 'EXPERIENCIAS' }}</p>
             <h2 id="exp-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
                 {!! \App\Models\Setting::get('home_sec_exp_title_' . $locale) ?: 'Descubre <br class="sm:hidden">experiencias únicas' !!}
             </h2>
@@ -1040,7 +1040,7 @@
                                  loading="lazy">
                         </div>
                         <div class="p-4">
-                            <h3 class="font-display text-lg text-teal-800 leading-tight line-clamp-2 group-hover:text-orange-500 transition-colors">{{ $eTitle }}</h3>
+                            <h3 class="font-display text-lg text-teal-800 leading-tight line-clamp-2 group-hover:text-orange-700 transition-colors">{{ $eTitle }}</h3>
                             <div class="mt-3 grid grid-cols-3 divide-x divide-cream-200/80 text-center text-[11px] text-teal-800/75">
                                 <div class="px-2">
                                     <svg class="w-4 h-4 mx-auto mb-1 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
@@ -1103,7 +1103,7 @@
 
         {{-- Header --}}
         <div class="text-center mb-8">
-            <p class="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">
+            <p class="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">
                 <span class="h-px w-6 bg-orange-500/50"></span>{{ \App\Models\Setting::get('home_sec_reviews_eyebrow_' . $locale) ?: 'OPINIONES REALES' }}<span class="h-px w-6 bg-orange-500/50"></span>
             </p>
             <h2 id="opiniones-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
@@ -1149,7 +1149,7 @@
                         <blockquote class="text-sm text-teal-800/85 leading-relaxed">“{{ $rvQuoteShort }}”</blockquote>
                         @if ($rvQuoteIsLong)
                             <button type="button"
-                                    class="mt-2 self-start text-xs font-bold text-orange-600 hover:text-orange-700 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                                    class="mt-2 self-start text-xs font-bold text-orange-700 hover:text-orange-800 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                                     @click="review = { name: @js($rvName), meta: @js($rvMeta), quote: @js($rvQuoteFull), rating: {{ $rvRating }}, avatar: @js($rvAvatarUrl), initial: @js($rvInitial) }; reviewModalOpen = true">
                                 {{ __('ui.see_more') }}
                             </button>
@@ -1164,7 +1164,7 @@
                             @endif
                             <div class="min-w-0">
                                 <p class="font-bold text-teal-800 text-sm leading-tight truncate">{{ $rvName }}</p>
-                                <p class="text-[11px] text-teal-800/55 leading-tight truncate">{{ $rvMeta }}</p>
+                                <p class="text-[11px] text-teal-800/70 leading-tight truncate">{{ $rvMeta }}</p>
                             </div>
                             <svg class="w-5 h-5 text-emerald-500 ml-auto shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" title="Reseña verificada"><path fill-rule="evenodd" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" clip-rule="evenodd"/></svg>
                         </figcaption>
@@ -1226,7 +1226,7 @@
                     </template>
                     <div class="min-w-0">
                         <p class="font-bold text-teal-800 text-sm leading-tight" x-text="review.name"></p>
-                        <p class="text-[11px] text-teal-800/55 leading-tight" x-text="review.meta"></p>
+                        <p class="text-[11px] text-teal-800/70 leading-tight" x-text="review.meta"></p>
                     </div>
                 </div>
             </div>
@@ -1311,7 +1311,7 @@
                             </svg>
                         </span>
                         <span class="flex-1 font-display text-base text-teal-800 leading-tight">{{ $q }}</span>
-                        <span class="w-7 h-7 grid place-items-center text-orange-500 text-2xl font-light shrink-0 transition-transform duration-200"
+                        <span class="w-7 h-7 grid place-items-center text-orange-700 text-2xl font-light shrink-0 transition-transform duration-200"
                               :class="open === {{ $i }} ? 'rotate-45' : ''"
                               aria-hidden="true">+</span>
                     </button>
@@ -1329,7 +1329,7 @@
             </span>
             <div class="flex-1 relative z-10 min-w-0">
                 <p class="text-sm text-teal-800 leading-tight font-bold">
-                    Reserva fácil, segura y<br><span class="text-orange-500">100% garantizada</span>
+                    Reserva fácil, segura y<br><span class="text-orange-800">100% garantizada</span>
                 </p>
                 <p class="mt-1 text-[11px] text-teal-800/70 leading-snug">
                     Tu información está protegida y<br>tus reservas están en buenas manos.
@@ -1541,7 +1541,7 @@
                             </svg>
                         </span>
                         <p class="font-bold text-teal-800 text-sm leading-tight">{{ $rTitle }}</p>
-                        <p class="mt-2 text-[11px] text-teal-800/65 leading-snug">{{ $rDesc }}</p>
+                        <p class="mt-2 text-[11px] text-teal-800/70 leading-snug">{{ $rDesc }}</p>
                     </div>
                 @endforeach
             </div>
@@ -1577,7 +1577,7 @@
                         </svg>
                         <span class="font-bold text-[15px] tracking-tight" style="color:#0a2326;">Tripadvisor</span>
                     </div>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/60">
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
                         <span class="tracking-tight" style="color:#00AA6C;letter-spacing:1px;">●●●●●</span> 4.9
                     </span>
                 </div>
@@ -1585,7 +1585,7 @@
                 {{-- Viator --}}
                 <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
                     <span class="font-sans font-extrabold text-[26px] tracking-tight leading-7 h-7" style="color:#0a2326;">Viator</span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/60">
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
                         <span class="text-orange-400">★★★★★</span> 4.8
                     </span>
                 </div>
@@ -1593,13 +1593,13 @@
                 {{-- GetYourGuide --}}
                 <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
                     <span class="font-sans font-extrabold text-[19px] tracking-tight leading-7 h-7" style="color:#FF5533;">GetYourGuide</span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/60">
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
                         <span class="text-orange-400">★★★★★</span> 4.9
                     </span>
                 </div>
             </div>
 
-            <p class="mt-6 text-center text-xs text-teal-800/55 max-w-md mx-auto leading-relaxed">
+            <p class="mt-6 text-center text-xs text-teal-800/70 max-w-md mx-auto leading-relaxed">
                 {{ \App\Models\Setting::get('home_reviews_footer_' . $locale) ?: 'Miles de reseñas verificadas de viajeros de todo el mundo respaldan nuestras experiencias.' }}
             </p>
         </div>

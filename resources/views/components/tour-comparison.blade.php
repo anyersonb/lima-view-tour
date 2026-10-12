@@ -20,7 +20,7 @@
         $convItem   = 'text-white/90';
         $convIco    = 'bg-white/25 text-white/70';
         $premPanel  = 'bg-white ring-black/5 shadow-lg';
-        $premTitle  = 'text-orange-600';
+        $premTitle  = 'text-orange-700';
         $premItem   = 'text-teal-900/90';
         $premIco    = 'bg-orange-500 text-white';
         $vsCls      = 'bg-teal-900 text-white';

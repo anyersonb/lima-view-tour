@@ -150,7 +150,7 @@
         <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-teal-800/10">
             <a href="{{ route('home', ['locale' => $locale]) }}" class="leading-none" @click="open = false" aria-label="Lima View Tours">
                 <span class="block font-display text-[22px] tracking-[0.12em] text-teal-800 leading-none">LIMA</span>
-                <span class="block text-[10px] tracking-[0.35em] text-orange-600 font-semibold mt-1">VIEW TOURS</span>
+                <span class="block text-[10px] tracking-[0.35em] text-orange-700 font-semibold mt-1">VIEW TOURS</span>
             </a>
             <button type="button" @click="open = false"
                     class="w-10 h-10 rounded-full bg-teal-800 text-white grid place-items-center shrink-0 hover:bg-teal-900 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
@@ -164,14 +164,14 @@
         <div class="px-5 py-5 space-y-5">
             {{-- Buscador --}}
             <form method="GET" action="{{ route('tours.results', ['locale' => $locale]) }}" class="relative" role="search">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-teal-800/40" aria-hidden="true">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-teal-800/60" aria-hidden="true">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
                     </svg>
                 </span>
                 <input type="search" name="q"
                        placeholder="{{ __('ui.search_tours_placeholder') }}"
-                       class="w-full rounded-2xl border border-teal-800/15 bg-white pl-12 pr-4 py-3.5 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
+                       class="w-full rounded-2xl border border-teal-800/15 bg-white pl-12 pr-4 py-3.5 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
                        aria-label="{{ __('ui.search') }}">
             </form>
 

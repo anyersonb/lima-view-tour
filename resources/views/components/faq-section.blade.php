@@ -24,7 +24,7 @@
     <div class="container mx-auto max-w-3xl">
 
         <div class="text-center mb-8">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-600 font-bold">
+            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">
                 {{ app()->getLocale() === 'en' ? 'FREQUENT QUESTIONS' : (app()->getLocale() === 'pt' ? 'PERGUNTAS FREQUENTES' : 'PREGUNTAS FRECUENTES') }}
             </p>
             <h2 id="faq-title" class="mt-2 font-display text-3xl lg:text-4xl text-teal-800">
@@ -54,7 +54,7 @@
                             class="w-full flex items-center justify-between gap-4 px-6 py-4 text-left font-semibold text-teal-800 text-sm lg:text-base hover:bg-cream-50 transition"
                             aria-controls="faq-answer-{{ $i }}">
                         <span itemprop="name">{{ $question }}</span>
-                        <span class="shrink-0 w-6 h-6 rounded-full bg-orange-500/10 grid place-items-center text-orange-500 transition-transform duration-200"
+                        <span class="shrink-0 w-6 h-6 rounded-full bg-orange-500/10 grid place-items-center text-orange-700 transition-transform duration-200"
                               :class="open ? 'rotate-45' : ''">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>

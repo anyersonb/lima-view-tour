@@ -75,7 +75,7 @@
                 @endfor
             </div>
             <p class="text-xs font-bold text-teal-800 mt-1.5">{{ $band }}</p>
-            <p class="text-[11px] text-teal-800/55 mt-0.5 leading-tight">{{ $basedOnText }}</p>
+            <p class="text-[11px] text-teal-800/70 mt-0.5 leading-tight">{{ $basedOnText }}</p>
         </div>
 
         {{-- Distribución por estrella --}}
@@ -87,7 +87,7 @@
                     <div class="flex-1 h-2 rounded-full bg-teal-800/10 overflow-hidden">
                         <div class="h-full rounded-full bg-teal-700" style="width: {{ $row['percent'] }}%"></div>
                     </div>
-                    <span class="w-8 shrink-0 text-right text-teal-800/55 tabular-nums">{{ $row['percent'] }}%</span>
+                    <span class="w-8 shrink-0 text-right text-teal-800/70 tabular-nums">{{ $row['percent'] }}%</span>
                 </div>
             @endforeach
         </div>

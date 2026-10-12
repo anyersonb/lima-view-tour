@@ -48,7 +48,7 @@
                         <input type="email" id="email" name="email"
                                value="{{ old('email') }}"
                                autocomplete="email"
-                               class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition"
+                               class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition"
                                required>
                     </div>
 
@@ -60,7 +60,7 @@
 
                 <p class="mt-6 text-center text-sm">
                     <a href="{{ route('customer.login', ['locale' => $locale]) }}"
-                       class="text-orange-500 hover:underline font-semibold">
+                       class="text-orange-700 hover:underline font-semibold">
                         {{ __('customer.go_back_login') }}
                     </a>
                 </p>

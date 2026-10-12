@@ -22,13 +22,13 @@
 .btn--primary-outline {
     @include btn-base;
     @include btn-arrow;
-    @apply border border-orange-500 text-orange-500 bg-transparent hover:bg-orange-500 hover:text-white;
+    @apply border border-orange-700 text-orange-700 bg-transparent hover:bg-orange-700 hover:text-white;
 }
 
 .btn--on-cream {
     @include btn-base;
     @include btn-arrow;
-    @apply bg-cream-100 text-orange-500 hover:bg-cream-200;
+    @apply bg-cream-100 text-orange-700 hover:bg-cream-200;
 }
 
 .btn--disabled,

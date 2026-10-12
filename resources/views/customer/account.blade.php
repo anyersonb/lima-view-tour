@@ -49,7 +49,7 @@
                     <div class="flex items-center justify-between mb-5">
                         <h2 class="font-semibold text-teal-800 text-base">{{ __('customer.edit_profile') }}</h2>
                         <button @click="editing = !editing"
-                                class="text-xs font-semibold text-orange-500 hover:underline"
+                                class="text-xs font-semibold text-orange-700 hover:underline"
                                 :aria-expanded="editing.toString()">
                             <span x-text="editing ? '{{ $L('Cancelar', 'Cancel', 'Cancelar') }}' : '{{ $L('Editar', 'Edit', 'Editar') }}'"></span>
                         </button>

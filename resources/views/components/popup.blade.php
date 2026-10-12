@@ -22,7 +22,7 @@
         </button>
         <img src="{{ asset('assets/' . $image) }}" alt="" class="w-full h-56 md:h-full object-cover" loading="lazy">
         <div class="p-8 lg:p-10 flex flex-col">
-            <p class="text-[11px] uppercase tracking-[0.25em] text-orange-500 font-semibold">{{ $eyebrow }}</p>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-orange-700 font-semibold">{{ $eyebrow }}</p>
             <h2 id="{{ $id }}-title" class="mt-2 font-display text-3xl text-teal-800 leading-tight">{{ $title }}</h2>
             <p class="mt-3 text-sm text-teal-800/75 leading-relaxed">{{ $description }}</p>
             <form action="{{ route('newsletter.subscribe') }}" method="post" class="mt-5 space-y-3">

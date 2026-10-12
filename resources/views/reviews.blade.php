@@ -105,7 +105,7 @@
                         </div>
                         <p class="font-display text-3xl lg:text-4xl text-teal-900 leading-none">{{ number_format($s['rating'], 1) }}</p>
                         <p class="text-orange-400 text-sm mt-1" aria-hidden="true">{{ str_repeat('★', max(0, min(5, (int) round($s['rating'])))) }}</p>
-                        <p class="text-xs text-teal-800/60 mt-1.5">{{ $s['count'] }} {{ $L('reseñas', 'reviews', 'avaliações') }}</p>
+                        <p class="text-xs text-teal-800/70 mt-1.5">{{ $s['count'] }} {{ $L('reseñas', 'reviews', 'avaliações') }}</p>
                     </div>
                 @endif
             @endforeach
@@ -161,7 +161,7 @@
                             <div class="min-w-0">
                                 <p class="font-semibold text-teal-900 truncate">{{ $t->name }}</p>
                                 @if (!empty($t->country))
-                                    <p class="text-xs text-teal-800/60 truncate">{{ $t->country }}</p>
+                                    <p class="text-xs text-teal-800/70 truncate">{{ $t->country }}</p>
                                 @endif
                             </div>
                             <span class="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 {{ $meta['soft'] }}">
@@ -179,14 +179,14 @@
 
                         @if ($long)
                             <button type="button" @click="exp = !exp"
-                                    class="self-start mt-1.5 text-xs font-bold text-orange-500 hover:text-orange-600 transition-colors">
+                                    class="self-start mt-1.5 text-xs font-bold text-orange-700 hover:text-orange-800 transition-colors">
                                 <span x-show="!exp">{{ $L('Ver más', 'Read more', 'Ver mais') }}</span>
                                 <span x-show="exp" x-cloak>{{ $L('Ver menos', 'Show less', 'Ver menos') }}</span>
                             </button>
                         @endif
 
                         @if ($t->tour)
-                            <p class="mt-auto pt-4 text-xs text-teal-800/60">
+                            <p class="mt-auto pt-4 text-xs text-teal-800/70">
                                 <span class="border-t border-black/5 pt-3 block">{{ $L('Tour', 'Tour', 'Tour') }}: <span class="font-medium text-teal-800">{{ $t->tour->title }}</span></span>
                             </p>
                         @endif
@@ -244,7 +244,7 @@
                         {{-- Puntuación --}}
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wide text-teal-800 mb-2">
-                                {{ $L('Tu puntuación', 'Your rating', 'Sua nota') }} <span class="text-orange-500">*</span>
+                                {{ $L('Tu puntuación', 'Your rating', 'Sua nota') }} <span class="text-orange-700">*</span>
                             </label>
                             <div class="flex gap-1.5 text-3xl leading-none select-none">
                                 <template x-for="n in 5" :key="n">
@@ -260,18 +260,18 @@
                         {{-- Comentario --}}
                         <div>
                             <label for="rv-comment" class="block text-xs font-bold uppercase tracking-wide text-teal-800 mb-2">
-                                {{ $L('Tu comentario', 'Your review', 'Seu comentário') }} <span class="text-orange-500">*</span>
+                                {{ $L('Tu comentario', 'Your review', 'Seu comentário') }} <span class="text-orange-700">*</span>
                             </label>
                             <textarea id="rv-comment" name="comment" required minlength="10" maxlength="2000" rows="4"
                                       placeholder="{{ $L('¿Qué fue lo que más te gustó de tu viaje?', 'What did you enjoy most about your trip?', 'O que você mais gostou da sua viagem?') }}"
-                                      class="w-full rounded-xl border border-teal-800/20 bg-white px-4 py-3 text-sm text-teal-900 placeholder:text-teal-800/35 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700">{{ old('comment') }}</textarea>
+                                      class="w-full rounded-xl border border-teal-800/20 bg-white px-4 py-3 text-sm text-teal-900 placeholder:text-teal-800/70 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700">{{ old('comment') }}</textarea>
                         </div>
 
                         {{-- Nombre + País --}}
                         <div class="grid sm:grid-cols-2 gap-4">
                             <div>
                                 <label for="rv-name" class="block text-xs font-bold uppercase tracking-wide text-teal-800 mb-2">
-                                    {{ $L('Nombre', 'Name', 'Nome') }} <span class="text-orange-500">*</span>
+                                    {{ $L('Nombre', 'Name', 'Nome') }} <span class="text-orange-700">*</span>
                                 </label>
                                 <input id="rv-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name"
                                        class="w-full rounded-xl border border-teal-800/20 bg-white px-4 py-3 text-sm text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700">
@@ -282,18 +282,18 @@
                                 </label>
                                 <input id="rv-country" type="text" name="country" value="{{ old('country') }}" maxlength="120" autocomplete="country-name"
                                        placeholder="{{ $L('Opcional', 'Optional', 'Opcional') }}"
-                                       class="w-full rounded-xl border border-teal-800/20 bg-white px-4 py-3 text-sm text-teal-900 placeholder:text-teal-800/35 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700">
+                                       class="w-full rounded-xl border border-teal-800/20 bg-white px-4 py-3 text-sm text-teal-900 placeholder:text-teal-800/70 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700">
                             </div>
                         </div>
 
                         {{-- Correo --}}
                         <div>
                             <label for="rv-email" class="block text-xs font-bold uppercase tracking-wide text-teal-800 mb-2">
-                                {{ $L('Correo', 'Email', 'E-mail') }} <span class="text-orange-500">*</span>
+                                {{ $L('Correo', 'Email', 'E-mail') }} <span class="text-orange-700">*</span>
                             </label>
                             <input id="rv-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email"
                                    class="w-full rounded-xl border border-teal-800/20 bg-white px-4 py-3 text-sm text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700">
-                            <p class="text-[11px] text-teal-800/50 mt-1.5">{{ $L('No se publicará. Solo para verificar tu reseña.', 'It will not be published. Only to verify your review.', 'Não será publicado. Apenas para verificar sua avaliação.') }}</p>
+                            <p class="text-[11px] text-teal-800/70 mt-1.5">{{ $L('No se publicará. Solo para verificar tu reseña.', 'It will not be published. Only to verify your review.', 'Não será publicado. Apenas para verificar sua avaliação.') }}</p>
                         </div>
 
                         {{-- Honeypot anti-spam --}}
@@ -311,7 +311,7 @@
             {{-- Plataformas externas (opcional, secundario) --}}
             @if ($links['google'] || $links['tripadvisor'] || $links['trivago'])
                 <div class="mt-8 text-center">
-                    <p class="text-sm text-teal-800/60 mb-3">{{ $L('¿Prefieres reseñarnos en otra plataforma?', 'Prefer to review us on another platform?', 'Prefere nos avaliar em outra plataforma?') }}</p>
+                    <p class="text-sm text-teal-800/70 mb-3">{{ $L('¿Prefieres reseñarnos en otra plataforma?', 'Prefer to review us on another platform?', 'Prefere nos avaliar em outra plataforma?') }}</p>
                     <div class="flex flex-wrap gap-3 justify-center">
                         @if ($links['google'])
                             <a href="{{ $links['google'] }}" target="_blank" rel="noopener"

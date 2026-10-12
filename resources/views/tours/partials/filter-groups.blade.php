@@ -23,7 +23,7 @@
                     aria-controls="{{ $prefix }}-panel-destino"
                     class="flex w-full items-center justify-between text-left text-sm font-bold uppercase tracking-[0.08em] text-teal-800">
                 {{ __('ui.filter_destination') }}
-                <svg class="w-4 h-4 shrink-0 text-teal-800/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <svg class="w-4 h-4 shrink-0 text-teal-800/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
                 </svg>
             </button>
@@ -39,7 +39,7 @@
                                    class="rounded border-teal-800/30 text-teal-700 focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1">
                             {{ $opt['label'] }}
                         </span>
-                        <span class="text-xs text-teal-800/45">{{ $opt['count'] }}</span>
+                        <span class="text-xs text-teal-800/70">{{ $opt['count'] }}</span>
                     </label>
                 @endforeach
             </div>
@@ -55,7 +55,7 @@
                 aria-controls="{{ $prefix }}-panel-precio"
                 class="flex w-full items-center justify-between text-left text-sm font-bold uppercase tracking-[0.08em] text-teal-800">
             {{ __('ui.filter_max_price') }}
-            <svg class="w-4 h-4 shrink-0 text-teal-800/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <svg class="w-4 h-4 shrink-0 text-teal-800/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
             </svg>
         </button>
@@ -85,7 +85,7 @@
                     aria-controls="{{ $prefix }}-panel-duracion"
                     class="flex w-full items-center justify-between text-left text-sm font-bold uppercase tracking-[0.08em] text-teal-800">
                 {{ __('ui.filter_duration') }}
-                <svg class="w-4 h-4 shrink-0 text-teal-800/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <svg class="w-4 h-4 shrink-0 text-teal-800/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
                 </svg>
             </button>
@@ -101,7 +101,7 @@
                                    class="rounded border-teal-800/30 text-teal-700 focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1">
                             {{ $opt['label'] }}
                         </span>
-                        <span class="text-xs text-teal-800/45">{{ $opt['count'] }}</span>
+                        <span class="text-xs text-teal-800/70">{{ $opt['count'] }}</span>
                     </label>
                 @endforeach
             </div>
@@ -118,7 +118,7 @@
                     aria-controls="{{ $prefix }}-panel-idioma"
                     class="flex w-full items-center justify-between text-left text-sm font-bold uppercase tracking-[0.08em] text-teal-800">
                 {{ __('ui.filter_language') }}
-                <svg class="w-4 h-4 shrink-0 text-teal-800/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <svg class="w-4 h-4 shrink-0 text-teal-800/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
                 </svg>
             </button>
@@ -134,7 +134,7 @@
                                    class="rounded border-teal-800/30 text-teal-700 focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1">
                             {{ $opt['label'] }}
                         </span>
-                        <span class="text-xs text-teal-800/45">{{ $opt['count'] }}</span>
+                        <span class="text-xs text-teal-800/70">{{ $opt['count'] }}</span>
                     </label>
                 @endforeach
             </div>
@@ -151,7 +151,7 @@
                     aria-controls="{{ $prefix }}-panel-modalidad"
                     class="flex w-full items-center justify-between text-left text-sm font-bold uppercase tracking-[0.08em] text-teal-800">
                 {{ __('ui.filter_modality') }}
-                <svg class="w-4 h-4 shrink-0 text-teal-800/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <svg class="w-4 h-4 shrink-0 text-teal-800/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
                 </svg>
             </button>
@@ -167,7 +167,7 @@
                                    class="rounded border-teal-800/30 text-teal-700 focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1">
                             {{ $opt['label'] }}
                         </span>
-                        <span class="text-xs text-teal-800/45">{{ $opt['count'] }}</span>
+                        <span class="text-xs text-teal-800/70">{{ $opt['count'] }}</span>
                     </label>
                 @endforeach
             </div>
@@ -182,10 +182,10 @@
                     <input type="checkbox"
                            id="{{ $prefix }}-oferta"
                            data-filter-offer
-                           class="rounded border-teal-800/30 text-orange-500 focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1">
+                           class="rounded border-teal-800/30 text-orange-700 focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1">
                     {{ __('ui.filter_on_offer') }}
                 </span>
-                <span class="text-xs text-teal-800/45">{{ $offerCount }}</span>
+                <span class="text-xs text-teal-800/70">{{ $offerCount }}</span>
             </label>
         </div>
     @endif

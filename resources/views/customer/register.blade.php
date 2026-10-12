@@ -47,7 +47,7 @@
                             <input type="text" id="name" name="name"
                                    value="{{ old('name') }}"
                                    autocomplete="name"
-                                   class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition @error('name') border-red-400 @enderror"
+                                   class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition @error('name') border-red-400 @enderror"
                                    required>
                         </div>
 
@@ -58,7 +58,7 @@
                             <input type="email" id="email" name="email"
                                    value="{{ old('email') }}"
                                    autocomplete="email"
-                                   class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition @error('email') border-red-400 @enderror"
+                                   class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition @error('email') border-red-400 @enderror"
                                    required>
                         </div>
 
@@ -69,7 +69,7 @@
                             <input type="tel" id="phone" name="phone"
                                    value="{{ old('phone') }}"
                                    autocomplete="tel"
-                                   class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition @error('phone') border-red-400 @enderror">
+                                   class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition @error('phone') border-red-400 @enderror">
                         </div>
 
                         <div>
@@ -104,7 +104,7 @@
                 <p class="mt-6 text-center text-sm text-teal-700">
                     {{ __('customer.already_have_account') }}
                     <a href="{{ route('customer.login', ['locale' => $locale]) }}"
-                       class="font-semibold text-orange-500 hover:underline ml-1">
+                       class="font-semibold text-orange-700 hover:underline ml-1">
                         {{ __('customer.login') }}
                     </a>
                 </p>
