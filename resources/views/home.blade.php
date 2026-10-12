@@ -55,6 +55,16 @@
                 'slug'      => is_object($t) ? ($t instanceof \App\Models\Tour ? $t->slugFor(app()->getLocale()) : ($t->slug ?? '')) : ($t['slug'] ?? ''),
                 'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true)       : ($t['show_best_seller'] ?? true)),
                 'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true)       : ($t['show_offer_badge'] ?? true)),
+                // Datos reales para la card de escritorio (nada de valores por defecto inventados).
+                'imgThumb'  => is_object($t) ? (\App\Support\TourThumbnail::url($t->cover_image ?? null) ?? null) : null,
+                'duration'  => \App\Support\TourListing::durationLabel(data_get($t, 'duration')),
+                'language'  => (is_object($t) && method_exists($t, 'getLanguagesLabelAttribute'))
+                    ? $t->languagesLabel
+                    : \App\Support\TourListing::languageLabel(data_get($t, 'language')),
+                'pickup'    => (bool) data_get($t, 'pickup_included', true),
+                'freeCancellation' => (bool) data_get($t, 'free_cancellation', true),
+                'topRated'  => (bool) data_get($t, 'show_top_rated', false),
+                'bestSeller' => (bool) data_get($t, 'show_best_seller', true),
             ];
         })->all();
     };
@@ -429,20 +439,23 @@
 
                 @foreach ($mcTours as $i => $mct)
                     <div class="tour-slide">
-                        <x-tour-card
+                        <x-tour-card-responsive
+                            variant="home"
                             :title="$mct['title']"
                             :slug="$mct['slug']"
                             :img="$mct['img']"
+                            :img-thumb="$mct['imgThumb']"
                             :before="$mct['before']"
                             :now="$mct['now']"
-                            :badge="$mct['badge']"
-                            :badgeType="$mct['badgeType']"
                             :rating="$mct['rating']"
                             :reviews="$mct['reviews']"
-                            :isMasVendido="$mct['showBestSeller']"
-                            :showBestSeller="$mct['showBestSeller']"
-                            :showOffer="$mct['showOffer']"
-                            :pickup="true"
+                            :duration="$mct['duration']"
+                            :language="$mct['language']"
+                            :pickup="$mct['pickup']"
+                            :free-cancellation="$mct['freeCancellation']"
+                            :show-offer="$mct['showOffer']"
+                            :top-rated="$mct['topRated']"
+                            :best-seller="$mct['bestSeller']"
                         />
                     </div>
                 @endforeach
@@ -538,20 +551,23 @@
 
                 @foreach ($limaCuscoCols as $i => $lct)
                     <div class="tour-slide">
-                        <x-tour-card
+                        <x-tour-card-responsive
+                            variant="home"
                             :title="$lct['title']"
                             :slug="$lct['slug']"
                             :img="$lct['img']"
+                            :img-thumb="$lct['imgThumb']"
                             :before="$lct['before']"
                             :now="$lct['now']"
-                            :badge="$lct['badge']"
-                            :badgeType="$lct['badgeType']"
                             :rating="$lct['rating']"
                             :reviews="$lct['reviews']"
-                            :isMasVendido="$lct['showBestSeller']"
-                            :showBestSeller="$lct['showBestSeller']"
-                            :showOffer="$lct['showOffer']"
-                            :pickup="true"
+                            :duration="$lct['duration']"
+                            :language="$lct['language']"
+                            :pickup="$lct['pickup']"
+                            :free-cancellation="$lct['freeCancellation']"
+                            :show-offer="$lct['showOffer']"
+                            :top-rated="$lct['topRated']"
+                            :best-seller="$lct['bestSeller']"
                         />
                     </div>
                 @endforeach
