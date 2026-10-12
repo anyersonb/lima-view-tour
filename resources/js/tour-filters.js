@@ -28,6 +28,10 @@
         var seeCountEls = Array.prototype.slice.call(root.querySelectorAll('[data-see-count]'));
         var emptyEl = root.querySelector('[data-tour-empty]');
         var loadMoreEl = root.querySelector('[data-load-more]');
+        var loadMoreBtn = loadMoreEl ? loadMoreEl.querySelector('[data-load-more-btn]') : null;
+        // Paginación cliente: sin filtros se muestran `pageSize` tarjetas y el botón
+        // revela otras tantas. Con filtro/búsqueda se muestra todo el resultado.
+        var pageSize = loadMoreEl ? (parseInt(loadMoreEl.getAttribute('data-page-size'), 10) || 9) : Infinity;
         var emptyTextEl = root.querySelector('[data-tour-empty-text]');
         // El buscador vive en el hero (fuera de root). Solo filtra la lista en móvil (<640);
         // en escritorio el formulario sigue enviando a /buscar.
@@ -52,6 +56,7 @@
             onOffer: false,
             maxPrice: priceCeiling,
             query: [],
+            limit: pageSize,
         };
 
         // Misma normalización que data-search (minúsculas, sin acentos).
@@ -121,14 +126,23 @@
 
         function applyFilters() {
             var visibleCount = null;
+            var hasMore = false;
+            var filtering = !!(state.destinations.size || state.durations.size || state.languages.size ||
+                state.modalities.size || state.onOffer || state.query.length ||
+                (priceCeiling !== null && state.maxPrice !== null && state.maxPrice < priceCeiling));
+            var limit = filtering ? Infinity : state.limit;
 
             containers.forEach(function (container) {
                 var cards = Array.prototype.slice.call(container.querySelectorAll('[data-tour-card]'));
                 var visible = 0;
                 cards.forEach(function (card) {
-                    var show = cardMatches(card);
+                    var matches = cardMatches(card);
+                    if (matches) visible++;
+                    var show = matches && visible <= limit;
+                    // El Blade deja las tarjetas fuera de la primera página con display:none inline.
+                    card.style.display = '';
                     card.classList.toggle('hidden', !show);
-                    if (show) visible++;
+                    if (matches && !show) hasMore = true;
                 });
                 if (visibleCount === null) visibleCount = visible;
                 // Vacío: style.display, NO la clase `hidden` — esa la usa el breakpoint
@@ -141,14 +155,8 @@
             countEls.forEach(function (el) { el.textContent = toursFoundText(visibleCount); });
             seeCountEls.forEach(function (el) { el.textContent = seeToursText(visibleCount); });
 
-            // Con un filtro o búsqueda activos el resultado ya es el conjunto completo
-            // de tarjetas cargadas: no queda nada más que "cargar".
-            if (loadMoreEl) {
-                var filtering = state.destinations.size || state.durations.size || state.languages.size ||
-                    state.modalities.size || state.onOffer || state.query.length ||
-                    (priceCeiling !== null && state.maxPrice !== null && state.maxPrice < priceCeiling);
-                loadMoreEl.classList.toggle('hidden', !!filtering);
-            }
+            // El botón solo existe mientras queden tarjetas coincidentes sin mostrar.
+            if (loadMoreEl) loadMoreEl.classList.toggle('hidden', !hasMore);
 
             if (emptyEl) emptyEl.classList.toggle('hidden', visibleCount > 0);
             if (emptyTextEl) {
@@ -249,8 +257,29 @@
                 var key = select.value;
                 sortSelects.forEach(function (other) { if (other !== select) other.value = key; });
                 applySort(key);
+                applyFilters();
             });
         });
+
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function () {
+                var before = [];
+                containers.forEach(function (c) {
+                    before.push(c.querySelectorAll('[data-tour-card]:not(.hidden)').length);
+                });
+                state.limit += pageSize;
+                applyFilters();
+                // Foco a la primera tarjeta recién revelada del contenedor visible (teclado/lector).
+                for (var i = 0; i < containers.length; i++) {
+                    if (containers[i].offsetParent === null) continue;
+                    var shown = containers[i].querySelectorAll('[data-tour-card]:not(.hidden)');
+                    var first = shown[before[i]];
+                    var link = first ? first.querySelector('a[href]:not([tabindex="-1"])') : null;
+                    if (link) link.focus({ preventScroll: false });
+                    break;
+                }
+            });
+        }
 
         function resetFilters() {
             groupCheckboxes.forEach(function (el) { el.checked = false; });
@@ -268,6 +297,7 @@
             state.modalities.clear();
             state.onOffer = false;
             state.maxPrice = priceCeiling;
+            state.limit = pageSize;
             if (searchInput) searchInput.value = '';
             state.query = [];
             applySort('recommended');

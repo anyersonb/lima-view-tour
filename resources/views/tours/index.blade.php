@@ -113,6 +113,9 @@
         ];
     })->values();
 
+    // Paginación cliente: se ven $pageSize y el botón revela otras tantas (tour-filters.js).
+    $pageSize = 9;
+
     // ── Facetas: solo se listan opciones con ≥1 tour real ──────────────────
     $priceValues = $cardData->pluck('now')->filter(fn ($v) => $v > 0)->values();
     $priceMin = $priceValues->isNotEmpty() ? (float) floor($priceValues->min()) : 0.0;
@@ -245,14 +248,14 @@
 
         {{-- Buscador: suelto en móvil (filtra la lista en cliente); caja blanca desde 640 px --}}
         <div class="sm:mt-8 sm:bg-white sm:text-teal-800 sm:rounded-3xl sm:shadow-2xl sm:ring-1 sm:ring-black/5 sm:p-5 sm:max-w-2xl">
-            <p class="hidden sm:block text-[11px] font-bold uppercase tracking-[0.18em] text-teal-800/60 mb-3">{{ $L('Buscar experiencia', 'Search experience', 'Buscar experiência') }}</p>
+            <p class="hidden sm:block text-[11px] font-bold uppercase tracking-[0.18em] text-teal-800/70 mb-3">{{ $L('Buscar experiencia', 'Search experience', 'Buscar experiência') }}</p>
             <form method="GET" action="{{ route('tours.results', ['locale' => $locale]) }}" class="flex items-center gap-2.5" role="search" data-tour-search-form>
                 <div class="relative flex-1 min-w-0">
-                    <span class="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 text-teal-800/60 sm:text-teal-800/40" aria-hidden="true">
+                    <span class="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 text-teal-800/60 sm:text-teal-800/60" aria-hidden="true">
                         <svg class="w-[18px] h-[18px] sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                     </span>
                     <input type="search" name="q" data-tour-search enterkeyhint="search" autocomplete="off" placeholder="{{ __('ui.search_tour') }}"
-                           class="w-full h-8 sm:h-auto rounded-lg sm:rounded-2xl border border-teal-800/15 bg-cream-100 pl-10 sm:pl-11 pr-3 py-0 sm:py-3.5 text-base text-teal-800 placeholder-teal-800/70 sm:placeholder-teal-800/40 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
+                           class="w-full h-8 sm:h-auto rounded-lg sm:rounded-2xl border border-teal-800/15 bg-cream-100 pl-10 sm:pl-11 pr-3 py-0 sm:py-3.5 text-base text-teal-800 placeholder-teal-800/70 sm:placeholder-teal-800/70 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
                            aria-label="{{ __('ui.search_tour_label') }}">
                 </div>
                 <button type="submit" class="hidden sm:inline-block shrink-0 bg-teal-800 hover:bg-teal-900 text-white font-bold text-sm rounded-2xl px-6 py-3.5 transition">{{ $L('Buscar', 'Search', 'Buscar') }}</button>
@@ -309,7 +312,7 @@
                 <div class="sticky top-24">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="font-display text-lg text-teal-800">{{ __('ui.filters') }}</h2>
-                        <button type="button" data-filters-clear class="text-xs font-semibold text-orange-600 hover:text-orange-700 underline underline-offset-2">
+                        <button type="button" data-filters-clear class="text-xs font-semibold text-orange-700 hover:text-orange-800 underline underline-offset-2">
                             {{ __('ui.clear_filters') }}
                         </button>
                     </div>
@@ -342,7 +345,7 @@
                         @include('tours.partials.filter-groups', ['prefix' => 'mobile'])
                     </div>
                     <div class="px-5 py-4 border-t border-teal-800/10 flex items-center gap-3">
-                        <button type="button" data-filters-clear class="text-xs font-semibold text-orange-600 hover:text-orange-700 underline underline-offset-2 shrink-0">
+                        <button type="button" data-filters-clear class="text-xs font-semibold text-orange-700 hover:text-orange-800 underline underline-offset-2 shrink-0">
                             {{ __('ui.clear_filters') }}
                         </button>
                         <button type="button" data-filters-close
@@ -396,6 +399,7 @@
                             :eager="$i < 2"
                             data-tour-card
                             data-index="{{ $i }}"
+                            :style="$i >= $pageSize ? 'display:none' : null"
                             data-price="{{ $tour['now'] }}"
                             data-duration="{{ $tour['durationBucket'] }}"
                             data-duration-weight="{{ $tour['durationWeight'] }}"
@@ -433,6 +437,7 @@
                         <x-tour-card
                             data-tour-card
                             data-index="{{ $i }}"
+                            :style="$i >= $pageSize ? 'display:none' : null"
                             data-price="{{ $tour['now'] }}"
                             data-duration="{{ $tour['durationBucket'] }}"
                             data-duration-weight="{{ $tour['durationWeight'] }}"
@@ -470,9 +475,11 @@
                     </button>
                 </div>
 
-                <div class="mt-12 flex justify-center" data-load-more>
-                    <button type="button" class="btn--primary-outline">{{ __('ui.load_more_tours') }}</button>
+                @if (count($cardData) > $pageSize)
+                <div class="mt-12 flex justify-center" data-load-more data-page-size="{{ $pageSize }}">
+                    <button type="button" class="btn--primary-outline" data-load-more-btn>{{ __('ui.load_more_tours') }}</button>
                 </div>
+                @endif
             </div>
         </div>
     </div>
@@ -491,7 +498,7 @@
             <span class="w-10 h-10 rounded-full bg-cream-200"></span>
             <span class="leading-tight">
                 <span class="block font-semibold text-teal-800">Valeriy Roberts</span>
-                <span class="block text-xs text-teal-800/60">{{ __('ui.verified_client') }}</span>
+                <span class="block text-xs text-teal-800/70">{{ __('ui.verified_client') }}</span>
             </span>
         </figcaption>
     </div>
@@ -508,7 +515,7 @@
                         <blockquote class="mt-2 text-sm text-teal-800/85 leading-relaxed">
                             Reservar fue muy fácil y la experiencia superó nuestras expectativas. Definitivamente repetiremos.
                         </blockquote>
-                        <p class="mt-3 text-orange-400 text-sm" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733; <span class="text-teal-800/60">Google</span></p>
+                        <p class="mt-3 text-orange-400 text-sm" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733; <span class="text-teal-800/70">Google</span></p>
                     </div>
                     <figcaption class="bg-teal-700 text-white px-5 py-3 flex items-center gap-3 mt-auto">
                         <span class="w-9 h-9 rounded-full bg-cream-200"></span>
