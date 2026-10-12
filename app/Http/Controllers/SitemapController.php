@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\Page;
 use App\Models\Region;
 use App\Models\Tour;
+use App\Support\ImagePath;
 use App\Support\LocalizedPages;
 use Illuminate\Http\Response;
 
@@ -77,15 +78,25 @@ class SitemapController extends Controller
         }
 
         // Tour pages
+        // Slug REAL por idioma (slugFor) en loc y en alternates: con el slug ES
+        // bajo /en la URL responde 301 al slug EN, y los hreflang del sitemap
+        // contradecirían a los del <head> (tours/show.blade.php). La imagen
+        // sale de ImagePath::url(), el mismo helper de la ficha (cover_url),
+        // que antepone /storage/ a las subidas de Filament.
         foreach (Tour::published()->ordered()->get() as $tour) {
+            $alternates = collect($locales)
+                ->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/tours/detalle/' . $tour->slugFor($l)])
+                ->all();
+            $image = ImagePath::url($tour->cover_image);
+
             foreach ($locales as $locale) {
                 $urls[] = [
-                    'loc' => $base . '/' . $locale . '/tours/detalle/' . $tour->slug,
+                    'loc' => $alternates[$locale],
                     'lastmod' => $tour->updated_at?->toAtomString() ?? now()->toAtomString(),
                     'priority' => $tour->is_featured ? '0.9' : '0.7',
                     'changefreq' => 'weekly',
-                    'image' => $tour->cover_image ? $base . '/' . ltrim($tour->cover_image, '/') : null,
-                    'alternates' => collect($locales)->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/tours/detalle/' . $tour->slug])->all(),
+                    'image' => $image,
+                    'alternates' => $alternates,
                 ];
             }
         }

@@ -34,7 +34,7 @@
         <div class="space-y-5">
             @forelse ($tours as $tour)
                 <article class="bg-white rounded-2xl overflow-hidden shadow-sm grid gap-6 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,260px)] items-stretch p-4">
-                    <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="relative block min-h-[160px]">
+                    <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour->slugFor($locale)]) }}" class="relative block min-h-[160px]">
                         <img src="{{ $tour->cover_url }}" alt="{{ $tour->title }}" class="absolute inset-0 w-full h-full object-cover rounded-xl" loading="lazy" width="260" height="160">
                     </a>
                     <div class="flex flex-col justify-center">
@@ -75,7 +75,7 @@
                                 @endif
                                 <span class="font-price text-2xl text-state-error ml-1">${{ number_format((float) $tour->price, 0) }}</span>
                             </p>
-                            <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour->slug]) }}"
+                            <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour->slugFor($locale)]) }}"
                                class="btn--primary btn--block mt-3">{{ __('ui.book_tour') }}</a>
                         </div>
                     </div>

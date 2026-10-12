@@ -52,7 +52,7 @@
                 'img'       => is_object($t)
                     ? (\App\Support\ImagePath::url($t->cover_image ?? null) ?? asset('assets/banners/banner-hero.jpg'))
                     : (\App\Support\ImagePath::url($t['cover_image'] ?? null) ?? asset('assets/banners/banner-hero.jpg')),
-                'slug'      => is_object($t) ? ($t->slug ?? '')                                  : ($t['slug'] ?? ''),
+                'slug'      => is_object($t) ? ($t instanceof \App\Models\Tour ? $t->slugFor(app()->getLocale()) : ($t->slug ?? '')) : ($t['slug'] ?? ''),
                 'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true)       : ($t['show_best_seller'] ?? true)),
                 'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true)       : ($t['show_offer_badge'] ?? true)),
             ];
@@ -68,7 +68,7 @@
 
     // First featured tour for "Más Comprados" section
     $firstTour = $featuredTours->first();
-    $btSlug    = is_object($firstTour) ? ($firstTour->slug ?? 'huacachina-paracas-full-day') : ($firstTour['slug'] ?? 'huacachina-paracas-full-day');
+    $btSlug    = is_object($firstTour) ? (($firstTour instanceof \App\Models\Tour ? $firstTour->slugFor(app()->getLocale()) : $firstTour->slug) ?? 'huacachina-paracas-full-day') : ($firstTour['slug'] ?? 'huacachina-paracas-full-day');
     $btImg     = ($firstTour && ! empty(is_object($firstTour) ? $firstTour->cover_image : $firstTour['cover_image'] ?? null))
         ? (\App\Support\ImagePath::url(is_object($firstTour) ? $firstTour->cover_image : $firstTour['cover_image']) ?: asset('assets/banners/Rectangle 19210.jpg'))
         : asset('assets/banners/Rectangle 19210.jpg');
