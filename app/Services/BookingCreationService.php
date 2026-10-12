@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\AccountCredentials;
 use App\Models\Booking;
 use App\Models\Customer;
+use App\Models\Tour;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -48,15 +49,22 @@ class BookingCreationService
         string $locale,
     ): Collection {
         $hasPickupColumns = Schema::hasColumn('bookings', 'pickup_point');
+        // Tours without pickup never store a pickup point, even if the
+        // client posted one (hidden field tampering / stale form).
+        $noPickupTourIds = Tour::query()
+            ->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())
+            ->where('pickup_included', false)
+            ->pluck('id')
+            ->all();
         $pendingGuestMail = null;
 
         $bookings = DB::transaction(function () use (
-            $items, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, &$pendingGuestMail
+            $items, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, &$pendingGuestMail
         ): Collection {
             $customerId = $this->resolveCustomerId($customer, $locale, $pendingGuestMail);
 
             return $items->map(function (array $item) use (
-                $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $customerId
+                $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $customerId
             ): Booking {
                 $attrs = [
                     'customer_id' => $customerId,
@@ -84,8 +92,9 @@ class BookingCreationService
                 ];
 
                 if ($hasPickupColumns) {
-                    $attrs['pickup_point'] = $customer['pickup_point'] ?? null;
-                    $attrs['pickup_detail'] = $customer['pickup_detail'] ?? null;
+                    $hasPickup = ! in_array($item['tour_id'], $noPickupTourIds, true);
+                    $attrs['pickup_point'] = $hasPickup ? ($customer['pickup_point'] ?? null) : null;
+                    $attrs['pickup_detail'] = $hasPickup ? ($customer['pickup_detail'] ?? null) : null;
                 }
 
                 return Booking::create($attrs);

@@ -1248,6 +1248,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     </div>
                                 </div>
 
+@if ($cartHasPickup)
                                 <div class="cart-field">
                                     <label for="pickup_point">{{ __('ui.pickup_hotel_label') }} <span class="text-teal-800/40 font-normal normal-case">({{ __('ui.optional') }})</span></label>
                                     @php
@@ -1398,6 +1399,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            class="cart-real-input @error('pickup_detail') border-red-500 @enderror">
                                     @error('pickup_detail')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                 </div>
+@endif
 
                                 <div class="cart-field">
                                     <label for="tour_language">{{ __('ui.tour_language_label') }}</label>
@@ -1596,6 +1598,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                         </div>
                     </div>
 
+@if ($cartHasFreeCancellation)
                     {{-- Política de cancelación --}}
                     <div class="cart-card">
                         <div class="cart-card-pad">
@@ -1605,6 +1608,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                             </div>
                         </div>
                     </div>
+@endif
 
                     {{-- Términos --}}
                     <div class="cart-card">

@@ -1044,7 +1044,7 @@
                             <div class="mt-3 grid grid-cols-3 divide-x divide-cream-200/80 text-center text-[11px] text-teal-800/75">
                                 <div class="px-2">
                                     <svg class="w-4 h-4 mx-auto mb-1 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
-                                    <span class="leading-tight">Español/<br>Inglés</span>
+                                    <span class="leading-tight">{!! str_replace(' / ', '/<br>', e(__('ui.language_default'))) !!}</span>
                                 </div>
                                 <div class="px-2">
                                     <svg class="w-4 h-4 mx-auto mb-1 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/></svg>

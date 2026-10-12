@@ -131,6 +131,14 @@ class CartController extends Controller
             ];
         }
 
+        // Per-tour promises: only ask for a pickup point / promise free
+        // cancellation when at least one cart tour offers them.
+        $cartTours = Tour::query()
+            ->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())
+            ->get(['id', 'pickup_included', 'free_cancellation']);
+        $cartHasPickup = $cartTours->isEmpty() || $cartTours->contains(fn (Tour $t) => (bool) $t->pickup_included);
+        $cartHasFreeCancellation = $cartTours->isEmpty() || $cartTours->contains(fn (Tour $t) => (bool) $t->free_cancellation);
+
         return view('checkout', compact(
             'items',
             'subtotal',
@@ -145,6 +153,8 @@ class CartController extends Controller
             'expiredMessages',
             'datesDiffer',
             'paymentLock',
+            'cartHasPickup',
+            'cartHasFreeCancellation',
         ));
     }
 

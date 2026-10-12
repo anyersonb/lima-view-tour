@@ -6,6 +6,7 @@
         default => $es,
     };
     $first      = $bookings->first();
+    $anyPickup  = $bookings->contains(fn ($b) => $b->tour?->pickup_included ?? true);
     $payingNow  = ($first?->payment_status === 'paid');
     $grandTotal = (float) $bookings->sum('total_price');
     $currency   = $first?->currency ?? 'USD';
@@ -134,6 +135,7 @@
     </td></tr>
     @endif
 
+@if ($anyPickup)
     {{-- ¿Qué sigue? --}}
     <tr><td style="padding:18px 28px 4px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edf7f1;border:1px solid #e4eadf;border-radius:16px;">
@@ -146,6 +148,7 @@
             </tr>
         </table>
     </td></tr>
+@endif
 
     {{-- Botones --}}
     <tr><td style="padding:18px 28px 24px;">

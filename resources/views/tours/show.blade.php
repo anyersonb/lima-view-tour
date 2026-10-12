@@ -2,6 +2,9 @@
 
 @php
     $locale     = app()->getLocale();
+    // Per-tour promises controlled from the CMS (default true = legacy behaviour).
+    $pickupIncluded   = (bool) ($tour->pickup_included ?? true);
+    $freeCancellation = (bool) ($tour->free_cancellation ?? true);
     $gallery    = $tour->gallery ?? [];
     $itinerary  = $tour->{"itinerary_{$locale}"} ?? $tour->itinerary_es ?? [];
     $includes   = $tour->{"includes_{$locale}"}  ?? $tour->includes_es  ?? [];
@@ -25,7 +28,7 @@
         ])
         ->values();
     $pickupMapsKey = \App\Models\Setting::get('google_maps_api_key') ?: config('services.google.maps_api_key');
-    $showPickup    = $pickupEnabled && $pickupZones->isNotEmpty() && filled($pickupMapsKey);
+    $showPickup    = $pickupIncluded && $pickupEnabled && $pickupZones->isNotEmpty() && filled($pickupMapsKey);
 
     // FAQs del tour: idioma actual con fallback a español; solo pares completos.
     $tourFaqs = array_values(array_filter(
@@ -47,11 +50,11 @@
     // bilingüe por defecto (en cualquier idioma/variante) usa el string localizado
     // (__('ui.spanish_english')); si es un valor realmente personalizado, se respeta.
     $rawTourLang   = trim((string) ($tour->language ?? ''));
-    $rawTourLangN  = strtolower(str_replace(' ', '', $rawTourLang));
-    $defaultLangs  = ['español/inglés', 'español/ingles', 'espanhol/inglês', 'espanhol/ingles', 'espanhol/inglés', 'spanish/english'];
-    $tourLanguage  = ($rawTourLang === '' || in_array($rawTourLangN, $defaultLangs, true))
+    // Known languages are re-labelled in the current locale (never mixes es/pt/en
+    // in one label); a value with unknown languages is respected as written.
+    $tourLanguage  = ($rawTourLang === '')
         ? __('ui.spanish_english')
-        : $rawTourLang;
+        : (\App\Support\TourListing::languageLabel($rawTourLang) ?? $rawTourLang);
     // Única fuente de verdad: reseñas publicadas reales (Tour::reviewStats()).
     // Sin fallback fijo — si no hay reseñas, average/total llegan null/0 y el
     // badge no se pinta (ver guards @if($tourRating !== null) más abajo).
@@ -1066,8 +1069,10 @@ if (!empty($itinerary)) {
                     <span>{{ $tour->badge_text ?: __('ui.most_booked') }}</span>
                 </div>
                 <div class="m-subline">
+                    @if ($freeCancellation)
                     <span class="m-subitem safe"><span class="m-ico">🛡</span><span>{{ __('ui.free_cancellation') }}</span></span>
                     <span class="m-divider" aria-hidden="true"></span>
+                    @endif
                     <span class="m-subitem urgent"><span class="m-ico">🔥</span><span>{{ __('ui.last_spots') }}</span></span>
                 </div>
             </div>
@@ -1130,7 +1135,9 @@ if (!empty($itinerary)) {
                  }">
                 <div class="m-compact-head">
                     <span>{{ __('ui.book_online') }}</span>
+                    @if ($freeCancellation)
                     <span>{{ __('ui.free_cancellation') }}</span>
+                    @endif
                 </div>
                 <div class="m-compact-body">
                     {{-- Fila precio --}}
@@ -1203,14 +1210,20 @@ if (!empty($itinerary)) {
         {{-- 4. TRUST ROW + NOTICE + FEATURES --}}
         <div style="padding:0 20px 18px;">
             <div class="m-trust-row">
+                @if ($freeCancellation)
                 <div class="m-trust">🛡️ {{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
+                @endif
                 <div class="m-trust">🔒 {{ __('ui.secure_payment') }}<small>{{ __('ui.and_protected') }}</small></div>
             </div>
             <div class="m-notice">🔥 {{ $bookingsWeek }} {{ __('ui.travelers_booked_week') }}</div>
             <div class="m-features">
+                @if ($pickupIncluded)
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">🚌</div><b>{{ __('ui.pickup_included') }}</b><small>{{ __('ui.from_your_hotel') }}</small></div>
+                @endif
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">🌐</div><b>{{ __('ui.bilingual_guide') }}</b><small>{{ $tourLanguage }}</small></div>
+                @if ($freeCancellation)
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">🛡️</div><b>{{ __('ui.free_cancellation') }}</b><small>{{ __('ui.until_24h_before') }}</small></div>
+                @endif
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">👥</div><b>{{ __('ui.small_groups') }}</b><small>{{ __('ui.personalized_experience') }}</small></div>
             </div>
         </div>
@@ -1554,7 +1567,9 @@ if (!empty($itinerary)) {
         <div class="m-confidence">
             <h2 style="font-family:Georgia,serif;margin:0 0 12px;font-size:20px;color:#1a0d75;">{{ __('ui.book_with_confidence') }}</h2>
             <div class="m-confidence-grid">
+                @if ($freeCancellation)
                 <div><span class="m-ico" aria-hidden="true">🛡️</span>{{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
+                @endif
                 <div><span class="m-ico" aria-hidden="true">🔒</span>{{ __('ui.secure_payment_protected') }}</div>
                 <div><span class="m-ico" aria-hidden="true">🎧</span>{{ __('ui.customer_support_247') }}</div>
                 <div><span class="m-ico" style="color:#c76b33;" aria-hidden="true">🏛️</span>{{ __('ui.over_10_years') }}</div>
@@ -1592,10 +1607,12 @@ if (!empty($itinerary)) {
                         {{ __('ui.most_booked') }}
                     </span>
                 @endif
+@if ($freeCancellation)
                 <span class="inline-flex items-center gap-1.5 bg-teal-800/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     {{ __('ui.free_cancellation') }}
                 </span>
+@endif
                 <span class="inline-flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
                     <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clip-rule="evenodd"/></svg>
                     {{ __('ui.last_spots') }}
@@ -1720,6 +1737,7 @@ if (!empty($itinerary)) {
         <section aria-label="{{ __('ui.trust_guarantees') }}">
             {{-- Trust row --}}
             <div class="grid grid-cols-2 gap-3 mb-3">
+@if ($freeCancellation)
                 <div class="flex items-center gap-2.5 bg-white ring-1 ring-teal-800/10 rounded-2xl px-3 py-3">
                     <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                     <div>
@@ -1727,6 +1745,7 @@ if (!empty($itinerary)) {
                         <p class="text-[11px] text-teal-800/55">{{ __('ui.until_24h_before') }}</p>
                     </div>
                 </div>
+@endif
                 <div class="flex items-center gap-2.5 bg-white ring-1 ring-teal-800/10 rounded-2xl px-3 py-3">
                     <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                     <div>
@@ -1744,12 +1763,12 @@ if (!empty($itinerary)) {
 
             {{-- Grid 4 features --}}
             <div class="grid grid-cols-4 gap-2 sm:gap-4 mt-4">
-            @foreach ([
-                ['icon' => 'van',    'label' => __('ui.pickup_included'),      'caption' => __('ui.from_your_hotel')],
+            @foreach (array_values(array_filter([
+                $pickupIncluded ? ['icon' => 'van',    'label' => __('ui.pickup_included'),      'caption' => __('ui.from_your_hotel')] : null,
                 ['icon' => 'globe',  'label' => __('ui.bilingual_guide'),        'caption' => __('ui.spanish_english')],
-                ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')],
+                $freeCancellation ? ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')] : null,
                 ['icon' => 'group',  'label' => __('ui.small_groups'),      'caption' => __('ui.personalized_experience')],
-            ] as $feature)
+            ])) as $feature)
                 <div class="flex flex-col items-center text-center gap-1.5">
                     <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white ring-1 ring-teal-800/15 grid place-items-center text-teal-700 shadow-sm">
                         @if ($feature['icon'] === 'van')
@@ -2262,12 +2281,12 @@ if (!empty($itinerary)) {
         <section aria-labelledby="confidence-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
             <h2 id="confidence-heading" class="font-display text-base font-bold text-teal-800 mb-4">{{ __('ui.book_with_confidence') }}</h2>
             <div class="grid grid-cols-4 gap-2">
-                @foreach ([
-                    ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')],
+                @foreach (array_values(array_filter([
+                    $freeCancellation ? ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')] : null,
                     ['icon' => 'lock',   'label' => __('ui.secure_payment_protected'), 'caption' => ''],
                     ['icon' => 'phone',  'label' => __('ui.customer_support_247'), 'caption' => ''],
                     ['icon' => 'medal',  'label' => __('ui.over_10_years'), 'caption' => ''],
-                ] as $trust)
+                ])) as $trust)
                     <div class="flex flex-col items-center text-center gap-1.5">
                         <div class="w-10 h-10 rounded-full bg-orange-50 ring-1 ring-orange-200 grid place-items-center text-orange-500 shrink-0">
                             @if ($trust['icon'] === 'shield')
@@ -2298,10 +2317,12 @@ if (!empty($itinerary)) {
             {{-- Cabecera --}}
             <div class="booking-compact-head">
                 <span class="text-white text-xs font-semibold tracking-wide">{{ __('ui.book_online') }}</span>
+@if ($freeCancellation)
                 <span class="inline-flex items-center gap-1 text-white/80 text-[11px]">
                     <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     {{ __('ui.free_cancellation') }}
                 </span>
+@endif
             </div>
             {{-- Cuerpo --}}
             <div class="booking-compact-body space-y-3">
@@ -2399,10 +2420,12 @@ if (!empty($itinerary)) {
 
                 {{-- Badges de confianza --}}
                 <div class="grid grid-cols-2 gap-2 pt-1 border-t border-teal-800/10">
+@if ($freeCancellation)
                     <div class="flex items-center gap-1.5 text-teal-800/70">
                         <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                         <span class="text-[10px] font-semibold">{{ __('ui.free_cancellation') }}</span>
                     </div>
+@endif
                     <div class="flex items-center gap-1.5 text-teal-800/70">
                         <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                         <span class="text-[10px] font-semibold">{{ __('ui.secure_payment') }}</span>
@@ -2504,6 +2527,7 @@ if (!empty($itinerary)) {
                 <p class="font-price text-2xl font-bold text-teal-800 leading-tight">US${{ number_format((float)$tour->price, 0) }}</p>
                 <p class="text-[10px] text-teal-800/45 leading-none">{{ __('ui.per_person') }}</p>
             </div>
+@if ($freeCancellation)
             <div class="flex items-center gap-2 text-teal-800/70 flex-1 justify-center">
                 <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                 <div>
@@ -2511,6 +2535,7 @@ if (!empty($itinerary)) {
                     <p class="text-[11px] text-teal-800/50">{{ __('ui.until_24h_before') }}</p>
                 </div>
             </div>
+@endif
             <button type="submit"
                     form="form-reservar"
                     class="shrink-0 inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-semibold text-sm rounded-full py-3 px-5 lg:px-7 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
