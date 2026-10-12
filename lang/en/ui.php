@@ -387,6 +387,9 @@ culture',
     // Ficha del tour, junto al calendario. Dice "día" y no "24 h" a propósito: las
     // 24 h ya son la política de cancelación y no deben confundirse.
     'booking_departure_notice' => 'Departure :time · Book at least 1 day in advance',
+    'date_unavailable_early' => 'That day is too soon to book: reservations need advance notice.',
+    'date_unavailable_blocked' => 'The tour does not run on that day.',
+    'date_first_available' => 'First available date: :date',
     // Listado: duración/modalidad localizadas (TourListing).
     'duration_hours_one' => ':count hour',
     'duration_hours_other' => ':count hours',

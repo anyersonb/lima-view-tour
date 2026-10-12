@@ -387,6 +387,9 @@ local',
     // Ficha del tour, junto al calendario. Dice "día" y no "24 h" a propósito: las
     // 24 h ya son la política de cancelación y no deben confundirse.
     'booking_departure_notice' => 'Saída :time · Reserve com pelo menos 1 dia de antecedência',
+    'date_unavailable_early' => 'Esse dia ainda não pode ser reservado: a reserva exige antecedência.',
+    'date_unavailable_blocked' => 'O tour não sai nesse dia.',
+    'date_first_available' => 'Primeira data disponível: :date',
     // Listado: duración/modalidad localizadas (TourListing).
     'duration_hours_one' => ':count hora',
     'duration_hours_other' => ':count horas',

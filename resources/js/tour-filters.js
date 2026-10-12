@@ -27,6 +27,7 @@
         var countEls = Array.prototype.slice.call(root.querySelectorAll('[data-tour-count]'));
         var seeCountEls = Array.prototype.slice.call(root.querySelectorAll('[data-see-count]'));
         var emptyEl = root.querySelector('[data-tour-empty]');
+        var loadMoreEl = root.querySelector('[data-load-more]');
         var emptyTextEl = root.querySelector('[data-tour-empty-text]');
         // El buscador vive en el hero (fuera de root). Solo filtra la lista en móvil (<640);
         // en escritorio el formulario sigue enviando a /buscar.
@@ -139,6 +140,15 @@
 
             countEls.forEach(function (el) { el.textContent = toursFoundText(visibleCount); });
             seeCountEls.forEach(function (el) { el.textContent = seeToursText(visibleCount); });
+
+            // Con un filtro o búsqueda activos el resultado ya es el conjunto completo
+            // de tarjetas cargadas: no queda nada más que "cargar".
+            if (loadMoreEl) {
+                var filtering = state.destinations.size || state.durations.size || state.languages.size ||
+                    state.modalities.size || state.onOffer || state.query.length ||
+                    (priceCeiling !== null && state.maxPrice !== null && state.maxPrice < priceCeiling);
+                loadMoreEl.classList.toggle('hidden', !!filtering);
+            }
 
             if (emptyEl) emptyEl.classList.toggle('hidden', visibleCount > 0);
             if (emptyTextEl) {
@@ -318,6 +328,13 @@
             }
         }
 
+        // El botón flotante de WhatsApp (fixed, z 9000) tapaba la esquina de
+        // "Ver N tours" en el drawer: se oculta mientras el drawer está abierto.
+        function setFloatingWhatsApp(visible) {
+            var wa = document.querySelector('[data-wa-location="flotante"]');
+            if (wa) wa.style.display = visible ? 'flex' : 'none';
+        }
+
         function openDrawer(triggerEl) {
             if (!panel || !overlay) return;
             lastFocused = triggerEl || document.activeElement;
@@ -327,6 +344,7 @@
             panel.setAttribute('aria-hidden', 'false');
             openButtons.forEach(function (b) { b.setAttribute('aria-expanded', 'true'); });
             document.body.classList.add('overflow-hidden');
+            setFloatingWhatsApp(false);
             window.addEventListener('keydown', onKeydown);
             var closeBtn = panel.querySelector('[data-filters-close]');
             if (closeBtn) closeBtn.focus();
@@ -340,6 +358,7 @@
             panel.setAttribute('inert', '');
             openButtons.forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
             document.body.classList.remove('overflow-hidden');
+            setFloatingWhatsApp(true);
             window.removeEventListener('keydown', onKeydown);
             if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
         }

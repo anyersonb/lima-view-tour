@@ -470,7 +470,7 @@
                     </button>
                 </div>
 
-                <div class="mt-12 flex justify-center">
+                <div class="mt-12 flex justify-center" data-load-more>
                     <button type="button" class="btn--primary-outline">{{ __('ui.load_more_tours') }}</button>
                 </div>
             </div>

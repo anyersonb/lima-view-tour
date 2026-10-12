@@ -536,7 +536,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-rec-list { display: flex; flex-direction: column; gap: 14px; }
 .m-rec-card {
   display: grid;
-  grid-template-columns: 126px 1fr 98px;
+  grid-template-columns: minmax(96px,126px) minmax(0,1fr) minmax(86px,98px);
   gap: 12px;
   padding: 12px;
   border: 1px solid #dedede;
@@ -545,7 +545,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
   box-shadow: 0 6px 24px rgba(0,0,0,.07);
 }
 .m-rec-image-wrap { position: relative; }
-.m-rec-card img { width: 126px; height: 142px; object-fit: cover; border-radius: 14px; }
+.m-rec-card img { width: 100%; max-width: 126px; height: 142px; object-fit: cover; border-radius: 14px; }
 .m-rec-badge {
   position: absolute;
   top: 10px;
@@ -558,7 +558,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
   border-radius: 0 10px 10px 0;
   box-shadow: 0 4px 10px rgba(0,0,0,.15);
 }
-.m-rec-main { padding-right: 4px; border-right: 1px solid #e7e2d9; }
+.m-rec-main { padding-right: 4px; min-width: 0; border-right: 1px solid #e7e2d9; }
 .m-rec-main h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: 18px; line-height: 1.05; color: #12323a; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .m-rec-duration { font-size: 12px; color: #d98c27; font-weight: 700; margin: 0 0 6px; }
 .m-rec-bullets { display: grid; gap: 5px; }
@@ -716,6 +716,12 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .flatpickr-day.nextMonthDay:hover {
     background: #15474b22 !important;
 }
+.lvt-fp-foot { padding: 8px 12px 10px; border-top: 1px solid #e6e6e6; text-align: left; }
+.lvt-fp-foot p { margin: 0; font-size: 11.5px; line-height: 1.35; }
+.lvt-fp-foot__notice { color: #465e68; }
+.lvt-fp-foot__warn { color: #9a3412; font-weight: 600; margin-bottom: 6px !important; }
+.lvt-fp-foot__warn[hidden] { display: none; }
+.flatpickr-calendar { z-index: 1000; }
 .flatpickr-day.flatpickr-disabled,
 .flatpickr-day.flatpickr-disabled:hover {
     color: #b0b0b0 !important;
@@ -775,6 +781,13 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
             return;
         }
 
+        var MSG = {
+            notice:  @json(__('ui.booking_departure_notice', ['time' => $bookingDepartureTime])),
+            early:   @json(__('ui.date_unavailable_early')),
+            blocked: @json(__('ui.date_unavailable_blocked')),
+            first:   @json(__('ui.date_first_available'))
+        };
+
         var blockedDates    = window.LVT_BLOCKED_DATES    || [];
         var blockedWeekdays = window.LVT_BLOCKED_WEEKDAYS || [];
 
@@ -822,8 +835,58 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
             ],
             onChange: function (selectedDates, dateStr) {
                 syncTravelDate(dateStr);
+            },
+            onReady: function (selectedDates, dateStr, fp) {
+                buildCalendarFooter(fp);
             }
         };
+
+        function isBlocked(date) {
+            var y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0');
+            return blockedDates.includes(y + '-' + m + '-' + d) || blockedWeekdays.includes(date.getDay());
+        }
+
+        function parseYmd(str) {
+            var p = String(str).split('-');
+            return new Date(+p[0], +p[1] - 1, +p[2]);
+        }
+
+        function firstAvailable() {
+            var d = minDate ? parseYmd(minDate) : new Date();
+            for (var i = 0; i < 400 && isBlocked(d); i++) d.setDate(d.getDate() + 1);
+            return d;
+        }
+
+        // Pie dentro del calendario: el aviso de salida/anticipación queda
+        // visible con el calendario abierto (antes lo tapaba) y aquí mismo se
+        // explica por qué un día tachado no se puede elegir.
+        function buildCalendarFooter(fp) {
+            var foot = document.createElement('div');
+            foot.className = 'lvt-fp-foot';
+            var notice = document.createElement('p');
+            notice.className = 'lvt-fp-foot__notice';
+            notice.textContent = MSG.notice;
+            var warn = document.createElement('p');
+            warn.className = 'lvt-fp-foot__warn';
+            warn.setAttribute('role', 'status');
+            warn.setAttribute('aria-live', 'polite');
+            warn.hidden = true;
+            foot.appendChild(warn);
+            foot.appendChild(notice);
+            fp.calendarContainer.appendChild(foot);
+
+            fp.calendarContainer.addEventListener('click', function (e) {
+                var day = e.target.closest ? e.target.closest('.flatpickr-day.flatpickr-disabled') : null;
+                if (!day || !day.dateObj) {
+                    warn.hidden = true;
+                    return;
+                }
+                var first = flatpickr.formatDate(firstAvailable(), 'l j F', locale);
+                var early = minDate && day.dateObj < parseYmd(minDate);
+                warn.textContent = (early ? MSG.early : MSG.blocked) + ' ' + MSG.first.replace(':date', first);
+                warn.hidden = false;
+            }, true);
+        }
 
         // Initialize on both booking date inputs (mobile + desktop)
         document.querySelectorAll('[data-booking-date]').forEach(function (el) {
@@ -869,13 +932,18 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 
             visible.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
-            var box = visible.closest('.m-field, div');
+            var box = visible.closest('.m-field') || visible.parentElement;
             if (box && !box.querySelector('[data-date-required]')) {
                 var msg = document.createElement('p');
                 msg.setAttribute('data-date-required', '');
                 msg.textContent = @json(__('cart.validation.date_required'));
-                msg.style.cssText = 'color:#b91c1c;font-size:11px;margin-top:4px';
-                box.appendChild(msg);
+                msg.style.cssText = 'color:#b91c1c;font-size:12px;font-weight:600;line-height:1.35;margin:2px 0 8px';
+                var lead = box.querySelector('.m-label, label');
+                if (lead && lead.parentNode === box) {
+                    lead.insertAdjacentElement('afterend', msg);
+                } else {
+                    box.insertBefore(msg, box.firstChild);
+                }
             }
 
             if (visible._flatpickr) {
