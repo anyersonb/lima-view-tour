@@ -68,6 +68,9 @@
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#153d46;">
                         <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Fecha</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->travel_date ? \Carbon\Carbon::parse($booking->travel_date)->locale('es')->isoFormat('D MMM YYYY') : __('payment_links.date_to_be_arranged') }}</td></tr>
                         <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Pasajeros</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->adults }} adulto(s)@if($booking->children > 0) · {{ $booking->children }} niño(s)@endif</td></tr>
+                        @if ($booking->tour_language_label)
+                        <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Idioma del tour</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->tour_language_label }}</td></tr>
+                        @endif
                         @if ($booking->pickup_point)
                         <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Hotel de recojo</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->pickup_point }}@if($booking->pickup_detail)<br><span style="font-weight:normal;color:#71808a;font-size:12px;">{{ $booking->pickup_detail }}</span>@endif</td></tr>
                         @endif

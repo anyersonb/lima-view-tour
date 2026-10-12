@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Support\BookingCalendar;
+use App\Support\TourLanguage;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProcessPaymentRequest extends FormRequest
 {
@@ -22,6 +24,12 @@ class ProcessPaymentRequest extends FormRequest
             $this->merge([
                 'customer_phone' => preg_replace('/\s+/', '', $this->input('customer_phone')),
             ]);
+        }
+
+        // Cart cards used to post labels ("English", "Español"); the contract is
+        // the code. Unknown text becomes null (=> the site language), never an error.
+        if ($this->has('tour_language')) {
+            $this->merge(['tour_language' => TourLanguage::normalize((string) $this->input('tour_language'))]);
         }
     }
 
@@ -49,12 +57,10 @@ class ProcessPaymentRequest extends FormRequest
             // que pickup_point/pickup_detail (ver processPayment()).
             'notes' => ['nullable', 'string', 'max:1000'],
 
-            // B3: `tour_language` se valida (para no romper si viaja) pero
-            // NO se persiste — `bookings` no tiene esa columna. No se creó
-            // una migración para esto (fuera del alcance de este lote):
-            // reportado al coordinador. Ver checkout.blade.php (select
-            // #tour_language) y CheckoutController::processPayment().
-            'tour_language' => ['nullable', 'string', 'max:5'],
+            // Idioma del tour: código es|en|pt (las etiquetas se normalizan en
+            // prepareForValidation). Se guarda en bookings.tour_language
+            // (migración 2026_10_12_000001, tolerante si aún no corrió).
+            'tour_language' => ['nullable', 'string', Rule::in(TourLanguage::CODES)],
 
             // B4: el checkbox de términos y condiciones. Los checkboxes NO
             // marcados no viajan en un submit HTML nativo, así que 'required'

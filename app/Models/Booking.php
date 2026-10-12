@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TourLanguage;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,16 @@ class Booking extends Model
         'discount_amount' => 'decimal:2',
         'payment_reminder_sent_at' => 'datetime',
     ];
+
+    /**
+     * Readable language of the tour ("Español", "English", "Português") or null.
+     * Reads through getAttributes() so it is safe while bookings.tour_language
+     * has not been migrated yet.
+     */
+    public function getTourLanguageLabelAttribute(): ?string
+    {
+        return TourLanguage::label($this->getAttributes()['tour_language'] ?? null);
+    }
 
     public function hasDiscount(): bool
     {

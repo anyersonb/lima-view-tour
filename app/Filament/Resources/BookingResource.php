@@ -276,6 +276,13 @@ class BookingResource extends Resource
                         Forms\Components\Textarea::make('notes')
                             ->label('Notas internas')
                             ->columnSpanFull(),
+                        ...(\App\Support\TourLanguage::hasColumn() ? [
+                            Forms\Components\Select::make('tour_language')
+                                ->label('Idioma del tour')
+                                ->helperText('Idioma en el que el cliente quiere recibir el tour (guía).')
+                                ->options(\App\Support\TourLanguage::options())
+                                ->native(false),
+                        ] : []),
                         Forms\Components\Select::make('locale')
                             ->label('Idioma del cliente')
                             ->options(['es' => 'Español', 'en' => 'English', 'pt' => 'Português'])
@@ -420,6 +427,13 @@ class BookingResource extends Resource
                 ] : []),
                 Tables\Columns\TextColumn::make('locale')
                     ->searchable(),
+                ...(\App\Support\TourLanguage::hasColumn() ? [
+                    Tables\Columns\TextColumn::make('tour_language')
+                        ->label('Idioma del tour')
+                        ->formatStateUsing(fn (?string $state): ?string => \App\Support\TourLanguage::label($state))
+                        ->placeholder('—')
+                        ->toggleable(),
+                ] : []),
                 Tables\Columns\TextColumn::make('payment_reminder_sent_at')
                     ->label('Recordatorio enviado')
                     ->dateTime('d/m/Y H:i', \App\Support\BookingCalendar::timezone())

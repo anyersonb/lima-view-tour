@@ -14,11 +14,13 @@ use App\Services\PaymentLockService;
 use App\Services\PaymentService;
 use App\Services\PayPalService;
 use App\Support\BookingCalendar;
+use App\Support\TourLanguage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -121,10 +123,11 @@ class CheckoutController extends Controller
                 'pickup_detail' => $request->input('pickup_detail'),
                 // B3: 'notes' viaja y se persiste igual que pickup_point/
                 // pickup_detail — 'bookings.notes' existe desde la migración
-                // original. 'tour_language' NO se incluye acá a propósito:
-                // se valida en ProcessPaymentRequest pero no hay columna
-                // para guardarlo (ver la nota ahí).
+                // original.
                 'notes' => $validated['notes'] ?? null,
+                // Código es|en|pt (ya normalizado en ProcessPaymentRequest);
+                // sin dato = idioma del sitio.
+                'tour_language' => TourLanguage::resolve($validated['tour_language'] ?? null, $locale),
             ];
 
             // Defense-in-depth: re-verify blocked dates for every cart item
@@ -374,6 +377,12 @@ class CheckoutController extends Controller
      */
     public function paypalCaptureOrder(Request $request, string $locale): JsonResponse
     {
+        // Same contract as ProcessPaymentRequest: code es|en|pt; labels from old
+        // cards are normalised, unknown text falls back to the site language.
+        if ($request->has('tour_language')) {
+            $request->merge(['tour_language' => TourLanguage::normalize((string) $request->input('tour_language'))]);
+        }
+
         $validated = $request->validate([
             'orderID' => ['required', 'string', 'max:100'],
             'customer_name' => ['required', 'string', 'max:255'],
@@ -383,12 +392,9 @@ class CheckoutController extends Controller
             'travel_date' => array_merge(['required'], BookingCalendar::formDateRules()),
             'pickup_point' => ['nullable', 'string', 'max:100'],
             'pickup_detail' => ['nullable', 'string', 'max:255'],
-            // B3: 'notes' se persiste (ver $customer más abajo). 'tour_language'
-            // se valida para no romper si viaja, pero NO se persiste — no
-            // hay columna en 'bookings' (reportado, sin migración en este
-            // lote).
+            // B3: 'notes' se persiste (ver $customer más abajo).
             'notes' => ['nullable', 'string', 'max:1000'],
-            'tour_language' => ['nullable', 'string', 'max:5'],
+            'tour_language' => ['nullable', 'string', Rule::in(TourLanguage::CODES)],
         ], array_merge(BookingCalendar::dateMessages(), [
             'customer_phone.regex' => __('checkout_paypal.phone_invalid'),
             'customer_phone.required' => __('checkout_paypal.phone_invalid'),
@@ -449,6 +455,7 @@ class CheckoutController extends Controller
                 'pickup_point' => $validated['pickup_point'] ?? null,
                 'pickup_detail' => $validated['pickup_detail'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                'tour_language' => TourLanguage::resolve($validated['tour_language'] ?? null, $locale),
             ];
 
             // Defense-in-depth: re-verify blocked dates against the SNAPSHOT

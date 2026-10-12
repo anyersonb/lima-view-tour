@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Tour;
 use App\Support\TourFlags;
+use App\Support\TourLanguage;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -60,15 +61,20 @@ class BookingCreationService
                 ->pluck('id')
                 ->all()
             : [];
+        // Language the customer takes the tour in: code es|en|pt, default = the
+        // site language of the request. Column missing (migration pending) => not stored.
+        $tourLanguage = TourLanguage::hasColumn()
+            ? TourLanguage::resolve($customer['tour_language'] ?? null, $locale)
+            : null;
         $pendingGuestMail = null;
 
         $bookings = DB::transaction(function () use (
-            $items, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, &$pendingGuestMail
+            $items, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, &$pendingGuestMail
         ): Collection {
             $customerId = $this->resolveCustomerId($customer, $locale, $pendingGuestMail);
 
             return $items->map(function (array $item) use (
-                $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $customerId
+                $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, $customerId
             ): Booking {
                 $attrs = [
                     'customer_id' => $customerId,
@@ -94,6 +100,10 @@ class BookingCreationService
                     // directo sin el guard de Schema::hasColumn() de abajo.
                     'notes' => $customer['notes'] ?? null,
                 ];
+
+                if ($tourLanguage !== null) {
+                    $attrs['tour_language'] = $tourLanguage;
+                }
 
                 if ($hasPickupColumns) {
                     $hasPickup = ! in_array($item['tour_id'], $noPickupTourIds, true);
