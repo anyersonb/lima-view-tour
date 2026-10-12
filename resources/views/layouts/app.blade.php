@@ -373,7 +373,12 @@
         wa.me/api.whatsapp.com link should add its own
         data-wa-location="ficha|contacto|footer" for correct attribution.
     --}}
+    @php
+        // Contexto para whatsapp_click: slug de la ficha (solo en tours.show) e idioma de la página.
+        $waTour = request()->routeIs('tours.show') ? (string) request()->route('slug') : '';
+    @endphp
     <script>
+        var lvtWaContext = { tour: @json($waTour), idioma: @json(app()->getLocale()) };
         document.addEventListener('click', function (e) {
             if (e.target.closest && e.target.closest('[data-cookie-preferences]')) {
                 window.dispatchEvent(new Event('lvt-cookie-preferences'));
@@ -384,9 +389,12 @@
             var href = link.getAttribute('href') || '';
 
             if (/wa\.me|api\.whatsapp\.com/.test(href)) {
-                window.lvtTrack('whatsapp_click', {
+                var waParams = {
                     ubicacion: link.dataset.waLocation || 'flotante',
-                }, { fb: null });
+                    idioma: lvtWaContext.idioma,
+                };
+                if (lvtWaContext.tour) waParams.tour = lvtWaContext.tour;
+                window.lvtTrack('whatsapp_click', waParams, { fb: null });
                 return;
             }
 
