@@ -38,6 +38,7 @@ class Tour extends Model
         'is_featured' => 'boolean',
         'is_published' => 'boolean',
         'show_best_seller' => 'boolean',
+        'show_top_rated' => 'boolean',
         'show_offer_badge' => 'boolean',
         'pickup_included' => 'boolean',
         'free_cancellation' => 'boolean',
@@ -328,6 +329,35 @@ class Tour extends Model
                 'distribution' => $distribution,
             ];
         });
+    }
+
+    /**
+     * Rating + count of REAL published reviews only, for cards/badges.
+     * Null when the tour has none (never an invented or stored fallback; the
+     * tours.rating / reviews_count columns are NOT used here).
+     *
+     * @return array{rating: float, count: int}|null
+     */
+    public function reviewSummary(): ?array
+    {
+        $stats = $this->reviewStats();
+
+        if (($stats['total'] ?? 0) < 1 || $stats['average'] === null) {
+            return null;
+        }
+
+        return ['rating' => (float) $stats['average'], 'count' => (int) $stats['total']];
+    }
+
+    /**
+     * Guide languages of the tour, localized: "Español / Inglés" (es),
+     * "Spanish / English" (en), "Espanhol / Inglês" (pt). Source: the raw
+     * tours.language field, parsed by TourListing::languages(). Null when the
+     * tour declares none.
+     */
+    public function languagesLabel(?string $locale = null): ?string
+    {
+        return \App\Support\TourListing::languageLabel($this->language, $locale);
     }
 
     /** @return array<int, array{count: int, percent: int}> */

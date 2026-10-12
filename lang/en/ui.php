@@ -401,4 +401,6 @@ culture',
     'search_tour_label' => 'Search a tour',
     'tours_list_heading' => 'Available tours',
     'tours_search_empty' => 'We could not find tours matching your search.',
+    'badge_top_rated' => 'Top rated',
+    'badge_best_seller' => 'Best seller',
 ];

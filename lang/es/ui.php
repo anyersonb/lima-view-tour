@@ -401,4 +401,6 @@ local',
     'search_tour_label' => 'Buscar tour',
     'tours_list_heading' => 'Tours disponibles',
     'tours_search_empty' => 'No encontramos tours que coincidan con tu búsqueda.',
+    'badge_top_rated' => 'Mejor valorado',
+    'badge_best_seller' => 'Más vendido',
 ];
