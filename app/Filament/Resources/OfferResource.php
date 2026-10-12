@@ -50,6 +50,7 @@ class OfferResource extends Resource
                     ->label('Descrição (Português)')
                     ->columnSpanFull(),
                 Forms\Components\FileUpload::make('image')
+                    ->fetchFileInformation(false)
                     ->image()
                     // Hallazgo de seguridad #5 (2026-09-30): nombre en disco
                     // desde el MIME detectado, nunca la extensión del cliente.

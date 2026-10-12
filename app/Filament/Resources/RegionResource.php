@@ -53,6 +53,7 @@ class RegionResource extends Resource
                     ->label('Descrição (Português)')
                     ->columnSpanFull(),
                 Forms\Components\FileUpload::make('hero_image')
+                    ->fetchFileInformation(false)
                     ->image()
                     // Hallazgo de seguridad #5 (2026-09-30): nombre en disco
                     // desde el MIME detectado, nunca la extensión del cliente.
@@ -81,6 +82,7 @@ class RegionResource extends Resource
                     ->maxLength(320)
                     ->helperText('Mismo criterio que el title: la meta por idioma de Configuración → SEO manda sobre esto.'),
                 Forms\Components\FileUpload::make('seo_image')
+                    ->fetchFileInformation(false)
                     ->image()
                     ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
             ]);

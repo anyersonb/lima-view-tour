@@ -220,6 +220,7 @@ class PageResource extends Resource
                             ->icon('heroicon-o-photo')
                             ->schema([
                                 Forms\Components\FileUpload::make('hero_image')
+                                    ->fetchFileInformation(false)
                                     ->label('Imagen hero (global)')
                                     ->disk('media')
                                     ->directory('paginas')
@@ -229,6 +230,7 @@ class PageResource extends Resource
                                     ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                 Forms\Components\FileUpload::make('seo_image')
+                                    ->fetchFileInformation(false)
                                     ->label('Imagen OG / Twitter Card')
                                     ->disk('media')
                                     ->directory('paginas')
@@ -251,6 +253,7 @@ class PageResource extends Resource
                                     ->columns(2)
                                     ->schema([
                                         Forms\Components\FileUpload::make('blocks.img_hero')
+                                            ->fetchFileInformation(false)
                                             ->label('Hero (fondo superior)')
                                             ->helperText('Reemplaza Rectangle 19216.jpg del banner hero')
                                             ->disk('media')
@@ -262,6 +265,7 @@ class PageResource extends Resource
                                             ->columnSpanFull(),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_1')
+                                            ->fetchFileInformation(false)
                                             ->label('Collage — Superior izquierda')
                                             ->helperText('Reemplaza Rectangle 19210.jpg')
                                             ->disk('media')
@@ -272,6 +276,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_2')
+                                            ->fetchFileInformation(false)
                                             ->label('Collage — Superior derecha')
                                             ->helperText('Reemplaza Rectangle 19211.jpg (arriba)')
                                             ->disk('media')
@@ -282,6 +287,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_3')
+                                            ->fetchFileInformation(false)
                                             ->label('Collage — Inferior izquierda (personas)')
                                             ->helperText('Reemplaza personas.png')
                                             ->disk('media')
@@ -292,6 +298,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_collage_4')
+                                            ->fetchFileInformation(false)
                                             ->label('Collage — Inferior derecha')
                                             ->helperText('Reemplaza Rectangle 19212.jpg')
                                             ->disk('media')
@@ -354,6 +361,7 @@ class PageResource extends Resource
                                     ->columns(2)
                                     ->schema([
                                         Forms\Components\FileUpload::make('blocks.img_hero')
+                                            ->fetchFileInformation(false)
                                             ->label('Hero (fondo superior)')
                                             ->helperText('Reemplaza Rectangle 19215.jpg')
                                             ->disk('media')
@@ -365,6 +373,7 @@ class PageResource extends Resource
                                             ->columnSpanFull(),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid1')
+                                            ->fetchFileInformation(false)
                                             ->label('Grid col-1 fila-1 (Lima nocturna)')
                                             ->helperText('Reemplaza Rectangle 19216.jpg')
                                             ->disk('media')
@@ -375,6 +384,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid2')
+                                            ->fetchFileInformation(false)
                                             ->label('Grid col-2 fila-1 (Machu Picchu)')
                                             ->helperText('Reemplaza Rectangle 19217.jpg')
                                             ->disk('media')
@@ -385,6 +395,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid3')
+                                            ->fetchFileInformation(false)
                                             ->label('Grid col-1 fila-2 (Cusco colonial)')
                                             ->helperText('Reemplaza Rectangle 19218.jpg')
                                             ->disk('media')
@@ -395,6 +406,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_grid4')
+                                            ->fetchFileInformation(false)
                                             ->label('Grid col-2 fila-2 (Huacachina oasis)')
                                             ->helperText('Reemplaza Rectangle 19219.jpg')
                                             ->disk('media')
@@ -405,6 +417,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_banner_cta')
+                                            ->fetchFileInformation(false)
                                             ->label('Banner CTA "Somos Lima View Tours"')
                                             ->helperText('Reemplaza Rectangle 19214.jpg')
                                             ->disk('media')
@@ -415,6 +428,7 @@ class PageResource extends Resource
                                             ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
 
                                         Forms\Components\FileUpload::make('blocks.img_testimonios')
+                                            ->fetchFileInformation(false)
                                             ->label('Fondo tarjeta testimonios')
                                             ->helperText('Reemplaza Rectangle 19211.jpg (sección testimonios)')
                                             ->disk('media')

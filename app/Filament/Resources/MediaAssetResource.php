@@ -31,6 +31,7 @@ class MediaAssetResource extends Resource
                     ->icon('heroicon-o-arrow-up-tray')
                     ->schema([
                         Forms\Components\FileUpload::make('files')
+                            ->fetchFileInformation(false)
                             ->label('Archivos')
                             ->disk('media')
                             ->directory('biblioteca')

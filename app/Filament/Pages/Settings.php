@@ -204,7 +204,7 @@ class Settings extends Page implements HasForms
                         TextInput::make('seo_default_title')->label('Title por defecto'),
                         Textarea::make('seo_default_description')->rows(2)->maxLength(160)->label('Description por defecto'),
                         TextInput::make('seo_default_keywords')->label('Keywords (separadas por coma)'),
-                        FileUpload::make('seo_og_image')->image()->disk('public')->directory('seo')
+                        FileUpload::make('seo_og_image')->fetchFileInformation(false)->image()->disk('public')->directory('seo')
                             ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('seo', 1200, deletePrevious: true))
                             ->helperText('Se optimiza a WebP (máx. 1200px).')
                             ->label('OG Image por defecto'),
@@ -260,6 +260,7 @@ class Settings extends Page implements HasForms
                                 \Filament\Forms\Components\Fieldset::make('Hero (banner superior)')
                                     ->schema([
                                         FileUpload::make('home_hero_image')
+                                            ->fetchFileInformation(false)
                                             ->label('Imagen de fondo del hero')
                                             ->image()->disk('media')->directory('home')
                                             ->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1920, disk: 'media', deletePrevious: true))
@@ -268,23 +269,23 @@ class Settings extends Page implements HasForms
                                     ])->columns(1),
                                 \Filament\Forms\Components\Fieldset::make('Ciudades más visitadas (Destinos)')
                                     ->schema([
-                                        FileUpload::make('home_destino_img_1')->label('1 · Tours en Cusco')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_destino_img_2')->label('2 · Tours en Lima')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_destino_img_3')->label('3 · Tours en Ica')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_destino_img_1')->fetchFileInformation(false)->label('1 · Tours en Cusco')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_destino_img_2')->fetchFileInformation(false)->label('2 · Tours en Lima')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_destino_img_3')->fetchFileInformation(false)->label('3 · Tours en Ica')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
                                     ])->columns(3),
                                 \Filament\Forms\Components\Fieldset::make('¿Qué tipo de tour estás buscando?')
                                     ->schema([
-                                        FileUpload::make('home_tourtype_img_1')->label('1 · Tours Culturales')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_tourtype_img_2')->label('2 · Tours de Aventura')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_tourtype_img_3')->label('3 · Experiencias Culinarias')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_tourtype_img_4')->label('4 · Otras experiencias')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_tourtype_img_1')->fetchFileInformation(false)->label('1 · Tours Culturales')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_tourtype_img_2')->fetchFileInformation(false)->label('2 · Tours de Aventura')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_tourtype_img_3')->fetchFileInformation(false)->label('3 · Experiencias Culinarias')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_tourtype_img_4')->fetchFileInformation(false)->label('4 · Otras experiencias')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
                                     ])->columns(2),
                                 \Filament\Forms\Components\Fieldset::make('Descubre experiencias únicas')
                                     ->schema([
-                                        FileUpload::make('home_exp_img_1')->label('1 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_exp_img_2')->label('2 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_exp_img_3')->label('3 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
-                                        FileUpload::make('home_exp_img_4')->label('4 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_exp_img_1')->fetchFileInformation(false)->label('1 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_exp_img_2')->fetchFileInformation(false)->label('2 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_exp_img_3')->fetchFileInformation(false)->label('3 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
+                                        FileUpload::make('home_exp_img_4')->fetchFileInformation(false)->label('4 · Experiencia')->image()->disk('media')->directory('home')->saveUploadedFileUsing(\App\Support\ImageOptimizer::saver('home', 1400, disk: 'media', deletePrevious: true)),
                                     ])->columns(2),
                             ]),
 
@@ -371,6 +372,7 @@ class Settings extends Page implements HasForms
                             ->collapsible()
                             ->schema([
                                 FileUpload::make('gracias_banner_image')
+                                    ->fetchFileInformation(false)
                                     ->label('Imagen de fondo (panel derecho)')
                                     ->image()
                                     ->disk('media')
@@ -379,6 +381,7 @@ class Settings extends Page implements HasForms
                                     ->helperText('Dejar vacío para usar Rectangle 19218.jpg por defecto. Se optimiza a WebP (máx. 1920px).')
                                     ->columnSpanFull(),
                                 FileUpload::make('gracias_logo_image')
+                                    ->fetchFileInformation(false)
                                     ->label('Logo sobre la imagen')
                                     ->image()
                                     ->disk('media')

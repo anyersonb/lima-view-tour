@@ -162,6 +162,7 @@ class BlogPostResource extends Resource
                             ->icon('heroicon-o-photo')
                             ->schema([
                                 Forms\Components\FileUpload::make('cover_image')
+                                    ->fetchFileInformation(false)
                                     ->image()
                                     ->disk('public')
                                     ->directory('blog/covers')

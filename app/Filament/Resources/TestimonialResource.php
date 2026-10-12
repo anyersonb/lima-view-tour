@@ -111,6 +111,7 @@ class TestimonialResource extends Resource
                     ->searchable()
                     ->preload(),
                 Forms\Components\FileUpload::make('photos')
+                    ->fetchFileInformation(false)
                     ->label('Fotos del viajero')
                     ->image()
                     ->multiple()
