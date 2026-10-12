@@ -380,7 +380,7 @@ class CheckoutController extends Controller
         // Same contract as ProcessPaymentRequest: code es|en|pt; labels from old
         // cards are normalised, unknown text falls back to the site language.
         if ($request->has('tour_language')) {
-            $request->merge(['tour_language' => TourLanguage::normalize((string) $request->input('tour_language'))]);
+            $request->merge(['tour_language' => is_string($request->input('tour_language')) ? TourLanguage::normalize($request->input('tour_language')) : $request->input('tour_language')]);
         }
 
         $validated = $request->validate([

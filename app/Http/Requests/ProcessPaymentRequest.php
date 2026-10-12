@@ -29,7 +29,7 @@ class ProcessPaymentRequest extends FormRequest
         // Cart cards used to post labels ("English", "Español"); the contract is
         // the code. Unknown text becomes null (=> the site language), never an error.
         if ($this->has('tour_language')) {
-            $this->merge(['tour_language' => TourLanguage::normalize((string) $this->input('tour_language'))]);
+            $this->merge(['tour_language' => is_string($this->input('tour_language')) ? TourLanguage::normalize($this->input('tour_language')) : $this->input('tour_language')]);
         }
     }
 

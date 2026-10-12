@@ -62,28 +62,6 @@ class CheckoutTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    public function test_payment_form_renders_with_items(): void
-    {
-        // B6: showPaymentForm() ya no renderiza 'checkout.payment' — desde
-        // que el checkout se rediseñó al flujo de 3 pasos (checkout.blade.php,
-        // servido por CartController@index), ese método solo hace
-        // redirect()->route('cart.index', ...). Ver los hallazgos de la
-        // Tarea B (checkout real: PayPal completo, Culqi desconectado).
-        $this->markTestSkipped('Culqi desconectado del checkout; decisión pendiente');
-
-        $tour = $this->tour();
-        $this->addTourToCart($tour);
-
-        $response = $this->get(route('checkout.pay', ['locale' => self::LOCALE]));
-
-        $response->assertOk();
-        $response->assertViewIs('checkout.payment');
-        $response->assertViewHas('items');
-        $response->assertViewHas('total');
-        $response->assertViewHas('public_key');
-        $response->assertViewHas('total_centavos');
-    }
-
     public function test_process_payment_with_valid_token_creates_booking_and_charge(): void
     {
         // B6: processPayment() rechaza explícitamente payment_timing=now
@@ -177,6 +155,36 @@ class CheckoutTest extends TestCase
         );
 
         $response->assertSessionHasErrors(['customer_email', 'customer_phone', 'travel_date']);
+    }
+
+    public function test_array_tour_language_is_a_422_not_a_500_on_process(): void
+    {
+        $this->addTourToCart($this->tour());
+
+        $response = $this->from('/')->post(
+            route('checkout.process', ['locale' => self::LOCALE]),
+            $this->validPaymentPayload(['payment_timing' => 'later', 'tour_language' => ['en', 'es']])
+        );
+
+        $response->assertSessionHasErrors('tour_language');
+        $this->assertNotSame(500, $response->getStatusCode());
+    }
+
+    public function test_array_tour_language_is_a_422_not_a_500_on_paypal_capture(): void
+    {
+        $response = $this->postJson(
+            route('checkout.paypal.capture', ['locale' => self::LOCALE]),
+            [
+                'orderID' => 'UNKNOWN-ORDER-ID',
+                'customer_name' => 'Jane Doe',
+                'customer_email' => 'jane@example.com',
+                'customer_phone' => '+15551234567',
+                'travel_date' => now()->addDays(15)->format('Y-m-d'),
+                'tour_language' => ['en'],
+            ]
+        );
+
+        $response->assertStatus(422)->assertJsonValidationErrors('tour_language');
     }
 
     public function test_thanks_page_renders_after_successful_payment(): void
