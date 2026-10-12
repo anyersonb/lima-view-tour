@@ -166,7 +166,7 @@ class MigrationTolerantHotfixTest extends TestCase
         $this->migration()->up();
 
         $this->assertSame('05:00', DB::table('tours')->where('id', $tour->id)->value('departure_time'));
-        Log::shouldHaveReceived('warning')
+        Log::shouldHaveReceived('critical')
             ->withArgs(fn ($m) => str_contains($m, 'restore from this log') && str_contains($m, '5 am') && str_contains($m, '05:00'))
             ->once();
     }
@@ -181,7 +181,8 @@ class MigrationTolerantHotfixTest extends TestCase
         $disk->shouldReceive('exists')->andReturn(false);
         $disk->shouldReceive('put')->andReturn(false);
         Storage::shouldReceive('disk')->with('local')->andReturn($disk);
-        Log::shouldReceive('warning')->andThrow(new RuntimeException('log dead'));
+        Log::shouldReceive('error')->zeroOrMoreTimes();
+        Log::shouldReceive('critical')->andThrow(new RuntimeException('log dead'));
 
         try {
             $this->migration()->up();
@@ -191,6 +192,29 @@ class MigrationTolerantHotfixTest extends TestCase
         }
 
         $this->assertSame('5 am', DB::table('tours')->where('id', $tour->id)->value('departure_time'));
+    }
+
+    public function test_departure_time_summary_is_error_level_only_when_tours_end_up_null(): void
+    {
+        Storage::fake('local');
+        Log::spy();
+        $bad = Tour::factory()->create();
+        DB::table('tours')->where('id', $bad->id)->update(['departure_time' => 'Todo el día']);
+
+        $this->migration()->up();
+
+        Log::shouldHaveReceived('log')
+            ->withArgs(fn ($level, $m, $ctx) => $level === 'error' && $ctx['null_tour_ids'] === [$bad->id])
+            ->once();
+
+        Log::spy();
+        $ok = Tour::factory()->create();
+        DB::table('tours')->where('id', $ok->id)->update(['departure_time' => '5 am']);
+        DB::table('tours')->where('id', $bad->id)->update(['departure_time' => '07:00']);
+
+        $this->migration()->up();
+
+        Log::shouldHaveReceived('log')->withArgs(fn ($level) => $level === 'info')->once();
     }
 
     public function test_departure_time_migration_writes_to_disk_when_it_works(): void

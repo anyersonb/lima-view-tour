@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Storage;
  *
  * Safety: the backup (id => {from, to}) is computed and written to disk BEFORE
  * any update, and the updates run in one transaction. If the backup cannot be
- * written to disk, it is written in full to the log (Log::warning) instead; if
+ * written to disk, it is written in full to the log (Log::critical) instead; if
  * neither works, the migration aborts without touching data. down() only restores
  * rows whose current value is still the one this migration wrote.
  */
@@ -69,7 +69,7 @@ return new class extends Migration
             $payload = json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
             $savedOnDisk = $disk->put(self::BACKUP, $payload) === true;
         } catch (Throwable $e) {
-            Log::warning("tours.departure_time backup: disk unavailable ({$e->getMessage()}).");
+            Log::error("tours.departure_time backup: disk unavailable ({$e->getMessage()}).");
         }
 
         if (! $savedOnDisk) {
@@ -80,7 +80,7 @@ return new class extends Migration
             }
 
             try {
-                Log::warning('tours.departure_time backup (disk failed; restore from this log): '.$payload);
+                Log::critical('tours.departure_time backup (disk failed; restore from this log): '.$payload);
             } catch (Throwable $e) {
                 throw new RuntimeException('Cannot save the departure_time backup to disk nor log; migration aborted, no data touched.', 0, $e);
             }
@@ -100,7 +100,10 @@ return new class extends Migration
 
         // Log only: this runs from the Maintenance page (Livewire) where any echo
         // would be glued to the JSON response.
-        Log::info('tours.departure_time normalized: '.count($changes).' changed, '.count($unparsed).' set to NULL (unparseable).', [
+        // error level when tours ended up NULL: prod logs at LOG_LEVEL=error, and
+        // someone must review those ids.
+        Log::log($unparsed === [] ? 'info' : 'error', 'tours.departure_time normalized: '.count($changes).' changed, '.count($unparsed).' set to NULL (unparseable).', [
+            'null_tour_ids' => array_keys($unparsed),
             'unparsed' => array_map(fn ($c) => $c['from'], $unparsed),
         ]);
     }

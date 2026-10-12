@@ -96,7 +96,7 @@ class NormalizeToursDepartureTimeMigrationTest extends TestCase
 
         $this->assertSame('05:00', DB::table('tours')->where('id', $id)->value('departure_time'));
         $this->assertFalse(Storage::disk('local')->exists('migrations/tours_departure_time_backup.json'));
-        Log::shouldHaveReceived('warning')
+        Log::shouldHaveReceived('critical')
             ->withArgs(fn ($m) => str_contains($m, 'restore from this log') && str_contains($m, '05:00 AM'))
             ->once();
     }
@@ -110,7 +110,8 @@ class NormalizeToursDepartureTimeMigrationTest extends TestCase
         $disk->shouldReceive('exists')->andReturn(false);
         $disk->shouldReceive('put')->andReturn(false);
         Storage::shouldReceive('disk')->with('local')->andReturn($disk);
-        Log::shouldReceive('warning')->andThrow(new \RuntimeException('log dead'));
+        Log::shouldReceive('error')->zeroOrMoreTimes();
+        Log::shouldReceive('critical')->andThrow(new \RuntimeException('log dead'));
 
         try {
             $this->migration()->up();
