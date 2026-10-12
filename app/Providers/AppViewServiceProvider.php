@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Models\Setting;
+use App\Support\MetaText;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\ServiceProvider;
 
 class AppViewServiceProvider extends ServiceProvider
@@ -21,6 +23,32 @@ class AppViewServiceProvider extends ServiceProvider
                 }
             } catch (\Throwable $e) {
                 $view->with('siteSettings', []);
+            }
+        });
+
+        // <title>, og:title, twitter:title and the descriptions are read by
+        // layouts/app.blade.php with yieldContent(). Child views fill them with
+        // the inline @section('title', $x), which Blade already escapes, and
+        // the layout escapes again: "&" showed as "&amp;amp;". Normalise to
+        // plain text here (once, for every page) so the layout's {{ }} is the
+        // only escape. See MetaText.
+        View::composer('layouts.app', function ($view) {
+            $factory = $view->getFactory();
+            $sections = $factory->getSections();
+
+            if (! isset($sections['title']) && ! isset($sections['description'])) {
+                return;
+            }
+
+            // Factory::inject() escapes plain strings again and cannot overwrite
+            // an existing section, so rebuild the section table: HtmlString is
+            // stored untouched by e().
+            $factory->flushSections();
+
+            foreach ($sections as $name => $content) {
+                $isMeta = in_array($name, ['title', 'description'], true) && is_string($content);
+
+                $factory->inject($name, new HtmlString($isMeta ? MetaText::plain($content) : $content));
             }
         });
     }
