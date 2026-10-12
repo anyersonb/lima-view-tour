@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Setting;
+use Illuminate\Support\Facades\Lang;
 
 /**
  * Meta title/description editables desde el admin para las páginas que NO son
@@ -66,9 +67,38 @@ class PageSeo
         return array_key_exists($key, static::PAGES) ? $key : 'tours';
     }
 
+    /**
+     * H1 of the catalog: "Tours en Lima" / "Tours in Ica" / "Todos nuestros tours en Perú".
+     * `$categoria` is lima|ica|cusco or null for /tours. Lang keys seo.tours_h1_*.
+     */
+    public static function toursHeading(?string $categoria = null): string
+    {
+        $key = 'seo.tours_h1_'.(in_array($categoria, ['lima', 'ica', 'cusco'], true) ? $categoria : 'all');
+
+        return __($key);
+    }
+
     public static function settingKey(string $page, string $field, string $locale): string
     {
         return "seo_page_{$page}_{$field}_{$locale}";
+    }
+
+    /**
+     * Per-locale default text shipped in lang/{locale}/seo.php as
+     * `page_{page}_{field}`. Meant as the LAST fallback passed by the view to title()/description()
+     * (after the legacy regions.seo_* fields). Null when the page has no such key.
+     */
+    public static function langDefault(string $page, string $field): ?string
+    {
+        $key = "seo.page_{$page}_{$field}";
+
+        if (! Lang::has($key)) {
+            return null;
+        }
+
+        $value = __($key);
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
     protected static function value(string $page, string $field): ?string
