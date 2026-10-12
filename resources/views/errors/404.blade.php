@@ -1,12 +1,30 @@
 @php
-    $locale = app()->getLocale();
+    // El 404 se renderiza fuera del middleware de idioma: el locale sale del primer segmento de la URL.
+    $seg = request()->segment(1);
+    $locale = in_array($seg, ['es', 'en', 'pt'], true) ? $seg : app()->getLocale();
+    app()->setLocale($locale);
+    // Texto por clave (errors.404_*) si backend la añade en lang/; si no, el fallback es/en/pt de acá.
+    $t = fn (string $key, array $fb) => trans()->has($key) ? __($key) : ($fb[$locale] ?? $fb['es']);
+    $e404Title = $t('errors.404_title', [
+        'es' => 'No encontramos esa página',
+        'en' => "We couldn't find that page",
+        'pt' => 'Não encontramos esta página',
+    ]);
+    $e404Body = $t('errors.404_body', [
+        'es' => 'Puede que el enlace haya cambiado o que la página ya no exista. Vuelve al inicio o explora nuestros tours en Lima, Cusco, Ica y más.',
+        'en' => 'The link may have changed or the page may no longer exist. Go back home or browse our tours in Lima, Cusco, Ica and more.',
+        'pt' => 'O link pode ter mudado ou a página pode não existir mais. Volte ao início ou conheça nossos tours em Lima, Cusco, Ica e mais.',
+    ]);
+    $e404Home = $t('errors.404_home', ['es' => 'Volver a inicio', 'en' => 'Back to home', 'pt' => 'Voltar ao início']);
+    $e404Tours = $t('errors.404_tours', ['es' => 'Ver tours', 'en' => 'Browse tours', 'pt' => 'Ver tours']);
+    $e404Page = $t('errors.404_page_title', ['es' => 'Página no encontrada', 'en' => 'Page not found', 'pt' => 'Página não encontrada']);
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 — {{ __('seo.site_name') }}</title>
+    <title>404 · {{ $e404Page }} — {{ __('seo.site_name') }}</title>
     <meta name="robots" content="noindex,nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,11 +43,14 @@
             <img src="{{ asset('assets/logos/logo-pair.png') }}" alt="Lima View Tours" class="h-10 w-auto">
         </a>
         <h1 class="relative z-10 mt-12 font-display text-[180px] md:text-[220px] leading-none text-teal-800">404</h1>
-        <p class="relative z-10 mt-2 font-display text-2xl md:text-3xl text-teal-800">Oops! Hubo un error al cargar la página</p>
+        <p class="relative z-10 mt-2 font-display text-2xl md:text-3xl text-teal-800">{{ $e404Title }}</p>
         <p class="relative z-10 mt-4 max-w-xl text-sm text-teal-800/75 leading-relaxed">
-            Dictum adipiscing sed euismod eget. Eget ullamcorper eget hac ultrices laoreet venenatis. Tortor nibh eget malesuada ullamcorper feugiat integer nam ultricies.
+            {{ $e404Body }}
         </p>
-        <a href="{{ route('home', ['locale' => $locale]) }}" class="btn--primary relative z-10 mt-8">Volver a inicio</a>
+        <div class="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-3">
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="btn--primary">{{ $e404Home }}</a>
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary-outline">{{ $e404Tours }}</a>
+        </div>
     </main>
     <footer class="bg-teal-700 text-white py-8 text-center">
         <p class="text-sm font-medium tracking-wide">{{ __('footer.follow_us') }}</p>
