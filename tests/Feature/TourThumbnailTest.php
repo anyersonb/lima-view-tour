@@ -142,6 +142,6 @@ class TourThumbnailTest extends TestCase
         // One <picture>: the <img> (mobile) is the thumbnail, the >=640 <source> keeps the original.
         $this->assertMatchesRegularExpression('#<img src="[^"]*thumbs/withthumb-#', $cards);
         $this->assertMatchesRegularExpression('#<img src="[^"]*tours/covers/without.png#', $cards);
-        $this->assertMatchesRegularExpression('#<source media="(min-width:640px)" srcset="[^"]*tours/covers/withthumb.png#', $cards);
+        $this->assertMatchesRegularExpression('#<source media="\(min-width:640px\)" srcset="[^"]*tours/covers/withthumb.png#', $cards);
     }
 }
