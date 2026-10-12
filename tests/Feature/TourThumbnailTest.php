@@ -136,13 +136,12 @@ class TourThumbnailTest extends TestCase
         Tour::withoutEvents(fn () => Tour::factory()->create(['cover_image' => 'tours/covers/without.png']));
 
         $html = $this->get('/es/tours')->assertOk()->getContent();
-        $start = strpos($html, 'sm:hidden" data-tour-cards>');
-        $mobile = substr($html, $start, strpos($html, 'hidden sm:grid', $start) - $start);
+        $start = strpos($html, 'data-tour-cards>');
+        $cards = substr($html, $start, strpos($html, 'data-tour-empty', $start) - $start);
 
-        $this->assertStringContainsString('thumbs/withthumb-', $mobile);
-        $this->assertStringContainsString('tours/covers/without.png', $mobile);
-        // The desktop card keeps the original (not a thumbnail).
-        $desktop = substr($html, strpos($html, 'hidden sm:grid'));
-        $this->assertStringContainsString('tours/covers/withthumb.png', $desktop);
+        // One <picture>: the <img> (mobile) is the thumbnail, the >=640 <source> keeps the original.
+        $this->assertMatchesRegularExpression('#<img src="[^"]*thumbs/withthumb-#', $cards);
+        $this->assertMatchesRegularExpression('#<img src="[^"]*tours/covers/without.png#', $cards);
+        $this->assertMatchesRegularExpression('#<source media="(min-width:640px)" srcset="[^"]*tours/covers/withthumb.png#', $cards);
     }
 }
