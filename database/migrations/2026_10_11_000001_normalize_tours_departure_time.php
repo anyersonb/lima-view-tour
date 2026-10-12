@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\Storage;
  *
  * Safety: the backup (id => {from, to}) is computed and written to disk BEFORE
  * any update, and the updates run in one transaction. If the backup cannot be
- * written, the migration aborts without touching data. down() only restores
+ * written to disk, it is written in full to the log (Log::warning) instead; if
+ * neither works, the migration aborts without touching data. down() only restores
  * rows whose current value is still the one this migration wrote.
  */
 return new class extends Migration
@@ -51,19 +52,38 @@ return new class extends Migration
             return;
         }
 
-        // 1) Backup first. Any failure here (invalid UTF-8, unwritable disk) throws
-        //    before a single row is modified.
+        // 1) Backup first, in SOME place: disk, or (if the disk fails) the log.
+        //    A disk problem must not block the migration, but data is never
+        //    touched without a backup somewhere.
+        $merged = $changes;
         $disk = Storage::disk('local');
-        $previous = $disk->exists(self::BACKUP)
-            ? (json_decode($disk->get(self::BACKUP), true, 512, JSON_THROW_ON_ERROR) ?: [])
-            : [];
+        $savedOnDisk = false;
 
-        // Keep the FIRST original when re-running: earlier entries win.
-        $merged = $previous + $changes;
-        $payload = json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        try {
+            $disk->makeDirectory('migrations');
+            $previous = $disk->exists(self::BACKUP)
+                ? (json_decode($disk->get(self::BACKUP), true, 512, JSON_THROW_ON_ERROR) ?: [])
+                : [];
+            // Keep the FIRST original when re-running: earlier entries win.
+            $merged = $previous + $changes;
+            $payload = json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $savedOnDisk = $disk->put(self::BACKUP, $payload) === true;
+        } catch (Throwable $e) {
+            Log::warning("tours.departure_time backup: disk unavailable ({$e->getMessage()}).");
+        }
 
-        if (! $disk->put(self::BACKUP, $payload)) {
-            throw new RuntimeException('Cannot write the departure_time backup; migration aborted, no data touched.');
+        if (! $savedOnDisk) {
+            try {
+                $payload = json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            } catch (Throwable) {
+                $payload = var_export($merged, true);
+            }
+
+            try {
+                Log::warning('tours.departure_time backup (disk failed; restore from this log): '.$payload);
+            } catch (Throwable $e) {
+                throw new RuntimeException('Cannot save the departure_time backup to disk nor log; migration aborted, no data touched.', 0, $e);
+            }
         }
 
         // 2) Updates, all or nothing. The WHERE guards against rows edited since the read.

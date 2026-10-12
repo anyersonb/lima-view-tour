@@ -12,6 +12,7 @@ use App\Services\AbandonedCartService;
 use App\Services\CartService;
 use App\Services\PaymentLockService;
 use App\Support\BookingCalendar;
+use App\Support\TourFlags;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -135,9 +136,12 @@ class CartController extends Controller
         // cancellation when at least one cart tour offers them.
         $cartTours = Tour::query()
             ->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())
-            ->get(['id', 'pickup_included', 'free_cancellation']);
-        $cartHasPickup = $cartTours->isEmpty() || $cartTours->contains(fn (Tour $t) => (bool) $t->pickup_included);
-        $cartHasFreeCancellation = $cartTours->isEmpty() || $cartTours->contains(fn (Tour $t) => (bool) $t->free_cancellation);
+            ->get(array_merge(['id'], TourFlags::columns()));
+        // Missing column (migration not applied yet) => migration default: true.
+        $cartHasPickup = ! TourFlags::has('pickup_included') || $cartTours->isEmpty()
+            || $cartTours->contains(fn (Tour $t) => (bool) $t->pickup_included);
+        $cartHasFreeCancellation = ! TourFlags::has('free_cancellation') || $cartTours->isEmpty()
+            || $cartTours->contains(fn (Tour $t) => (bool) $t->free_cancellation);
 
         return view('checkout', compact(
             'items',

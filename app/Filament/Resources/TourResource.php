@@ -170,10 +170,12 @@ class TourResource extends Resource
                                         ->default(true),
                                     Forms\Components\Toggle::make('pickup_included')
                                         ->label('Incluye recojo')
+                                        ->visible(fn () => \App\Support\TourFlags::has('pickup_included'))
                                         ->helperText('Apagado: ni la tarjeta del listado ni la ficha prometen "Recojo incluido", el checkout no pide hotel de recojo para este tour y los correos omiten el aviso de horario de recojo.')
                                         ->default(true),
                                     Forms\Components\Toggle::make('free_cancellation')
                                         ->label('Cancelación gratuita (hasta 24 h antes)')
+                                        ->visible(fn () => \App\Support\TourFlags::has('free_cancellation'))
                                         ->helperText('Apagado: ni la tarjeta del listado ni la ficha ni el checkout prometen "Cancelación gratuita".')
                                         ->default(true),
                                 ]),

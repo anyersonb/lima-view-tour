@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Tour;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -82,38 +83,38 @@ class NormalizeToursDepartureTimeMigrationTest extends TestCase
         $this->assertSame('', $out);
     }
 
-    public function test_backup_is_written_before_updates_and_failure_aborts_without_touching_data(): void
+    public function test_unencodable_backup_falls_back_to_the_log_and_still_normalizes(): void
     {
         Storage::fake('local');
+        Log::spy();
         $id = $this->legacyTour('05:00 AM');
 
-        // Invalid UTF-8 makes json_encode throw => nothing may be updated.
+        // Invalid UTF-8 makes json_encode throw => the log gets a var_export dump.
         $bad = $this->legacyTour('5:00 '.chr(0xB1).chr(0x31).' am');
 
-        try {
-            $this->migration()->up();
-            $this->fail('Migration should abort when the backup cannot be encoded.');
-        } catch (\JsonException) {
-            // expected
-        }
+        $this->migration()->up();
 
-        $this->assertSame('05:00 AM', DB::table('tours')->where('id', $id)->value('departure_time'));
+        $this->assertSame('05:00', DB::table('tours')->where('id', $id)->value('departure_time'));
         $this->assertFalse(Storage::disk('local')->exists('migrations/tours_departure_time_backup.json'));
-        $this->assertNotNull(DB::table('tours')->where('id', $bad)->value('departure_time'));
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn ($m) => str_contains($m, 'restore from this log') && str_contains($m, '05:00 AM'))
+            ->once();
     }
 
-    public function test_unwritable_backup_aborts_without_touching_data(): void
+    public function test_unwritable_backup_aborts_without_touching_data_only_if_the_log_fails_too(): void
     {
         $id = $this->legacyTour('05:00 AM');
 
         $disk = \Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+        $disk->shouldReceive('makeDirectory')->andReturn(false);
         $disk->shouldReceive('exists')->andReturn(false);
         $disk->shouldReceive('put')->andReturn(false);
         Storage::shouldReceive('disk')->with('local')->andReturn($disk);
+        Log::shouldReceive('warning')->andThrow(new \RuntimeException('log dead'));
 
         try {
             $this->migration()->up();
-            $this->fail('Migration should abort when the backup cannot be written.');
+            $this->fail('Migration should abort when neither disk nor log can hold the backup.');
         } catch (\RuntimeException) {
             // expected
         }

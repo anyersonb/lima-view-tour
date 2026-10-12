@@ -6,6 +6,7 @@ use App\Mail\AccountCredentials;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Tour;
+use App\Support\TourFlags;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -51,11 +52,14 @@ class BookingCreationService
         $hasPickupColumns = Schema::hasColumn('bookings', 'pickup_point');
         // Tours without pickup never store a pickup point, even if the
         // client posted one (hidden field tampering / stale form).
-        $noPickupTourIds = Tour::query()
-            ->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())
-            ->where('pickup_included', false)
-            ->pluck('id')
-            ->all();
+        // Column missing (migration pending) => every tour has pickup.
+        $noPickupTourIds = TourFlags::has('pickup_included')
+            ? Tour::query()
+                ->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())
+                ->where('pickup_included', false)
+                ->pluck('id')
+                ->all()
+            : [];
         $pendingGuestMail = null;
 
         $bookings = DB::transaction(function () use (
