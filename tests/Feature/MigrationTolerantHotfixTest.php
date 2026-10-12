@@ -103,9 +103,19 @@ class MigrationTolerantHotfixTest extends TestCase
 
     // (c) Maintenance: migrate failing => danger + log
 
+    private const GENERIC = 'No se pudo completar la acción. El detalle completo quedó en el registro del servidor (storage/logs).';
+
+    /** Maintenance is restricted to config('admin.maintenance_emails'). */
+    private function maintenanceUser(): User
+    {
+        config(['admin.maintenance_emails' => ['qa@webtilia.com']]);
+
+        return User::factory()->create(['email' => 'qa@webtilia.com']);
+    }
+
     public function test_maintenance_run_migrations_reports_failure_when_exit_code_is_not_zero(): void
     {
-        $this->actingAs(User::factory()->create(['email' => 'qa@webtilia.com']));
+        $this->actingAs($this->maintenanceUser());
         Log::spy();
         Artisan::shouldReceive('call')->once()->with('migrate', ['--force' => true])->andReturn(1);
         Artisan::shouldReceive('output')->andReturn('SQLSTATE boom');
@@ -113,7 +123,7 @@ class MigrationTolerantHotfixTest extends TestCase
         Livewire::test(Maintenance::class)
             ->callAction('run_migrations')
             ->assertNotified(
-                Notification::make()->title('Las migraciones fallaron')->body('SQLSTATE boom')->danger()->persistent()
+                Notification::make()->title('Las migraciones fallaron')->body(self::GENERIC.' Resumen: SQLSTATE boom')->danger()->persistent()
             );
 
         Log::shouldHaveReceived('error')
@@ -123,14 +133,14 @@ class MigrationTolerantHotfixTest extends TestCase
 
     public function test_maintenance_run_migrations_reports_exception_as_danger(): void
     {
-        $this->actingAs(User::factory()->create(['email' => 'qa@webtilia.com']));
+        $this->actingAs($this->maintenanceUser());
         Log::spy();
         Artisan::shouldReceive('call')->once()->andThrow(new RuntimeException('disk gone'));
 
         Livewire::test(Maintenance::class)
             ->callAction('run_migrations')
             ->assertNotified(
-                Notification::make()->title('Las migraciones fallaron')->body('disk gone')->danger()->persistent()
+                Notification::make()->title('Las migraciones fallaron')->body(self::GENERIC.' Resumen: disk gone')->danger()->persistent()
             );
 
         Log::shouldHaveReceived('error')->once();
@@ -138,7 +148,7 @@ class MigrationTolerantHotfixTest extends TestCase
 
     public function test_maintenance_run_migrations_success_is_green(): void
     {
-        $this->actingAs(User::factory()->create(['email' => 'qa@webtilia.com']));
+        $this->actingAs($this->maintenanceUser());
         Artisan::shouldReceive('call')->once()->andReturn(0);
         Artisan::shouldReceive('output')->andReturn('Nothing to migrate.');
 

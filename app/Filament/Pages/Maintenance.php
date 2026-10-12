@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\MaintenanceAccess;
+use App\Support\MaintenanceOutput;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -23,6 +25,30 @@ class Maintenance extends Page
 
     protected static string $view = 'filament.pages.maintenance';
 
+    /** Only the accounts listed in config('admin.maintenance_emails') may use this page. */
+    public static function canAccess(): bool
+    {
+        return MaintenanceAccess::allows(auth()->user());
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
+
+    /**
+     * Body of the danger notification: a generic message plus the first line of
+     * the output, credentials/DSN masked and cut to ~160 chars. The complete,
+     * unmasked detail is only in Log::error (see runCommands()).
+     */
+    protected static function failureBody(string $raw): string
+    {
+        $generic = 'No se pudo completar la acción. El detalle completo quedó en el registro del servidor (storage/logs).';
+        $summary = MaintenanceOutput::summary($raw);
+
+        return $summary !== '' ? $generic.' Resumen: '.$summary : $generic;
+    }
+
     /**
      * Runs artisan commands in order and reports the TRUTH: any non-zero exit
      * code or exception stops the sequence, is logged and shown as danger.
@@ -43,7 +69,7 @@ class Maintenance extends Page
                     Log::error('Maintenance command failed', ['command' => $command, 'exit' => $exit, 'output' => $output]);
                     Notification::make()
                         ->title($failTitle)
-                        ->body($output !== '' ? $output : "{$command}: código de salida {$exit}.")
+                        ->body(static::failureBody($output !== '' ? $output : "{$command}: código de salida {$exit}."))
                         ->danger()
                         ->persistent()
                         ->send();
@@ -55,7 +81,7 @@ class Maintenance extends Page
             Log::error('Maintenance command threw', ['command' => $command ?? null, 'exception' => $e]);
             Notification::make()
                 ->title($failTitle)
-                ->body($e->getMessage())
+                ->body(static::failureBody($e->getMessage()))
                 ->danger()
                 ->persistent()
                 ->send();
