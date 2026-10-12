@@ -133,10 +133,6 @@
                     <li class="bg-[#2E77BC] text-white rounded px-2 py-1">
                         <span class="text-[9px] font-bold tracking-tight leading-none">AMEX</span>
                     </li>
-                    {{-- Culqi/Niubiz --}}
-                    <li class="bg-white rounded px-2 py-1">
-                        <span class="text-[9px] font-bold text-teal-700 tracking-tight leading-none">CULQI</span>
-                    </li>
                 </ul>
             </section>
         </div>
