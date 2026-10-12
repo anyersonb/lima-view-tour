@@ -27,23 +27,24 @@ class ToursListingCardDataTest extends TestCase
         ], $o));
     }
 
-    /** HTML of the mobile row cards only (first data-tour-cards block). */
+    /** HTML of the single cards block (one <article> per tour, row <640 / card >=640). */
     private function mobileCards(string $html): string
     {
-        $start = strpos($html, 'sm:hidden" data-tour-cards>');
+        $start = strpos($html, 'data-tour-cards>');
         $this->assertNotFalse($start);
-        $end = strpos($html, 'hidden sm:grid', $start);
+        $end = strpos($html, 'data-tour-empty', $start);
         $this->assertNotFalse($end);
 
         return substr($html, $start, $end - $start);
     }
 
-    /** @return array{0: string, 1: string} [mobile cards, desktop cards] */
+    /** @return array{0: string, 1: string} same block twice: the markup is no longer duplicated per viewport */
     private function bothCards(string $locale = 'es'): array
     {
         $html = $this->get("/{$locale}/tours")->assertOk()->getContent();
+        $cards = $this->mobileCards($html);
 
-        return [$this->mobileCards($html), substr($html, strpos($html, 'hidden sm:grid'))];
+        return [$cards, $cards];
     }
 
     public function test_cards_show_pickup_and_free_cancellation_when_the_tour_switches_are_on(): void
@@ -123,9 +124,12 @@ class ToursListingCardDataTest extends TestCase
 
         $cards = $this->mobileCards($this->get('/en/tours')->assertOk()->getContent());
 
-        $this->assertStringContainsString('tour-card-row', $cards);
-        $this->assertStringNotContainsString('Full Day', $cards);
-        $this->assertStringNotContainsString('Spanish', $cards);
+        // Defaults only survive on the >=640 card (li.max-sm:hidden); the compact row never shows them.
+        $row = preg_replace('#<li class="[^"]*max-sm:hidden[^"]*">.*?</li>#s', '', $cards);
+        $this->assertStringContainsString('<article', $cards);
+        $this->assertStringContainsString('max-sm:hidden', $cards);
+        $this->assertStringNotContainsString('Full Day', $row);
+        $this->assertStringNotContainsString('Spanish', $row);
     }
 
     public function test_cards_carry_titles_in_the_three_languages_for_the_client_search(): void
@@ -134,7 +138,7 @@ class ToursListingCardDataTest extends TestCase
 
         $html = $this->get('/en/tours')->assertOk()->getContent();
 
-        $this->assertSame(2, substr_count($html, 'data-search="pachacamac completo pachacamac full pachacamac inteiro"'));
+        $this->assertSame(1, substr_count($html, 'data-search="pachacamac completo pachacamac full pachacamac inteiro"'));
     }
 
     public function test_modality_filter_groups_equivalents_and_hides_non_modalities_in_every_locale(): void
