@@ -217,7 +217,7 @@
                         {{ __('nav.all_tours') }}
                     </a>
                     @foreach ($regions as $region)
-                        <a href="{{ route('tours.index', ['locale' => $locale]) }}#{{ $region }}" @click="open = false" class="site-menu__sub">
+                        <a href="{{ route('tours.category', ['locale' => $locale, 'categoria' => $region]) }}" @click="open = false" class="site-menu__sub">
                             {{ __('nav.tours_' . $region) }}
                         </a>
                     @endforeach

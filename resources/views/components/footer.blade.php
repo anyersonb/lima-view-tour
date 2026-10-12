@@ -63,9 +63,9 @@
                 <ul class="mt-4 space-y-2.5">
                     <li><a href="{{ route('home', ['locale' => $locale]) }}" class="site-footer__link">{{ __('nav.home') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('about', $locale) }}" class="site-footer__link">{{ __('footer.about_short') }}</a></li>
-                    <li><a href="{{ route('tours.index', ['locale' => $locale]) }}#lima" class="site-footer__link">{{ __('nav.tours_lima') }}</a></li>
-                    <li><a href="{{ route('tours.index', ['locale' => $locale]) }}#ica" class="site-footer__link">{{ __('nav.tours_ica') }}</a></li>
-                    <li><a href="{{ route('tours.index', ['locale' => $locale]) }}#cusco" class="site-footer__link">{{ __('nav.tours_cusco') }}</a></li>
+                    <li><a href="{{ route('tours.category', ['locale' => $locale, 'categoria' => 'lima']) }}" class="site-footer__link">{{ __('nav.tours_lima') }}</a></li>
+                    <li><a href="{{ route('tours.category', ['locale' => $locale, 'categoria' => 'ica']) }}" class="site-footer__link">{{ __('nav.tours_ica') }}</a></li>
+                    <li><a href="{{ route('tours.category', ['locale' => $locale, 'categoria' => 'cusco']) }}" class="site-footer__link">{{ __('nav.tours_cusco') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('contact', $locale) }}" class="site-footer__link">{{ __('nav.contact') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="site-footer__link">{{ __('footer.terms') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="site-footer__link">{{ __('footer.privacy') }}</a></li>

@@ -84,6 +84,26 @@
         : asset('assets/banners/Rectangle 19210.jpg');
     $btUrl     = $btSlug ? route('tours.show', ['locale' => $locale, 'slug' => $btSlug]) : '#';
 
+    // Destino (lima|ica|cusco) de un texto libre; las 3 páginas existen en tours.category.
+    $destFromText = static function (string ...$texts): ?string {
+        $t = mb_strtolower(implode(' ', $texts));
+        $map = [
+            'cusco' => '/(cusco|machu|inca|valle sagrado|humantay)/u',
+            'ica'   => '/(\bica\b|huacachina|nazca|paracas|ballestas)/u',
+            'lima'  => '/(\blima\b|pachacamac|catacumbas|miraflores|barranco)/u',
+        ];
+        foreach ($map as $dest => $re) {
+            if (preg_match($re, $t)) {
+                return $dest;
+            }
+        }
+
+        return null;
+    };
+    $destUrl = fn (?string $dest): string => $dest
+        ? route('tours.category', ['locale' => $locale, 'categoria' => $dest])
+        : route('tours.index', ['locale' => $locale]);
+
     // Separador decorativo reutilizable
     $sep = '<div class="flex items-center justify-center gap-2 mt-4 mb-0" aria-hidden="true">
         <span class="h-px w-8 bg-orange-500/50"></span>
@@ -233,7 +253,7 @@
         @php $heroCtaLabel = $L('EXPLORAR EXPERIENCIAS', 'EXPLORE EXPERIENCES', 'EXPLORAR EXPERIÊNCIAS'); @endphp
 
         {{-- CTA pill --}}
-        <a href="{{ route('tours.index', ['locale' => $locale]) }}"
+        <a href="{{ $destUrl('lima') }}"
            class="mt-7 inline-flex items-center justify-between gap-3 self-start
                   border border-orange-400/70 rounded-full
                   pl-5 pr-1.5 py-1.5
@@ -717,7 +737,8 @@
                             </p>
 
                             {{-- CTA outline dorado --}}
-                            <a href="{{ route('tours.index', ['locale' => $locale]) }}"
+                            @php $dDest = $destFromText($destino['title_es'] ?? '', $destino['title_en'] ?? '', $destino['title_pt'] ?? ''); @endphp
+                            <a href="{{ $destUrl($dDest) }}"
                                class="mt-4 inline-flex items-center gap-2 border border-amber-400 text-amber-300 hover:bg-amber-400/10 rounded-full px-4 py-2 font-semibold text-xs uppercase tracking-wider transition">
                                 VER TOURS
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
@@ -1044,7 +1065,8 @@
                     $eSlug     = $expItem['slug'] ?? '';
                 @endphp
                     @php
-                        $eUrl = route('tours.index', ['locale' => $locale]);                    @endphp
+                        $eUrl = $destUrl($destFromText($eSlug, $eTitle));
+                    @endphp
                     <a href="{{ $eUrl }}"
                        class="tour-slide-4
                               block group rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5
