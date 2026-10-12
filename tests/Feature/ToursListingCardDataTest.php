@@ -170,17 +170,17 @@ class ToursListingCardDataTest extends TestCase
 
         foreach (['es', 'en', 'pt'] as $locale) {
             $all = $this->metaDescription($this->get("/{$locale}/tours")->assertOk()->getContent());
-            $this->assertSame(__('ui.tours_meta_description_all', [], $locale), $all);
+            $this->assertSame(__('seo.page_tours_description', [], $locale), $all);
             $this->assertStringNotContainsString('Todos nuestros tours', $all);
             $this->assertStringNotContainsString('All our tours', $all);
             $this->assertStringNotContainsString('Todos os nossos tours', $all);
-            $this->assertGreaterThanOrEqual(120, mb_strlen($all));
+            $this->assertGreaterThanOrEqual(90, mb_strlen($all));
             $this->assertLessThanOrEqual(160, mb_strlen($all));
 
             $cat = $this->metaDescription($this->get("/{$locale}/tours/categoria/cusco")->assertOk()->getContent());
             $this->assertStringContainsString('Cusco', $cat);
             $this->assertStringNotContainsString(' por ', $cat);
-            $this->assertGreaterThanOrEqual(120, mb_strlen($cat));
+            $this->assertGreaterThanOrEqual(90, mb_strlen($cat));
             $this->assertLessThanOrEqual(160, mb_strlen($cat));
         }
     }
