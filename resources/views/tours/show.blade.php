@@ -389,6 +389,21 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
   line-height: 1.08;
   margin: 0 0 14px;
   color: #111;
+  text-wrap: balance;
+}
+/* Títulos de sección mobile (antes con style="" inline) */
+.m-sec-title {
+  font-family: Georgia, serif;
+  font-size: 22px;
+  margin: 0 0 12px;
+  color: #111;
+}
+.m-sec-title--tight { margin-bottom: 4px; }
+.m-confidence-title {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  margin: 0 0 12px;
+  color: #1a0d75;
 }
 .m-rating {
   display: flex;
@@ -420,10 +435,10 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-price-box { min-width: 0; border-radius: 12px; padding: 8px 9px; background: #fff; border: 1px solid #e6dfd4; }
 .m-price-box.old-box { background: #fbfaf8; }
 .m-price-box.new-box { background: linear-gradient(180deg, #fffef9 0%, #f3f7ef 100%); border-color: #dde6d9; box-shadow: 0 4px 10px rgba(0,0,0,.03); }
-.m-price-label { display: inline-block; font-size: 8px; font-weight: 900; letter-spacing: .7px; color: #727c84; text-transform: uppercase; padding-bottom: 4px; margin-bottom: 6px; border-bottom: 1px solid #e1dbd0; line-height: 1; }
+.m-price-label { display: inline-block; font-size: 8px; font-weight: 900; letter-spacing: .7px; color: #5b6770; text-transform: uppercase; padding-bottom: 4px; margin-bottom: 6px; border-bottom: 1px solid #e1dbd0; line-height: 1; }
 .m-price-label.current { color: #2d9555; border-bottom-color: #d8e5d5; }
 .m-price-value { line-height: 1; }
-.m-price-value.old { font-size: 15px; color: #81888f; text-decoration: line-through; text-decoration-color: #cc5b4e; text-decoration-thickness: 1.8px; }
+.m-price-value.old { font-size: 15px; color: #5b6770; text-decoration: line-through; text-decoration-color: #cc5b4e; text-decoration-thickness: 1.8px; }
 .m-price-value.new { font-family: Georgia, serif; font-size: 24px; color: #0a3240; }
 .m-price-unit { font-size: 8.5px; font-weight: 700; color: #6f7981; margin-top: 4px; line-height: 1.05; letter-spacing: .25px; }
 .m-field { margin-bottom: 7px; }
@@ -449,7 +464,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 .m-cta { margin-top: 8px; background: #dc9343; color: #fff; border-radius: 20px; text-align: center; padding: 10px 8px; font-size: 12px; font-weight: 900; letter-spacing: .12px; cursor: pointer; border: none; width: 100%; display: block; }
 .m-date-notice { margin: 5px 0 0; font-size: 10.5px; line-height: 1.35; color: #465e68; }
 .m-date-error { margin: 6px 0 0; padding: 7px 9px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 11.5px; font-weight: 600; line-height: 1.35; }
-.m-foot { margin-top: 7px; text-align: center; color: #7d8b93; font-size: 9.5px; }
+.m-foot { margin-top: 7px; text-align: center; color: #5b6770; font-size: 9.5px; }
 
 /* Trust row mobile */
 .m-trust-row { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--m-line); border-bottom: 1px solid var(--m-line); margin: 8px 0 14px; }
@@ -560,16 +575,16 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 }
 .m-rec-main { padding-right: 4px; min-width: 0; border-right: 1px solid #e7e2d9; }
 .m-rec-main h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: 18px; line-height: 1.05; color: #12323a; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.m-rec-duration { font-size: 12px; color: #d98c27; font-weight: 700; margin: 0 0 6px; }
+.m-rec-duration { font-size: 12px; color: #9f5a26; font-weight: 700; margin: 0 0 6px; }
 .m-rec-bullets { display: grid; gap: 5px; }
 .m-rec-bullets div { font-size: 11px; color: #23424a; display: flex; align-items: center; gap: 6px; }
 .m-rec-rating { margin-top: 8px; font-size: 11px; color: #6a6f75; font-weight: 600; }
 .m-rec-rating .s { color: #f0aa1b; margin-right: 4px; }
 .m-rec-side { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.m-rec-side .offer { font-size: 11px; color: #de8b2a; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 5px; }
+.m-rec-side .offer { font-size: 11px; color: #9f5a26; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 5px; }
 .m-rec-side .price { line-height: 1; }
 .m-rec-side .price strong { font-family: Georgia, serif; font-size: 19px; color: #06312c; }
-.m-rec-side .price small { display: block; color: #777; font-size: 10px; margin-top: 2px; }
+.m-rec-side .price small { display: block; color: #666; font-size: 10px; margin-top: 2px; }
 .m-rec-side .disc { display: inline-block; background: #eef0ef; border-radius: 17px; padding: 6px 10px; font-size: 13px; font-weight: 900; color: #0a2031; margin: 10px 0 6px; }
 .m-rec-side .before { font-size: 11px; color: #73777b; margin-bottom: 8px; }
 .m-rec-btn { background: #083b31; color: #fff; font-weight: 900; border-radius: 14px; padding: 10px 12px; text-align: center; box-shadow: 0 8px 20px rgba(8,59,49,.18); font-size: 11px; text-decoration: none; display: block; }
@@ -1055,10 +1070,10 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 {{-- ─────────── BREADCRUMB (solo md+) ─────────── --}}
 <section class="hidden md:block bg-white pt-5 pb-2">
     <div class="container mx-auto max-w-7xl px-5 lg:px-10">
-        <nav aria-label="Breadcrumb" class="text-xs text-teal-800/60">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-500 transition-colors">{{ __('ui.home') }}</a>
+        <nav aria-label="Breadcrumb" class="text-xs text-teal-800/70">
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-700 transition-colors">{{ __('ui.home') }}</a>
             <span class="mx-1" aria-hidden="true">/</span>
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="hover:text-orange-500 transition-colors">Tours</a>
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="hover:text-orange-700 transition-colors">Tours</a>
             <span class="mx-1" aria-hidden="true">/</span>
             <span class="text-teal-800">{{ \Illuminate\Support\Str::limit($titleDisplay, 55) }}</span>
         </nav>
@@ -1185,7 +1200,7 @@ if (!empty($itinerary)) {
 
         {{-- 2. TÍTULO + RATING --}}
         <div style="padding:18px 20px 0;">
-            <h1 class="m-title">{{ $titleDisplay }}</h1>
+            <p class="m-title" role="heading" aria-level="1">{{ $titleDisplay }}</p>
             @if ($tourRating !== null)
             <div class="m-rating">
                 <span class="m-stars" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">★★★★★</span>
@@ -1355,7 +1370,7 @@ if (!empty($itinerary)) {
 
         {{-- 7. INFORMACIÓN IMPORTANTE — acordeón --}}
         <div style="padding:18px 20px;">
-            <h2 style="font-family:Georgia,serif;margin:0 0 12px;font-size:22px;color:#111;">{{ __('ui.important_info') }}</h2>
+            <h2 class="m-sec-title">{{ __('ui.important_info') }}</h2>
             <div class="m-info-list">
                 <details id="m-info-desc" class="group">
                     <summary class="m-info-item">
@@ -1460,8 +1475,8 @@ if (!empty($itinerary)) {
         {{-- 7B. ¿DÓNDE TE RECOGEMOS? — zonas de recogida (mobile) --}}
         @if ($showPickup)
         <div style="padding:18px 20px;">
-            <h2 style="font-family:Georgia,serif;margin:0 0 4px;font-size:22px;color:#111;">{{ __('ui.pickup_zones_title') }}</h2>
-            <p style="font-size:12px;color:#6e7278;line-height:1.5;margin:0 0 12px;">{{ __('ui.pickup_zones_subtitle') }}</p>
+            <h2 class="m-sec-title m-sec-title--tight">{{ __('ui.pickup_zones_title') }}</h2>
+            <p style="font-size:12px;color:#5f6469;line-height:1.5;margin:0 0 12px;">{{ __('ui.pickup_zones_subtitle') }}</p>
             <div id="m-pickup-map" style="width:100%;height:220px;border-radius:14px;overflow:hidden;background:#f1f0ec;margin-bottom:12px;"></div>
             <div class="m-info-list">
                 @foreach ($pickupZones as $zone)
@@ -1479,8 +1494,8 @@ if (!empty($itinerary)) {
 
         {{-- 8. OPINIONES DE NUESTROS VIAJEROS --}}
         <div id="reviews" style="padding:18px 20px;">
-            <h2 style="font-family:Georgia,serif;margin:0 0 4px;font-size:22px;color:#111;">{{ __('ui.traveler_reviews') }}</h2>
-            <p style="font-size:12px;color:#6e7278;line-height:1.5;margin:0 0 14px;">{{ __('ui.traveler_reviews_subtitle') }}</p>
+            <h2 class="m-sec-title m-sec-title--tight">{{ __('ui.traveler_reviews') }}</h2>
+            <p style="font-size:12px;color:#5f6469;line-height:1.5;margin:0 0 14px;">{{ __('ui.traveler_reviews_subtitle') }}</p>
 
             @if ($reviewStats['total'] > 0)
                 <x-review-summary :stats="$reviewStats" variant="m" />
@@ -1499,7 +1514,7 @@ if (!empty($itinerary)) {
                 @forelse ($tourReviews as $idx => $rev)
                     <x-review-card :review="$rev" :color-index="$idx" variant="m" />
                 @empty
-                    <p class="text-xs text-teal-800/55">{{ __('ui.be_first_review') }}</p>
+                    <p class="text-xs text-teal-800/70">{{ __('ui.be_first_review') }}</p>
                 @endforelse
             </div>
 
@@ -1536,7 +1551,7 @@ if (!empty($itinerary)) {
                     <div>
                         <label for="rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.email') }} *</label>
                         <input id="rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                        <p class="text-[10px] text-teal-800/45 mt-1">{{ __('ui.email_not_published') }}</p>
+                        <p class="text-[10px] text-teal-800/70 mt-1">{{ __('ui.email_not_published') }}</p>
                     </div>
                     {{-- Honeypot anti-spam --}}
                     <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
@@ -1556,7 +1571,7 @@ if (!empty($itinerary)) {
             <div class="m-rec-list">
                 @foreach ($sidebarTours as $rel)
                     @php
-                        $relSlug    = is_object($rel) ? ($rel->slug ?? '#') : '#';
+                        $relSlug    = is_object($rel) ? ($rel instanceof \App\Models\Tour ? $rel->slugFor($locale) : ($rel->slug ?? '#')) : '#';
                         $relTitleRaw = is_object($rel) ? ($rel->title_es ?? $rel->title ?? 'Tour') : ($rel->title ?? 'Tour');
                         $relTitle   = (function ($raw) {
                             $stop = ['de','del','la','las','el','los','y','o','a','en','con','por','un','una'];
@@ -1600,7 +1615,7 @@ if (!empty($itinerary)) {
                             @if (count($relBullets) > 0)
                             <div class="m-rec-bullets">
                                 @foreach ($relBullets as $bullet)
-                                    <div><span aria-hidden="true" style="color:#0a8b4d;">✓</span> {{ $bullet }}</div>
+                                    <div><span aria-hidden="true" style="color:#0a7a43;">✓</span> {{ $bullet }}</div>
                                 @endforeach
                             </div>
                             @endif
@@ -1633,7 +1648,7 @@ if (!empty($itinerary)) {
 
         {{-- 10. RESERVA CON CONFIANZA --}}
         <div class="m-confidence">
-            <h2 style="font-family:Georgia,serif;margin:0 0 12px;font-size:20px;color:#1a0d75;">{{ __('ui.book_with_confidence') }}</h2>
+            <h2 class="m-confidence-title">{{ __('ui.book_with_confidence') }}</h2>
             <div class="m-confidence-grid">
                 @if ($freeCancellation)
                 <div><span class="m-ico" aria-hidden="true">🛡️</span>{{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
@@ -1789,7 +1804,7 @@ if (!empty($itinerary)) {
                     @endfor
                 </span>
                 <span class="font-bold text-teal-800 text-sm">{{ $tourRating }}</span>
-                <span class="text-teal-800/60 text-sm">({{ $reviewsCount }} {{ __('ui.verified_reviews') }})</span>
+                <span class="text-teal-800/70 text-sm">({{ $reviewsCount }} {{ __('ui.verified_reviews') }})</span>
                 <span class="inline-flex items-center gap-1 bg-state-success/10 text-state-success text-[11px] font-semibold px-2 py-0.5 rounded-full">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                     {{ __('ui.verified') }}
@@ -1810,7 +1825,7 @@ if (!empty($itinerary)) {
                     <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                     <div>
                         <p class="text-xs font-bold text-teal-800">{{ __('ui.free_cancellation') }}</p>
-                        <p class="text-[11px] text-teal-800/55">{{ __('ui.until_24h_before') }}</p>
+                        <p class="text-[11px] text-teal-800/70">{{ __('ui.until_24h_before') }}</p>
                     </div>
                 </div>
 @endif
@@ -1818,7 +1833,7 @@ if (!empty($itinerary)) {
                     <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                     <div>
                         <p class="text-xs font-bold text-teal-800">{{ __('ui.secure_payment') }}</p>
-                        <p class="text-[11px] text-teal-800/55">{{ __('ui.and_protected') }}</p>
+                        <p class="text-[11px] text-teal-800/70">{{ __('ui.and_protected') }}</p>
                     </div>
                 </div>
             </div>
@@ -1850,7 +1865,7 @@ if (!empty($itinerary)) {
                         @endif
                     </div>
                     <p class="text-[11px] sm:text-xs font-bold text-teal-800 leading-tight">{{ $feature['label'] }}</p>
-                    <p class="text-[9px] sm:text-[11px] text-teal-800/55 leading-tight">{{ $feature['caption'] }}</p>
+                    <p class="text-[9px] sm:text-[11px] text-teal-800/70 leading-tight">{{ $feature['caption'] }}</p>
                 </div>
             @endforeach
         </div>
@@ -1913,7 +1928,7 @@ if (!empty($itinerary)) {
                             </div>
                             <p class="text-xs font-bold text-teal-800 leading-tight">{{ $hl['title'] }}</p>
                             @if (!empty($hl['desc']))
-                                <p class="text-[11px] text-teal-800/60 mt-0.5 leading-tight line-clamp-2">{{ $hl['desc'] }}</p>
+                                <p class="text-[11px] text-teal-800/70 mt-0.5 leading-tight line-clamp-2">{{ $hl['desc'] }}</p>
                             @endif
                         </div>
                         @endif
@@ -1980,7 +1995,7 @@ if (!empty($itinerary)) {
                                 <p class="text-sm font-bold text-teal-800 clamp-2">{{ $step['title'] }}</p>
                             @endif
                             @if (!empty($step['description']))
-                                <p class="text-sm text-teal-800/65 leading-relaxed mt-0.5 clamp-3">{{ $step['description'] }}</p>
+                                <p class="text-sm text-teal-800/70 leading-relaxed mt-0.5 clamp-3">{{ $step['description'] }}</p>
                             @endif
                         </div>
                     </li>
@@ -2005,7 +2020,7 @@ if (!empty($itinerary)) {
                         </span>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-teal-800">{{ __('ui.description') }}</p>
-                            <p class="text-xs text-teal-800/55 truncate">{{ \Illuminate\Support\Str::limit(strip_tags($tour->{"description_$locale"} ?? $tour->description_es ?? ''), 60) }}</p>
+                            <p class="text-xs text-teal-800/70 truncate">{{ \Illuminate\Support\Str::limit(strip_tags($tour->{"description_$locale"} ?? $tour->description_es ?? ''), 60) }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -2023,7 +2038,7 @@ if (!empty($itinerary)) {
                         </span>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-teal-800">{{ __('ui.full_itinerary') }}</p>
-                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.itinerary_subtitle') }}</p>
+                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.itinerary_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -2050,7 +2065,7 @@ if (!empty($itinerary)) {
                         </span>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-teal-800">{{ __('ui.included_services') }}</p>
-                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.included_services_subtitle') }}</p>
+                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.included_services_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -2082,7 +2097,7 @@ if (!empty($itinerary)) {
                             </div>
                         @endif
                         @if (count($includes) === 0 && count($excludes) === 0)
-                            <p class="text-teal-800/55 text-xs">{{ __('ui.check_services_team') }}</p>
+                            <p class="text-teal-800/70 text-xs">{{ __('ui.check_services_team') }}</p>
                         @endif
                     </div>
                 </details>
@@ -2095,7 +2110,7 @@ if (!empty($itinerary)) {
                         </span>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-teal-800">{{ __('ui.recommendations') }}</p>
-                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.recommendations_subtitle') }}</p>
+                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.recommendations_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -2103,7 +2118,7 @@ if (!empty($itinerary)) {
                         <ul class="space-y-1.5">
                             @foreach ($recommendationLines as $rec)
                                 <li class="flex gap-2 items-start">
-                                    <span class="text-orange-500 shrink-0 mt-0.5" aria-hidden="true">&#9679;</span>
+                                    <span class="text-orange-700 shrink-0 mt-0.5" aria-hidden="true">&#9679;</span>
                                     {{ $rec }}
                                 </li>
                             @endforeach
@@ -2119,7 +2134,7 @@ if (!empty($itinerary)) {
                         </span>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-teal-800">{{ __('ui.important_notes') }}</p>
-                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.important_notes_subtitle') }}</p>
+                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.important_notes_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -2137,7 +2152,7 @@ if (!empty($itinerary)) {
                         </span>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-teal-800">{{ __('ui.tour_faqs') }}</p>
-                            <p class="text-xs text-teal-800/55 truncate">{{ __('ui.tour_faqs_subtitle') }}</p>
+                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.tour_faqs_subtitle') }}</p>
                         </div>
                         <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
@@ -2161,7 +2176,7 @@ if (!empty($itinerary)) {
         @if ($showPickup)
         <section aria-labelledby="pickup-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
             <h2 id="pickup-heading" class="font-display text-base lg:text-lg text-teal-800 mb-1">{{ __('ui.pickup_zones_title') }}</h2>
-            <p class="text-sm text-teal-800/60 mb-4 max-w-2xl">{{ __('ui.pickup_zones_subtitle') }}</p>
+            <p class="text-sm text-teal-800/70 mb-4 max-w-2xl">{{ __('ui.pickup_zones_subtitle') }}</p>
 
             <div class="grid lg:grid-cols-5 gap-5">
                 <div id="d-pickup-map" class="lg:col-span-3 w-full h-72 lg:h-80 rounded-xl overflow-hidden bg-teal-800/5 ring-1 ring-teal-800/10"></div>
@@ -2174,7 +2189,7 @@ if (!empty($itinerary)) {
                             </span>
                             <div class="min-w-0">
                                 <p class="text-sm font-bold text-teal-800">{{ $zone['label'] }}</p>
-                                <p class="text-xs text-teal-800/55">
+                                <p class="text-xs text-teal-800/70">
                                     {{ __('ui.pickup_zones_radius', ['km' => rtrim(rtrim(number_format($zone['radius_km'], 1), '0'), '.')]) }}
                                     &middot;
                                     {{ $zone['type'] === 'hotels' ? __('ui.pickup_zones_hotels_only') : __('ui.pickup_zones_type_all') }}
@@ -2193,7 +2208,7 @@ if (!empty($itinerary)) {
         <section aria-labelledby="reviews-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
             <div class="mb-5">
                 <h2 id="reviews-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.traveler_reviews') }}</h2>
-                <p class="text-xs text-teal-800/55 mt-1">{{ __('ui.traveler_reviews_subtitle') }}</p>
+                <p class="text-xs text-teal-800/70 mt-1">{{ __('ui.traveler_reviews_subtitle') }}</p>
             </div>
 
             {{-- Flash de envío --}}
@@ -2239,7 +2254,7 @@ if (!empty($itinerary)) {
                         <x-review-card :review="$rev" :color-index="$idx" variant="d" />
                     </div>
                 @empty
-                    <p class="text-sm text-teal-800/55">{{ __('ui.be_first_review') }}</p>
+                    <p class="text-sm text-teal-800/70">{{ __('ui.be_first_review') }}</p>
                 @endforelse
             </div>
 
@@ -2276,7 +2291,7 @@ if (!empty($itinerary)) {
                         <div>
                             <label for="d-rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.email') }} *</label>
                             <input id="d-rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                            <p class="text-[10px] text-teal-800/45 mt-1">{{ __('ui.email_not_published') }}</p>
+                            <p class="text-[10px] text-teal-800/70 mt-1">{{ __('ui.email_not_published') }}</p>
                         </div>
                     </div>
                     <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
@@ -2293,14 +2308,14 @@ if (!empty($itinerary)) {
         <section aria-labelledby="related-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 id="related-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.others_also_booked') }}</h2>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">{{ __('ui.see_all') }}</a>
+                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="text-xs font-semibold text-orange-700 hover:text-orange-800 transition-colors">{{ __('ui.see_all') }}</a>
             </div>
             {{-- Slider tipo home: 2 cards por vista en desktop --}}
             <div class="d-related" x-data>
                 <div class="d-related-track" x-ref="relTrack">
                 @foreach ($sidebarTours as $idx => $rel)
                     @php
-                        $relSlug    = is_object($rel) ? ($rel->slug ?? '#') : '#';
+                        $relSlug    = is_object($rel) ? ($rel instanceof \App\Models\Tour ? $rel->slugFor($locale) : ($rel->slug ?? '#')) : '#';
                         $relTitle   = is_object($rel) ? ($rel->title_es ?? $rel->title ?? 'Tour') : ($rel->title ?? 'Tour');
                         $relPrice   = is_object($rel) ? ($rel->price ?? 0) : ($rel->price ?? 0);
                         $relBefore  = is_object($rel) ? ($rel->price_before ?? null) : ($rel->price_before ?? null);
@@ -2369,7 +2384,7 @@ if (!empty($itinerary)) {
                         </div>
                         <p class="text-[10px] font-semibold text-teal-800 leading-tight">{{ $trust['label'] }}</p>
                         @if ($trust['caption'])
-                            <p class="text-[9px] text-teal-800/50 leading-tight">{{ $trust['caption'] }}</p>
+                            <p class="text-[9px] text-teal-800/70 leading-tight">{{ $trust['caption'] }}</p>
                         @endif
                     </div>
                 @endforeach
@@ -2398,22 +2413,22 @@ if (!empty($itinerary)) {
                 <div class="flex items-end gap-4 flex-wrap">
                     @if ($hasOffer)
                         <div>
-                            <p class="text-[10px] uppercase tracking-widest text-teal-800/50 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_before')) }}</p>
-                            <p class="font-price text-base text-teal-800/50 line-through leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
+                            <p class="text-[10px] uppercase tracking-widest text-teal-800/70 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_before')) }}</p>
+                            <p class="font-price text-base text-teal-800/70 line-through leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
                         </div>
                         <div>
-                            <p class="text-[10px] uppercase tracking-widest text-orange-500 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_now')) }}</p>
+                            <p class="text-[10px] uppercase tracking-widest text-orange-700 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_now')) }}</p>
                             <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ {{ __('ui.per_person') }}</p>
+                            <p class="text-[11px] text-teal-800/70 mt-0.5">/ {{ __('ui.per_person') }}</p>
                         </div>
-                        <span class="ml-auto inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-600 text-[11px] font-bold px-2 py-1 rounded-lg">
+                        <span class="ml-auto inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 text-[11px] font-bold px-2 py-1 rounded-lg">
                             -{{ $discountPct }}%
                         </span>
                     @else
                         <div>
-                            <p class="text-[10px] uppercase tracking-widest text-teal-800/55 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
+                            <p class="text-[10px] uppercase tracking-widest text-teal-800/70 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
                             <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                            <p class="text-[11px] text-teal-800/55 mt-0.5">/ {{ __('ui.per_person') }}</p>
+                            <p class="text-[11px] text-teal-800/70 mt-0.5">/ {{ __('ui.per_person') }}</p>
                         </div>
                     @endif
                 </div>
@@ -2471,7 +2486,7 @@ if (!empty($itinerary)) {
                 <div class="flex items-center justify-between bg-cream-100 ring-1 ring-teal-800/10 rounded-xl px-4 py-3">
                     <div>
                         <p class="text-xs font-semibold text-teal-800">{{ __('ui.estimated_total') }}</p>
-                        <p class="text-[10px] text-teal-800/50 mt-0.5"
+                        <p class="text-[10px] text-teal-800/70 mt-0.5"
                            x-text="`${$store.booking.adults} adulto${$store.booking.adults>1?'s':''}` + ($store.booking.children>0 ? ` + ${$store.booking.children} niño${$store.booking.children>1?'s':''}` : '') + ` × US$${price}`">
                         </p>
                     </div>
@@ -2501,7 +2516,7 @@ if (!empty($itinerary)) {
                 </div>
 
                 {{-- Pie --}}
-                <p class="text-center text-[11px] text-teal-800/45">{{ __('ui.no_extra_fees_instant_confirmation') }}</p>
+                <p class="text-center text-[11px] text-teal-800/70">{{ __('ui.no_extra_fees_instant_confirmation') }}</p>
             </div>
         </div>
     </aside>{{-- /columna derecha --}}
@@ -2588,19 +2603,19 @@ if (!empty($itinerary)) {
         <div class="flex items-center justify-between py-3 gap-4">
             <div class="shrink-0">
                 @if ($hasOffer)
-                    <p class="text-[9px] text-teal-800/50 line-through font-price leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
+                    <p class="text-[9px] text-teal-800/70 line-through font-price leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
                 @else
-                    <p class="text-[10px] uppercase tracking-wider text-teal-800/55 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
+                    <p class="text-[10px] uppercase tracking-wider text-teal-800/70 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
                 @endif
                 <p class="font-price text-2xl font-bold text-teal-800 leading-tight">US${{ number_format((float)$tour->price, 0) }}</p>
-                <p class="text-[10px] text-teal-800/45 leading-none">{{ __('ui.per_person') }}</p>
+                <p class="text-[10px] text-teal-800/70 leading-none">{{ __('ui.per_person') }}</p>
             </div>
 @if ($freeCancellation)
             <div class="flex items-center gap-2 text-teal-800/70 flex-1 justify-center">
                 <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                 <div>
                     <p class="text-xs font-semibold text-teal-800">{{ __('ui.free_cancellation') }}</p>
-                    <p class="text-[11px] text-teal-800/50">{{ __('ui.until_24h_before') }}</p>
+                    <p class="text-[11px] text-teal-800/70">{{ __('ui.until_24h_before') }}</p>
                 </div>
             </div>
 @endif
