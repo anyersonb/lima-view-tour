@@ -1,17 +1,23 @@
 @extends('layouts.app')
 
 @php
+    // El layout imprime UN solo <meta robots> noindex (ver layouts/app.blade.php).
+    $forceNoindex = true;
     $locale = app()->getLocale();
     $firstTravelDate ??= now()->addDays(7)->toDateString();
     $cancelDeadline = \Carbon\Carbon::parse($firstTravelDate)->subDay()->setTime(9, 0);
     $openStep = session('open_step', 'reservas'); // 'reservas'|'datos'|'pago'
+    // Recojo por fila: el bloque "Hotel o Airbnb" del paso Datos se oculta en vivo
+    // cuando ya no queda ningún tour con recojo (sin columna => default true).
+    $pickupByTour = \App\Support\TourFlags::has('pickup_included')
+        ? \App\Models\Tour::query()->whereIn('id', collect($items ?? [])->pluck('tour_id')->filter()->all())->pluck('pickup_included', 'id')->all()
+        : [];
 @endphp
 
 @section('title', __('ui.cart_title') . ' — ' . __('seo.site_name'))
 @section('description', __('ui.cart_subtitle'))
 
 @push('head')
-<meta name="robots" content="noindex,nofollow">
 <style>
 /* ════════════════════════════════════════════════════════════
    CARRITO — 3 pasos en una sola pantalla
@@ -24,6 +30,7 @@
     --cart-green:  #143E40;
     --cart-green2: #1B4D4F;
     --cart-gold:   #D9A15C;
+    --cart-gold-ink: #855A20; /* oro para TEXTO: 5,1:1 sobre #F5EBDD, 6:1 sobre blanco (AA); --cart-gold queda para fondos/bordes */
     --cart-soft:   #F7F1E8;
     --cart-okbg:   #F2F5EF;
     --cart-ok:     #1B4D4F;
@@ -99,7 +106,7 @@
     place-items: center;
     margin: 0 auto 5px;
     background: #F5EBDD;
-    color: #A87A45;
+    color: var(--cart-gold-ink);
     font-size: 10.5px;
     font-weight: 900;
     transition: background .18s, color .18s;
@@ -191,7 +198,7 @@
     font-size: 16px; line-height: 1.1; color: var(--cart-ink);
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.cart-meta-line { font-size: 11px; color: var(--cart-gold); font-weight: 700; margin-bottom: 5px; }
+.cart-meta-line { font-size: 11px; color: var(--cart-gold-ink); font-weight: 700; margin-bottom: 5px; }
 
 /* price box */
 .cart-price-box { text-align: right; min-width: 92px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
@@ -249,7 +256,7 @@
     border-radius: 18px; padding: 12px 14px; box-shadow: 0 8px 18px rgba(20,62,64,.04);
 }
 .cart-section-title-card h3 { margin: 0; font-family: 'Hedvig Letters Serif', Georgia, serif; font-size: 18px; color: var(--cart-ink); }
-.cart-section-title-card span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--cart-gold); }
+.cart-section-title-card span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--cart-gold-ink); }
 /* Base (carrito vacío / "compact"): grid responsive que LLENA el ancho
    → 3-4 tarjetas grandes en desktop, 2 en tablet, 1 amplia en mobile */
 .cart-more-tours {
@@ -268,7 +275,7 @@
 .cart-more-card { scroll-snap-align: start; background: #fff; border: 1px solid var(--cart-line); border-radius: 22px; overflow: hidden; box-shadow: 0 10px 22px rgba(0,0,0,.05); display: flex; flex-direction: column; }
 .cart-more-card img { width: 100%; height: clamp(140px, 19vw, 180px); object-fit: cover; display: block; }
 .cart-more-body { padding: 14px 14px 16px; display: flex; flex-direction: column; flex: 1; }
-.cart-more-tag { font-size: 10px; font-weight: 700; letter-spacing: 1.6px; color: var(--cart-gold); text-transform: uppercase; margin: 0 0 6px; }
+.cart-more-tag { font-size: 10px; font-weight: 700; letter-spacing: 1.6px; color: var(--cart-gold-ink); text-transform: uppercase; margin: 0 0 6px; }
 .cart-more-card h4 { margin: 0 0 10px; font-family: 'Hedvig Letters Serif', Georgia, serif; font-size: 17px; line-height: 1.15; color: var(--cart-ink); min-height: 40px; }
 .cart-more-price { font-size: 18px; font-weight: 700; color: var(--cart-green); margin-top: auto; margin-bottom: 10px; }
 .cart-add-btn {
@@ -441,7 +448,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     font-size: 12px; color: #617077; line-height: 1.4; cursor: pointer;
 }
 .cart-terms-row input { margin-top: 2px; }
-.cart-terms-row a { color: var(--cart-gold); text-decoration: underline; text-underline-offset: 2px; }
+.cart-terms-row a { color: var(--cart-gold-ink); text-decoration: underline; text-underline-offset: 2px; }
 
 /* timing radios */
 .cart-timing-grid { display: grid; gap: 9px; margin-bottom: 12px; }
@@ -570,7 +577,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 .cart-lock-card p { margin: 7px 0 0; color: var(--cart-muted); font-size: 12.8px; line-height: 1.5; }
 .cart-lock-steps { display: grid; gap: 8px; margin-top: 12px; }
 .cart-lock-step { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid var(--cart-line); border-radius: 15px; padding: 10px 11px; }
-.cart-lock-step-num { width: 22px; height: 22px; border-radius: 50%; background: #F5EBDD; color: #A87A45; font-size: 11px; font-weight: 800; display: grid; place-items: center; flex: 0 0 auto; }
+.cart-lock-step-num { width: 22px; height: 22px; border-radius: 50%; background: #F5EBDD; color: var(--cart-gold-ink); font-size: 11px; font-weight: 800; display: grid; place-items: center; flex: 0 0 auto; }
 .cart-lock-step .cart-lock-step-txt { font-size: 12px; color: var(--cart-muted); line-height: 1.45; }
 .cart-lock-step b { color: var(--cart-ink); }
 
@@ -603,7 +610,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
 .cart-info-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 12px; }
 .cart-info-mini { background: #fff; border: 1px solid var(--cart-line); border-radius: 15px; padding: 10px 11px; }
-.cart-info-mini small { display: block; font-size: 10px; color: var(--cart-gold); font-weight: 700; letter-spacing: .6px; text-transform: uppercase; margin-bottom: 4px; }
+.cart-info-mini small { display: block; font-size: 10px; color: var(--cart-gold-ink); font-weight: 700; letter-spacing: .6px; text-transform: uppercase; margin-bottom: 4px; }
 .cart-info-mini span { display: block; font-size: 12px; color: var(--cart-ink); line-height: 1.4; font-weight: 600; }
 
 .cart-ghost-history { background: #fff; border: 1px solid var(--cart-line); border-radius: 20px; padding: 14px; }
@@ -877,6 +884,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     @php $dateExpired = (bool) ($item['date_expired'] ?? false); @endphp
                                     <article class="cart-tour-card{{ $dateExpired ? ' is-date-expired' : '' }}"
                                              data-cart-item
+                                             data-pickup="{{ ($pickupByTour[$item['tour_id'] ?? 0] ?? true) ? '1' : '0' }}"
                                              data-row-id="{{ $item['row_id'] }}"
                                              data-unit-price="{{ $item['unit_price'] }}"
                                              data-before-unit="{{ $beforeUnit ?? '' }}"
@@ -957,8 +965,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                 <select id="lang-{{ $item['row_id'] }}"
                                                         class="cart-mini-select"
                                                         data-lang-select>
-                                                    @foreach (['Español', 'English', 'Português'] as $lang)
-                                                        <option value="{{ $lang }}" @selected($item['language'] === $lang)>{{ $lang }}</option>
+                                                    @foreach (['es' => 'Español', 'en' => 'English', 'pt' => 'Português'] as $langCode => $langLabel)
+                                                        <option value="{{ $langCode }}" @selected(old('tour_language', $locale) === $langCode)>{{ $langLabel }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -1028,14 +1036,14 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
                             <div class="flex items-center justify-between mt-4">
                                 <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-                                   class="text-sm font-semibold text-teal-700 hover:text-orange-500 transition">
+                                   class="text-sm font-semibold text-teal-700 hover:text-orange-700 transition">
                                     &lsaquo; {{ __('ui.keep_exploring') }}
                                 </a>
                                 <form method="POST" action="{{ route('cart.clear', ['locale' => $locale]) }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
-                                            class="text-xs text-teal-800/50 hover:text-state-error underline"
+                                            class="text-xs text-teal-800/70 hover:text-state-error underline"
                                             onclick="return confirm('¿Vaciar el carrito?')">
                                         {{ __('ui.clear_cart') }}
                                     </button>
@@ -1063,7 +1071,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                             <h4>{{ $relTour->title }}</h4>
                                             <div class="cart-more-price">US${{ number_format($relTour->price, 0) }}</div>
                                             <div class="mt-auto">
-                                                <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $relTour->slug]) }}"
+                                                <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $relTour instanceof \App\Models\Tour ? $relTour->slugFor($locale) : $relTour->slug]) }}"
                                                    class="cart-add-btn" data-add-tour>
                                                     {{ __('ui.add_tour') }}
                                                 </a>
@@ -1249,8 +1257,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 </div>
 
 @if ($cartHasPickup)
-                                <div class="cart-field">
-                                    <label for="pickup_point">{{ __('ui.pickup_hotel_label') }} <span class="text-teal-800/40 font-normal normal-case">({{ __('ui.optional') }})</span></label>
+                                <div class="cart-field" data-pickup-block>
+                                    <label for="pickup_point">{{ __('ui.pickup_hotel_label') }} <span class="text-teal-800/70 font-normal normal-case">({{ __('ui.optional') }})</span></label>
                                     @php
                                         // Punto de recojo. Si hay Google Maps API Key configurada se usa
                                         // autocompletado de Google Places (el viajero busca cualquier lugar;
@@ -1387,8 +1395,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                      vacío. Campo aparte de pickup_point: acá va un
                                      detalle adicional (habitación, piso, referencia
                                      para el conductor), no el hotel en sí. --}}
-                                <div class="cart-field">
-                                    <label for="pickup_detail">{{ __('checkout_paypal.pickup_detail_label') }} <span class="text-teal-800/40 font-normal normal-case">({{ __('ui.optional') }})</span></label>
+                                <div class="cart-field" data-pickup-block>
+                                    <label for="pickup_detail">{{ __('checkout_paypal.pickup_detail_label') }} <span class="text-teal-800/70 font-normal normal-case">({{ __('ui.optional') }})</span></label>
                                     <input type="text"
                                            id="pickup_detail"
                                            name="pickup_detail"
@@ -1404,8 +1412,9 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 <div class="cart-field">
                                     <label for="tour_language">{{ __('ui.tour_language_label') }}</label>
                                     <select id="tour_language" name="tour_language" class="cart-real-select">
-                                        <option value="en" @selected(old('tour_language', 'en') === 'en')>English</option>
-                                        <option value="es" @selected(old('tour_language') === 'es')>Español</option>
+                                        @foreach (['es' => 'Español', 'en' => 'English', 'pt' => 'Português'] as $langCode => $langLabel)
+                                            <option value="{{ $langCode }}" @selected(old('tour_language', $locale) === $langCode)>{{ $langLabel }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
 
@@ -1972,6 +1981,23 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         }
     });
 
+    // ── Idioma del tour: la tarjeta del carrito alimenta el select del paso Datos ──
+    const dataLang = document.getElementById('tour_language');
+    document.querySelectorAll('[data-lang-select]').forEach(sel => {
+        sel.addEventListener('change', () => { if (dataLang) dataLang.value = sel.value; });
+    });
+
+    // ── Recojo: el bloque del paso Datos solo existe mientras quede un tour con recojo ──
+    function syncPickupBlock() {
+        const blocks = document.querySelectorAll('[data-pickup-block]');
+        if (!blocks.length) return;
+        const any = [...document.querySelectorAll('[data-cart-item]')].some(c => c.dataset.pickup !== '0');
+        blocks.forEach(b => { b.hidden = !any; });
+        if (!any) {
+            blocks.forEach(b => b.querySelectorAll('input').forEach(i => { i.value = ''; }));
+        }
+    }
+
     // ── Eliminar tour ────────────────────────────────────────────
     document.querySelectorAll('[data-remove-btn]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -1984,6 +2010,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
             if (asideItem) asideItem.remove();
             setTimeout(() => {
                 card.remove();
+                syncPickupBlock();
                 if (cartState.size === 0) {
                     // Carrito en 0 → recargar para reiniciar TODO (formulario, paneles 2/3, badge, sesión)
                     window.location.reload();

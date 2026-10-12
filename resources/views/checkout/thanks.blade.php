@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @php
+    $forceNoindex = true; // el layout imprime el único <meta robots> noindex
     $locale    = app()->getLocale();
     $firstRef  = $bookings->first()['reference'] ?? '';
     $firstName = $bookings->first()['customer_name'] ?? 'viajero';
@@ -8,10 +9,6 @@
 
 @section('title', __('checkout.thank_you_title') . ' — ' . __('seo.site_name'))
 @section('description', __('checkout.thanks_meta_description'))
-
-@push('head')
-<meta name="robots" content="noindex,nofollow">
-@endpush
 
 @section('content')
 
@@ -57,7 +54,7 @@
                             <h3 class="font-display text-lg text-teal-800 leading-snug">
                                 {{ $booking['tour_title_snapshot'] }}
                             </h3>
-                            <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-teal-800/65">
+                            <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-teal-800/70">
                                 <li>
                                     <svg class="inline w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -83,7 +80,7 @@
                         <div class="text-right shrink-0">
                             <p class="font-price text-2xl text-teal-800 leading-none">
                                 ${{ number_format($booking['total_price'], 2) }}
-                                <span class="text-[10px] uppercase tracking-[0.15em] text-teal-800/55 font-sans block mt-1">{{ $booking['currency'] ?? 'USD' }}</span>
+                                <span class="text-[10px] uppercase tracking-[0.15em] text-teal-800/70 font-sans block mt-1">{{ $booking['currency'] ?? 'USD' }}</span>
                             </p>
                         </div>
                     </div>
@@ -102,7 +99,7 @@
                                     {{ __('checkout.status_confirmed') }}
                                 </span>
                             @else
-                                <span class="inline-block rounded-full bg-orange-100 text-orange-600 px-2 py-0.5 font-semibold uppercase tracking-wide text-[10px]">
+                                <span class="inline-block rounded-full bg-orange-100 text-orange-700 px-2 py-0.5 font-semibold uppercase tracking-wide text-[10px]">
                                     {{ __('checkout.status_pending') }}
                                 </span>
                             @endif

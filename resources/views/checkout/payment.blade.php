@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @php
+    $forceNoindex = true; // el layout imprime el único <meta robots> noindex
     $locale = app()->getLocale();
 
     $firstTravelDate = optional(collect($items)->first())['travel_date'] ?? now()->addDays(7)->toDateString();
@@ -12,10 +13,6 @@
 
 @section('title', __('checkout.title') . ' — ' . __('seo.site_name'))
 @section('description', __('checkout.meta_description'))
-
-@push('head')
-<meta name="robots" content="noindex,nofollow">
-@endpush
 
 @section('content')
 
@@ -77,7 +74,7 @@
                         <p class="font-semibold text-teal-800 text-sm">{{ __('checkout.free_cancellation') }}</p>
                         <p class="text-xs text-teal-800/70 mt-1">{{ __('checkout.cancel_until', ['date' => $cancelDeadline->locale($locale)->isoFormat('D [de] MMM, YYYY')]) }}</p>
                     </div>
-                    <a href="{{ route('cart.index', ['locale' => $locale]) }}" class="text-orange-600 text-xs font-semibold uppercase tracking-wide hover:text-orange-500 underline-offset-2 hover:underline shrink-0">{{ __('checkout.modify') }}</a>
+                    <a href="{{ route('cart.index', ['locale' => $locale]) }}" class="text-orange-700 text-xs font-semibold uppercase tracking-wide hover:text-orange-800 underline-offset-2 hover:underline shrink-0">{{ __('checkout.modify') }}</a>
                 </div>
 
                 <form id="payment-form"
@@ -104,7 +101,7 @@
                                 </label>
                                 <input type="text" id="customer_name" name="customer_name" value="{{ old('customer_name') }}"
                                        placeholder="{{ __('checkout.name_placeholder') }}" autocomplete="name"
-                                       class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600 @error('customer_name') border-state-error @enderror">
+                                       class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-teal-600 @error('customer_name') border-state-error @enderror">
                                 @error('customer_name')<p class="mt-1 text-xs text-state-error">{{ $message }}</p>@enderror
                             </div>
 
@@ -114,7 +111,7 @@
                                 </label>
                                 <input type="email" id="customer_email" name="customer_email" value="{{ old('customer_email') }}"
                                        placeholder="correo@ejemplo.com" autocomplete="email"
-                                       class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600 @error('customer_email') border-state-error @enderror">
+                                       class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-teal-600 @error('customer_email') border-state-error @enderror">
                                 @error('customer_email')<p class="mt-1 text-xs text-state-error">{{ $message }}</p>@enderror
                             </div>
 
@@ -124,7 +121,7 @@
                                 </label>
                                 <input type="tel" id="customer_phone" name="customer_phone" value="{{ old('customer_phone') }}"
                                        placeholder="+51 999 999 999" autocomplete="tel"
-                                       class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600 @error('customer_phone') border-state-error @enderror">
+                                       class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-teal-600 @error('customer_phone') border-state-error @enderror">
                                 @error('customer_phone')<p class="mt-1 text-xs text-state-error">{{ $message }}</p>@enderror
                             </div>
 
@@ -162,7 +159,7 @@
                         </select>
                         <input type="text" name="pickup_detail" value="{{ old('pickup_detail') }}"
                                placeholder="{{ __('checkout.pickup_detail_placeholder') }}"
-                               class="mt-3 w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600">
+                               class="mt-3 w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-teal-600">
                     </div>
 
                     {{-- Other details --}}
@@ -190,7 +187,7 @@
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-semibold uppercase tracking-wide text-teal-800/70 mb-1.5">{{ __('checkout.additional_comments') }}</label>
                                 <textarea name="notes" rows="2" placeholder="{{ __('checkout.notes_placeholder') }}"
-                                          class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/40 focus:border-teal-600 focus:ring-teal-600">{{ old('notes') }}</textarea>
+                                          class="w-full rounded-xl border border-teal-800/20 bg-cream-100/40 px-4 py-3 text-sm text-teal-800 placeholder-teal-800/70 focus:border-teal-600 focus:ring-teal-600">{{ old('notes') }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -210,9 +207,9 @@
                                        class="mt-1 text-orange-500 focus:ring-orange-400">
                                 <div class="flex-1">
                                     <p class="font-semibold text-teal-800 text-sm">{{ __('checkout.pay_now') }}</p>
-                                    <p class="text-xs text-teal-800/65 mt-0.5">{{ __('checkout.pay_now_desc') }}</p>
+                                    <p class="text-xs text-teal-800/70 mt-0.5">{{ __('checkout.pay_now_desc') }}</p>
                                 </div>
-                                <span class="font-price text-lg text-teal-800 whitespace-nowrap">${{ number_format($total, 2) }} <span class="text-xs text-teal-800/55">USD</span></span>
+                                <span class="font-price text-lg text-teal-800 whitespace-nowrap">${{ number_format($total, 2) }} <span class="text-xs text-teal-800/70">USD</span></span>
                             </label>
 
                             <label class="flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition"
@@ -221,9 +218,9 @@
                                        class="mt-1 text-orange-500 focus:ring-orange-400">
                                 <div class="flex-1">
                                     <p class="font-semibold text-teal-800 text-sm">{{ __('checkout.book_now_pay_later') }}</p>
-                                    <p class="text-xs text-teal-800/65 mt-0.5">{{ __('checkout.pay_later_desc', ['amount' => number_format($total, 2), 'date' => $cancelDeadline->locale($locale)->isoFormat('D [de] MMM')]) }}</p>
+                                    <p class="text-xs text-teal-800/70 mt-0.5">{{ __('checkout.pay_later_desc', ['amount' => number_format($total, 2), 'date' => $cancelDeadline->locale($locale)->isoFormat('D [de] MMM')]) }}</p>
                                 </div>
-                                <span class="font-price text-lg text-state-success whitespace-nowrap">$0,00 <span class="text-xs text-teal-800/55">{{ __('checkout.now') }}</span></span>
+                                <span class="font-price text-lg text-state-success whitespace-nowrap">$0,00 <span class="text-xs text-teal-800/70">{{ __('checkout.now') }}</span></span>
                             </label>
                         </div>
                     </div>
@@ -263,8 +260,8 @@
                             <input type="checkbox" name="accept_terms" required value="1"
                                    class="mt-0.5 w-4 h-4 rounded border-teal-800/30 text-orange-500 focus:ring-orange-400 shrink-0">
                             <span>
-                                {{ __('checkout.accept_terms_prefix') }} <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.terms_link') }}</a>,
-                                {{ __('checkout.accept_privacy_prefix') }} <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="text-orange-600 underline underline-offset-2">{{ __('checkout.privacy_link') }}</a>
+                                {{ __('checkout.accept_terms_prefix') }} <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="text-orange-700 underline underline-offset-2">{{ __('checkout.terms_link') }}</a>,
+                                {{ __('checkout.accept_privacy_prefix') }} <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="text-orange-700 underline underline-offset-2">{{ __('checkout.privacy_link') }}</a>
                                 {{ __('checkout.accept_terms_suffix') }}
                             </span>
                         </label>
@@ -276,7 +273,7 @@
                             <span x-show="paymentTiming === 'later'">{{ __('checkout.book_now_pay_later') }}</span>
                         </button>
 
-                        <p class="mt-3 text-[11px] text-center text-teal-800/55">
+                        <p class="mt-3 text-[11px] text-center text-teal-800/70">
                             {{ __('checkout.accepted_cards') }} &nbsp;·&nbsp; {{ __('checkout.secure_payment') }}
                         </p>
                     </div>
@@ -292,7 +289,7 @@
                         <li class="flex items-start gap-3 text-teal-800/85">
                             <span class="flex-1 leading-snug">
                                 {{ \Illuminate\Support\Str::limit($item['title_snapshot'], 40) }}
-                                <span class="block text-xs text-teal-800/55">
+                                <span class="block text-xs text-teal-800/70">
                                     x {{ $item['quantity'] }} {{ $item['quantity'] === 1 ? __('ui.person') : __('ui.persons') }}
                                     &nbsp;&middot;&nbsp;
                                     {{ \Carbon\Carbon::parse($item['travel_date'])->format('d M Y') }}
@@ -319,12 +316,12 @@
                 <div class="mt-5 pt-5 border-t border-teal-800/10 flex justify-between items-baseline">
                     <span class="text-sm uppercase tracking-wide text-teal-800/70 font-semibold">{{ __('checkout.total') }}</span>
                     <span class="font-price text-3xl text-teal-800">
-                        ${{ number_format($total, 2) }}<span class="text-xs text-teal-800/55 ml-1">USD</span>
+                        ${{ number_format($total, 2) }}<span class="text-xs text-teal-800/70 ml-1">USD</span>
                     </span>
                 </div>
 
                 <a href="{{ route('cart.index', ['locale' => $locale]) }}"
-                   class="mt-6 inline-flex items-center gap-1 text-xs text-teal-800/60 hover:text-orange-500 transition">
+                   class="mt-6 inline-flex items-center gap-1 text-xs text-teal-800/70 hover:text-orange-700 transition">
                     &lsaquo; {{ __('checkout.back_to_cart') }}
                 </a>
             </aside>
