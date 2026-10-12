@@ -74,7 +74,9 @@ class SendBookingPaymentReminders extends Command
         // En ambos modos se respeta el retraso mínimo desde la creación: da tiempo
         // a que el cliente pague solo antes de recibir el recordatorio.
         $bookings = Booking::query()
-            ->with('tour:id,departure_time')
+            // cover_image: the e-mail card reads Tour::cover_url; without the column the
+            // image always fell back to the generic banner.
+            ->with('tour:id,departure_time,cover_image')
             ->where('payment_method', 'pay_later')
             ->where('payment_status', 'pending')
             ->where('status', 'pending')

@@ -7,6 +7,7 @@ use App\Mail\BookingNotificationAdmin;
 use App\Mail\BookingPaymentReminder;
 use App\Models\Booking;
 use App\Models\Setting;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -34,10 +35,27 @@ class BookingNotifier
             return;
         }
 
+        $this->preloadTours($bookings);
+
         $customerEmail ??= $bookings->first()?->customer_email;
 
         $this->sendCustomerConfirmation($bookings, $customerEmail);
         $this->sendAdminNotification($bookings, $paid);
+    }
+
+    /**
+     * Loads the tour of every booking with ONE query. The mail templates read
+     * $booking->tour (cover, pickup flag) once per booking, which was an N+1
+     * (customer mail + admin mail = 2N queries). loadMissing mutates the very
+     * Booking instances the mailables receive, so nothing else changes.
+     */
+    private function preloadTours(Collection $bookings): void
+    {
+        $models = $bookings->filter(fn ($b) => $b instanceof Booking)->values();
+
+        if ($models->isNotEmpty()) {
+            (new EloquentCollection($models->all()))->loadMissing('tour');
+        }
     }
 
     /**
@@ -53,6 +71,8 @@ class BookingNotifier
         if ($bookings->isEmpty()) {
             throw new \RuntimeException('No hay reservas para enviar.');
         }
+
+        $this->preloadTours($bookings);
 
         $customerEmail ??= $bookings->first()?->customer_email;
 
@@ -81,6 +101,8 @@ class BookingNotifier
      */
     public function resendPaymentReminder(Booking $booking, ?string $customerEmail = null): void
     {
+        $this->preloadTours(collect([$booking]));
+
         $customerEmail ??= $booking->customer_email;
 
         if (! $customerEmail) {
