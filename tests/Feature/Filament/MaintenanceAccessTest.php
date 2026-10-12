@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Filament;
 
+use App\Filament\Auth\EditProfile;
 use App\Filament\Pages\Maintenance;
 use App\Models\User;
+use App\Support\MaintenanceAccess;
 use App\Support\MaintenanceOutput;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -130,6 +132,106 @@ class MaintenanceAccessTest extends TestCase
             'unknown database' => ["Unknown database 'lima_secret_db'", 'lima_secret_db'],
             'very long line' => [str_repeat('a', 500), str_repeat('a', 200)],
             'leading blank lines' => ["\n\n  Access denied for user 'u'@'h'\nnext", 'next'],
+        ];
+    }
+
+    public function test_action_is_rejected_when_access_is_revoked_after_the_page_was_mounted(): void
+    {
+        config(['admin.maintenance_emails' => ['boss@webtilia.com']]);
+        $this->actingAs($this->user('boss@webtilia.com'));
+
+        // Page mounted and confirmation modal open while still allowed...
+        $component = Livewire::test(Maintenance::class)->mountAction('run_migrations');
+
+        // ...then the user leaves the list while the tab stays open.
+        config(['admin.maintenance_emails' => ['someone-else@webtilia.com']]);
+        Artisan::shouldReceive('call')->never();
+
+        $component->assertActionHidden('run_migrations');
+        $component->call('callMountedAction');
+
+        $this->assertEmpty(session('filament.notifications', []));
+    }
+
+    public function test_action_runs_for_an_allowed_user_with_the_page_mounted(): void
+    {
+        config(['admin.maintenance_emails' => ['boss@webtilia.com']]);
+        $this->actingAs($this->user('boss@webtilia.com'));
+
+        Artisan::shouldReceive('call')->once()->with('migrate', ['--force' => true])->andReturn(0);
+        Artisan::shouldReceive('output')->andReturn('Nothing to migrate.');
+
+        Livewire::test(Maintenance::class)->callAction('run_migrations');
+
+        $this->assertNotEmpty(session('filament.notifications', []));
+    }
+
+    public function test_user_ids_anchor_access_when_configured(): void
+    {
+        $boss = $this->user('boss@webtilia.com');
+        $other = $this->user('other@webtilia.com');
+        config(['admin.maintenance_emails' => ['other@webtilia.com'], 'admin.maintenance_user_ids' => [(string) $boss->id]]);
+
+        $this->assertTrue(MaintenanceAccess::allows($boss));
+        $this->assertFalse(MaintenanceAccess::allows($other), 'ID list wins over the e-mail list');
+
+        config(['admin.maintenance_user_ids' => []]);
+        $this->assertTrue(MaintenanceAccess::allows($other));
+        $this->assertFalse(MaintenanceAccess::allows($boss));
+    }
+
+    public function test_config_parses_admin_ids_ignoring_garbage(): void
+    {
+        putenv('MAINTENANCE_ADMIN_IDS= 3, x,7 ,,3');
+        try {
+            $config = require base_path('config/admin.php');
+        } finally {
+            putenv('MAINTENANCE_ADMIN_IDS');
+        }
+
+        $this->assertSame(['3', '7'], $config['maintenance_user_ids']);
+    }
+
+    public function test_profile_page_cannot_change_the_email(): void
+    {
+        $user = $this->user('editor@webtilia.com');
+        $this->actingAs($user);
+
+        Livewire::test(EditProfile::class)
+            ->assertFormFieldIsDisabled('email')
+            ->fillForm(['name' => 'New Name', 'email' => 'ablanco@webtilia.com'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $user->refresh();
+        $this->assertSame('New Name', $user->name);
+        $this->assertSame('editor@webtilia.com', $user->email);
+    }
+
+    /** @dataProvider leakyOutputs */
+    public function test_mask_closes_residual_leaks(string $raw, string $mustNotContain): void
+    {
+        $masked = MaintenanceOutput::summary($raw);
+
+        $this->assertNotSame('', $masked);
+        $this->assertStringNotContainsString($mustNotContain, $masked);
+    }
+
+    /** @return array<string, array{0: string, 1: string}> */
+    public static function leakyOutputs(): array
+    {
+        return [
+            'DB_PASSWORD env line' => ['DB_PASSWORD=secret123', 'secret123'],
+            'DB_USERNAME env line' => ['DB_USERNAME=lima_prod_user', 'lima_prod_user'],
+            'quoted env value' => ['DB_PASSWORD="my secret pass" next', 'secret'],
+            'any env key' => ['MAIL_FROM_ADDRESS=hola_x9 ', 'hola_x9'],
+            'APP_KEY' => ['APP_KEY=base64:AbCdEf123', 'AbCdEf123'],
+            'sql after count(*)' => ['SQLSTATE[42S02]: Base table or view not found (Connection: mysql, SQL: select count(*) as aggregate from `users` where `id` = 1)', 'aggregate'],
+            'sql after count(*) table' => ['Error (Connection: mysql, SQL: select count(*) as aggregate from `secret_table`)', 'secret_table'],
+            'bare select' => ['Failed: select * from `bookings` where email = x', 'bookings'],
+            'home path' => ['include(/home/cpuser123/public_html/vendor/x.php): failed', 'cpuser123'],
+            'windows path' => ['failed in C:\\Users\\Anyerson\\www\\x.php', 'Anyerson'],
+            'double quoted user@host' => ['Access denied for user "dbuser9"@"10.1.1.1"', 'dbuser9'],
         ];
     }
 

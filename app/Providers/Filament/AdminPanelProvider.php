@@ -28,7 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(\App\Filament\Auth\Login::class)
-            ->profile()
+            ->profile(\App\Filament\Auth\EditProfile::class)
             ->brandName('Lima View Tours')
             ->colors([
                 'primary' => Color::hex('#15474B'),
