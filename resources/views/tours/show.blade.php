@@ -6,11 +6,11 @@
     $pickupIncluded   = (bool) ($tour->pickup_included ?? true);
     $freeCancellation = (bool) ($tour->free_cancellation ?? true);
     $gallery    = $tour->gallery ?? [];
-    $itinerary  = $tour->{"itinerary_{$locale}"} ?? $tour->itinerary_es ?? [];
-    $includes   = $tour->{"includes_{$locale}"}  ?? $tour->includes_es  ?? [];
-    $excludes   = $tour->{"excludes_{$locale}"}  ?? $tour->excludes_es  ?? [];
-    $recommendations = $tour->{"recommendations_{$locale}"} ?? $tour->recommendations_es ?? null;
-    $notes      = $tour->{"notes_{$locale}"}     ?? $tour->notes_es     ?? null;
+    $itinerary  = $tour->localized('itinerary') ?? [];
+    $includes   = $tour->localized('includes') ?? [];
+    $excludes   = $tour->localized('excludes') ?? [];
+    $recommendations = $tour->localized('recommendations');
+    $notes      = $tour->localized('notes');
     $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
 
     // ── Zonas de recogida (pickup) — configuración GLOBAL, igual para todos los tours ──
@@ -32,7 +32,7 @@
 
     // FAQs del tour: idioma actual con fallback a español; solo pares completos.
     $tourFaqs = array_values(array_filter(
-        (array) ($tour->{"faqs_{$locale}"} ?: $tour->faqs_es ?: []),
+        (array) ($tour->localized('faqs') ?: []),
         fn ($f) => !empty($f['question']) && !empty($f['answer'])
     ));
 
