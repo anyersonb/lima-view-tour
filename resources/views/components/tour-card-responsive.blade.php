@@ -99,7 +99,7 @@
 
 <article class="flex bg-white rounded-[20px] overflow-hidden shadow-[0_2px_14px_rgba(15,52,56,0.09)] ring-1 ring-teal-800/5 min-h-[170px] {{ $bp(
     'sm:flex-col sm:rounded-3xl sm:shadow-md sm:min-h-0 sm:h-full sm:border sm:border-slate-100 sm:hover:shadow-lg sm:transition-shadow',
-    'md:flex-col md:rounded-3xl md:shadow-[0_10px_30px_rgba(15,52,56,0.12)] md:min-h-0 md:h-full md:hover:shadow-[0_14px_36px_rgba(15,52,56,0.18)] md:transition-shadow'
+    'md:relative md:flex-col md:rounded-3xl md:shadow-[0_10px_30px_rgba(15,52,56,0.12)] md:min-h-0 md:h-full md:hover:shadow-[0_14px_36px_rgba(15,52,56,0.18)] md:transition-shadow'
 ) }}" {{ $attributes }}>
 
     {{-- IMAGEN --}}
@@ -137,7 +137,7 @@
     {{-- CONTENIDO --}}
     <div class="flex flex-col flex-1 min-w-0 p-[7px] pb-2 {{ $bp('sm:p-6', 'md:px-4 md:pt-4 md:pb-2') }}">
         <h3 class="font-display text-[17px] text-teal-800 leading-[1.05] {{ $bp('sm:text-2xl sm:leading-8', 'md:text-[22px] md:leading-[1.15] md:uppercase') }}">
-            <a href="{{ $url }}" class="hover:text-orange-700 transition-colors line-clamp-2 {{ $bp('sm:line-clamp-none', 'md:line-clamp-none') }}">{{ $title }}</a>
+            <a href="{{ $url }}" class="hover:text-orange-700 transition-colors line-clamp-2 {{ $bp('sm:line-clamp-none', 'md:line-clamp-none md:after:absolute md:after:inset-0') }}">{{ $title }}</a>
         </h3>
 
         @if (filled($duration))
@@ -234,7 +234,7 @@
                 {{-- CTA --}}
                 <a href="{{ $url }}" class="{{ $hasDiscount ? 'col-start-1 col-span-2 row-start-2 mt-[5px]' : 'col-start-2 row-start-1 min-w-0' }} bg-teal-900 hover:bg-teal-950 active:bg-teal-950 text-white rounded-xl h-[27px] px-3 inline-flex items-center justify-center gap-1.5 font-semibold text-[13px] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 {{ $bp(
                     'sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:mt-0 sm:rounded-full sm:h-auto sm:pl-4 sm:pr-1.5 sm:py-1.5 sm:gap-2 sm:text-sm sm:justify-start sm:shadow-md',
-                    'md:col-span-1 md:col-start-2 md:row-start-1 ' . $ctaSpan . ' md:mt-0 md:rounded-full md:h-[48px] md:pl-5 md:pr-1.5 md:gap-3 md:text-[15px] md:justify-start md:shadow-lg'
+                    'md:relative md:z-10 md:col-span-1 md:col-start-2 md:row-start-1 ' . $ctaSpan . ' md:mt-0 md:rounded-full md:h-[48px] md:pl-5 md:pr-1.5 md:gap-3 md:text-[15px] md:justify-start md:shadow-lg'
                 ) }}">
                     <span class="{{ $bp('sm:hidden', 'md:hidden') }}">{{ __('ui.book') }}</span>
                     <span class="hidden whitespace-nowrap {{ $bp('sm:inline', 'md:inline') }}">{{ __('ui.see_tour') }}</span>
