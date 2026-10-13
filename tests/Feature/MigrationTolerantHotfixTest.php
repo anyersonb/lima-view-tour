@@ -155,7 +155,7 @@ class MigrationTolerantHotfixTest extends TestCase
         Livewire::test(Maintenance::class)
             ->callAction('run_migrations')
             ->assertNotified(
-                Notification::make()->title('Migraciones ejecutadas')->body('Nothing to migrate.')->success()
+                Notification::make()->title('Migraciones ejecutadas')->body('Nothing to migrate.')->success()->persistent()
             );
     }
 
