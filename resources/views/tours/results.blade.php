@@ -35,7 +35,8 @@
             @forelse ($tours as $tour)
                 <article class="bg-white rounded-2xl overflow-hidden shadow-sm grid gap-6 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,260px)] items-stretch p-4">
                     <a href="{{ route('tours.show', ['locale' => $locale, 'slug' => $tour->slugFor($locale)]) }}" class="relative block min-h-[160px]">
-                        <img src="{{ $tour->cover_url }}" alt="{{ $tour->title }}" class="absolute inset-0 w-full h-full object-cover rounded-xl" loading="lazy" width="260" height="160">
+                        @php $rc = \App\Support\ImageVariants::card($tour->cover_image, '260px'); @endphp
+                        <img src="{{ $rc['src'] ?: \App\Support\ImageVariants::relative($tour->cover_url) }}" @if ($rc['srcset']) srcset="{{ $rc['srcset'] }}" sizes="{{ $rc['sizes'] }}" @endif alt="{{ $tour->title }}" class="absolute inset-0 w-full h-full object-cover rounded-xl" loading="lazy" width="260" height="160">
                     </a>
                     <div class="flex flex-col justify-center">
                         <h3 class="font-display text-xl text-teal-800 leading-snug">{{ $tour->title }}</h3>

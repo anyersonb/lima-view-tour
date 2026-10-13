@@ -41,16 +41,14 @@
     $locale  = app()->getLocale();
     $url     = $slug ? route('tours.show', ['locale' => $locale, 'slug' => $slug]) : '#';
     $imgFull = $img ?? asset('assets/banners/banner-hero.jpg');
-    $imgSmall = $imgThumb ?: $imgFull;
     $altText = $imgAlt ?? $title;
-    $imgFallback = asset('assets/banners/banner-hero.jpg');
 
-    // Variantes WebP responsive (ImageVariants::srcset devuelve null si no hay ninguna => se mantiene el <picture> de siempre).
-    $variantSrcset = ($imgPath && class_exists(\App\Support\ImageVariants::class)) ? \App\Support\ImageVariants::srcset($imgPath) : null;
-    if ($variantSrcset && ! str_contains($variantSrcset, ' 1440w')) {
-        $variantSrcset .= ', ' . (\App\Support\ImageVariants::url($imgPath) ?? $imgFull) . ' 1441w'; // el original cubre lo que las variantes no alcanzan
-    }
+    // Un unico <img>: variantes WebP 480/960 si existen; si no, miniatura 480; el original solo sin ninguna derivada.
+    // (Antes un <source> sin type con el original absoluto ganaba sobre el <img> y bajaba hasta 2,4 MB.)
     $imgSizes = $isHome ? '(min-width:768px) 342px, 190px' : '(min-width:1024px) 300px, (min-width:640px) 352px, 160px';
+    $card     = \App\Support\ImageVariants::card($imgPath, $imgSizes);
+    $imgSrc   = $card['src'] ?: \App\Support\ImageVariants::relative($imgThumb ?: $imgFull);
+    $imgFallback = parse_url(asset('assets/banners/banner-hero.jpg'), PHP_URL_PATH);
 
     $pct = $discountPct;
     if (! $pct && $before && $now && (float) $before > (float) $now) {
@@ -105,15 +103,10 @@
     {{-- IMAGEN --}}
     <div class="relative shrink-0 w-[44%] bg-cream-100 {{ $bp('sm:w-full sm:bg-transparent', 'md:w-full') }}">
         <a href="{{ $url }}" tabindex="-1" aria-hidden="true" class="absolute inset-0 block {{ $bp('sm:static sm:aspect-[4/3] sm:bg-cream-100', 'md:static md:aspect-[6/5] md:bg-cream-100') }}">
-            <picture class="contents">
-                @if (! $variantSrcset && $imgSmall !== $imgFull)
-                    <source media="{{ $bp('(min-width:640px)', '(min-width:768px)') }}" srcset="{{ $imgFull }}">
-                @endif
-                <img src="{{ $variantSrcset ? \App\Support\ImageVariants::responsive($imgPath, 480) : $imgSmall }}" @if ($variantSrcset) srcset="{{ $variantSrcset }}" sizes="{{ $imgSizes }}" @endif alt="{{ $altText }}"
-                     class="absolute inset-0 w-full h-full object-cover object-center text-transparent {{ $bp('sm:static', 'md:static') }}"
-                     onerror="this.onerror=null;this.src='{{ $imgFallback }}'"
-                     @if (! $eager) loading="lazy" @endif decoding="async" width="640" height="480">
-            </picture>
+            <img src="{{ $imgSrc }}" @if ($card['srcset']) srcset="{{ $card['srcset'] }}" sizes="{{ $card['sizes'] }}" @endif alt="{{ $altText }}"
+                 class="absolute inset-0 w-full h-full object-cover object-center text-transparent {{ $bp('sm:static', 'md:static') }}"
+                 onerror="this.onerror=null;this.src='{{ $imgFallback }}'"
+                 @if (! $eager) loading="lazy" @endif decoding="async" width="640" height="480">
         </a>
 
         @if ($showBadges)

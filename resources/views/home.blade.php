@@ -736,7 +736,7 @@
                 <article class="relative block w-full rounded-3xl overflow-hidden shadow-md min-h-[280px] lg:min-h-0 lg:aspect-[3/4]">
                     {{-- Imagen de fondo --}}
                     @php $dv = $mediaVariants(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1)), '(min-width:1024px) 400px, 100vw'); @endphp
-                    <img src="{{ $dv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1))) ?: (\App\Support\ImagePath::homeImage($destino['img'] ?? null) ?: asset('assets/banners/Rectangle 19218.jpg'))) }}"{!! $dv['attrs'] !!}
+                    <img src="{{ \App\Support\ImageVariants::relative($dv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1))) ?: (\App\Support\ImagePath::homeImage($destino['img'] ?? null) ?: asset('assets/banners/Rectangle 19218.jpg')))) }}"{!! $dv['attrs'] !!}
                          alt="{{ $destino['title_' . $locale] ?? $destino['title_es'] ?? '' }}"
                          class="absolute inset-0 w-full h-full object-cover object-center"
                          loading="lazy"
@@ -990,7 +990,7 @@
                 {{-- Imagen --}}
                 <div class="relative">
                     @php $tv = $mediaVariants(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1)), '(min-width:1024px) 512px, (min-width:672px) 672px, 100vw'); @endphp
-                    <img src="{{ $tv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1))) ?: (\App\Support\ImagePath::homeImage($tImg) ?: asset('assets/banners/Rectangle 19215.jpg'))) }}"{!! $tv['attrs'] !!}
+                    <img src="{{ \App\Support\ImageVariants::relative($tv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1))) ?: (\App\Support\ImagePath::homeImage($tImg) ?: asset('assets/banners/Rectangle 19215.jpg')))) }}"{!! $tv['attrs'] !!}
                          alt="{{ $tTitle }}"
                          class="w-full h-48 lg:h-full object-cover" loading="lazy" decoding="async" width="672" height="192">
                     <span class="absolute top-4 left-4 inline-flex items-center gap-2 bg-teal-800 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
@@ -1112,7 +1112,7 @@
                               bg-white hover:shadow-md transition-shadow">
                         <div class="relative aspect-[4/3] overflow-hidden">
                             @php $ev = $mediaVariants(\App\Models\Setting::get('home_exp_img_' . ($i + 1)), '(min-width:1024px) 300px, (min-width:768px) 45vw, (min-width:640px) 60vw, 88vw'); @endphp
-                            <img src="{{ $ev['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_exp_img_' . ($i + 1))) ?: (\App\Support\ImagePath::homeImage($eImg) ?: asset('assets/banners/Rectangle 19216.jpg'))) }}"{!! $ev['attrs'] !!}
+                            <img src="{{ \App\Support\ImageVariants::relative($ev['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_exp_img_' . ($i + 1))) ?: (\App\Support\ImagePath::homeImage($eImg) ?: asset('assets/banners/Rectangle 19216.jpg')))) }}"{!! $ev['attrs'] !!}
                                  alt="{{ $eTitle }}"
                                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                  loading="lazy" decoding="async" width="640" height="480">

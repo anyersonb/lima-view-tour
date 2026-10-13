@@ -199,4 +199,73 @@ class ImageVariantsTest extends TestCase
 
         Storage::disk('public')->assertExists(ImageVariants::variantPath($stored, 480));
     }
+
+    public function test_card_prefers_variants_without_the_1440_and_returns_root_relative_urls(): void
+    {
+        $this->putImg('public', 'tours/covers/big.png', 1800, 1000);
+        ImageVariants::generate('tours/covers/big.png');
+
+        $card = ImageVariants::card('tours/covers/big.png', '300px');
+
+        $this->assertSame('/storage/tours/covers/big-w480.webp', $card['src']);
+        $this->assertStringContainsString('/storage/tours/covers/big-w960.webp 960w', $card['srcset']);
+        $this->assertStringNotContainsString('1440w', $card['srcset']);
+        $this->assertStringNotContainsString('http', $card['srcset']);
+        $this->assertSame('300px', $card['sizes']);
+    }
+
+    public function test_card_without_variants_falls_back_to_thumbnail_then_original_never_absolute(): void
+    {
+        $this->putImg('public', 'tours/covers/legacy.png', 1800, 1000);
+        \App\Support\TourThumbnail::generate('tours/covers/legacy.png');
+
+        $card = ImageVariants::card('tours/covers/legacy.png', '300px');
+        $this->assertNull($card['srcset']);
+        $this->assertStringStartsWith('/storage/tours/thumbs/legacy-', $card['src']);
+
+        $this->putImg('public', 'tours/covers/bare.png', 1800, 1000);
+        $card = ImageVariants::card('tours/covers/bare.png', '300px');
+        $this->assertSame('/storage/tours/covers/bare.png', $card['src']);
+        $this->assertNull($card['srcset']);
+    }
+
+    public function test_relative_strips_host_only_for_site_disks(): void
+    {
+        $this->assertSame('/storage/a/b.jpg', ImageVariants::relative('https://www.limaviewtours.com/storage/a/b.jpg'));
+        $this->assertSame('/assets/banners/x.jpg', ImageVariants::relative('http://lima-tour.test/assets/banners/x.jpg'));
+        $this->assertSame('https://cdn.example.com/a.jpg', ImageVariants::relative('https://cdn.example.com/a.jpg'));
+        $this->assertNull(ImageVariants::relative(null));
+    }
+
+    public function test_tour_card_without_variants_renders_one_img_with_the_thumbnail_and_no_untyped_source(): void
+    {
+        $this->putImg('public', 'tours/covers/big.png', 1800, 1000);
+        \App\Support\TourThumbnail::generate('tours/covers/big.png');
+        $abs = 'https://www.limaviewtours.com/storage/tours/covers/big.png';
+
+        $html = \Illuminate\Support\Facades\Blade::render(
+            '<x-tour-card-responsive title="T" slug="t" :img="$abs" :img-thumb="$thumb" img-path="tours/covers/big.png" :now="100" />',
+            ['abs' => $abs, 'thumb' => \App\Support\TourThumbnail::url('tours/covers/big.png')]
+        );
+
+        $this->assertStringNotContainsString('<source', $html);
+        $this->assertStringContainsString('src="/storage/tours/thumbs/big-', $html);
+        $this->assertStringNotContainsString('big.png', $html);
+    }
+
+    public function test_tour_card_with_variants_renders_srcset_root_relative(): void
+    {
+        $this->putImg('public', 'tours/covers/big.png', 1800, 1000);
+        ImageVariants::generate('tours/covers/big.png');
+
+        $html = \Illuminate\Support\Facades\Blade::render(
+            '<x-tour-card-responsive title="T" slug="t" :img="$abs" img-path="tours/covers/big.png" :now="100" />',
+            ['abs' => 'https://www.limaviewtours.com/storage/tours/covers/big.png']
+        );
+
+        $this->assertStringNotContainsString('<source', $html);
+        $this->assertStringContainsString('src="/storage/tours/covers/big-w480.webp"', $html);
+        $this->assertStringContainsString('big-w960.webp 960w', $html);
+        $this->assertStringNotContainsString('big.png', $html);
+    }
 }

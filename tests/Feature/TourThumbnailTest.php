@@ -139,9 +139,11 @@ class TourThumbnailTest extends TestCase
         $start = strpos($html, 'data-tour-cards>');
         $cards = substr($html, $start, strpos($html, 'data-tour-empty', $start) - $start);
 
-        // One <picture>: the <img> (mobile) is the thumbnail, the >=640 <source> keeps the original.
+        // Un unico <img>: la miniatura reemplaza al original (sin <source> sin type que lo reintroduzca); sin miniatura, el original root-relativo.
         $this->assertMatchesRegularExpression('#<img src="[^"]*thumbs/withthumb-#', $cards);
         $this->assertMatchesRegularExpression('#<img src="[^"]*tours/covers/without.png#', $cards);
-        $this->assertMatchesRegularExpression('#<source media="\(min-width:640px\)" srcset="[^"]*tours/covers/withthumb.png#', $cards);
+        $this->assertStringNotContainsString('<source', $cards);
+        $this->assertStringNotContainsString('tours/covers/withthumb.png', $cards);
+        $this->assertDoesNotMatchRegularExpression('#src="https?://[^"]*tours/covers#', $cards);
     }
 }

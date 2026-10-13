@@ -1590,6 +1590,7 @@ if (!empty($itinerary)) {
                         $relRating  = $relStats['average'] !== null ? number_format($relStats['average'], 1) : null;
                         $relReviews = $relStats['total'];
                         $relCover   = is_object($rel) && method_exists($rel, 'getCoverUrlAttribute') ? $rel->cover_url : ($rel->cover_url ?? asset('assets/banners/banner-hero.jpg'));
+                        $relCard    = \App\Support\ImageVariants::card($rel->cover_image ?? null, '126px');
                         $relDuration= is_object($rel) ? ($rel->duration ?? 'Full Day') : ($rel->duration ?? 'Full Day');
                         $relHasOffer= $relBefore && (float)$relBefore > $relPrice;
                         $relPct     = $relHasOffer ? (int) round(((float)$relBefore - $relPrice) / (float)$relBefore * 100) : 0;
@@ -1604,7 +1605,7 @@ if (!empty($itinerary)) {
                     @endphp
                     <div class="m-rec-card">
                         <div class="m-rec-image-wrap">
-                            <img src="{{ $relCover }}" alt="{{ $relTitle }}" loading="lazy" width="126" height="142">
+                            <img src="{{ $relCard['src'] ?: \App\Support\ImageVariants::relative($relCover) }}" @if ($relCard['srcset']) srcset="{{ $relCard['srcset'] }}" sizes="{{ $relCard['sizes'] }}" @endif alt="{{ $relTitle }}" loading="lazy" width="126" height="142">
                             @if ($relHasOffer)
                                 <div class="m-rec-badge">-{{ $relPct }}%</div>
                             @endif
@@ -2334,6 +2335,7 @@ if (!empty($itinerary)) {
                             :title="$relTitle"
                             :slug="$relSlug"
                             :img="$relCover"
+                            :imgPath="$rel->cover_image ?? null"
                             :imgAlt="$relTitle"
                             :before="$relHasOffer ? $relBefore : null"
                             :now="$relPrice"

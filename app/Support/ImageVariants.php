@@ -147,6 +147,40 @@ final class ImageVariants
         return $parts['path'].(isset($parts['query']) ? '?'.$parts['query'] : '');
     }
 
+
+    /**
+     * Quita esquema+host de una URL de los discos del sitio (/storage, /media, /assets):
+     * APP_URL puede ser el apex mientras el visitante esta en www. Otras URLs no se tocan.
+     */
+    public static function relative(?string $url): ?string
+    {
+        if ($url === null || ! preg_match('#^https?://[^/]+(/(?:storage|media|assets)/.*)$#i', $url, $m)) {
+            return $url;
+        }
+
+        return $m[1];
+    }
+
+    /**
+     * Datos de <img> para una card de tour. Nunca devuelve el original pesado si hay algo mejor:
+     *  1. variantes WebP 480/960/1440 existentes -> srcset (+ src = la de 480);
+     *  2. sin variantes, miniatura TourThumbnail (480 px) si existe;
+     *  3. el original (solo cuando no hay ninguna derivada).
+     * Todas las URLs salen root-relativas. No se emite <source> sin type: un unico <img>.
+     *
+     * @return array{src: ?string, srcset: ?string, sizes: ?string}
+     */
+    public static function card(?string $path, string $sizes, int $maxWidth = 960): array
+    {
+        $set = self::srcset($path, array_values(array_filter(self::WIDTHS, fn (int $w) => $w <= $maxWidth)));
+
+        if ($set !== null) {
+            return ['src' => self::responsive($path, 480), 'srcset' => $set, 'sizes' => $sizes];
+        }
+
+        return ['src' => self::relative(TourThumbnail::url($path)), 'srcset' => null, 'sizes' => null];
+    }
+
     /** Drop the memoized exists() lookups (tests, long-lived workers). */
     public static function flush(): void
     {
