@@ -161,9 +161,14 @@ class TourResource extends Resource
                                     Forms\Components\Toggle::make('is_published')->label('Publicado')->default(true),
                                     Forms\Components\Toggle::make('is_featured')->label('Destacado'),
                                     Forms\Components\Toggle::make('show_best_seller')
-                                        ->label('Badge "Más vendido"')
-                                        ->helperText('Muestra u oculta el badge "Más vendido" en las tarjetas y el detalle del tour.')
+                                        ->label('Sello "Más reservado" de la ficha')
+                                        ->helperText('Muestra u oculta el sello de más reservado en la página del tour (solo si el tour está Destacado).')
                                         ->default(true),
+                                    Forms\Components\Toggle::make('show_most_sold')
+                                        ->label('Badge "Más vendido"')
+                                        ->visible(fn () => \App\Support\TourFlags::has('show_most_sold'))
+                                        ->helperText('Muestra el badge "Más vendido" en las tarjetas del home. Apagado por defecto: solo sale en los tours que lo marques.')
+                                        ->default(false),
                                     Forms\Components\Toggle::make('show_top_rated')
                                         ->label('Badge "Mejor valorado"')
                                         ->visible(fn () => \App\Support\TourFlags::has('show_top_rated'))

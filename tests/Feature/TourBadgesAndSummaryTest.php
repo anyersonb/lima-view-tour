@@ -87,4 +87,31 @@ class TourBadgesAndSummaryTest extends TestCase
     {
         $this->assertNull($this->tour(['language' => ''])->languagesLabel('es'));
     }
+
+    public function test_show_most_sold_is_opt_in_and_independent_from_show_best_seller(): void
+    {
+        $this->assertTrue(Schema::hasColumn('tours', 'show_most_sold'));
+
+        $tour = $this->tour()->fresh();
+        $this->assertFalse($tour->show_most_sold, 'not marked = not shown');
+        $this->assertTrue($tour->show_best_seller, 'legacy flag keeps its default (ficha seal)');
+
+        $tour->update(['show_most_sold' => true]);
+        $this->assertTrue($tour->fresh()->show_most_sold);
+    }
+
+    public function test_most_sold_migration_is_idempotent_and_reversible(): void
+    {
+        $migration = require base_path('database/migrations/2026_10_12_000004_add_show_most_sold_to_tours_table.php');
+
+        $migration->up();
+        $this->assertTrue(Schema::hasColumn('tours', 'show_most_sold'));
+
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('tours', 'show_most_sold'));
+        $migration->down();
+
+        $migration->up();
+        $this->assertTrue(Schema::hasColumn('tours', 'show_most_sold'));
+    }
 }

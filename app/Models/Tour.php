@@ -39,6 +39,7 @@ class Tour extends Model
         'is_published' => 'boolean',
         'show_best_seller' => 'boolean',
         'show_top_rated' => 'boolean',
+        'show_most_sold' => 'boolean',
         'show_offer_badge' => 'boolean',
         'pickup_included' => 'boolean',
         'free_cancellation' => 'boolean',
