@@ -97,7 +97,6 @@
             // Miniatura liviana (480 px) para la card móvil; cae a la original si no existe.
             'imgThumb' => \App\Support\TourThumbnail::url($img) ?? asset('assets/banners/banner-hero.jpg'),
             'slug' => is_object($t) ? ($t instanceof \App\Models\Tour ? $t->slugFor(app()->getLocale()) : ($t->slug ?? '')) : ($t['slug'] ?? ''),
-            'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true) : ($t['show_best_seller'] ?? true)),
             'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true) : ($t['show_offer_badge'] ?? true)),
             // Interruptores por tour del CMS (null = columna aún sin migrar => como antes: visibles).
             'pickup' => (bool) (is_object($t) ? ($t->pickup_included ?? true) : ($t['pickup_included'] ?? true)),

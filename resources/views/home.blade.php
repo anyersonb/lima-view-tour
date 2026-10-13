@@ -53,7 +53,6 @@
                     ? (\App\Support\ImagePath::url($t->cover_image ?? null) ?? asset('assets/banners/banner-hero.jpg'))
                     : (\App\Support\ImagePath::url($t['cover_image'] ?? null) ?? asset('assets/banners/banner-hero.jpg')),
                 'slug'      => is_object($t) ? ($t instanceof \App\Models\Tour ? $t->slugFor(app()->getLocale()) : ($t->slug ?? '')) : ($t['slug'] ?? ''),
-                'showBestSeller' => (bool) (is_object($t) ? ($t->show_best_seller ?? true)       : ($t['show_best_seller'] ?? true)),
                 'showOffer'      => (bool) (is_object($t) ? ($t->show_offer_badge ?? true)       : ($t['show_offer_badge'] ?? true)),
                 // Datos reales para la card de escritorio (nada de valores por defecto inventados).
                 'imgPath'   => is_object($t) ? ($t->cover_image ?: null) : null,
@@ -65,7 +64,7 @@
                 'pickup'    => (bool) data_get($t, 'pickup_included', true),
                 'freeCancellation' => (bool) data_get($t, 'free_cancellation', true),
                 'topRated'  => (bool) data_get($t, 'show_top_rated', false),
-                'bestSeller' => (bool) data_get($t, 'show_best_seller', true),
+                'bestSeller' => (bool) data_get($t, 'show_most_sold', false),
             ];
         })->all();
     };
