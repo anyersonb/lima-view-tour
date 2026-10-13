@@ -49,7 +49,7 @@ final class ImageVariants
     public static function isEligible(?string $path, string $disk = 'public'): bool
     {
         if ($path === null || $path === '' || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')
-            || str_starts_with($path, 'assets/') || str_starts_with($path, '/') || self::isVariant($path)) {
+            || str_starts_with($path, 'assets/') || str_starts_with($path, '/') || str_contains($path, '..') || self::isVariant($path)) {
             return false;
         }
 
@@ -118,10 +118,33 @@ final class ImageVariants
         return self::url($path, $disk);
     }
 
-    /** Public URL of any stored path (same rules as ImagePath::url / homeImage). */
+    /**
+     * URL of any stored path (same rules as ImagePath::url / homeImage), but
+     * for files on the storage disks it is root-relative ("/storage/...",
+     * "/media/..."): the site serves from the domain root and APP_URL may be the
+     * apex while visitors are on www (a 301 or a CSP block per image).
+     * External URLs and public/assets paths are returned as ImagePath does.
+     */
     public static function url(?string $path, string $disk = 'public'): ?string
     {
-        return $disk === 'media' ? ImagePath::homeImage($path) : ImagePath::url($path);
+        $url = $disk === 'media' ? ImagePath::homeImage($path) : ImagePath::url($path);
+
+        if ($url === null || $path === null || str_starts_with($path, 'http') || str_starts_with($path, 'assets/') || str_starts_with($path, '/')) {
+            return $url;
+        }
+
+        // Bare legacy names (media disk) resolve to asset(): leave them alone.
+        if ($disk === 'media' && ! str_contains($path, '/')) {
+            return $url;
+        }
+
+        $parts = parse_url($url);
+
+        if ($parts === false || ! isset($parts['path'])) {
+            return $url;
+        }
+
+        return $parts['path'].(isset($parts['query']) ? '?'.$parts['query'] : '');
     }
 
     /** Drop the memoized exists() lookups (tests, long-lived workers). */

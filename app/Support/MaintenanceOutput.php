@@ -54,11 +54,11 @@ final class MaintenanceOutput
             '~[^\s@\'"]+@[^\s@\'"]+~' => '***@***',
             // (Connection: mysql, SQL: ...) from QueryException: to the end of the line,
             // the SQL can contain nested parentheses (count(*)) so no ")" boundary.
-            '~\(Connection:.*$~i' => '(connection details omitted)',
+            '~\(Connection:.*$~im' => '(connection details omitted)',
             // bare "SQL: ..." tail
-            '~\bSQL:.*$~i' => 'SQL: ***',
+            '~\bSQL:.*$~im' => 'SQL: ***',
             // raw statements, truncated
-            '~\b(?:select\s.+?\sfrom|insert\s+into|delete\s+from|alter\s+table|create\s+table|drop\s+table|update\s+`?\w+`?\s+set)\b.*$~i' => '(sql omitted)',
+            '~\b(?:select\s.+?\sfrom|insert\s+into|delete\s+from|alter\s+table|create\s+table|drop\s+table|update\s+`?\w+`?\s+set)\b.*$~im' => '(sql omitted)',
             // sensitive keys, also with an env-style prefix (DB_PASSWORD=, DB_USERNAME=...)
             '~\b((?:[A-Za-z0-9]+_)*(?:password|passwd|pwd|pass|secret|token|api[_-]?key|key|dsn|host|hostname|dbname|database|db|user|username|port))(\s*[=:]\s*)'.$value.'~i' => '$1$2***',
             // ANY KEY=value (every .env line)

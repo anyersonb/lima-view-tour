@@ -235,6 +235,20 @@ class MaintenanceAccessTest extends TestCase
         ];
     }
 
+    public function test_mask_covers_sql_on_an_intermediate_line_of_multiline_output(): void
+    {
+        $raw = "SQLSTATE[42S02]: Base table not found (Connection: mysql, SQL: select count(*) as aggregate from secret_table)\n"
+            ."Other line SQL: delete from users where id = 9\n"
+            .'last line';
+
+        $masked = MaintenanceOutput::mask($raw);
+
+        $this->assertStringNotContainsString('secret_table', $masked);
+        $this->assertStringNotContainsString('users', $masked);
+        $this->assertStringContainsString('last line', $masked);
+        $this->assertCount(3, explode("\n", $masked), 'lines are kept');
+    }
+
     public function test_summary_of_empty_output_is_empty(): void
     {
         $this->assertSame('', MaintenanceOutput::summary("  \n "));

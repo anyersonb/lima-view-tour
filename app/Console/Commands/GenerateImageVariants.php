@@ -39,7 +39,16 @@ class GenerateImageVariants extends Command
                 continue;
             }
 
-            $files = collect(Storage::disk($disk)->allFiles())
+            try {
+                $all = Storage::disk($disk)->allFiles();
+            } catch (\Throwable $e) {
+                Log::warning('images:variants cannot list disk', ['disk' => $disk, 'error' => $e->getMessage()]);
+                $counts['errors']++;
+
+                continue;
+            }
+
+            $files = collect($all)
                 ->filter(fn (string $p) => ImageVariants::isEligible($p, $disk))
                 ->sort()
                 ->values();

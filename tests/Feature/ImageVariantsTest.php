@@ -124,6 +124,32 @@ class ImageVariantsTest extends TestCase
         $this->assertStringContainsString('home/hero-w480.webp 480w', ImageVariants::srcset('home/hero.png', [480, 960], 'media'));
     }
 
+    public function test_urls_are_root_relative_whatever_app_url_says(): void
+    {
+        config(['app.url' => 'https://limaviewtours.com']);
+        config(['filesystems.disks.public.url' => 'https://limaviewtours.com/storage']);
+        config(['filesystems.disks.media.url' => 'https://limaviewtours.com/media']);
+        $this->putImg('public', 'tours/covers/r.png', 1800);
+        $this->putImg('media', 'home/r.png', 1800);
+        ImageVariants::generate('tours/covers/r.png');
+        ImageVariants::generate('home/r.png', 'media');
+        ImageVariants::flush();
+
+        $this->assertSame('/storage/tours/covers/r-w960.webp', ImageVariants::responsive('tours/covers/r.png', 600));
+        // (Storage::fake() replaces the media disk URL prefix, so only the shape is asserted.)
+        $media = ImageVariants::responsive('home/r.png', 600, 'media');
+        $this->assertStringStartsWith('/', $media);
+        $this->assertStringEndsWith('home/r-w960.webp', $media);
+        $this->assertStringNotContainsString('http', ImageVariants::srcset('tours/covers/r.png'));
+        $this->assertSame('https://cdn.example.com/x.jpg', ImageVariants::responsive('https://cdn.example.com/x.jpg', 500), 'external untouched');
+    }
+
+    public function test_path_traversal_is_not_eligible(): void
+    {
+        $this->assertFalse(ImageVariants::isEligible('tours/../.env.png'));
+        $this->assertSame(['*' => 'unsupported'], ImageVariants::generate('tours/../x.png'));
+    }
+
     public function test_command_is_idempotent_and_covers_both_disks(): void
     {
         $this->putImg('public', 'blog/covers/post.png', 1800);
