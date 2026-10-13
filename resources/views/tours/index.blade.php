@@ -219,9 +219,9 @@
         {{-- Sin descarga en móvil (S-06): el <source> solo aplica desde 640 px; el <img> de respaldo es un GIF 1x1. --}}
         <picture>
             @if ($bannerImg === 'banner-hero.jpg')
-                <source media="(min-width:640px)" type="image/webp" sizes="100vw" srcset="{{ collect([640, 1024, 1600, 1920])->map(fn ($w) => asset('assets/banners/banner-hero-' . $w . 'w.webp') . ' ' . $w . 'w')->implode(', ') }}">
+                <source media="(min-width:640px)" type="image/webp" sizes="100vw" srcset="{{ collect([640, 1024, 1600, 1920])->map(fn ($w) => parse_url(asset('assets/banners/banner-hero-' . $w . 'w.webp'), PHP_URL_PATH) . ' ' . $w . 'w')->implode(', ') }}">
             @endif
-            <source media="(min-width:640px)" srcset="{{ asset('assets/banners/' . rawurlencode($bannerImg)) }}">
+            <source media="(min-width:640px)" srcset="{{ parse_url(asset('assets/banners/' . rawurlencode($bannerImg)), PHP_URL_PATH) }}">
             <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" width="1920" height="1000" class="w-full h-full object-cover" loading="eager" fetchpriority="high">
         </picture>
         <div class="absolute inset-0 bg-gradient-to-b from-teal-900/40 via-teal-900/50 to-teal-900/70"></div>

@@ -48,7 +48,7 @@
     // Variantes WebP responsive (ImageVariants::srcset devuelve null si no hay ninguna => se mantiene el <picture> de siempre).
     $variantSrcset = ($imgPath && class_exists(\App\Support\ImageVariants::class)) ? \App\Support\ImageVariants::srcset($imgPath) : null;
     if ($variantSrcset && ! str_contains($variantSrcset, ' 1440w')) {
-        $variantSrcset .= ', ' . $imgFull . ' 1441w'; // el original cubre lo que las variantes no alcanzan
+        $variantSrcset .= ', ' . (\App\Support\ImageVariants::url($imgPath) ?? $imgFull) . ' 1441w'; // el original cubre lo que las variantes no alcanzan
     }
     $imgSizes = $isHome ? '(min-width:768px) 342px, 190px' : '(min-width:1024px) 300px, (min-width:640px) 352px, 160px';
 

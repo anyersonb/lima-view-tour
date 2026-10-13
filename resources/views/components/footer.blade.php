@@ -52,7 +52,7 @@
             <section aria-labelledby="footer-brand">
                 <a href="{{ route('home', ['locale' => $locale]) }}" aria-label="Lima View Tours — {{ __('nav.home') }}" class="inline-flex items-center gap-3">
                     <picture>
-                        <source type="image/webp" srcset="{{ asset('assets/logos/logo-gold.webp') }}">
+                        <source type="image/webp" srcset="{{ parse_url(asset('assets/logos/logo-gold.webp'), PHP_URL_PATH) }}">
                         <img src="{{ asset('assets/logos/logo-gold.png') }}" alt="Lima View Tours" class="h-14 w-auto" width="266" height="107" loading="lazy" decoding="async">
                     </picture>
                 </a>

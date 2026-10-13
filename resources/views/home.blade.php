@@ -228,7 +228,7 @@
         $heroIsDefault = $heroImgUrl === asset('assets/banners/hero-machu-picchu.png');
         $heroSizes     = 'max(100vw, 1300px)';
         $heroSrcset    = collect([640, 1024, 1600, 1717])
-            ->map(fn ($w) => asset('assets/banners/hero-machu-picchu-' . $w . 'w.webp') . ' ' . $w . 'w')
+            ->map(fn ($w) => parse_url(asset('assets/banners/hero-machu-picchu-' . $w . 'w.webp'), PHP_URL_PATH) . ' ' . $w . 'w')
             ->implode(', ');
     @endphp
     @if ($heroIsDefault)

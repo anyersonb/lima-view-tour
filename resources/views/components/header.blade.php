@@ -42,7 +42,7 @@
            class="site-header__logo flex items-center shrink-0 py-3"
            aria-label="Lima View Tours — {{ __('nav.home') }}">
             <picture>
-                <source type="image/webp" srcset="{{ asset('assets/logos/logo-gold.webp') }}">
+                <source type="image/webp" srcset="{{ parse_url(asset('assets/logos/logo-gold.webp'), PHP_URL_PATH) }}">
                 <img src="{{ asset('assets/logos/logo-gold.png') }}"
                      alt="Lima View Tours"
                      class="h-8 sm:h-10 lg:h-12 w-auto select-none"
