@@ -1983,8 +1983,23 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
     // ── Idioma del tour: la tarjeta del carrito alimenta el select del paso Datos ──
     const dataLang = document.getElementById('tour_language');
+    // La elección se guarda por fila (localStorage, clave por rowId) y se restaura al recargar.
+    const langKey = (card) => 'lvt.cartLang.' + card.dataset.rowId;
+    const langStore = {
+        get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    };
     document.querySelectorAll('[data-lang-select]').forEach(sel => {
-        sel.addEventListener('change', () => { if (dataLang) dataLang.value = sel.value; });
+        const card = sel.closest('[data-cart-item]');
+        const saved = card ? langStore.get(langKey(card)) : null;
+        if (saved && [...sel.options].some(o => o.value === saved)) {
+            sel.value = saved;
+            if (dataLang) dataLang.value = saved;
+        }
+        sel.addEventListener('change', () => {
+            if (dataLang) dataLang.value = sel.value;
+            if (card) langStore.set(langKey(card), sel.value);
+        });
     });
 
     // ── Recojo: el bloque del paso Datos solo existe mientras quede un tour con recojo ──
