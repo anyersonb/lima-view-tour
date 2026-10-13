@@ -249,6 +249,22 @@ class MaintenanceAccessTest extends TestCase
         $this->assertCount(3, explode("\n", $masked), 'lines are kept');
     }
 
+    public function test_success_notification_is_persistent_so_the_result_can_be_read(): void
+    {
+        config(['admin.maintenance_emails' => ['boss@webtilia.com']]);
+        $this->actingAs($this->user('boss@webtilia.com'));
+
+        Artisan::shouldReceive('call')->once()->with('images:variants', ['--max-seconds' => 60])->andReturn(0);
+        Artisan::shouldReceive('output')->andReturn('Imágenes: 3. Variantes creadas: 5. Pendientes: 2.');
+
+        Livewire::test(Maintenance::class)->callAction('optimized_images');
+
+        $n = collect(session('filament.notifications', []))->first();
+        $this->assertNotNull($n);
+        $this->assertStringContainsString('Pendientes: 2', $n['body']);
+        $this->assertSame('persistent', $n['duration']);
+    }
+
     public function test_summary_of_empty_output_is_empty(): void
     {
         $this->assertSame('', MaintenanceOutput::summary("  \n "));

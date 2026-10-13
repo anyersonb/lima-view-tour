@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Support\MaintenanceAccess;
 use App\Support\MaintenanceOutput;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Artisan;
@@ -95,12 +96,15 @@ class Maintenance extends Page
             ->title($okTitle)
             ->body(count($commands) === 1 && $body !== '' ? $body : $okBody)
             ->success()
+            ->persistent()
             ->send();
     }
 
     protected function getHeaderActions(): array
     {
         return [
+            // One dropdown instead of six buttons: at 1440 px the bar cut the last one.
+            ActionGroup::make([
             Action::make('clear_cache')
                 ->label('Limpiar caché')
                 ->icon('heroicon-o-trash')
@@ -180,6 +184,12 @@ class Maintenance extends Page
                 ->action(function () {
                     $this->runCommands(['images:variants' => ['--max-seconds' => 60]], 'Imágenes optimizadas', 'Sin cambios.', 'La optimización de imágenes tuvo errores');
                 }),
+
+            ])
+                ->label('Acciones de mantenimiento')
+                ->icon('heroicon-m-wrench-screwdriver')
+                ->button()
+                ->color('primary'),
 
             Action::make('view_sitemap')
                 ->label('Ver sitemap')

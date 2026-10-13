@@ -147,7 +147,10 @@ class TourResource extends Resource
                                     ]),
                                 ]),
                                 Forms\Components\Grid::make(3)->schema([
-                                    Forms\Components\TextInput::make('rating')->numeric()->step(0.1)->minValue(1)->maxValue(5)->default(4.8)->label('Calificación')->helperText('Entre 1 y 5.'),
+                                    Forms\Components\TextInput::make('rating')->numeric()->step(0.1)->minValue(0)->maxValue(5)->default(0)
+                                        ->dehydrateStateUsing(fn ($state) => ($state === null || $state === '') ? 0 : $state)
+                                        ->label('Calificación (interna)')
+                                        ->helperText('Opcional (0 = sin nota). Ya no se muestra en el sitio: las tarjetas y la ficha usan solo las reseñas reales.'),
                                     Forms\Components\TextInput::make('reviews_count')->numeric()->default(0)->label('# reseñas'),
                                     Forms\Components\TextInput::make('order')->numeric()->default(0)->label('Orden'),
                                     Forms\Components\TextInput::make('featured_order')
