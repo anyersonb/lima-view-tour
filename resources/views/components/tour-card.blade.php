@@ -5,6 +5,8 @@
     'slug'               => '',
     'img'                => null,
     'imgAlt'             => null,
+    'imgPath'            => null,
+    'imgSizes'           => '(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw',
     'before'             => null,
     'now'                => 0,
     'currency'           => 'US$',
@@ -33,6 +35,8 @@
     $url     = $slug ? route('tours.show', ['locale' => $locale, 'slug' => $slug]) : '#';
     $imgSrc  = $img ?? asset('assets/banners/banner-hero.jpg');
     $altText = $imgAlt ?? $title;
+    $card    = \App\Support\ImageVariants::card($imgPath, $imgSizes);
+    $imgSrc  = $card['src'] ?: \App\Support\ImageVariants::relative($imgSrc);
 
     // Calcular descuento si no se pasó explícitamente
     $pct = $discountPct;
@@ -56,6 +60,7 @@
     <div class="relative shrink-0">
         <a href="{{ $url }}" tabindex="-1" aria-hidden="true" class="block aspect-[16/9] sm:aspect-[4/3] bg-cream-100">
             <img src="{{ $imgSrc }}"
+                 @if ($card['srcset']) srcset="{{ $card['srcset'] }}" sizes="{{ $card['sizes'] }}" @endif
                  alt="{{ $altText }}"
                  class="w-full h-full object-cover object-center text-transparent"
                  onerror="this.onerror=null;this.src='{{ asset('assets/banners/banner-hero.jpg') }}'"
