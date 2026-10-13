@@ -132,13 +132,13 @@ class ConsentModeTest extends TestCase
         $this->assertStringContainsString("gtag('consent', 'update', window.lvtConsent.granted)", $html);
     }
 
-    public function test_banner_disabled_does_not_auto_open_but_footer_can_open_it(): void
+    public function test_banner_setting_false_still_auto_opens_and_footer_can_open_it(): void
     {
         $html = $this->htmlBannerOff();
 
         $this->assertStringContainsString('<button type="button" data-cookie-preferences', $html);
         $this->assertStringContainsString('id="lvt-cookie-banner"', $html);
-        $this->assertStringContainsString('if (false && !window.lvtConsent.get())', $html);
+        $this->assertStringContainsString('if (true && !window.lvtConsent.get())', $html);
     }
 
     public function test_banner_enabled_auto_opens_for_new_visitors(): void

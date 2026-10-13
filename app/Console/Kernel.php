@@ -26,6 +26,11 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Red de seguridad de medición: avisa si falta el ID de GA4/GTM (correo máx. 1 vez/24 h)
+        $schedule->command('analytics:health')
+            ->dailyAt('09:00')
+            ->timezone(BookingCalendar::timezone());
+
         // Reservas de último momento (tour hoy/mañana): recordatorio ~2h tras
         // reservar, solo en horario razonable de Lima. Un solo recordatorio por
         // reserva (payment_reminder_sent_at), así que no choca con la tanda diaria.

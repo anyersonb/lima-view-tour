@@ -40,7 +40,8 @@
     // Cookie consent — fail closed: the Setting only controls whether the banner
     // auto-opens for new visitors. GTM / Meta Pixel load ONLY with lvt_consent=granted,
     // whatever the Setting says.
-    $cookieBannerEnabled = (bool) \App\Models\Setting::get('cookie_banner_enabled', true);
+    // El banner va SIEMPRE activo: el Setting legado cookie_banner_enabled se ignora.
+    $cookieBannerEnabled = true;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="ltr" class="no-js">
@@ -225,10 +226,7 @@
           4. GTM (contenedor ajeno: arrastra Clarity y Hotjar) y el Pixel NO se
              inyectan hasta que haya consentimiento; al aceptar se inyectan sin
              recargar. Sin JS no hay banner, por eso tampoco hay <noscript>.
-        Banner desactivado por el admin (cookie_banner_enabled=false): FALLA CERRADO.
-          Mismo flujo: consent denied, GTM/Pixel solo con lvt_consent=granted. Lo unico
-          que cambia es que el banner no se abre solo; el boton "Preferencias de
-          cookies" del footer sigue pudiendo abrirlo para dar consentimiento.
+        El Setting legado cookie_banner_enabled se IGNORA: el banner no se puede apagar.
         =====================================================================
     --}}
     {{-- Siempre se emite: el consent default denied y lvtConsent no dependen del Setting. --}}

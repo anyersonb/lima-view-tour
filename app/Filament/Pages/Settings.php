@@ -73,10 +73,7 @@ class Settings extends Page implements HasForms
         $rows['recaptcha_secret_key'] = $rows['recaptcha_secret_key'] ?? config('services.recaptcha.secret_key');
         $rows['recaptcha_v3_threshold'] = $rows['recaptcha_v3_threshold'] ?? config('services.recaptcha.threshold', 0.5);
 
-        // Pre-fill cookie banner settings with defaults if not yet stored
-        $rows['cookie_banner_enabled'] = isset($rows['cookie_banner_enabled'])
-            ? filter_var($rows['cookie_banner_enabled'], FILTER_VALIDATE_BOOLEAN)
-            : true;
+        // cookie_banner_enabled is no longer editable: the banner is always active.
         $rows['cookie_text_es'] = $rows['cookie_text_es'] ?? '';
         $rows['cookie_text_en'] = $rows['cookie_text_en'] ?? '';
         $rows['cookie_text_pt'] = $rows['cookie_text_pt'] ?? '';
@@ -949,14 +946,6 @@ class Settings extends Page implements HasForms
                             ->helperText('Puntuaciones más cercanas a 1.0 son probablemente humanos; cerca de 0.0, bots. El valor recomendado es 0.5.'),
                     ]),
                     Tabs\Tab::make('Cookies')->icon('heroicon-o-shield-exclamation')->schema([
-                        Toggle::make('cookie_banner_enabled')
-                            ->label('Mostrar banner de consentimiento de cookies')
-                            ->helperText(
-                                'Activo: el banner se muestra a usuarios sin decisión previa y el analytics '.
-                                'requiere consentimiento (Google Consent Mode v2 + FB Pixel gating). '.
-                                'Inactivo: el analytics carga directamente sin pedir consentimiento.'
-                            )
-                            ->default(true),
                         Textarea::make('cookie_text_es')
                             ->label('Texto del banner (ES)')
                             ->rows(3)
@@ -986,7 +975,6 @@ class Settings extends Page implements HasForms
         'google_reviews_enabled',
         'tripadvisor_reviews_enabled',
         'recaptcha_enabled',
-        'cookie_banner_enabled',
         'pickup_enabled',
     ];
 

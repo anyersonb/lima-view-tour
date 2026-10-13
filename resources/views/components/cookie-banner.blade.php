@@ -3,7 +3,7 @@
     /**
      * Cookie consent banner component.
      *
-     * $autoShow = Setting cookie_banner_enabled: auto-opens for new visitors only when true.
+     * $autoShow: layout always passes true (banner cannot be disabled from the CMS).
      * Always rendered so the footer "cookie preferences" button can open it.
      * Uses inline styles throughout — Tailwind purge removes arbitrary classes
      * in this project, so we follow the same pattern as the WhatsApp button.
@@ -22,7 +22,7 @@
 
 {{--
     x-cloak hides the element until Alpine boots (rule already in <head>: [x-cloak]{display:none!important})
-    Always rendered; $autoShow (admin Setting) only decides whether it opens by itself.
+    Always rendered; $autoShow only decides whether it opens by itself.
 --}}
 <div
     x-data="{
