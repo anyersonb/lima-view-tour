@@ -262,16 +262,42 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
     .highlights-track > * { flex: 0 0 calc(25% - .5625rem); }
 }
 
-/* ── Safe area bottom ── */
-.sticky-bar { padding-bottom: env(safe-area-inset-bottom, 0); }
+/* ── Barra de reserva fija móvil ── */
+.lvt-resbar { display: none; }
+@media (max-width: 767px) {
+    body { padding-bottom: var(--sticky-bar-h, 0px); }
+    .lvt-resbar {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        position: fixed; left: 0; right: 0; bottom: var(--cookie-banner-h, 0px); z-index: 40;
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+        background: #fff; box-shadow: 0 -4px 16px rgba(21,71,75,.14);
+        transform: translateY(100%); visibility: hidden;
+        transition: transform .22s ease, visibility 0s linear .22s;
+    }
+    .lvt-resbar.is-on { transform: none; visibility: visible; transition: transform .22s ease, visibility 0s; }
+    .lvt-resbar__price { min-width: 0; line-height: 1.1; }
+    .lvt-resbar__price p { margin: 0; }
+    .lvt-resbar__label, .lvt-resbar__old { font-size: 11px; color: #4a6366; }
+    .lvt-resbar__label { text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .lvt-resbar__old { text-decoration: line-through; }
+    .lvt-resbar__now { color: #15474B; font-weight: 700; }
+    .lvt-resbar__now .font-price { font-size: 22px; }
+    .lvt-resbar__now small { font-size: 11px; font-weight: 400; color: #4a6366; }
+    .lvt-resbar__cta {
+        flex-shrink: 0; min-height: 48px; padding: 0 20px; border: 0; border-radius: 9999px;
+        background: #b94f14; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .lvt-resbar__cta:active { background: #9f430f; }
+    .lvt-resbar__cta:focus-visible { outline: 2px solid #15474B; outline-offset: 2px; }
+}
+@media (prefers-reduced-motion: reduce) { .lvt-resbar, .lvt-resbar.is-on { transition: none; } }
+
 
 /* ── Tarjeta reserva compacta (desktop) ── */
 .booking-compact-card { background: #fff; border-radius: 1.25rem; box-shadow: 0 2px 16px rgba(21,71,75,.10); overflow: hidden; }
 .booking-compact-head { background: #15474B; padding: .625rem 1rem; display: flex; align-items: center; justify-content: space-between; }
 .booking-compact-body { padding: 1rem; }
 
-/* ── Barra flotante bottom v2 ── */
-.sticky-bar-v2 { padding-bottom: env(safe-area-inset-bottom, 0); }
 
 /* El header global del sitio se mantiene como en el resto del sitio (no se oculta) */
 
@@ -2595,42 +2621,50 @@ if (!empty($itinerary)) {
 </script>
 @endpush
 
-{{-- ─────────── BARRA FLOTANTE BOTTOM mobile — diseño mockup exacto ─────────── --}}
-{{-- Banner flotante mobile retirado: dentro de la propia interna el CTA "Ver tour" no aplica
-     (el usuario ya está en el tour). La reserva se hace en la card "Reserva online" de arriba. --}}
-
-{{-- ─────────── STICKY FOOTER desktop (md+) ─────────── --}}
-<div class="hidden fixed bottom-0 inset-x-0 z-40 bg-white shadow-2xl ring-1 ring-teal-800/10 sticky-bar">
-    <div class="container mx-auto px-4 sm:px-5">
-        <div class="flex items-center justify-between py-3 gap-4">
-            <div class="shrink-0">
-                @if ($hasOffer)
-                    <p class="text-[9px] text-teal-800/70 line-through font-price leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
-                @else
-                    <p class="text-[10px] uppercase tracking-wider text-teal-800/70 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
-                @endif
-                <p class="font-price text-2xl font-bold text-teal-800 leading-tight">US${{ number_format((float)$tour->price, 0) }}</p>
-                <p class="text-[10px] text-teal-800/70 leading-none">{{ __('ui.per_person') }}</p>
-            </div>
-@if ($freeCancellation)
-            <div class="flex items-center gap-2 text-teal-800/70 flex-1 justify-center">
-                <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                <div>
-                    <p class="text-xs font-semibold text-teal-800">{{ __('ui.free_cancellation') }}</p>
-                    <p class="text-[11px] text-teal-800/70">{{ __('ui.until_24h_before') }}</p>
-                </div>
-            </div>
-@endif
-            <button type="submit"
-                    form="form-reservar"
-                    class="shrink-0 inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-semibold text-sm rounded-full py-3 px-5 lg:px-7 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500">
-                {{ __('ui.book_now') }}
-                <span class="w-7 h-7 rounded-full bg-orange-500 grid place-items-center shrink-0" aria-hidden="true">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                </span>
-            </button>
-        </div>
+{{-- ─────────── BARRA DE RESERVA FIJA (solo móvil, < md) ─────────── --}}
+{{-- Aparece cuando la card #seccion-reserva sale de la vista hacia arriba y se oculta al volver a verse.
+     Publica --sticky-bar-h en <html> para que el botón de WhatsApp suba sobre ella. --}}
+@if ((float) $tour->price > 0)
+<div class="lvt-resbar"
+     x-data="{
+         shown: false,
+         init() {
+             const target = document.getElementById('seccion-reserva');
+             const mq = window.matchMedia('(min-width: 768px)');
+             const sync = () => {
+                 const on = this.shown && !mq.matches;
+                 document.documentElement.style.setProperty('--sticky-bar-h', on ? this.$el.offsetHeight + 'px' : '0px');
+             };
+             this.$watch('shown', () => this.$nextTick(sync));
+             mq.addEventListener('change', sync);
+             window.addEventListener('resize', sync);
+             if (!target || !('IntersectionObserver' in window)) return;
+             new IntersectionObserver(([e]) => {
+                 this.shown = !mq.matches && !e.isIntersecting && e.boundingClientRect.top < 0;
+             }).observe(target);
+         },
+         go() {
+             const target = document.getElementById('seccion-reserva');
+             if (!target) return;
+             const header = document.querySelector('.site-header');
+             const hh = header && getComputedStyle(header).position !== 'static' ? header.offsetHeight : 0;
+             const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+             window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - hh - 8, behavior: reduce ? 'auto' : 'smooth' });
+             setTimeout(() => { const d = target.querySelector('[data-booking-date]'); if (d) d.focus({ preventScroll: true }); }, reduce ? 0 : 600);
+         }
+     }"
+     :class="shown ? 'is-on' : ''"
+     :aria-hidden="shown ? 'false' : 'true'">
+    <div class="lvt-resbar__price">
+        @if ($hasOffer)
+            <p class="lvt-resbar__old">US${{ number_format((float)$tour->price_before, 0) }}</p>
+        @else
+            <p class="lvt-resbar__label">{{ __('ui.from') }}</p>
+        @endif
+        <p class="lvt-resbar__now"><span class="font-price">US${{ number_format((float)$tour->price, 0) }}</span> <small>{{ __('ui.per_person') }}</small></p>
     </div>
+    <button type="button" class="lvt-resbar__cta" @click="go()">{{ __('ui.check_availability') }}</button>
 </div>
+@endif
 
 @endsection
