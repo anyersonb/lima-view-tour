@@ -61,7 +61,8 @@ class SecurityHeaders
      */
     private const CSP_PUBLIC_ANALYTICS_EXTRA = [
         'script-src' => 'https://*.googletagmanager.com https://*.clarity.ms '
-            .'https://c.bing.com https://*.hotjar.com',
+            .'https://c.bing.com https://*.hotjar.com '
+            .'https://googleads.g.doubleclick.net https://www.googleadservices.com',
         'style-src' => 'https://*.hotjar.com',
         'font-src' => 'https://*.hotjar.com',
         'frame-src' => 'https://*.hotjar.com https://www.facebook.com',
@@ -69,7 +70,9 @@ class SecurityHeaders
             .'https://analytics.google.com https://*.googletagmanager.com '
             .'https://stats.g.doubleclick.net https://*.clarity.ms https://c.bing.com '
             .'https://*.hotjar.com https://*.hotjar.io wss://*.hotjar.com '
-            .'https://connect.facebook.net https://www.facebook.com',
+            .'https://connect.facebook.net https://www.facebook.com '
+            .'https://ad.doubleclick.net https://googleads.g.doubleclick.net '
+            .'https://www.googleadservices.com',
     ];
 
     /**

@@ -81,6 +81,21 @@ class SecurityHeadersCspTest extends TestCase
             $this->assertStringContainsString($domain, $csp['connect-src'], "connect-src missing {$domain}");
         }
 
+        // Google Ads (AW-16662327751) via GTM/gtag
+        foreach (['https://googleads.g.doubleclick.net', 'https://www.googleadservices.com'] as $domain) {
+            $this->assertStringContainsString($domain, $csp['script-src'], "script-src missing {$domain}");
+        }
+        foreach ([
+            'https://ad.doubleclick.net',
+            'https://googleads.g.doubleclick.net',
+            'https://www.googleadservices.com',
+        ] as $domain) {
+            $this->assertStringContainsString($domain, $csp['connect-src'], "connect-src missing {$domain}");
+        }
+        $this->assertStringNotContainsString('https://ad.doubleclick.net', $csp['script-src']);
+        $this->assertStringNotContainsString('doubleclick.net *', $csp['script-src']);
+        $this->assertStringNotContainsString('*.doubleclick.net', $csp['script-src'].' '.$csp['connect-src']);
+
         // style-src / font-src / frame-src
         $this->assertStringContainsString('https://*.hotjar.com', $csp['style-src']);
         $this->assertStringContainsString('https://*.hotjar.com', $csp['font-src']);
@@ -112,5 +127,9 @@ class SecurityHeadersCspTest extends TestCase
         $this->assertStringNotContainsString('clarity.ms', $csp['connect-src']);
         $this->assertStringNotContainsString('hotjar.com', $csp['connect-src']);
         $this->assertStringNotContainsString('stats.g.doubleclick.net', $csp['connect-src']);
+        foreach (['ad.doubleclick.net', 'googleads.g.doubleclick.net', 'googleadservices.com'] as $host) {
+            $this->assertStringNotContainsString($host, $csp['script-src']);
+            $this->assertStringNotContainsString($host, $csp['connect-src']);
+        }
     }
 }
