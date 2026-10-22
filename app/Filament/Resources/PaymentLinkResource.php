@@ -82,7 +82,7 @@ class PaymentLinkResource extends Resource
                             ->preload()
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn ($state, Forms\Set $set, Forms\Get $get) => self::recalcAmount($set, $get))
+                            ->afterStateUpdated(fn ($state, Forms\Set $set, Forms\Get $get, ?PaymentLink $record) => self::recalcAmount($set, $get, $record))
                             ->columnSpanFull(),
 
                         Forms\Components\TextInput::make('adults')
@@ -92,7 +92,7 @@ class PaymentLinkResource extends Resource
                             ->default(1)
                             ->required()
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get) => self::recalcAmount($set, $get)),
+                            ->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get, ?PaymentLink $record) => self::recalcAmount($set, $get, $record)),
                         Forms\Components\TextInput::make('children')
                             ->label('Niños')
                             ->numeric()
@@ -100,16 +100,25 @@ class PaymentLinkResource extends Resource
                             ->default(0)
                             ->required()
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get) => self::recalcAmount($set, $get)),
+                            ->afterStateUpdated(fn (Forms\Set $set, Forms\Get $get, ?PaymentLink $record) => self::recalcAmount($set, $get, $record)),
 
                         Forms\Components\TextInput::make('amount')
-                            ->label('Monto a cobrar')
+                            ->label('Total a cobrar (USD)')
                             ->prefix('US$')
                             ->numeric()
-                            ->minValue(0.01)
+                            ->minValue(PaymentLink::MIN_AMOUNT)
+                            ->maxValue(PaymentLink::MAX_AMOUNT)
                             ->required()
-                            ->helperText('Se precarga con precio del tour × pasajeros. Editable: puedes ajustarlo para un descuento, un cobro parcial, o un monto personalizado.')
+                            // Marks the amount as hand-typed so recalcAmount() never overwrites it.
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('amount_touched', true))
+                            ->helperText('Monto final que pagará el cliente. Se sugiere precio del tour × pasajeros; puedes cambiarlo libremente (descuentos, grupos, extras).')
                             ->columnSpanFull(),
+
+                        // UI-only flag (never saved): true once the admin typed the amount.
+                        Forms\Components\Hidden::make('amount_touched')
+                            ->default(false)
+                            ->dehydrated(false),
 
                         Forms\Components\DatePicker::make('travel_date')
                             ->label('Fecha del tour (opcional)')
@@ -232,16 +241,17 @@ class PaymentLinkResource extends Resource
     }
 
     /**
-     * Precarga el monto = precio del tour × (adultos + niños). Solo cuando
-     * el admin todavía no lo tocó a mano (create) — en edición, si ya hay un
-     * tour Y un monto, tocar adultos/niños después de guardado no debería
-     * recalcular por sorpresa un monto que el admin ya ajustó. Simplicidad:
-     * se recalcula siempre en vivo mientras se completa el formulario; si el
-     * admin quiere un monto distinto al automático, lo edita DESPUÉS de fijar
-     * tour/pax (el campo queda editable, no readonly).
+     * Suggests amount = tour price × (adults + children) while CREATING a link
+     * and only until the admin types an amount by hand (amount_touched). Once
+     * touched, or when editing an existing link, the amount is never
+     * overwritten: it is a free final total, independent of pax and tour price.
      */
-    public static function recalcAmount(Forms\Set $set, Forms\Get $get): void
+    public static function recalcAmount(Forms\Set $set, Forms\Get $get, ?PaymentLink $record = null): void
     {
+        if ($record?->exists || $get('amount_touched')) {
+            return;
+        }
+
         $tourId = $get('tour_id');
         if (! $tourId) {
             return;

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Un link de pago "one-off" para cobrar un tour por PayPal sin pasar por el
@@ -23,6 +24,11 @@ use Illuminate\Support\Str;
 class PaymentLink extends Model
 {
     use HasFactory;
+
+    /** Charge limits: amount is decimal(10,2); minimum is USD 1.00. */
+    public const MIN_AMOUNT = 1;
+
+    public const MAX_AMOUNT = 99999999.99;
 
     protected $guarded = ['id'];
 
@@ -55,6 +61,17 @@ class PaymentLink extends Model
         // borra), simplemente deja de tener efecto: siempre vale true.
         static::saving(function (self $link) {
             $link->single_use = true;
+
+            // Server-side guard for any save path (panel, tinker, duplicate):
+            // out-of-range amounts would otherwise 500 on the decimal(10,2) column.
+            if (! $link->exists || $link->isDirty('amount')) {
+                $amount = (float) $link->amount;
+                if ($amount < self::MIN_AMOUNT || $amount > self::MAX_AMOUNT) {
+                    throw ValidationException::withMessages([
+                        'amount' => 'El total debe estar entre US$1.00 y US$99,999,999.99.',
+                    ]);
+                }
+            }
 
             // N-4: si se edita el monto de un link que sigue 'pending', la
             // orden PayPal que ya tuviera guardada (si la hay) quedó con el

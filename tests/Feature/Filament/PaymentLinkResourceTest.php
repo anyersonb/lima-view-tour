@@ -80,6 +80,114 @@ class PaymentLinkResourceTest extends TestCase
         $this->assertNotNull($link->created_by);
     }
 
+    public function test_create_suggests_price_times_pax_until_admin_types_an_amount(): void
+    {
+        $this->actingAs($this->admin());
+        $tour = Tour::factory()->create(['price' => 100]);
+
+        Livewire::test(CreatePaymentLink::class)
+            ->set('data.tour_id', $tour->id)
+            ->assertSet('data.amount', '100.00')
+            ->set('data.adults', 3)
+            ->assertSet('data.amount', '300.00');
+    }
+
+    public function test_manual_amount_survives_changing_pax_and_tour_on_create(): void
+    {
+        $this->actingAs($this->admin());
+        $tourA = Tour::factory()->create(['price' => 100]);
+        $tourB = Tour::factory()->create(['price' => 250]);
+
+        Livewire::test(CreatePaymentLink::class)
+            ->set('data.tour_id', $tourA->id)
+            ->set('data.amount', '123.45')
+            ->set('data.adults', 4)
+            ->set('data.children', 2)
+            ->set('data.tour_id', $tourB->id)
+            ->assertSet('data.amount', '123.45')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $link = PaymentLink::firstOrFail();
+        $this->assertSame('123.45', (string) $link->amount);
+        $this->assertSame($tourB->id, $link->tour_id);
+        $this->assertSame(4, (int) $link->adults);
+    }
+
+    public function test_edit_never_recalculates_the_amount(): void
+    {
+        $this->actingAs($this->admin());
+        $tourA = Tour::factory()->create(['price' => 100]);
+        $tourB = Tour::factory()->create(['price' => 250]);
+        $link = PaymentLink::factory()->create(['tour_id' => $tourA->id, 'amount' => 77.70, 'adults' => 1, 'children' => 0]);
+
+        Livewire::test(EditPaymentLink::class, ['record' => $link->getRouteKey()])
+            ->set('data.adults', 6)
+            ->set('data.tour_id', $tourB->id)
+            ->assertSet('data.amount', '77.70')
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('77.70', (string) $link->fresh()->amount);
+    }
+
+    /** @dataProvider invalidAmounts */
+    public function test_invalid_amounts_are_rejected_without_server_error($amount): void
+    {
+        $this->actingAs($this->admin());
+        $tour = Tour::factory()->create(['price' => 100]);
+
+        Livewire::test(CreatePaymentLink::class)
+            ->fillForm(['tour_id' => $tour->id, 'adults' => 1, 'children' => 0, 'amount' => $amount])
+            ->call('create')
+            ->assertHasFormErrors(['amount']);
+
+        $this->assertSame(0, PaymentLink::count());
+    }
+
+    public static function invalidAmounts(): array
+    {
+        return [
+            'zero' => [0],
+            'negative' => [-5],
+            'below minimum' => [0.5],
+            'above column limit' => [100000000],
+        ];
+    }
+
+    public function test_model_rejects_out_of_range_amount_on_any_save_path(): void
+    {
+        $link = PaymentLink::factory()->create(['amount' => 50]);
+
+        foreach ([0, -1, 100000000] as $bad) {
+            try {
+                $link->update(['amount' => $bad]);
+                $this->fail("amount {$bad} was accepted");
+            } catch (\Illuminate\Validation\ValidationException) {
+                $this->assertSame('50.00', (string) $link->fresh()->amount);
+            }
+        }
+
+        $link->update(['amount' => 99999999.99]);
+        $this->assertSame('99999999.99', (string) $link->fresh()->amount);
+    }
+
+    public function test_saved_amount_is_what_the_payment_page_charges(): void
+    {
+        $this->actingAs($this->admin());
+        $tour = Tour::factory()->create(['price' => 100]);
+
+        Livewire::test(CreatePaymentLink::class)
+            ->set('data.tour_id', $tour->id)
+            ->set('data.amount', '123.45')
+            ->set('data.adults', 5)
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $link = PaymentLink::firstOrFail();
+        $this->get('/pagar/'.$link->code)->assertOk()->assertSee('123.45');
+    }
+
     public function test_cancel_action_marks_link_cancelled(): void
     {
         $this->actingAs($this->admin());
