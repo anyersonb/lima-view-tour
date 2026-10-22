@@ -27,7 +27,7 @@ return [
         'children_min' => 'Number of children cannot be negative.',
         'date_required' => 'Please select the tour date.',
         'date_invalid' => 'The date format is not valid.',
-        'date_future' => 'The earliest available date is :date (departure at :time). Bookings need at least 1 day of notice.',
+        'date_future' => 'The earliest available date is :date. Bookings for the next day close at :cutoff (Lima time).',
         'date_too_far' => 'The latest available booking date is :date.',
         'max_quantity' => 'Maximum allowed quantity is 20.',
     ],

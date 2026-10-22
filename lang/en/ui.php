@@ -385,9 +385,8 @@ culture',
     'see_tours_count_one' => 'See :count tour',
     'see_tours_count_other' => 'See :count tours',
 
-    // Ficha del tour, junto al calendario. Dice "día" y no "24 h" a propósito: las
-    // 24 h ya son la política de cancelación y no deben confundirse.
-    'booking_departure_notice' => 'Departure :time · Book at least 1 day in advance',
+    // Ficha del tour, junto al calendario. Regla: corte diario (config booking.next_day_cutoff).
+    'booking_departure_notice' => 'Departure :time · Next-day bookings close at :cutoff (Lima time)',
     'date_unavailable_early' => 'That day is too soon to book: reservations need advance notice.',
     'date_unavailable_blocked' => 'The tour does not run on that day.',
     'date_first_available' => 'First available date: :date',

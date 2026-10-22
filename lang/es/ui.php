@@ -385,9 +385,8 @@ local',
     'see_tours_count_one' => 'Ver :count tour',
     'see_tours_count_other' => 'Ver :count tours',
 
-    // Ficha del tour, junto al calendario. Dice "día" y no "24 h" a propósito: las
-    // 24 h ya son la política de cancelación y no deben confundirse.
-    'booking_departure_notice' => 'Salida :time · Reserva con al menos 1 día de anticipación',
+    // Ficha del tour, junto al calendario. Regla: corte diario (config booking.next_day_cutoff).
+    'booking_departure_notice' => 'Salida :time · Para el día siguiente se reserva hasta las :cutoff (hora de Lima)',
     'date_unavailable_early' => 'Aún no se puede reservar ese día: la reserva debe hacerse con anticipación.',
     'date_unavailable_blocked' => 'El tour no sale ese día.',
     'date_first_available' => 'Primera fecha disponible: :date',

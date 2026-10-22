@@ -823,7 +823,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
         }
 
         var MSG = {
-            notice:  @json(__('ui.booking_departure_notice', ['time' => $bookingDepartureTime])),
+            notice:  @json(__('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()])),
             early:   @json(__('ui.date_unavailable_early')),
             blocked: @json(__('ui.date_unavailable_blocked')),
             first:   @json(__('ui.date_first_available'))
@@ -1276,7 +1276,7 @@ if (!empty($itinerary)) {
                                    style="border:none;background:transparent;font-size:12px;color:#29404a;width:100%;outline:none;">
                             <span aria-hidden="true">📅</span>
                         </div>
-                        <p class="m-date-notice">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime]) }}</p>
+                        <p class="m-date-notice">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]) }}</p>
                         @error('travel_date')
                             <p class="m-date-error" role="alert" data-date-server-error>{{ $message }}</p>
                         @enderror
@@ -2472,7 +2472,7 @@ if (!empty($itinerary)) {
                            min="{{ $bookingMinDate }}"
                            aria-label="{{ __('ui.select_tour_date') }}"
                            aria-describedby="sb-date-notice">
-                    <p id="sb-date-notice" class="mt-1.5 text-[11px] leading-snug text-teal-800/75">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime]) }}</p>
+                    <p id="sb-date-notice" class="mt-1.5 text-[11px] leading-snug text-teal-800/75">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]) }}</p>
                     @error('travel_date')
                         <p class="mt-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2" role="alert" data-date-server-error>{{ $message }}</p>
                     @enderror

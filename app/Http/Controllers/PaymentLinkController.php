@@ -260,7 +260,7 @@ class PaymentLinkController extends Controller
                 if ($link->travel_date) {
                     $travelDate = $link->travel_date->toDateString();
 
-                    // Operator-created links are exempt from the 24 h lead time
+                    // Operator-created links are exempt from the daily booking cutoff
                     // (the operator decides); only a departure that already
                     // happened (Lima clock, tour's departure time) is refused.
                     if (! BookingCalendar::isUpcoming($travelDate, $link->tour)) {

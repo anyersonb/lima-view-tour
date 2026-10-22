@@ -56,24 +56,35 @@ class BookingCalendar
     }
 
     /**
-     * Antelación mínima en horas entre "ahora" (Lima) y la SALIDA del tour.
+     * Hora de corte diario (HH:MM, hora de Lima) para reservar el día siguiente.
      *
-     * `config('booking.min_hours_ahead', 24)` no cubre un `.env` con la
-     * clave vacía (`BOOKING_MIN_HOURS_AHEAD=` devuelve '' y `(int) ''` es 0,
-     * o sea "sin antelación" por accidente): un valor vacío, no numérico o
-     * negativo cae a 24, igual que la zona horaria cae a America/Lima.
+     * `config('booking.next_day_cutoff', '19:00')` no cubre un `.env` con la
+     * clave vacía ni un valor mal escrito ('7pm', '25:00'): cualquier cosa que
+     * no sea HH:MM válido cae a '19:00'. El default inline del `config()`
+     * protege además un bootstrap/cache/config.php viejo sin la clave nueva.
      */
-    public static function minHoursAhead(): int
+    public static function nextDayCutoff(): string
     {
-        $raw = config('booking.min_hours_ahead', 24);
+        $raw = trim((string) config('booking.next_day_cutoff', '19:00'));
 
-        if (is_int($raw) || (is_string($raw) && preg_match('/^\d+$/', trim($raw)))) {
-            $hours = (int) $raw;
-
-            return $hours >= 0 ? $hours : 24;
+        if (preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', $raw, $m)) {
+            return sprintf('%02d:%s', (int) $m[1], $m[2]);
         }
 
-        return 24;
+        return '19:00';
+    }
+
+    /** Corte en el formato del idioma activo ("7:00 p. m.", "7:00 PM", "19:00"). */
+    public static function nextDayCutoffLabel(): string
+    {
+        [$h, $m] = array_map('intval', explode(':', static::nextDayCutoff()));
+        $at = Carbon::createFromTime($h, $m, 0, static::timezone());
+
+        return match (app()->getLocale()) {
+            'es' => ltrim($at->format('h:i'), '0').($h < 12 ? ' a. m.' : ' p. m.'),
+            'en' => ltrim($at->format('h:i'), '0').($h < 12 ? ' AM' : ' PM'),
+            default => $at->format('H:i'),
+        };
     }
 
     /**
@@ -110,34 +121,28 @@ class BookingCalendar
     }
 
     /**
-     * Primer día reservable para un tour: la menor fecha D (>= mañana, o lo que
-     * diga min_days_ahead) tal que D + hora de salida (Lima) >= ahora (Lima) +
-     * min_hours_ahead. Sin tour usa la hora de salida por defecto.
+     * Primer día reservable (web pública). Corte diario, hora de Lima:
+     * antes de las 19:00 (configurable) la primera fecha es MAÑANA; desde las
+     * 19:00 es PASADO MAÑANA. Hoy nunca. Ya no depende de la hora de salida
+     * del tour ni de horas de antelación; `$tour` se conserva solo por
+     * compatibilidad de firma.
      *
-     * Ejemplo, tour de 05:00 con 24 h: a las 04:59 la primera fecha es mañana;
-     * a las 05:01 pasa a ser pasado mañana.
-     *
-     * `(int) ''` === 0: un `BOOKING_MIN_DAYS_AHEAD=` vacío habilitaba reservas
-     * para el mismo día sin que nadie lo decidiera, por eso el piso es 1.
+     * `min_days_ahead` sigue siendo un piso. `(int) ''` === 0: un
+     * `BOOKING_MIN_DAYS_AHEAD=` vacío habilitaba reservas para el mismo día sin
+     * que nadie lo decidiera, por eso el piso es 1.
      */
     public static function earliest(?Tour $tour = null): Carbon
     {
-        $floor = static::today()->addDays(max(1, (int) config('booking.min_days_ahead', 1)));
-        $cutoff = Carbon::now(static::timezone())->addHours(static::minHoursAhead());
-        $candidate = $floor->copy();
+        $now = Carbon::now(static::timezone());
+        $today = $now->copy()->startOfDay();
+        $floor = $today->copy()->addDays(max(1, (int) config('booking.min_days_ahead', 1)));
 
-        // La salida más tardía del día D es D+23:59, así que como mucho hay que
-        // avanzar minHoursAhead/24 + 1 días; el tope evita un bucle absurdo si
-        // alguien configura miles de horas.
-        for ($i = 0; $i < 400; $i++) {
-            if (static::departureAt($candidate->toDateString(), $tour)->greaterThanOrEqualTo($cutoff)) {
-                return $candidate;
-            }
+        [$h, $m] = array_map('intval', explode(':', static::nextDayCutoff()));
+        $afterCutoff = ($now->hour * 60 + $now->minute) >= ($h * 60 + $m);
 
-            $candidate->addDay();
-        }
+        $candidate = $today->copy()->addDays($afterCutoff ? 2 : 1);
 
-        return $candidate;
+        return $candidate->greaterThan($floor) ? $candidate : $floor;
     }
 
     /** Primer día reservable en 'Y-m-d', para los `min` y las validaciones. */
@@ -188,8 +193,8 @@ class BookingCalendar
      * al añadir y `after:today` al pagar): se podía meter al carrito una fecha
      * que el pago iba a rechazar después.
      *
-     * Con la regla de antelación la fecha mínima depende del TOUR (su hora de
-     * salida): se calcula por ítem, nunca con una regla global.
+     * La fecha mínima es la misma para todos los tours (corte diario); el
+     * parámetro `$tour` se mantiene por compatibilidad.
      *
      * @return array<int, string>
      */
@@ -248,15 +253,15 @@ class BookingCalendar
             "{$field}.date_format" => __('cart.validation.date_invalid'),
             "{$field}.after_or_equal" => __('cart.validation.date_future', [
                 'date' => $first,
-                'time' => static::departureTime($tour),
+                'cutoff' => static::nextDayCutoffLabel(),
             ]),
             "{$field}.before_or_equal" => __('cart.validation.date_too_far', ['date' => $last]),
         ];
     }
 
     /**
-     * ¿Esta fecha es reservable para este tour (con la antelación mínima y sin
-     * pasarse del horizonte)? Sin tour usa la hora de salida por defecto.
+     * ¿Esta fecha es reservable (con el corte diario y sin
+     * pasarse del horizonte)?
      */
     public static function isBookable(?string $date, ?Tour $tour = null): bool
     {
@@ -298,15 +303,15 @@ class BookingCalendar
     }
 
     /**
-     * Mensaje por ítem: nombra el tour, la primera fecha disponible y la hora
-     * de salida, en el idioma activo.
+     * Mensaje por ítem: nombra el tour, la primera fecha disponible y el corte
+     * de las 19:00, en el idioma activo.
      */
     public static function itemMessage(string $tourTitle, ?Tour $tour = null): string
     {
         return __('booking.date_item_unavailable', [
             'tour' => $tourTitle,
             'date' => static::earliest($tour)->locale(app()->getLocale())->isoFormat('LL'),
-            'time' => static::departureTime($tour),
+            'cutoff' => static::nextDayCutoffLabel(),
         ]);
     }
 

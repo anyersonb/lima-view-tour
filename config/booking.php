@@ -36,13 +36,14 @@ return [
     'min_days_ahead' => (int) env('BOOKING_MIN_DAYS_AHEAD', 1),
 
     /*
-     | Antelación mínima en HORAS entre "ahora" (Lima) y la salida del tour
-     | (fecha + tours.departure_time, hora de Lima). Un tour solo se puede
-     | reservar si sale al menos estas horas después de ahora. Vacío, no
-     | numérico o negativo => 24 (ver BookingCalendar::minHoursAhead()).
-     | min_days_ahead sigue actuando como piso (nunca antes de mañana).
+     | Corte diario (HH:MM, 24 h, hora de Lima) para reservar el día
+     | siguiente. Antes del corte la primera fecha reservable es MAÑANA; desde
+     | el corte, PASADO MAÑANA. Hoy nunca. Reemplaza la antigua regla de 24 h
+     | antes de la salida (BOOKING_MIN_HOURS_AHEAD ya no se lee). Vacío o
+     | inválido => '19:00' (ver BookingCalendar::nextDayCutoff()).
+     | min_days_ahead sigue actuando como piso.
      */
-    'min_hours_ahead' => env('BOOKING_MIN_HOURS_AHEAD', 24),
+    'next_day_cutoff' => env('BOOKING_NEXT_DAY_CUTOFF', '19:00'),
 
     /*
      | Hora de salida (HH:MM, 24 h, Lima) que se asume cuando el tour no tiene

@@ -27,7 +27,7 @@ return [
         'children_min' => 'O número de crianças não pode ser negativo.',
         'date_required' => 'Selecione a data do tour.',
         'date_invalid' => 'A data não tem um formato válido.',
-        'date_future' => 'A primeira data disponível é :date (saída às :time). A reserva exige pelo menos 1 dia de antecedência.',
+        'date_future' => 'A primeira data disponível é :date. Para o dia seguinte, a reserva vai até às :cutoff (horário de Lima).',
         'date_too_far' => 'A última data disponível para reserva é :date.',
         'max_quantity' => 'A quantidade máxima permitida é 20.',
     ],

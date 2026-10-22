@@ -76,12 +76,11 @@ class TourController extends Controller
             // Tour::reviewStats(). Ningún cálculo de promedios/porcentajes debe
             // hacerse en el Blade: ya vienen resueltos acá.
             'reviewStats'   => $tour->reviewStats(),
-            // Booking lead-time data for THIS tour (Lima clock). The first
-            // bookable date depends on the departure time and on the current
+            // Booking calendar data (Lima clock). The first
+            // bookable date depends on the daily cutoff (see BookingCalendar) and the current
             // time, so every calendar/min="" in the view reads these.
             'bookingMinDate'      => BookingCalendar::earliestDate($tour),
             'bookingDepartureTime' => BookingCalendar::departureTime($tour),
-            'bookingMinHours'     => BookingCalendar::minHoursAhead(),
             'blockedDates'    => BlockedDate::blockedDatesFor($tour->id),
             'blockedWeekdays' => BlockedDate::blockedWeekdaysFor($tour->id),
         ]);

@@ -58,8 +58,8 @@ class BookingDatesTest extends TestCase
     public function the_booking_calendar_uses_lima_time_and_not_the_server_clock(): void
     {
         // 21:00 en Lima del 26 = 02:00 UTC del 27. Para el operador todavía es
-        // el 26 (en UTC "hoy" ya sería el 27). Sin hora propia se asume 06:00 y
-        // hacen falta 24 h: el 27 a las 06:00 son 9 h, el 28 a las 06:00 son 33 h.
+        // el 26 (en UTC "hoy" ya sería el 27) y ya pasó el corte de las 19:00:
+        // la primera fecha es pasado mañana (28).
         Carbon::setTestNow(Carbon::parse('2026-08-27 02:00:00', 'UTC'));
 
         $this->assertSame('2026-08-26', BookingCalendar::today()->toDateString());
@@ -71,18 +71,19 @@ class BookingDatesTest extends TestCase
     }
 
     /** @test */
-    public function booking_for_tomorrow_is_accepted_in_the_evening_lima_time(): void
+    public function booking_for_the_first_date_is_accepted_in_the_evening_lima_time(): void
     {
         // La ventana rota: 21:00 en Lima, el servidor ya en el día siguiente.
         Carbon::setTestNow(Carbon::parse('2026-08-27 02:00:00', 'UTC'));
 
         Mail::fake();
 
-        // Salida a las 23:00: son 26 h desde las 21:00 del 26 (Lima), así que
-        // mañana (27) sigue siendo reservable. Es el caso que la regla vieja
-        // (`after:today` sobre UTC) rechazaba.
+        // Pasado el corte de las 19:00 la primera fecha es el 28 (pasado
+        // mañana de Lima). La regla vieja (`after:today` sobre UTC) lo comparaba
+        // contra el 27 y el checkout rechazaba la fecha válida.
         $tour = $this->tour(['departure_time' => '23:00']);
-        $tomorrow = '2026-08-27';
+        $this->assertFalse(BookingCalendar::isBookable('2026-08-27', $tour));
+        $tomorrow = '2026-08-28';
 
         $this->cart()->add($tour, 2, 0, $tomorrow);
 
@@ -281,13 +282,12 @@ class BookingDatesTest extends TestCase
     {
         // (int) '' === 0: un BOOKING_MIN_DAYS_AHEAD='' habilitaba reservas
         // para el mismo día sin que nadie lo decidiera a propósito.
-        // Con la antelación en horas a 0 solo actúa el piso de días: aísla este caso.
         Carbon::setTestNow(Carbon::parse('2026-10-11 10:00:00', 'America/Lima'));
-        config(['booking.min_days_ahead' => '', 'booking.min_hours_ahead' => 0]);
+        config(['booking.min_days_ahead' => '']);
 
         $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
 
-        config(['booking.min_days_ahead' => 1, 'booking.min_hours_ahead' => 24]);
+        config(['booking.min_days_ahead' => 1]);
         Carbon::setTestNow();
     }
 
@@ -335,11 +335,14 @@ class BookingDatesTest extends TestCase
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  Lote reserva con 24 h de antelación (2026-10-11)
+    //  Corte diario de las 19:00 (2026-10-21)
     //
-    //  Una fecha D es reservable si D + hora de salida del tour (Lima) >=
-    //  ahora (Lima) + 24 h. Los tests fijan el reloj en hora de Lima y
-    //  comparan fechas como strings Y-m-d, nunca con casts de columna.
+    //  Reemplaza la regla de 24 h antes de la salida. Hora de Lima:
+    //  antes de las 19:00 la primera fecha es MAÑANA; desde las 19:00 es
+    //  PASADO MAÑANA; hoy nunca. No depende de la hora de salida del tour.
+    //  Los tests fijan el reloj en hora de Lima (servidor en UTC) y comparan
+    //  fechas como strings Y-m-d, nunca con casts de columna.
+    //  Fecha base: domingo 2026-10-11 (mañana 12, pasado mañana 13).
     // ═══════════════════════════════════════════════════════════════════
 
     private function limaNow(string $dateTime): void
@@ -353,59 +356,192 @@ class BookingDatesTest extends TestCase
         parent::tearDown();
     }
 
-    /** @test */
-    public function a_05_00_tour_is_bookable_tomorrow_at_04_59_and_not_at_05_01(): void
+    private function addToCartPayload(Tour $t, string $date): array
     {
-        $tour = $this->tour(['departure_time' => '05:00 AM']);
-
-        $this->limaNow('2026-10-11 04:59:00');
-        $this->assertSame('2026-10-12', BookingCalendar::earliestDate($tour));
-        $this->assertTrue(BookingCalendar::isBookable('2026-10-12', $tour));
-
-        $this->limaNow('2026-10-11 05:01:00');
-        $this->assertSame('2026-10-13', BookingCalendar::earliestDate($tour));
-        $this->assertFalse(BookingCalendar::isBookable('2026-10-12', $tour));
-        $this->assertTrue(BookingCalendar::isBookable('2026-10-13', $tour));
+        return ['tour_id' => $t->id, 'adults' => 1, 'children' => 0, 'travel_date' => $date];
     }
 
     /** @test */
-    public function the_exact_24_hour_boundary_is_bookable_and_one_second_later_is_not(): void
+    public function at_18_59_lima_tomorrow_is_bookable(): void
     {
-        $tour = $this->tour(['departure_time' => '05:00']);
+        $this->limaNow('2026-10-11 18:59:00');
 
-        // 05:00:00 del 11 -> salida del 12 a las 05:00 = exactamente 24 h.
-        $this->limaNow('2026-10-11 05:00:00');
-        $this->assertTrue(BookingCalendar::isBookable('2026-10-12', $tour));
-
-        $this->limaNow('2026-10-11 05:00:01');
-        $this->assertFalse(BookingCalendar::isBookable('2026-10-12', $tour));
+        $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
+        $this->assertTrue(BookingCalendar::isBookable('2026-10-12'));
+        $this->assertFalse(BookingCalendar::isBookable('2026-10-11'), 'hoy nunca');
     }
 
     /** @test */
-    public function the_first_date_depends_on_each_tours_own_departure_time(): void
+    public function at_19_00_lima_tomorrow_is_rejected_and_the_day_after_is_bookable(): void
     {
-        $early = $this->tour(['departure_time' => '05:00']);
-        $late = $this->tour(['departure_time' => '14:00']);
+        $this->limaNow('2026-10-11 19:00:00');
+
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate());
+        $this->assertFalse(BookingCalendar::isBookable('2026-10-12'));
+        $this->assertTrue(BookingCalendar::isBookable('2026-10-13'));
+
+        // Borde: un segundo antes sigue siendo "antes del corte".
+        $this->limaNow('2026-10-11 18:59:59');
+        $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
+    }
+
+    /** @test */
+    public function the_cutoff_is_evaluated_on_the_lima_clock_even_when_the_server_clock_is_utc(): void
+    {
+        // 19:30 Lima del 11 = 00:30 UTC del 12: el servidor ya está en otro día.
+        Carbon::setTestNow(Carbon::parse('2026-10-12 00:30:00', 'UTC'));
+        $this->assertSame('2026-10-11', BookingCalendar::today()->toDateString());
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate());
+
+        // 18:30 Lima del 12 = 23:30 UTC del 12: sigue antes del corte (mañana = 13).
+        Carbon::setTestNow(Carbon::parse('2026-10-12 23:30:00', 'UTC'));
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate());
+
+        // 19:00 Lima del 12 = 00:00 UTC del 13: pasado mañana = 14.
+        Carbon::setTestNow(Carbon::parse('2026-10-13 00:00:00', 'UTC'));
+        $this->assertSame('2026-10-14', BookingCalendar::earliestDate());
+    }
+
+    /** @test */
+    public function after_midnight_lima_tomorrow_is_bookable_again_and_today_is_not(): void
+    {
+        $this->limaNow('2026-10-11 23:59:00');
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate());
+
+        $this->limaNow('2026-10-12 00:30:00');
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate(), 'mañana del nuevo día (el 13)');
+        $this->assertTrue(BookingCalendar::isBookable('2026-10-13'));
+        $this->assertFalse(BookingCalendar::isBookable('2026-10-12'), 'hoy nunca');
+
+        $this->limaNow('2026-10-11 00:30:00');
+        $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
+        $this->assertFalse(BookingCalendar::isBookable('2026-10-11'));
+    }
+
+    /** @test */
+    public function the_departure_time_of_the_tour_no_longer_matters(): void
+    {
+        $early = $this->tour(['departure_time' => '06:00']);
+        $late = $this->tour(['departure_time' => '21:00']);
+
+        // Antes (24 h) un tour de las 06:00 ya no se podía reservar para mañana a las 18:00.
+        $this->limaNow('2026-10-11 18:00:00');
+        $this->assertSame('2026-10-12', BookingCalendar::earliestDate($early));
+        $this->assertSame('2026-10-12', BookingCalendar::earliestDate($late));
+        $this->assertTrue(BookingCalendar::isBookable('2026-10-12', $early));
+
+        $this->limaNow('2026-10-11 19:00:00');
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate($early));
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate($late));
+    }
+
+    /** @test */
+    public function a_06_00_tour_can_be_added_to_the_cart_for_tomorrow_at_18_00(): void
+    {
+        $tour = $this->tour(['departure_time' => '06:00']);
+        $this->limaNow('2026-10-11 18:00:00');
+
+        $this->postJson('/es/carrito/agregar', $this->addToCartPayload($tour, '2026-10-12'))->assertOk();
+    }
+
+    /** @test */
+    public function adding_to_the_cart_after_the_cutoff_rejects_tomorrow_with_the_cutoff_message(): void
+    {
+        $tour = $this->tour(['departure_time' => '06:00']);
+        $this->limaNow('2026-10-11 19:00:00');
+
+        $r = $this->postJson('/es/carrito/agregar', $this->addToCartPayload($tour, '2026-10-12'));
+        $r->assertStatus(422);
+        $message = $r->json('errors.travel_date.0');
+        $this->assertStringContainsString('13 de octubre', $message);
+        $this->assertStringContainsString('7:00 p. m.', $message);
+        $this->assertStringContainsString('hora de Lima', $message);
+        $this->assertStringNotContainsString('1 día de anticipación', $message);
+        $this->assertCount(0, $this->cart()->items());
+
+        $this->postJson('/es/carrito/agregar', $this->addToCartPayload($tour, '2026-10-13'))->assertOk();
+    }
+
+    /** @test */
+    public function the_validation_messages_name_the_cutoff_in_the_three_languages(): void
+    {
+        $this->limaNow('2026-10-11 19:30:00');
+
+        $expected = ['es' => '7:00 p. m.', 'en' => '7:00 PM', 'pt' => '19:00'];
+
+        foreach ($expected as $locale => $label) {
+            app()->setLocale($locale);
+
+            $msg = BookingCalendar::dateMessages()['travel_date.after_or_equal'];
+            $this->assertStringContainsString($label, $msg, "cart.date_future {$locale}");
+            $this->assertStringNotContainsString(':cutoff', $msg);
+            $this->assertStringNotContainsString(':date', $msg);
+
+            $item = BookingCalendar::itemMessage('Tour X');
+            $this->assertStringContainsString($label, $item, "booking.date_item_unavailable {$locale}");
+            $this->assertStringNotContainsString(':cutoff', $item);
+        }
+
+        app()->setLocale('es');
+    }
+
+    /** @test */
+    public function an_invalid_or_empty_cutoff_config_falls_back_to_19_00(): void
+    {
+        $this->limaNow('2026-10-11 18:59:00');
+
+        foreach (['', 'abc', '25:00', '7pm', '19:60', null, '24:00'] as $bad) {
+            config(['booking.next_day_cutoff' => $bad]);
+            $this->assertSame('19:00', BookingCalendar::nextDayCutoff(), 'next_day_cutoff='.var_export($bad, true));
+            $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
+        }
+
+        // Con la clave AUSENTE (config cacheada vieja en producción) también cae a 19:00.
+        config(['booking.next_day_cutoff' => null]);
+        $this->limaNow('2026-10-11 19:00:00');
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate());
+    }
+
+    /** @test */
+    public function a_valid_custom_cutoff_is_respected(): void
+    {
+        config(['booking.next_day_cutoff' => '20:30']);
+
+        $this->limaNow('2026-10-11 20:29:00');
+        $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
+
+        $this->limaNow('2026-10-11 20:30:00');
+        $this->assertSame('2026-10-13', BookingCalendar::earliestDate());
+
+        config(['booking.next_day_cutoff' => '7:05']);
+        $this->assertSame('07:05', BookingCalendar::nextDayCutoff());
+    }
+
+    /** @test */
+    public function min_days_ahead_still_acts_as_a_floor(): void
+    {
+        config(['booking.min_days_ahead' => 3]);
 
         $this->limaNow('2026-10-11 10:00:00');
+        $this->assertSame('2026-10-14', BookingCalendar::earliestDate());
 
-        $this->assertSame('2026-10-13', BookingCalendar::earliestDate($early));
-        $this->assertSame('2026-10-12', BookingCalendar::earliestDate($late));
+        $this->limaNow('2026-10-11 19:30:00');
+        $this->assertSame('2026-10-14', BookingCalendar::earliestDate());
     }
 
     /** @test */
-    public function a_tour_without_departure_time_uses_the_06_00_default(): void
+    public function a_tour_without_departure_time_uses_the_06_00_default_for_display_only(): void
     {
         $tour = $this->tour(['departure_time' => null]);
 
         $this->assertSame('06:00', BookingCalendar::departureTime($tour));
         $this->assertSame('06:00', BookingCalendar::departureTime(null));
 
+        // La hora de salida ya no mueve la primera fecha.
         $this->limaNow('2026-10-11 05:59:00');
         $this->assertSame('2026-10-12', BookingCalendar::earliestDate($tour));
-
         $this->limaNow('2026-10-11 06:01:00');
-        $this->assertSame('2026-10-13', BookingCalendar::earliestDate($tour));
+        $this->assertSame('2026-10-12', BookingCalendar::earliestDate($tour));
     }
 
     /** @test */
@@ -424,7 +560,7 @@ class BookingDatesTest extends TestCase
     }
 
     /** @test */
-    public function empty_or_invalid_lead_time_config_never_breaks_and_falls_back(): void
+    public function empty_or_invalid_default_departure_config_never_breaks_and_falls_back(): void
     {
         $this->limaNow('2026-10-11 05:59:00');
 
@@ -434,25 +570,14 @@ class BookingDatesTest extends TestCase
             $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
         }
 
-        config(['booking.default_departure_time' => '06:00']);
-
-        foreach (['', 'abc', '-3', null, '1.5'] as $bad) {
-            config(['booking.min_hours_ahead' => $bad]);
-            $this->assertSame(24, BookingCalendar::minHoursAhead(), 'min_hours_ahead='.var_export($bad, true));
-            $this->assertSame('2026-10-12', BookingCalendar::earliestDate());
-        }
-
-        // Valores válidos sí se respetan.
-        config(['booking.min_hours_ahead' => '48', 'booking.default_departure_time' => '08:30']);
-        $this->assertSame(48, BookingCalendar::minHoursAhead());
+        config(['booking.default_departure_time' => '08:30']);
         $this->assertSame('08:30', BookingCalendar::defaultDepartureTime());
-        $this->assertSame('2026-10-13', BookingCalendar::earliestDate());
     }
 
     /** @test */
-    public function the_pages_do_not_crash_with_an_empty_lead_time_config(): void
+    public function the_pages_do_not_crash_with_empty_booking_config(): void
     {
-        config(['booking.min_hours_ahead' => '', 'booking.default_departure_time' => '']);
+        config(['booking.next_day_cutoff' => '', 'booking.default_departure_time' => '']);
         $tour = $this->tour();
 
         $this->get('/es/carrito')->assertOk();
@@ -460,86 +585,79 @@ class BookingDatesTest extends TestCase
     }
 
     /** @test */
-    public function the_tour_page_gets_its_own_min_date_for_the_calendar_and_the_inputs(): void
+    public function the_tour_page_gets_the_same_min_date_for_every_tour_and_follows_the_cutoff(): void
     {
         $early = $this->tour(['departure_time' => '05:00']);
         $late = $this->tour(['departure_time' => '14:00']);
 
         $this->limaNow('2026-10-11 10:00:00');
 
-        $a = $this->get(route('tours.show', ['locale' => 'es', 'slug' => $early->slug]));
-        $a->assertOk();
-        $a->assertSee('window.LVT_MIN_DATE = "2026-10-13"', false);
-        $this->assertSame(2, substr_count($a->getContent(), 'min="2026-10-13"'));
-        $a->assertDontSee('min="2026-10-12"', false);
+        foreach ([$early, $late] as $tour) {
+            $r = $this->get(route('tours.show', ['locale' => 'es', 'slug' => $tour->slug]));
+            $r->assertOk();
+            $r->assertSee('window.LVT_MIN_DATE = "2026-10-12"', false);
+            $this->assertSame(2, substr_count($r->getContent(), 'min="2026-10-12"'));
+            $r->assertDontSee('min="2026-10-13"', false);
+            $r->assertSee('7:00 p. m.', false);
+        }
 
-        $b = $this->get(route('tours.show', ['locale' => 'es', 'slug' => $late->slug]));
-        $b->assertSee('window.LVT_MIN_DATE = "2026-10-12"', false);
-        $this->assertSame(2, substr_count($b->getContent(), 'min="2026-10-12"'));
+        $this->limaNow('2026-10-11 19:30:00');
+
+        $r = $this->get(route('tours.show', ['locale' => 'es', 'slug' => $early->slug]));
+        $r->assertSee('window.LVT_MIN_DATE = "2026-10-13"', false);
+        $this->assertSame(2, substr_count($r->getContent(), 'min="2026-10-13"'));
+        $r->assertDontSee('min="2026-10-12"', false);
     }
 
     /** @test */
-    public function adding_to_the_cart_is_validated_against_the_tours_own_departure_time(): void
+    public function changing_a_date_in_the_cart_applies_the_cutoff(): void
     {
-        $early = $this->tour(['departure_time' => '05:00']);
-        $late = $this->tour(['departure_time' => '14:00']);
-
-        $this->limaNow('2026-10-11 10:00:00');
-
-        $payload = fn (Tour $t, string $date) => ['tour_id' => $t->id, 'adults' => 1, 'children' => 0, 'travel_date' => $date];
-
-        // 12-oct: el de las 05:00 sale en 19 h (rechazado), el de las 14:00 en 28 h.
-        $r = $this->postJson('/es/carrito/agregar', $payload($early, '2026-10-12'));
-        $r->assertStatus(422);
-        $this->assertStringContainsString('13 de octubre', $r->json('errors.travel_date.0'));
-        $this->assertStringContainsString('05:00', $r->json('errors.travel_date.0'));
-
-        $this->postJson('/es/carrito/agregar', $payload($late, '2026-10-12'))->assertOk();
-        $this->postJson('/es/carrito/agregar', $payload($early, '2026-10-13'))->assertOk();
-    }
-
-    /** @test */
-    public function changing_a_date_in_the_cart_uses_the_rows_tour(): void
-    {
-        $early = $this->tour(['departure_time' => '05:00']);
-        $this->limaNow('2026-10-11 10:00:00');
-        $this->cart()->add($early, 1, 0, '2026-10-20');
+        $tour = $this->tour(['departure_time' => '05:00']);
+        $this->limaNow('2026-10-11 19:30:00');
+        $this->cart()->add($tour, 1, 0, '2026-10-20');
         $rowId = $this->cart()->items()->first()['row_id'];
 
         $this->patchJson("/es/carrito/{$rowId}", ['adults' => 1, 'children' => 0, 'travel_date' => '2026-10-12'])->assertStatus(422);
         $this->patchJson("/es/carrito/{$rowId}", ['adults' => 1, 'children' => 0, 'travel_date' => '2026-10-13'])->assertOk();
+
+        // Antes del corte, mañana sí.
+        $this->limaNow('2026-10-11 18:59:00');
+        $rowId = $this->cart()->items()->first()['row_id'];
+        $this->patchJson("/es/carrito/{$rowId}", ['adults' => 1, 'children' => 0, 'travel_date' => '2026-10-12'])->assertOk();
     }
 
     /** @test */
-    public function checkout_validates_each_item_with_its_own_tour_and_names_the_offending_one(): void
+    public function checkout_rejects_an_item_saved_before_the_cutoff_and_names_the_offending_one(): void
     {
         Mail::fake();
 
-        $early = $this->tour(['title_es' => 'Tour Madrugada', 'departure_time' => '05:00']);
-        $late = $this->tour(['title_es' => 'Tour Tarde', 'departure_time' => '14:00']);
+        $stale = $this->tour(['title_es' => 'Tour Caduco']);
+        $fine = $this->tour(['title_es' => 'Tour Vigente']);
 
-        $this->limaNow('2026-10-11 10:00:00');
+        // 18:00: mañana (12) es válido para ambos.
+        $this->limaNow('2026-10-11 18:00:00');
+        $this->cart()->add($stale, 1, 0, '2026-10-12');
+        $this->cart()->add($fine, 1, 0, '2026-10-14');
 
-        // Misma fecha para los dos: valida para el de las 14:00, no para el de las 05:00.
-        $this->cart()->add($early, 1, 0, '2026-10-12');
-        $this->cart()->add($late, 1, 0, '2026-10-12');
+        // 19:05: el cliente tarda en pagar y el 12 ya no se reserva.
+        $this->limaNow('2026-10-11 19:05:00');
 
         $response = $this->post('/es/checkout/procesar', $this->customerPayload(['travel_date' => '2026-10-12']));
 
         $response->assertRedirect(route('cart.index', ['locale' => 'es']));
         $error = session('error');
-        $this->assertStringContainsString('Tour Madrugada', $error);
-        $this->assertStringNotContainsString('Tour Tarde', $error);
+        $this->assertStringContainsString('Tour Caduco', $error);
+        $this->assertStringNotContainsString('Tour Vigente', $error);
         $this->assertStringContainsString('13 de octubre', $error);
-        $this->assertStringContainsString('05:00', $error);
+        $this->assertStringContainsString('7:00 p. m.', $error);
         $this->assertSame(0, Booking::count());
         $this->assertCount(2, $this->cart()->items(), 'El carrito se vació aunque el checkout fue rechazado.');
 
-        // Corregida la fecha del de las 05:00, pasa el carrito entero.
-        $rowId = $this->cart()->items()->firstWhere('tour_id', $early->id)['row_id'];
+        // Corregida la fecha, pasa el carrito entero.
+        $rowId = $this->cart()->items()->firstWhere('tour_id', $stale->id)['row_id'];
         $this->cart()->update($rowId, ['adults' => 1, 'children' => 0, 'travel_date' => '2026-10-13']);
 
-        $this->post('/es/checkout/procesar', $this->customerPayload(['travel_date' => '2026-10-12']))
+        $this->post('/es/checkout/procesar', $this->customerPayload(['travel_date' => '2026-10-13']))
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('checkout.thanks', ['locale' => 'es']));
         $this->assertSame(2, Booking::count());
@@ -548,10 +666,11 @@ class BookingDatesTest extends TestCase
     /** @test */
     public function the_cart_page_flags_an_expired_item_without_removing_it(): void
     {
-        $early = $this->tour(['title_es' => 'Tour Madrugada', 'departure_time' => '05:00']);
-        $this->limaNow('2026-10-11 10:00:00');
-        $this->cart()->add($early, 1, 0, '2026-10-12');
+        $tour = $this->tour(['title_es' => 'Tour Madrugada', 'departure_time' => '05:00']);
+        $this->limaNow('2026-10-11 18:00:00');
+        $this->cart()->add($tour, 1, 0, '2026-10-12');
 
+        $this->limaNow('2026-10-11 19:10:00');
         $response = $this->get('/es/carrito');
 
         $response->assertOk();
@@ -566,9 +685,9 @@ class BookingDatesTest extends TestCase
     /** @test */
     public function the_cart_page_does_not_flag_a_valid_item(): void
     {
-        $late = $this->tour(['title_es' => 'Tour Tarde', 'departure_time' => '14:00']);
-        $this->limaNow('2026-10-11 10:00:00');
-        $this->cart()->add($late, 1, 0, '2026-10-12');
+        $tour = $this->tour(['title_es' => 'Tour Tarde', 'departure_time' => '14:00']);
+        $this->limaNow('2026-10-11 18:00:00');
+        $this->cart()->add($tour, 1, 0, '2026-10-12');
 
         $response = $this->get('/es/carrito');
 
@@ -582,10 +701,11 @@ class BookingDatesTest extends TestCase
     {
         Http::fake();
 
-        $early = $this->tour(['title_es' => 'Tour Madrugada', 'departure_time' => '05:00']);
-        $this->limaNow('2026-10-11 10:00:00');
-        $this->cart()->add($early, 1, 0, '2026-10-12');
+        $tour = $this->tour(['title_es' => 'Tour Madrugada', 'departure_time' => '05:00']);
+        $this->limaNow('2026-10-11 18:00:00');
+        $this->cart()->add($tour, 1, 0, '2026-10-12');
 
+        $this->limaNow('2026-10-11 19:01:00');
         $response = $this->postJson(route('checkout.paypal.create', ['locale' => 'es']), ['accept_terms' => true]);
 
         $response->assertStatus(422);
@@ -600,11 +720,11 @@ class BookingDatesTest extends TestCase
     {
         Mail::fake();
 
-        $early = $this->tour(['title_es' => 'Tour Madrugada', 'departure_time' => '05:00', 'price' => 150]);
+        $tour = $this->tour(['title_es' => 'Tour Madrugada', 'departure_time' => '05:00', 'price' => 150]);
 
-        // 04:00: el 12 a las 05:00 son 25 h -> reservable, se crea la orden.
-        $this->limaNow('2026-10-11 04:00:00');
-        $this->cart()->add($early, 1, 0, '2026-10-12');
+        // 18:59: mañana (12) es reservable, se crea la orden.
+        $this->limaNow('2026-10-11 18:59:00');
+        $this->cart()->add($tour, 1, 0, '2026-10-12');
 
         Http::fake([
             '*/v1/oauth2/token' => Http::response(['access_token' => 'fake-token'], 200),
@@ -612,8 +732,8 @@ class BookingDatesTest extends TestCase
         ]);
         $this->postJson(route('checkout.paypal.create', ['locale' => 'es']), ['accept_terms' => true])->assertOk();
 
-        // 05:01: el cliente tarda en aprobar y se cruza el límite.
-        $this->limaNow('2026-10-11 05:01:00');
+        // 19:01: el cliente tarda en aprobar y se cruza el corte.
+        $this->limaNow('2026-10-11 19:01:00');
         Http::fake([
             '*/v1/oauth2/token' => Http::response(['access_token' => 'fake-token'], 200),
             '*/v2/checkout/orders/ORDER-1/capture' => Http::response(['status' => 'COMPLETED'], 200),
@@ -636,7 +756,7 @@ class BookingDatesTest extends TestCase
         Http::assertNotSent(fn ($request) => str_contains((string) $request->url(), '/capture'));
     }
 
-    // ── Links de pago: exentos de la antelación, no de una salida ya pasada ──
+    // ── Links de pago: exentos del corte, no de una salida ya pasada ──
 
     private function paymentLink(Tour $tour, string $travelDate): \App\Models\PaymentLink
     {
@@ -673,13 +793,13 @@ class BookingDatesTest extends TestCase
     }
 
     /** @test */
-    public function a_payment_link_for_a_departure_under_24_hours_away_is_still_charged(): void
+    public function a_payment_link_for_tomorrow_after_the_cutoff_is_still_charged(): void
     {
         Mail::fake();
         $tour = $this->tour(['departure_time' => '05:00']);
 
-        // Mañana a las 05:00 son 19 h: la web lo rechazaría, el operador no.
-        $this->limaNow('2026-10-11 10:00:00');
+        // 19:30: la web ya no vende mañana (corte 19:00), el operador sí.
+        $this->limaNow('2026-10-11 19:30:00');
         $this->assertFalse(BookingCalendar::isBookable('2026-10-12', $tour));
 
         $this->captureLink($this->paymentLink($tour, '2026-10-12'))->assertOk()->assertJson(['success' => true]);
