@@ -7,9 +7,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * A locale with no description/itinerary of its own renders the Spanish body (Tour::localized()).
+ * PT with no description/itinerary of its own renders the Spanish body (Tour::localized()).
  * That page must be noindex, absent from hreflang and from the sitemap, and the rule must switch
- * itself off as soon as the locale gets content.
+ * itself off as soon as PT gets content. The rule is scoped to PT: untranslated EN stays
+ * indexable and in the sitemap.
  */
 class TourUntranslatedLocaleTest extends TestCase
 {
@@ -78,6 +79,25 @@ class TourUntranslatedLocaleTest extends TestCase
         $this->assertStringStartsWith('index', $this->robots($pt));
         $this->assertStringContainsString('rel="alternate" hreflang="pt"', $pt);
         $this->assertStringContainsString('/pt/tours/detalle/nazca-pt</loc>', $this->get('/sitemap.xml')->getContent());
+    }
+
+    public function test_untranslated_en_stays_indexable_and_in_the_sitemap(): void
+    {
+        $this->tour([
+            'slug' => 'catacumbas-es', 'slug_en' => 'catacombs-en', 'slug_pt' => 'catacumbas-pt',
+            'description_en' => null, 'itinerary_en' => null,
+            'description_pt' => 'Descricao em portugues',
+        ]);
+
+        $en = $this->get('/en/tours/detalle/catacombs-en')->assertOk()->getContent();
+        $this->assertStringStartsWith('index', $this->robots($en));
+        $this->assertStringContainsString('rel="alternate" hreflang="en"', $en);
+
+        $es = $this->get('/es/tours/detalle/catacumbas-es')->assertOk()->getContent();
+        $this->assertStringContainsString('rel="alternate" hreflang="en"', $es);
+
+        $xml = $this->get('/sitemap.xml')->getContent();
+        $this->assertStringContainsString('/en/tours/detalle/catacombs-en</loc>', $xml);
     }
 
     public function test_has_translation_treats_blank_content_as_missing(): void

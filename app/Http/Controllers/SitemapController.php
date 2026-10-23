@@ -84,9 +84,9 @@ class SitemapController extends Controller
         // sale de ImagePath::url(), el mismo helper de la ficha (cover_url),
         // que antepone /storage/ a las subidas de Filament.
         foreach (Tour::published()->ordered()->get() as $tour) {
-            // A locale without its own description/itinerary renders the Spanish body and is
+            // PT without its own description/itinerary is a Spanish copy and is
             // noindex in the page: leave it out of loc and hreflang (same rule as the <head>).
-            $tourLocales = collect($locales)->filter(fn ($l) => $tour->hasTranslation($l))->values()->all();
+            $tourLocales = collect($locales)->filter(fn ($l) => $tour->isLocalePageIndexable($l))->values()->all();
             $alternates = collect($tourLocales)
                 ->mapWithKeys(fn ($l) => [$l => $base . '/' . $l . '/tours/detalle/' . $tour->slugFor($l)])
                 ->all();

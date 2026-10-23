@@ -205,6 +205,17 @@ class Tour extends Model
             || ! static::isBlankContent($this->getAttribute("itinerary_{$locale}"));
     }
 
+    /**
+     * Whether the locale's page may be indexed / advertised in hreflang and the sitemap.
+     * Deliberately scoped to Portuguese: an untranslated PT page is a copy of the Spanish one.
+     * EN is never taken out of the index even when untranslated (traffic we cannot measure);
+     * untranslated EN is tracked as a translation backlog instead.
+     */
+    public function isLocalePageIndexable(string $locale): bool
+    {
+        return $locale !== 'pt' || $this->hasTranslation('pt');
+    }
+
     /** null, '', whitespace, [] or a list whose every cell is blank. */
     protected static function isBlankContent(mixed $value): bool
     {

@@ -213,15 +213,15 @@
         'pt' => url('/pt/tours/detalle/' . $tour->slugFor('pt')),
     ];
 
-    // A locale with no description/itinerary of its own shows the Spanish body under
-    // translated labels: keep it out of the index and out of the hreflang cluster until
-    // it gets translated (the rule switches itself off once the content exists).
+    // PT with no description/itinerary of its own is a copy of the Spanish body under PT
+    // labels: keep it out of the index and the hreflang cluster until it gets translated
+    // (switches itself off). EN is intentionally NOT covered, see Tour::isLocalePageIndexable().
     $localizedAlternates = array_filter(
         $localizedAlternates,
-        fn ($href, $alt) => $tour->hasTranslation($alt),
+        fn ($href, $alt) => $tour->isLocalePageIndexable($alt),
         ARRAY_FILTER_USE_BOTH
     );
-    $forceNoindex = ! $tour->hasTranslation($locale);
+    $forceNoindex = ! $tour->isLocalePageIndexable($locale);
 @endphp
 
 @push('schema')
