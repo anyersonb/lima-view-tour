@@ -190,6 +190,21 @@ class Tour extends Model
         return $this->getAttribute("{$field}_es");
     }
 
+    /**
+     * Whether the tour has its own body content (description or itinerary) in the locale.
+     * Spanish is the base language and always counts. A locale without it renders the Spanish
+     * body (see localized()), so SEO must not index/advertise it as a separate page.
+     */
+    public function hasTranslation(string $locale): bool
+    {
+        if ($locale === 'es') {
+            return true;
+        }
+
+        return ! static::isBlankContent($this->getAttribute("description_{$locale}"))
+            || ! static::isBlankContent($this->getAttribute("itinerary_{$locale}"));
+    }
+
     /** null, '', whitespace, [] or a list whose every cell is blank. */
     protected static function isBlankContent(mixed $value): bool
     {
@@ -198,7 +213,8 @@ class Tour extends Model
         }
 
         if (is_string($value)) {
-            return trim($value) === '';
+            // \s with /u also matches NBSP, which the legacy WordPress import left in some columns.
+            return preg_match('/^\s*$/u', $value) === 1;
         }
 
         if (is_array($value)) {

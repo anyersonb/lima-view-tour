@@ -24,6 +24,9 @@ class SitemapTourUrlsTest extends TestCase
             'slug_pt' => 'lagoa-humantay',
             'cover_image' => 'tours/155.jpg',
             'is_published' => true,
+            // Own EN/PT bodies: untranslated locales are left out of hreflang and the sitemap.
+            'description_en' => 'English description',
+            'description_pt' => 'Descricao em portugues',
         ], $overrides));
     }
 

@@ -12,8 +12,11 @@ class TourLocalizedSeoTest extends TestCase
 
     private function tour(array $overrides = []): Tour
     {
+        // EN/PT bodies present: a locale without its own content is noindex and out of hreflang.
         return Tour::factory()->create(array_merge([
             'is_published' => true,
+            'description_en' => 'English description',
+            'description_pt' => 'Descricao em portugues',
         ], $overrides));
     }
 

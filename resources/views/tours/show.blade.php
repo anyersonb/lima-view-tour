@@ -128,13 +128,16 @@
             }
 
             // Normalizar hora a formato 24h sin am/pm (ej. "1:00 pm" → "13:00", "4:00 am" → "04:00")
-            if (!empty($time) && preg_match('/^(\d{1,2}):(\d{2})\s*(am|pm)?/iu', $time, $tm)) {
-                $h = (int) $tm[1];
-                $min = $tm[2];
-                $mer = mb_strtolower($tm[3] ?? '');
-                if ($mer === 'pm' && $h < 12) { $h += 12; }
-                if ($mer === 'am' && $h === 12) { $h = 0; }
-                $time = sprintf('%02d:%02d', $h, $min);
+            // Cada hora del texto se normaliza por separado: un rango "4:00 AM - 11:30 AM" debe
+            // quedar "04:00 - 11:30", no colapsar a la hora de inicio (dos pasos a las 04:00).
+            if (!empty($time) && preg_match('/^\d{1,2}:\d{2}/u', $time)) {
+                $time = preg_replace_callback('/(\d{1,2}):(\d{2})\s*(am|pm)?/iu', function ($tm) {
+                    $h = (int) $tm[1];
+                    $mer = mb_strtolower($tm[3] ?? '');
+                    if ($mer === 'pm' && $h < 12) { $h += 12; }
+                    if ($mer === 'am' && $h === 12) { $h = 0; }
+                    return sprintf('%02d:%02d', $h, $tm[2]);
+                }, $time);
             }
 
             // Mapear icono por palabra clave (título + descripción)
@@ -209,6 +212,16 @@
         'en' => url('/en/tours/detalle/' . $tour->slugFor('en')),
         'pt' => url('/pt/tours/detalle/' . $tour->slugFor('pt')),
     ];
+
+    // A locale with no description/itinerary of its own shows the Spanish body under
+    // translated labels: keep it out of the index and out of the hreflang cluster until
+    // it gets translated (the rule switches itself off once the content exists).
+    $localizedAlternates = array_filter(
+        $localizedAlternates,
+        fn ($href, $alt) => $tour->hasTranslation($alt),
+        ARRAY_FILTER_USE_BOTH
+    );
+    $forceNoindex = ! $tour->hasTranslation($locale);
 @endphp
 
 @push('schema')
@@ -1382,7 +1395,8 @@ if (!empty($itinerary)) {
             <div class="m-timeline">
                 @foreach ($itinerary as $step)
                 <div class="m-stop">
-                    <div class="m-time">{{ $step['time'] ?? '' }}</div>
+                    {{-- Rango "04:00 - 11:30": una hora por línea para caber en la columna de 48px. --}}
+                    <div class="m-time" style="flex-direction:column;line-height:1.25;">@foreach (preg_split('/\s+[-–]\s+/u', (string) ($step['time'] ?? '')) as $tPart)<span>{{ $tPart }}</span>@endforeach</div>
                     <div class="m-dot" aria-hidden="true"></div>
                     <div>
                         @if (!empty($step['title']))<b>{{ $step['title'] }}</b>@endif
