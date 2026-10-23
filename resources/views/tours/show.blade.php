@@ -551,7 +551,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 }
 .m-stop:last-child::before { display: none; }
 .m-time {
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.25;
   font-weight: 800; font-size: 12px; color: var(--m-green);
   background: #eef3ef; border: 1px solid #d8e5d5; border-radius: 8px;
   padding: 3px 0; margin-top: 1px; letter-spacing: .3px;
@@ -1239,7 +1239,7 @@ if (!empty($itinerary)) {
 
         {{-- 2. TÍTULO + RATING --}}
         <div style="padding:18px 20px 0;">
-            <p class="m-title" role="heading" aria-level="1">{{ $titleDisplay }}</p>
+            <h1 class="m-title">{{ $titleDisplay }}</h1>
             @if ($tourRating !== null)
             <div class="m-rating">
                 <span class="m-stars" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">★★★★★</span>
@@ -1396,7 +1396,7 @@ if (!empty($itinerary)) {
                 @foreach ($itinerary as $step)
                 <div class="m-stop">
                     {{-- Rango "04:00 - 11:30": una hora por línea para caber en la columna de 48px. --}}
-                    <div class="m-time" style="flex-direction:column;line-height:1.25;">@foreach (preg_split('/\s+[-–]\s+/u', (string) ($step['time'] ?? '')) as $tPart)<span>{{ $tPart }}</span>@endforeach</div>
+                    <div class="m-time">@foreach (preg_split('/\s+[-–]\s+/u', (string) ($step['time'] ?? '')) as $tPart)<span>{{ $tPart }}</span>@endforeach</div>
                     <div class="m-dot" aria-hidden="true"></div>
                     <div>
                         @if (!empty($step['title']))<b>{{ $step['title'] }}</b>@endif
@@ -1834,9 +1834,10 @@ if (!empty($itinerary)) {
              2. TÍTULO + RATING (columna izquierda)
         ══════════════════════════════════════ --}}
         <section aria-labelledby="tour-title">
-            <h1 id="tour-title" class="font-display text-2xl md:text-3xl lg:text-4xl text-teal-800 leading-tight">
+            {{-- El único <h1> real vive en el bloque móvil (indexación mobile-first); aquí, rol equivalente para ≥ md. --}}
+            <p id="tour-title" role="heading" aria-level="1" class="font-display text-2xl md:text-3xl lg:text-4xl text-teal-800 leading-tight">
                 {{ $titleDisplay }}
-            </h1>
+            </p>
             @if ($tourRating !== null)
             <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <span class="inline-flex gap-0.5" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">
