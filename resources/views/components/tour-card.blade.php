@@ -58,7 +58,7 @@
 
     {{-- ── ZONA SUPERIOR: IMAGEN ── --}}
     <div class="relative shrink-0">
-        <a href="{{ $url }}" tabindex="-1" aria-hidden="true" class="block aspect-[16/9] sm:aspect-[4/3] bg-cream-100">
+        <a href="{{ $url }}" tabindex="-1" aria-hidden="true" class="block aspect-[4/3] bg-cream-100">
             <img src="{{ $imgSrc }}"
                  @if ($card['srcset']) srcset="{{ $card['srcset'] }}" sizes="{{ $card['sizes'] }}" @endif
                  alt="{{ $altText }}"

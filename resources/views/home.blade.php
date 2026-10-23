@@ -155,14 +155,14 @@
 
 /* Slides: 3 columnas (mc-carousel, lc-carousel) */
 .tour-slide {
-    flex: 0 0 88%;
-    max-width: 88%;
+    flex: 0 0 min(80vw, 320px);
+    max-width: min(80vw, 320px);
     scroll-snap-align: center;
 }
 @media (min-width: 640px) {
     .tour-slide {
-        flex-basis: 64%;
-        max-width: 64%;
+        flex-basis: 48%;
+        max-width: 48%;
     }
 }
 @media (min-width: 768px) {
@@ -596,7 +596,7 @@
         <div x-data="{ current: 0, total: {{ $limaCuscoCount }} }" class="relative">
 
             {{-- Track --}}
-            <div class="carousel-track gap-5 pb-4 -mx-5 px-4 sm:mx-0"
+            <div class="carousel-track gap-4 pb-4 -mx-5 px-4 sm:mx-0"
                  style="padding-left:1rem;padding-right:1rem;"
                  id="lc-carousel"
                  @scroll.debounce.100ms="

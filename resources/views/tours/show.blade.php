@@ -586,47 +586,49 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 
 .m-outline-btn { display: block; border: 1px solid #222; border-radius: 20px; text-align: center; padding: 10px; margin: 12px 40px 4px; text-decoration: none; color: #111; font-weight: 900; font-size: 13px; }
 
-/* Rec cards mobile */
-.m-rec-list { display: flex; flex-direction: column; gap: 14px; }
+/* Rec cards mobile: 2 columnas (imagen cuadrada 124 + texto) y pie precio/CTA a todo el ancho */
+.m-rec-list { display: flex; flex-direction: column; gap: 16px; }
 .m-rec-card {
   display: grid;
-  grid-template-columns: minmax(96px,126px) minmax(0,1fr) minmax(86px,98px);
-  gap: 12px;
+  grid-template-columns: 124px minmax(0,1fr);
+  grid-template-areas: "img main" "side side";
+  gap: 10px 12px;
   padding: 12px;
   border: 1px solid #dedede;
   border-radius: 18px;
   background: #fff;
   box-shadow: 0 6px 24px rgba(0,0,0,.07);
 }
-.m-rec-image-wrap { position: relative; }
-.m-rec-card img { width: 100%; max-width: 126px; height: 142px; object-fit: cover; border-radius: 14px; }
+.m-rec-image-wrap { position: relative; grid-area: img; align-self: start; }
+.m-rec-card img { display: block; width: 124px; height: 124px; object-fit: cover; border-radius: 14px; }
 .m-rec-badge {
   position: absolute;
   top: 10px;
   left: 0;
   background: #083b31;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
-  padding: 6px 10px 6px 10px;
+  padding: 5px 10px;
   border-radius: 0 10px 10px 0;
   box-shadow: 0 4px 10px rgba(0,0,0,.15);
 }
-.m-rec-main { padding-right: 4px; min-width: 0; border-right: 1px solid #e7e2d9; }
-.m-rec-main h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: 18px; line-height: 1.05; color: #12323a; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.m-rec-main { grid-area: main; min-width: 0; min-height: 124px; }
+.m-rec-main h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: 17px; line-height: 1.15; color: #12323a; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .m-rec-duration { font-size: 12px; color: #9f5a26; font-weight: 700; margin: 0 0 6px; }
-.m-rec-bullets { display: grid; gap: 5px; }
-.m-rec-bullets div { font-size: 11px; color: #23424a; display: flex; align-items: center; gap: 6px; }
-.m-rec-rating { margin-top: 8px; font-size: 11px; color: #6a6f75; font-weight: 600; }
+.m-rec-bullets { display: grid; gap: 4px; }
+.m-rec-bullets div { font-size: 12px; line-height: 1.25; color: #23424a; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-rec-rating { margin-top: 6px; font-size: 12px; color: #6a6f75; font-weight: 600; }
 .m-rec-rating .s { color: #f0aa1b; margin-right: 4px; }
-.m-rec-side { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.m-rec-side .offer { font-size: 11px; color: #9f5a26; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 5px; }
-.m-rec-side .price { line-height: 1; }
-.m-rec-side .price strong { font-family: Georgia, serif; font-size: 19px; color: #06312c; }
-.m-rec-side .price small { display: block; color: #666; font-size: 10px; margin-top: 2px; }
-.m-rec-side .disc { display: inline-block; background: #eef0ef; border-radius: 17px; padding: 6px 10px; font-size: 13px; font-weight: 900; color: #0a2031; margin: 10px 0 6px; }
-.m-rec-side .before { font-size: 11px; color: #73777b; margin-bottom: 8px; }
-.m-rec-btn { background: #083b31; color: #fff; font-weight: 900; border-radius: 14px; padding: 10px 12px; text-align: center; box-shadow: 0 8px 20px rgba(8,59,49,.18); font-size: 11px; text-decoration: none; display: block; }
+.m-rec-side { grid-area: side; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; column-gap: 10px; border-top: 1px solid #e7e2d9; padding-top: 10px; }
+.m-rec-deal { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-height: 22px; margin-bottom: 4px; }
+.m-rec-side .offer { font-size: 12px; color: #9f5a26; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; }
+.m-rec-side .price { line-height: 1; display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; }
+.m-rec-side .price strong { font-family: Georgia, serif; font-size: 24px; color: #06312c; }
+.m-rec-side .price small { color: #666; font-size: 12px; }
+.m-rec-side .disc { display: inline-block; background: #eef0ef; border-radius: 17px; padding: 3px 9px; font-size: 12px; font-weight: 900; color: #0a2031; }
+.m-rec-side .before { font-size: 12px; color: #73777b; }
+.m-rec-btn { background: #083b31; color: #fff; font-weight: 900; border-radius: 14px; padding: 11px 18px; text-align: center; box-shadow: 0 8px 20px rgba(8,59,49,.18); font-size: 13px; text-decoration: none; display: block; white-space: nowrap; }
 
 /* Confidence grid mobile */
 .m-confidence { background: #fbfaf6; padding: 18px 20px 24px; }
@@ -739,7 +741,10 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
     scrollbar-width: none;
 }
 .d-related-track::-webkit-scrollbar { display: none; }
-.d-related-track > * { flex: 0 0 calc(50% - .5rem); scroll-snap-align: start; min-width: 0; }
+.d-related-track > * { flex: 0 0 min(100%, 380px); scroll-snap-align: start; min-width: 0; }
+@media (min-width: 1024px) {
+    .d-related-track > * { flex: 0 0 calc(50% - .5rem); }
+}
 .d-related-nav {
     position: absolute; top: 38%; transform: translateY(-50%);
     width: 40px; height: 40px; border-radius: 9999px;
@@ -1665,20 +1670,20 @@ if (!empty($itinerary)) {
                             @endif
                         </div>
                         <div class="m-rec-side">
-                            @if ($relHasOffer)
-                                <div class="offer">{{ mb_strtoupper(__('ui.offer')) }}</div>
+                            <div class="m-rec-priceblock">
+                                @if ($relHasOffer)
+                                    <div class="m-rec-deal">
+                                        <span class="offer">{{ mb_strtoupper(__('ui.offer')) }}</span>
+                                        <span class="before">{{ __('ui.before') }} US${{ number_format((float)$relBefore, 0) }}</span>
+                                    </div>
+                                @else
+                                    <div class="m-rec-deal" aria-hidden="true"></div>
+                                @endif
                                 <div class="price">
                                     <strong>US${{ number_format($relPrice, 0) }}</strong>
                                     <small>{{ __('ui.per_person') }}</small>
                                 </div>
-                                <div class="disc">-{{ $relPct }}%</div>
-                                <div class="before">{{ __('ui.before') }} US${{ number_format((float)$relBefore, 0) }}</div>
-                            @else
-                                <div class="price">
-                                    <strong>US${{ number_format($relPrice, 0) }}</strong>
-                                    <small>{{ __('ui.per_person') }}</small>
-                                </div>
-                            @endif
+                            </div>
                             <a href="{{ $relHref }}" class="m-rec-btn">{{ __('ui.see_tour') }}</a>
                         </div>
                     </div>

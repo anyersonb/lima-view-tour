@@ -405,7 +405,7 @@
                 </div>
 
                 {{-- UN solo <article> por tour: fila compacta <640, card vertical (2/3 col.) desde 640 --}}
-                <div class="flex flex-col gap-2 -mx-[3px] sm:mx-0 sm:grid sm:gap-6 sm:grid-cols-2 lg:grid-cols-3" data-tour-cards>
+                <div class="flex flex-col gap-4 sm:grid sm:gap-6 sm:grid-cols-2 lg:grid-cols-3" data-tour-cards>
                     @foreach ($cardData as $i => $tour)
                         <x-tour-card-responsive
                             variant="list"
