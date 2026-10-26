@@ -3,39 +3,41 @@
 namespace Tests\Feature;
 
 use App\Models\Setting;
+use App\Support\LocalizedPages;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Consent Mode v2 + GTM gated by consent (2026-10-06).
+ * Measurement without a cookie banner (owner decision, 2026-10-26).
  *
- * Production loaded GTM (and, through it, Clarity and Hotjar) with no consent
- * condition at all. The contract guarded here:
- *   - consent default = denied is printed BEFORE the first gtag config / GTM;
- *   - the GTM snippet only lives inside a function (lvtLoadGtm) that runs
- *     after consent, never as a bare top-level script, and there is no
- *     <noscript> iframe loading the container;
- *   - the banner renders Accept and Reject with the same style, and the
- *     footer exposes the "cookie preferences" re-open control;
- *   - phone/email/maps click events ride the same delegated listener.
+ * The cookie banner was removed for every visitor. The contract guarded here:
+ *   - Consent Mode v2 starts GRANTED for the four signals, without wait_for_update,
+ *     and is printed BEFORE the first gtag config / GTM / Pixel;
+ *   - GTM and the Meta Pixel load unconditionally (no consent guard), gated only
+ *     by the ID existing in Settings;
+ *   - there is no banner, no footer "cookie preferences" button, and no leftover
+ *     lvtConsent / lvt-consent-granted plumbing;
+ *   - window.lvtTrack and the delegated phone/email/maps/whatsapp events stay;
+ *   - the privacy policy names the tools in use.
  */
 class ConsentModeTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function html(string $locale = 'es'): string
+    private const SIGNALS = ['ad_storage', 'ad_user_data', 'ad_personalization', 'analytics_storage'];
+
+    private function html(string $locale = 'es', bool $withIds = true): string
     {
-        Setting::set('seo_gtm_id', 'GTM-TEST123');
-        Setting::set('seo_google_analytics_id', 'G-TEST123456');
-        Setting::set('cookie_banner_enabled', true, 'boolean');
+        if ($withIds) {
+            Setting::set('seo_gtm_id', 'GTM-TEST123');
+            Setting::set('seo_google_analytics_id', 'G-TEST123456');
+            Setting::set('seo_facebook_pixel', '123456789012345');
+        }
 
-        $response = $this->get('/'.$locale);
-        $response->assertOk();
-
-        return $response->getContent();
+        return $this->get('/'.$locale)->assertOk()->getContent();
     }
 
-    public function test_consent_default_denied_comes_before_any_gtag_config_or_gtm(): void
+    public function test_consent_default_is_granted_for_all_signals_before_any_tag(): void
     {
         $html = $this->html();
 
@@ -43,154 +45,94 @@ class ConsentModeTest extends TestCase
         $config = strpos($html, "gtag('config'");
         $gtmSrc = strpos($html, 'googletagmanager.com/gtm.js');
         $gtagJs = strpos($html, 'googletagmanager.com/gtag/js');
+        $fbq = strpos($html, "fbq('init'");
 
-        $this->assertNotFalse($default, 'consent default missing');
-        $this->assertNotFalse($config, 'gtag config missing (test would be vacuous)');
-        $this->assertNotFalse($gtmSrc, 'GTM snippet missing (test would be vacuous)');
-        $this->assertLessThan($config, $default);
-        $this->assertLessThan($gtmSrc, $default);
-        $this->assertLessThan($gtagJs, $default);
-
-        foreach (['ad_storage', 'ad_user_data', 'ad_personalization', 'analytics_storage'] as $key) {
-            $this->assertMatchesRegularExpression("/gtag\\('consent', 'default', \\{[^}]*{$key}:\\s+'denied'/s", $html);
+        foreach ([$default, $config, $gtmSrc, $gtagJs, $fbq] as $pos) {
+            $this->assertNotFalse($pos, 'tag missing (test would be vacuous)');
         }
-        $this->assertStringContainsString('wait_for_update:    500', $html);
+        foreach ([$config, $gtmSrc, $gtagJs, $fbq] as $pos) {
+            $this->assertLessThan($pos, $default, 'consent default must come first');
+        }
 
-        // Stored "granted" preference is applied via update BEFORE config.
-        $update = strpos($html, "gtag('consent', 'update', window.lvtConsent.granted)");
-        $this->assertNotFalse($update);
-        $this->assertLessThan($config, $update);
+        foreach (self::SIGNALS as $key) {
+            $this->assertMatchesRegularExpression("/gtag\\('consent', 'default', \\{[^}]*{$key}:\\s+'granted'/s", $html);
+            $this->assertDoesNotMatchRegularExpression("/{$key}:\\s+'denied'/", $html);
+        }
+        $this->assertStringNotContainsString('wait_for_update', $html);
+        $this->assertStringNotContainsString("'consent', 'update'", $html);
     }
 
-    public function test_gtm_snippet_is_never_executed_unconditionally_when_banner_is_on(): void
+    public function test_gtm_and_pixel_load_without_any_consent_guard(): void
     {
         $html = $this->html();
 
-        $this->assertStringNotContainsString('ns.html?id=', $html, 'GTM noscript iframe must not exist');
+        $this->assertStringContainsString("googletagmanager.com/gtm.js?id='+i", $html);
+        $this->assertStringContainsString("'dataLayer','GTM-TEST123'", $html);
+        $this->assertStringContainsString("fbq('track', 'PageView')", $html);
 
-        // The loader is wrapped in a function and only invoked under consent.
-        $this->assertStringContainsString('window.lvtLoadGtm = function', $html);
-        $this->assertStringContainsString("if (window.lvtConsent.get() === 'granted') window.lvtLoadGtm();", $html);
-        $this->assertStringContainsString("addEventListener('lvt-consent-granted', window.lvtLoadGtm)", $html);
-
-        // No bare call: the only invocations of lvtLoadGtm are the two guarded ones.
-        $this->assertSame(2, substr_count($html, 'window.lvtLoadGtm()') + substr_count($html, 'window.lvtLoadGtm)'));
-        // The snippet text sits inside the function body (after its declaration).
-        $this->assertGreaterThan(
-            strpos($html, 'window.lvtLoadGtm = function'),
-            strpos($html, 'googletagmanager.com/gtm.js')
-        );
+        foreach (['lvtConsent', 'lvtLoadGtm', 'lvtLoadFbPixel', 'lvt-consent-granted', 'lvt_consent', 'lvt_cookie_consent'] as $legacy) {
+            $this->assertStringNotContainsString($legacy, $html, "leftover consent plumbing: {$legacy}");
+        }
     }
 
-    /**
-     * Fail closed: Setting cookie_banner_enabled=false must NOT mean "track
-     * without consent". Banner does not auto-open, but consent default denied
-     * is emitted and GTM/Pixel only load behind lvt_consent=granted.
-     */
-    private function htmlBannerOff(): string
+    public function test_tags_are_still_gated_by_their_setting_id(): void
     {
-        Setting::set('seo_gtm_id', 'GTM-TEST123');
-        Setting::set('seo_google_analytics_id', 'G-TEST123456');
-        Setting::set('seo_facebook_pixel', '123456789012345');
-        Setting::set('cookie_banner_enabled', false, 'boolean');
+        $html = $this->html('es', false);
 
-        return $this->get('/es')->assertOk()->getContent();
-    }
-
-    public function test_banner_disabled_never_loads_gtm_unconditionally(): void
-    {
-        $html = $this->htmlBannerOff();
-
-        // No bare invocation: only the two guarded ones (granted cookie / consent event).
-        $this->assertDoesNotMatchRegularExpression('/^\s*window\.lvtLoadGtm\(\);/m', $html, 'bare unconditional call');
-        $this->assertSame(2, substr_count($html, 'window.lvtLoadGtm()') + substr_count($html, 'window.lvtLoadGtm)'));
-        $this->assertStringContainsString("if (window.lvtConsent.get() === 'granted') window.lvtLoadGtm();", $html);
-        $this->assertStringContainsString("addEventListener('lvt-consent-granted', window.lvtLoadGtm)", $html);
-        $this->assertStringNotContainsString('ns.html?id=', $html);
-    }
-
-    public function test_banner_disabled_never_loads_pixel_unconditionally(): void
-    {
-        $html = $this->htmlBannerOff();
-
-        $this->assertStringContainsString('window.lvtLoadFbPixel = function', $html);
-        $this->assertDoesNotMatchRegularExpression('/^\s*window\.lvtLoadFbPixel\(\);/m', $html, 'bare unconditional call');
-        $this->assertSame(2, substr_count($html, 'window.lvtLoadFbPixel()') + substr_count($html, 'window.lvtLoadFbPixel)'));
-        $this->assertStringNotContainsString('facebook.com/tr?id=', $html, 'Pixel noscript <img> must not exist');
-    }
-
-    public function test_banner_disabled_still_emits_consent_default_denied_before_config(): void
-    {
-        $html = $this->htmlBannerOff();
-
-        $default = strpos($html, "gtag('consent', 'default'");
-        $config = strpos($html, "gtag('config'");
-        $this->assertNotFalse($default, 'consent default denied missing');
-        $this->assertNotFalse($config);
-        $this->assertLessThan($config, $default);
-        $this->assertMatchesRegularExpression("/gtag\('consent', 'default', \{[^}]*analytics_storage:\s+'denied'/s", $html);
-        $this->assertStringContainsString("gtag('consent', 'update', window.lvtConsent.granted)", $html);
-    }
-
-    public function test_banner_setting_false_still_auto_opens_and_footer_can_open_it(): void
-    {
-        $html = $this->htmlBannerOff();
-
-        $this->assertStringContainsString('<button type="button" data-cookie-preferences', $html);
-        $this->assertStringContainsString('id="lvt-cookie-banner"', $html);
-        $this->assertStringContainsString('if (true && !window.lvtConsent.get())', $html);
-    }
-
-    public function test_banner_enabled_auto_opens_for_new_visitors(): void
-    {
-        $html = $this->html();
-
-        $this->assertStringContainsString('if (true && !window.lvtConsent.get())', $html);
+        $this->assertStringContainsString("gtag('consent', 'default'", $html);
+        $this->assertStringNotContainsString('googletagmanager.com/gtm.js', $html);
+        $this->assertStringNotContainsString('googletagmanager.com/gtag/js', $html);
+        $this->assertStringNotContainsString("fbq('init'", $html);
     }
 
     /**
      * @dataProvider locales
      */
-    public function test_banner_and_footer_control_render_in_every_public_locale(string $locale, string $accept, string $reject, string $prefs): void
+    public function test_no_banner_and_no_footer_button_in_every_public_locale(string $locale, string $prefs, string $accept): void
     {
         $html = $this->html($locale);
 
-        $this->assertStringContainsString('<button type="button" data-cookie-preferences', $html);
-        $this->assertStringContainsString($prefs, $html);
-        $this->assertStringContainsString($accept, $html);
-        $this->assertStringContainsString($reject, $html);
-        $this->assertStringContainsString('@click="accept()"', $html);
-        $this->assertStringContainsString('@click="reject()"', $html);
+        $this->assertStringNotContainsString('id="lvt-cookie-banner"', $html);
+        $this->assertStringNotContainsString('data-cookie-preferences', $html);
+        $this->assertStringNotContainsString('lvt-cookie-preferences', $html);
+        $this->assertStringNotContainsString('@click="accept()"', $html);
+        $this->assertStringNotContainsString($prefs, $html);
+        $this->assertStringNotContainsString('>'.$accept.'<', $html);
     }
 
     public static function locales(): array
     {
         return [
-            'es' => ['es', 'Aceptar', 'Rechazar', 'Preferencias de cookies'],
-            'en' => ['en', 'Accept', 'Reject', 'Cookie preferences'],
-            'pt' => ['pt', 'Aceitar', 'Recusar', 'Preferências de cookies'],
+            'es' => ['es', 'Preferencias de cookies', 'Aceptar'],
+            'en' => ['en', 'Cookie preferences', 'Accept'],
+            'pt' => ['pt', 'Preferências de cookies', 'Aceitar'],
         ];
     }
 
-    public function test_accept_and_reject_buttons_share_the_same_style(): void
+    public function test_lvt_track_and_delegated_click_events_are_present(): void
     {
         $html = $this->html();
 
-        preg_match_all('/<button\s+type="button"\s+@click="(accept|reject)\(\)"\s+style="([^"]*)"/s', $html, $m);
-        $this->assertSame(['reject', 'accept'], $m[1]);
-        $this->assertSame(
-            preg_replace('/\s+/', ' ', $m[2][0]),
-            preg_replace('/\s+/', ' ', $m[2][1]),
-            'Accept and Reject must have identical visual weight'
-        );
-    }
-
-    public function test_phone_email_maps_events_use_the_delegated_listener(): void
-    {
-        $html = $this->html();
-
+        $this->assertStringContainsString('window.lvtTrack = function', $html);
         foreach (['phone_click', 'email_click', 'maps_click', "lvtTrack('whatsapp_click'"] as $needle) {
             $this->assertStringContainsString($needle, $html);
         }
+    }
+
+    /**
+     * @dataProvider privacyLocales
+     */
+    public function test_privacy_policy_names_the_measurement_tools(string $locale): void
+    {
+        $html = $this->get(LocalizedPages::url('legal.privacy', $locale))->assertOk()->getContent();
+
+        foreach (['Google Analytics', 'Google Tag Manager', 'Microsoft Clarity', 'Hotjar', 'Meta Pixel'] as $tool) {
+            $this->assertStringContainsString($tool, $html);
+        }
+    }
+
+    public static function privacyLocales(): array
+    {
+        return ['es' => ['es'], 'en' => ['en'], 'pt' => ['pt']];
     }
 }

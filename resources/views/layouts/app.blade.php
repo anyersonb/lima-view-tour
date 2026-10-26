@@ -37,11 +37,6 @@
     $googleVerify = $settings['seo_google_site_verification'] ?? null;
     $bingVerify = $settings['seo_bing_site_verification'] ?? null;
 
-    // Cookie consent — fail closed: the Setting only controls whether the banner
-    // auto-opens for new visitors. GTM / Meta Pixel load ONLY with lvt_consent=granted,
-    // whatever the Setting says.
-    // El banner va SIEMPRE activo: el Setting legado cookie_banner_enabled se ignora.
-    $cookieBannerEnabled = true;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="ltr" class="no-js">
@@ -216,116 +211,55 @@
 
     {{--
         =====================================================================
-        ANALYTICS — Google Consent Mode v2 + carga de GTM/Pixel tras consentimiento
+        ANALYTICS — Google Consent Mode v2 (granted) + GA4 / GTM / Meta Pixel
         =====================================================================
-        Banner activo ($cookieBannerEnabled):
-          1. consent default = denied (lo primero que corre, antes de gtag/GTM).
-          2. Si la preferencia guardada (cookie lvt_consent) es "granted",
-             consent update -> granted ANTES de config.
-          3. gtag/GA4 directo carga siempre, bajo denied (pings sin cookies).
-          4. GTM (contenedor ajeno: arrastra Clarity y Hotjar) y el Pixel NO se
-             inyectan hasta que haya consentimiento; al aceptar se inyectan sin
-             recargar. Sin JS no hay banner, por eso tampoco hay <noscript>.
-        El Setting legado cookie_banner_enabled se IGNORA: el banner no se puede apagar.
+        Decision del dueno (2026-10-26): no hay banner de cookies. Toda la
+        medicion carga siempre; solo depende de que el ID exista en Settings.
+          1. consent default = granted (lo primero que corre, antes de gtag/GTM).
+          2. gtag/GA4 directo.
+          3. GTM (contenedor ajeno: arrastra Clarity y Hotjar).
+          4. Meta Pixel.
+        La politica de privacidad (legal.privacy_s4_body) declara estas herramientas.
         =====================================================================
     --}}
-    {{-- Siempre se emite: el consent default denied y lvtConsent no dependen del Setting. --}}
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('consent', 'default', {
+            ad_storage:         'granted',
+            ad_user_data:       'granted',
+            ad_personalization: 'granted',
+            analytics_storage:  'granted'
+        });
+    </script>
+
+    @if ($gaId)
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
         <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('consent', 'default', {
-                ad_storage:         'denied',
-                ad_user_data:       'denied',
-                ad_personalization: 'denied',
-                analytics_storage:  'denied',
-                wait_for_update:    500
-            });
-            window.lvtConsent = (function () {
-                var NAME = 'lvt_consent', LEGACY = 'lvt_cookie_consent', MAX_AGE = 60 * 60 * 24 * 365;
-                var GRANTED = { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' };
-                var DENIED  = { ad_storage: 'denied',  ad_user_data: 'denied',  ad_personalization: 'denied',  analytics_storage: 'denied' };
-                function get() {
-                    try {
-                        var m = document.cookie.match(/(?:^|; )lvt_consent=(granted|denied)/);
-                        if (m) return m[1];
-                    } catch (e) {}
-                    try {
-                        var l = localStorage.getItem(LEGACY);
-                        if (l === 'granted' || l === 'denied') return l;
-                    } catch (e) {}
-                    return null;
-                }
-                function set(value) {
-                    try {
-                        document.cookie = NAME + '=' + value + '; max-age=' + MAX_AGE + '; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
-                    } catch (e) {}
-                    try { localStorage.removeItem(LEGACY); } catch (e) {}
-                    return get() === value;
-                }
-                function purge() {
-                    try {
-                        var host = location.hostname, parts = host.split('.'), domains = [host, '.' + host];
-                        if (parts.length > 2) domains.push('.' + parts.slice(-2).join('.'));
-                        document.cookie.split('; ').forEach(function (c) {
-                            var n = c.split('=')[0];
-                            if (/^(_ga|_gid|_gat|_gcl|_clck|_clsk|CLID|_hj|_fbp|_fbc)/.test(n) || n === 'MR' || n === 'SM') {
-                                domains.forEach(function (d) {
-                                    document.cookie = n + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=' + d;
-                                });
-                                document.cookie = n + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-                            }
-                        });
-                    } catch (e) {}
-                }
-                return { get: get, set: set, purge: purge, granted: GRANTED, denied: DENIED };
-            })();
-            if (window.lvtConsent.get() === 'granted') {
-                gtag('consent', 'update', window.lvtConsent.granted);
-            }
+            gtag('js', new Date());
+            gtag('config', '{{ $gaId }}', { anonymize_ip: true });
         </script>
+    @endif
 
-        {{-- gtag/GA4 directo: siempre carga; bajo consent denied no crea cookies. --}}
-        @if ($gaId)
-            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
-            <script>
-                gtag('js', new Date());
-                gtag('config', '{{ $gaId }}', { anonymize_ip: true });
-            </script>
-        @endif
-
-        {{-- GTM: inyección dinámica, solo con consentimiento (o banner inactivo). --}}
-        @if ($gtmId)
-            <script>
-                window.lvtLoadGtm = function () {
-                    if (window._lvtGtmLoaded) return;
-                    window._lvtGtmLoaded = true;
-                    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
-                };
-                if (window.lvtConsent.get() === 'granted') window.lvtLoadGtm();
-                window.addEventListener('lvt-consent-granted', window.lvtLoadGtm);
-            </script>
-        @endif
+    @if ($gtmId)
+        <script>
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');
+        </script>
+    @endif
 
     @if ($fbPixel)
         <script>
-            window.lvtLoadFbPixel = function () {
-                if (window._fbPixelLoaded) return;
-                window._fbPixelLoaded = true;
-                !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-                fbq('init', '{{ $fbPixel }}');
-                fbq('track', 'PageView');
-            };
-            if (window.lvtConsent.get() === 'granted') window.lvtLoadFbPixel();
-            window.addEventListener('lvt-consent-granted', window.lvtLoadFbPixel);
+            !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '{{ $fbPixel }}');
+            fbq('track', 'PageView');
         </script>
-        {{-- Sin <noscript><img> del Pixel: sin JS no hay consentimiento posible. --}}
     @endif
 
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
 </head>
 <body class="bg-white">
-    {{-- Sin <noscript> de GTM: sin JS no hay banner ni consentimiento, y el iframe cargaria el contenedor (Clarity/Hotjar) sin permiso. --}}
+    {{-- Sin <noscript> de GTM: el iframe no aporta medicion util (los eventos dependen de JS). --}}
 
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:bg-orange-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
         {{ __('nav.skip_to_content') }}
@@ -376,10 +310,6 @@
     <script>
         var lvtWaContext = { tour: @json($waTour), idioma: @json(app()->getLocale()) };
         document.addEventListener('click', function (e) {
-            if (e.target.closest && e.target.closest('[data-cookie-preferences]')) {
-                window.dispatchEvent(new Event('lvt-cookie-preferences'));
-                return;
-            }
             var link = e.target.closest && e.target.closest('a[href]');
             if (!link || typeof window.lvtTrack !== 'function') return;
             var href = link.getAttribute('href') || '';
@@ -418,9 +348,5 @@
     </script>
 
     @stack('scripts')
-
-    {{-- Cookie consent banner: always rendered (so the footer "cookie preferences" button works);
-         it auto-opens for new visitors only when the admin Setting is on. --}}
-    <x-cookie-banner :auto-show="$cookieBannerEnabled" />
 </body>
 </html>

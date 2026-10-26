@@ -32,7 +32,7 @@ return [
     'privacy_s3_body'  => 'Lima View Tours does not sell, rent or commercialize your personal information to third parties. We only share data with essential operational providers (PayPal payment platform, transactional email sending service) who are contractually committed to treating the data with the same level of protection. We may disclose information when required by law or to protect our legal rights.',
 
     'privacy_s4_title' => 'Cookies',
-    'privacy_s4_body'  => 'We use first-party cookies for shopping cart functionality and session management, as well as third-party cookies from Google Analytics (anonymous) for traffic analysis. You can configure your browser to reject cookies; please note that this may affect site functionality. By continuing to browse you accept our cookie policy.',
+    'privacy_s4_body'  => 'We use first-party cookies for shopping cart functionality and session management. This site also uses Google Analytics, Google Tag Manager, Microsoft Clarity, Hotjar and Meta Pixel to measure how the site is used and to improve it; these tools may store cookies or identifiers in your browser. You can block or delete them from your browser settings; please note that this may affect site functionality.',
 
     'privacy_s5_title' => 'User Rights',
     'privacy_s5_body'  => 'In accordance with Peru\'s Personal Data Protection Law No. 29733, you have the right to access, rectify, cancel or oppose the processing of your personal data. To exercise these rights, send a written request to our email address or physical address (Jr. Lampa 209, Lima Center). We will respond within a maximum of 20 business days.',

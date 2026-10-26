@@ -118,7 +118,7 @@ class AnalyticsHealthTest extends TestCase
             ->assertSeeHtml('data-analytics-health="ok"');
     }
 
-    public function test_settings_has_no_banner_toggle_and_saves_with_legacy_zero(): void
+    public function test_settings_has_no_banner_fields_and_saves_with_legacy_zero(): void
     {
         $this->actingAs(User::factory()->create());
         Setting::set('cookie_banner_enabled', false, 'boolean');
@@ -126,9 +126,10 @@ class AnalyticsHealthTest extends TestCase
         Livewire::test(Settings::class)
             ->assertOk()
             ->assertFormFieldDoesNotExist('cookie_banner_enabled')
+            ->assertFormFieldDoesNotExist('cookie_text_es')
             ->call('save')
             ->assertHasNoErrors();
 
-        $this->get('/es')->assertOk()->assertSee('if (true && !window.lvtConsent.get())', false);
+        $this->get('/es')->assertOk()->assertDontSee('lvt-cookie-banner', false);
     }
 }

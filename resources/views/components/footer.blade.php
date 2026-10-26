@@ -72,8 +72,6 @@
                     <li><a href="{{ \App\Support\LocalizedPages::url('contact', $locale) }}" class="site-footer__link">{{ __('nav.contact') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="site-footer__link">{{ __('footer.terms') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="site-footer__link">{{ __('footer.privacy') }}</a></li>
-                    {{-- Always shown: even with the auto-open banner disabled, this is the only way to grant consent. --}}
-                    <li><button type="button" data-cookie-preferences class="site-footer__link text-left">{{ __('common.cookie_preferences') }}</button></li>
                 </ul>
             </nav>
 

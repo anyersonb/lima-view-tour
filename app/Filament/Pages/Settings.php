@@ -73,11 +73,6 @@ class Settings extends Page implements HasForms
         $rows['recaptcha_secret_key'] = $rows['recaptcha_secret_key'] ?? config('services.recaptcha.secret_key');
         $rows['recaptcha_v3_threshold'] = $rows['recaptcha_v3_threshold'] ?? config('services.recaptcha.threshold', 0.5);
 
-        // cookie_banner_enabled is no longer editable: the banner is always active.
-        $rows['cookie_text_es'] = $rows['cookie_text_es'] ?? '';
-        $rows['cookie_text_en'] = $rows['cookie_text_en'] ?? '';
-        $rows['cookie_text_pt'] = $rows['cookie_text_pt'] ?? '';
-
         // Decode FAQs JSON for the Repeater
         if (isset($rows['faqs']) && is_string($rows['faqs'])) {
             $decoded = json_decode($rows['faqs'], true);
@@ -944,26 +939,6 @@ class Settings extends Page implements HasForms
                             ->default(0.5)
                             ->visible(fn (\Filament\Forms\Get $get): bool => $get('recaptcha_version') === 'v3')
                             ->helperText('Puntuaciones más cercanas a 1.0 son probablemente humanos; cerca de 0.0, bots. El valor recomendado es 0.5.'),
-                    ]),
-                    Tabs\Tab::make('Cookies')->icon('heroicon-o-shield-exclamation')->schema([
-                        Textarea::make('cookie_text_es')
-                            ->label('Texto del banner (ES)')
-                            ->rows(3)
-                            ->placeholder('Usamos cookies para mejorar tu experiencia y analizar el tráfico del sitio. Puedes aceptarlas o rechazarlas.')
-                            ->helperText('Deja en blanco para usar el texto por defecto en español.')
-                            ->columnSpanFull(),
-                        Textarea::make('cookie_text_en')
-                            ->label('Texto del banner (EN)')
-                            ->rows(3)
-                            ->placeholder('We use cookies to improve your experience and analyze site traffic. You can accept or reject them.')
-                            ->helperText('Leave blank to use the default English text.')
-                            ->columnSpanFull(),
-                        Textarea::make('cookie_text_pt')
-                            ->label('Texto del banner (PT)')
-                            ->rows(3)
-                            ->placeholder('Usamos cookies para melhorar sua experiência e analisar o tráfego do site. Você pode aceitá-las ou recusá-las.')
-                            ->helperText('Deixe em branco para usar o texto padrão em português.')
-                            ->columnSpanFull(),
                     ]),
                 ]),
             ])
