@@ -161,4 +161,25 @@ class SecurityHeadersCspTest extends TestCase
         $this->assertStringNotContainsString('https://www.google.de', $header);
         $this->assertStringNotContainsString('https://www.google.co.uk', $header);
     }
+
+    public function test_public_csp_has_no_bare_google_host_from_empty_cctld_entries(): void
+    {
+        $response = $this->get('/es');
+        $response->assertOk();
+
+        $csp = $this->parseCsp($response->headers->get('Content-Security-Policy'));
+
+        foreach (explode(' ', $csp['connect-src']) as $token) {
+            $this->assertNotSame('https://www.google.', $token, 'Bare https://www.google. host in connect-src');
+            $this->assertDoesNotMatchRegularExpression('#^https://www\.google\.$#', $token);
+        }
+
+        foreach (['com.ve', 'co'] as $invalid) {
+            $this->assertStringNotContainsString("https://www.google.{$invalid} ", $csp['connect-src'].' ');
+        }
+
+        foreach (['co.ve', 'com.ni', 'com.sv', 'hn'] as $tld) {
+            $this->assertStringContainsString("https://www.google.{$tld}", $csp['connect-src']);
+        }
+    }
 }

@@ -83,15 +83,16 @@ class SecurityHeaders
      * AW-16662327751), which connect-src blocked, losing conversions.
      *
      * CSP has no valid "google.*" wildcard, so the list is explicit. This is a
-     * broad list of typical tourist origin markets for Peru (Americas, western
-     * Europe, Oceania, main Asia), NOT Google's full official ccTLD list.
+     * list of 50 typical tourist origin markets for Peru (Americas, western
+     * Europe, Oceania, main Asia), each one present in Google's official list
+     * (https://www.google.com/supported_domains) but NOT the full list.
      * A visitor from a country missing here still loses the conversion: add it.
      * img-src needs nothing: it already allows https: globally.
      */
     private const GOOGLE_CCTLD_SUFFIXES = [
         // Americas
         'com.pe', 'com.ar', 'cl', 'com.br', 'com.mx', 'com.ec', 'com.bo',
-        'com.uy', 'com.py', 'com.ve', 'com.co', 'com.gt', 'com.pa', 'co.cr',
+        'com.uy', 'com.py', 'co.ve', 'com.ni', 'com.sv', 'hn', 'com.co', 'com.gt', 'com.pa', 'co.cr',
         'com.do', 'ca',
         // Europe
         'es', 'de', 'fr', 'it', 'nl', 'co.uk', 'ie', 'pt', 'be', 'ch', 'at',
@@ -102,6 +103,7 @@ class SecurityHeaders
         'co.jp', 'co.kr', 'com.sg', 'com.hk', 'com.tw', 'co.in', 'co.il',
         'com.tr', 'co.za', 'ae',
     ];
+
     /**
      * Build CSP string. In non-production env, allow Vite dev server origins
      * so HMR / @vite assets load without being blocked.
