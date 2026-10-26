@@ -287,7 +287,7 @@
        rel="noopener noreferrer"
        aria-label="WhatsApp"
        data-wa-location="flotante"
-       style="position:fixed;bottom:calc(24px + var(--cookie-banner-h, 0px) + var(--sticky-bar-h, 0px));right:20px;z-index:9000;width:56px;height:56px;border-radius:9999px;background-color:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:transform .2s ease;color:#fff;text-decoration:none;"
+       style="position:fixed;bottom:calc(24px + var(--sticky-bar-h, 0px));right:20px;z-index:9000;width:56px;height:56px;border-radius:9999px;background-color:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:transform .2s ease;color:#fff;text-decoration:none;"
        onmouseover="this.style.transform='scale(1.1)'"
        onmouseout="this.style.transform='scale(1)'">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

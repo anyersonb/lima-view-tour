@@ -281,7 +281,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
     body { padding-bottom: var(--sticky-bar-h, 0px); }
     .lvt-resbar {
         display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        position: fixed; left: 0; right: 0; bottom: var(--cookie-banner-h, 0px); z-index: 40;
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
         padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
         background: #fff; box-shadow: 0 -4px 16px rgba(21,71,75,.14);
         transform: translateY(100%); visibility: hidden;

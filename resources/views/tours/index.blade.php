@@ -343,7 +343,7 @@
                      inert
                      tabindex="-1"
                      class="tours-filters__panel fixed top-0 right-0 z-[80] h-full w-[88%] bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300"
-                     style="height:auto; bottom:var(--cookie-banner-h, 0px);">
+                     style="height:auto; bottom:0;">
                     <div class="flex items-center justify-between px-5 py-4 border-b border-teal-800/10">
                         <h2 class="font-display text-lg text-teal-800">{{ __('ui.filters') }}</h2>
                         <button type="button" data-filters-close aria-label="{{ __('ui.close_filters') }}"
