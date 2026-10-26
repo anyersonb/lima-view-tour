@@ -76,6 +76,33 @@ class SecurityHeaders
     ];
 
     /**
+     * Google country-code domains (https://www.google.<ccTLD>) for the PUBLIC
+     * site only. Google Ads conversion/remarketing requests go to
+     * googleads.g.doubleclick.net or www.google.com and are then redirected to
+     * the visitor's country domain (e.g. www.google.com.pe/pagead/1p-conversion/
+     * AW-16662327751), which connect-src blocked, losing conversions.
+     *
+     * CSP has no valid "google.*" wildcard, so the list is explicit. This is a
+     * broad list of typical tourist origin markets for Peru (Americas, western
+     * Europe, Oceania, main Asia), NOT Google's full official ccTLD list.
+     * A visitor from a country missing here still loses the conversion: add it.
+     * img-src needs nothing: it already allows https: globally.
+     */
+    private const GOOGLE_CCTLD_SUFFIXES = [
+        // Americas
+        'com.pe', 'com.ar', 'cl', 'com.br', 'com.mx', 'com.ec', 'com.bo',
+        'com.uy', 'com.py', 'com.ve', 'com.co', 'com.gt', 'com.pa', 'co.cr',
+        'com.do', 'ca',
+        // Europe
+        'es', 'de', 'fr', 'it', 'nl', 'co.uk', 'ie', 'pt', 'be', 'ch', 'at',
+        'se', 'no', 'dk', 'fi', 'pl', 'cz', 'gr', 'ru',
+        // Oceania
+        'com.au', 'co.nz',
+        // Asia and others
+        'co.jp', 'co.kr', 'com.sg', 'com.hk', 'com.tw', 'co.in', 'co.il',
+        'com.tr', 'co.za', 'ae',
+    ];
+    /**
      * Build CSP string. In non-production env, allow Vite dev server origins
      * so HMR / @vite assets load without being blocked.
      *
@@ -94,6 +121,11 @@ class SecurityHeaders
                     ? $csp[$directive].' '.$extra
                     : $extra;
             }
+
+            $csp['connect-src'] .= ' '.implode(' ', array_map(
+                static fn (string $tld): string => 'https://www.google.'.$tld,
+                self::GOOGLE_CCTLD_SUFFIXES
+            ));
         }
 
         if (! app()->environment('production')) {

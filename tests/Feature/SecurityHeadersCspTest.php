@@ -132,4 +132,33 @@ class SecurityHeadersCspTest extends TestCase
             $this->assertStringNotContainsString($host, $csp['connect-src']);
         }
     }
+
+    public function test_public_csp_allows_google_country_domains_in_connect_src_only(): void
+    {
+        $response = $this->get('/es');
+        $response->assertOk();
+
+        $csp = $this->parseCsp($response->headers->get('Content-Security-Policy'));
+        $connect = explode(' ', $csp['connect-src']);
+
+        foreach (['com.pe', 'de', 'co.uk', 'fr', 'es', 'com.br', 'com.ar', 'cl', 'com.mx', 'it', 'nl', 'ca', 'com.au'] as $tld) {
+            $this->assertContains("https://www.google.{$tld}", $connect, "connect-src missing www.google.{$tld}");
+        }
+
+        // No invalid wildcard and no widening of script-src for these hosts.
+        $this->assertStringNotContainsString('google.*', $response->headers->get('Content-Security-Policy'));
+        $this->assertStringNotContainsString('https://www.google.com.pe', $csp['script-src']);
+    }
+
+    public function test_admin_csp_does_not_allow_google_country_domains(): void
+    {
+        $response = $this->get('/admin/login');
+        $response->assertOk();
+
+        $header = $response->headers->get('Content-Security-Policy');
+        $this->assertNotEmpty($header);
+        $this->assertStringNotContainsString('https://www.google.com.pe', $header);
+        $this->assertStringNotContainsString('https://www.google.de', $header);
+        $this->assertStringNotContainsString('https://www.google.co.uk', $header);
+    }
 }
