@@ -27,6 +27,47 @@
     // Helper de traducción inline ES / EN / PT (chrome del home)
     $L = fn (string $es, string $en, string $pt): string => $locale === 'pt' ? $pt : ($locale === 'en' ? $en : $es);
 
+    // Repeaters editables del home (Ajustes). Settings::save los guarda como
+    // JSON en un setting tipo 'string', así que Setting::get() devuelve texto:
+    // antes la vista exigía is_array() y SIEMPRE caía a los defaults (lo
+    // editado en el admin nunca salía). Aquí se decodifica y cada elemento se
+    // mezcla con el default de su misma posición: los textos guardados mandan;
+    // lo que el admin no guarda (iconPath, img, etc.) sale del default. Los
+    // vacíos no pisan nada, así un idioma sin traducir cae a _es en la vista.
+    // $forceKeys: claves que siempre vienen del default por posición (p.ej. el
+    // id de los tabs, que Alpine usa como pestaña inicial).
+    $homeRepeater = static function ($raw, array $defaults, array $forceKeys = []): array {
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        }
+        if (! is_array($raw) || count($raw) === 0) {
+            return $defaults;
+        }
+        $out = [];
+        foreach (array_values($raw) as $i => $item) {
+            // Solo escalares: en prod hay 'img' guardados como estado crudo de
+            // FilePond ({"uuid":[]} o []) que reventaban ImagePath::homeImage().
+            $item = array_filter(is_array($item) ? $item : [], static fn ($v) => is_scalar($v) && $v !== '');
+            $def  = $defaults[$i] ?? [];
+            // Del default solo se heredan claves NO traducibles (íconos, imágenes,
+            // ids); los textos de un default no deben mezclarse con textos propios.
+            // Un elemento extra (más que los defaults) hereda lo visual del último.
+            $visualFrom = $def ?: (count($defaults) ? $defaults[count($defaults) - 1] : []);
+            $inherit = array_filter($visualFrom, static fn ($k) => ! preg_match('/_(es|en|pt)$/', (string) $k) && ! in_array($k, $forceKeys, true), ARRAY_FILTER_USE_KEY);
+            $merged = array_merge($inherit, $item);
+            foreach ($forceKeys as $fk) {
+                if (array_key_exists($fk, $def)) {
+                    $merged[$fk] = $def[$fk];
+                } elseif (! isset($merged[$fk])) {
+                    $merged[$fk] = $fk . '-' . $i;
+                }
+            }
+            $out[] = $merged;
+        }
+
+        return $out;
+    };
+
     $featuredTours = $featuredTours ?? collect();
     $toursIca      = $toursIca      ?? collect();
     $toursLima     = $toursLima     ?? collect();
@@ -729,7 +770,7 @@
                 ],
             ];
             $rawDestinos = \App\Models\Setting::get('home_destinos');
-            $destinos = (is_array($rawDestinos) && count($rawDestinos)) ? $rawDestinos : $defaultDestinos;
+            $destinos = $homeRepeater($rawDestinos, $defaultDestinos);
         @endphp
 
         {{-- Banners: apilados en mobile, grid 3 columnas en desktop --}}
@@ -845,7 +886,7 @@
                      'iconPath' => 'M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418'],
                 ];
                 $rawWhyItems = \App\Models\Setting::get('home_why_items');
-                $whyItems = (is_array($rawWhyItems) && count($rawWhyItems)) ? $rawWhyItems : $defaultWhyItems;
+                $whyItems = $homeRepeater($rawWhyItems, $defaultWhyItems);
             @endphp
 
             @foreach ($whyItems as $wItem)
@@ -1059,7 +1100,7 @@
                          'icon'=>'medal'],
                     ];
                     $rawRecoItems = \App\Models\Setting::get('home_reco_items');
-                    $recoItems = (is_array($rawRecoItems) && count($rawRecoItems)) ? $rawRecoItems : $defaultRecoItems;
+                    $recoItems = $homeRepeater($rawRecoItems, $defaultRecoItems);
                 @endphp
                 @foreach ($recoItems as $rItem)
                 @php
@@ -1202,7 +1243,7 @@
                  'iconPath'=>'M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z'],
             ];
             $rawTourTypeTabs = \App\Models\Setting::get('home_tour_type_tabs');
-            $tourTypeTabs = (is_array($rawTourTypeTabs) && count($rawTourTypeTabs)) ? $rawTourTypeTabs : $defaultTourTypeTabs;
+            $tourTypeTabs = $homeRepeater($rawTourTypeTabs, $defaultTourTypeTabs, ['id']);
         @endphp
 
         {{-- Tabs grid 2×2 --}}
@@ -1302,7 +1343,7 @@
                 ['label_es' => 'Mejores experiencias', 'label_en' => 'Best experiences',      'label_pt' => 'Melhores experiências','iconPath' => 'M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497'],
             ];
             $rawFooterFeatures = \App\Models\Setting::get('home_footer_features');
-            $footerFeatures = (is_array($rawFooterFeatures) && count($rawFooterFeatures)) ? $rawFooterFeatures : $defaultFooterFeatures;
+            $footerFeatures = $homeRepeater($rawFooterFeatures, $defaultFooterFeatures);
         @endphp
         <div class="mt-8 grid grid-cols-4 gap-2 text-center max-w-2xl mx-auto lg:max-w-4xl">
             @foreach ($footerFeatures as $feat)
@@ -1347,9 +1388,7 @@
          'iconPath' => 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
     ];
     $rawChooseItems = \App\Models\Setting::get('home_choose_items');
-    // Los repeaters se guardan como JSON en un setting tipo 'string' (Settings::save): decodificar aquí.
-    if (is_string($rawChooseItems)) { $rawChooseItems = json_decode($rawChooseItems, true); }
-    $chooseItems = (is_array($rawChooseItems) && count($rawChooseItems)) ? $rawChooseItems : $defaultChooseItems;
+    $chooseItems = $homeRepeater($rawChooseItems, $defaultChooseItems);
 @endphp
 <section class="bg-white px-5 pb-10 lg:pb-20" aria-labelledby="choose-title">
     <div class="container mx-auto max-w-7xl lg:px-5">
@@ -1412,7 +1451,7 @@
                 ['img'=>'Rectangle 19215.jpg','title_es'=>'Tour Cultural Lima Colonial y Moderna','title_en'=>'Colonial and Modern Lima Cultural Tour','title_pt'=>'Tour Cultural Lima Colonial e Moderna','badge_es'=>'MÁS VENDIDO','badge_en'=>'BEST SELLER','badge_pt'=>'MAIS VENDIDO','badgeBg'=>'teal-800','slug'=>'tour-cultural-lima-colonial-moderna'],
             ];
             $rawExpTours = \App\Models\Setting::get('home_exp_tours');
-            $expTours = (is_array($rawExpTours) && count($rawExpTours)) ? $rawExpTours : $defaultExpTours;
+            $expTours = $homeRepeater($rawExpTours, $defaultExpTours);
         @endphp
 
         <div x-data="{ current: 0, total: {{ count($expTours) }} }" class="relative">
@@ -1699,7 +1738,7 @@
                  'iconPath'=>'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z'],
             ];
             $rawHomeFaqs = \App\Models\Setting::get('home_faqs');
-            $faqs = (is_array($rawHomeFaqs) && count($rawHomeFaqs)) ? $rawHomeFaqs : $defaultHomeFaqs;
+            $faqs = $homeRepeater($rawHomeFaqs, $defaultHomeFaqs);
 
             // Fuente única del texto: Setting 'faqs' (question_/answer_, el bloque que ya llevaba microdatos FAQPage).
             // home_faqs / defaults solo aportan el icono por posición. Si 'faqs' está vacío se usa home_faqs / defaults.
