@@ -194,6 +194,34 @@
 }
 .carousel-track::-webkit-scrollbar { display: none; }
 
+/* ── Alineación común del home (18-nov) ──
+   Todo el contenido comparte el mismo borde: max-w-7xl + 1.25rem desde lg; 20px en mobile. */
+@media (max-width: 1023.98px) {
+    .home-wrap { padding-left: 0 !important; padding-right: 0 !important; } /* evita doble padding (section px-5 + .container) */
+}
+@media (min-width: 1024px) {
+    .home-hero__wrap, .home-stats__wrap {
+        width: calc(100% - 2.5rem);
+        padding-left: 1.25rem !important; padding-right: 1.25rem !important;
+    }
+}
+/* Footer del home alineado al contenido (solo en esta vista) */
+.site-footer > section.container, .site-footer > div > .container { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+@media (min-width: 1024px) {
+    .site-footer > section.container, .site-footer > div > .container { width: calc(100% - 2.5rem); max-width: 80rem; }
+}
+/* Carruseles: la 1.ª card arranca en el borde del contenido (el padding queda para sombras;
+   scroll-padding evita que el snap "start" se coma ese padding y corra la card) */
+.carousel-track.ct-bleed { scroll-padding-left: 1rem; scroll-padding-right: 1rem; }
+@media (min-width: 640px) {
+    .carousel-track.ct-bleed { margin-left: -1rem; margin-right: -1rem; }
+}
+/* Pocos slides: centrados en vez de pegados a la izquierda */
+.carousel-track.ct-one { justify-content: center; }
+@media (min-width: 1024px) {
+    .carousel-track.ct-few { justify-content: center; }
+}
+
 /* Slides: 3 columnas (mc-carousel, lc-carousel) */
 .tour-slide {
     flex: 0 0 88%;
@@ -214,8 +242,8 @@
 }
 @media (min-width: 1024px) {
     .tour-slide {
-        flex-basis: calc((100% - 32px) / 3);
-        max-width: calc((100% - 32px) / 3);
+        flex-basis: calc((100% - 2rem) / 3);
+        max-width: calc((100% - 2rem) / 3);
         scroll-snap-align: start;
     }
 }
@@ -240,8 +268,8 @@
 }
 @media (min-width: 1024px) {
     .tour-slide-4 {
-        flex-basis: calc((100% - 48px) / 4);
-        max-width: calc((100% - 48px) / 4);
+        flex-basis: calc((100% - 3rem) / 4);
+        max-width: calc((100% - 3rem) / 4);
         scroll-snap-align: start;
     }
 }
@@ -419,7 +447,7 @@
          aria-labelledby="stats-title">
     {{-- SEO: ya no es H2 (no aporta a la jerarquía de encabezados); se mantiene como etiqueta accesible --}}
     <p id="stats-title" class="sr-only">{{ $L('Estadísticas', 'Statistics', 'Estatísticas') }}</p>
-    <div class="container mx-auto px-5 lg:px-10 max-w-7xl -mt-24 xl:-mt-28">
+    <div class="home-stats__wrap container mx-auto px-5 lg:px-10 max-w-7xl -mt-24 xl:-mt-28">
         <div class="bg-white text-teal-800 rounded-3xl
                     shadow-2xl ring-1 ring-black/5
                     px-12 py-10
@@ -465,7 +493,7 @@
      SECCIÓN 2 — MÁS COMPRADOS (carrusel compacto con peek)
      ============================================================ --}}
 <section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="bestseller-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header --}}
         <div class="text-center mb-8">
@@ -519,7 +547,7 @@
              }" class="relative">
 
             {{-- Track --}}
-            <div class="carousel-track gap-4 pb-2 -mx-5 px-4 sm:mx-0"
+            <div class="carousel-track ct-bleed gap-4 pb-2 -mx-5 px-4 sm:mx-0"
                  style="padding-left:1rem;padding-right:1rem;"
                  id="mc-carousel"
                  @scroll.debounce.100ms="
@@ -617,8 +645,8 @@
 {{-- ============================================================
      SECCIÓN 2B — TOURS EN LIMA, ICA Y CUSCO (carrusel tour-card)
      ============================================================ --}}
-<section class="bg-cream-100 px-5 py-12 lg:py-16" aria-labelledby="lima-ica-cusco-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="lima-ica-cusco-title">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Título centrado, sin eyebrow --}}
         <div class="text-center mb-8">
@@ -639,7 +667,7 @@
         <div x-data="{ current: 0, total: {{ $limaCuscoCount }} }" class="relative">
 
             {{-- Track --}}
-            <div class="carousel-track gap-5 pb-4 -mx-5 px-4 sm:mx-0"
+            <div class="carousel-track ct-bleed gap-4 pb-4 -mx-5 px-4 sm:mx-0 {{ $limaCuscoCount <= 1 ? 'ct-one' : ($limaCuscoCount < 3 ? 'ct-few' : '') }}"
                  style="padding-left:1rem;padding-right:1rem;"
                  id="lc-carousel"
                  @scroll.debounce.100ms="
@@ -674,7 +702,7 @@
             </div>
 
             {{-- Dots (mobile/tablet) --}}
-            <div class="mt-5 flex items-center justify-center gap-2 lg:hidden" aria-hidden="true">
+            <div class="mt-5 {{ $limaCuscoCount > 1 ? 'flex' : 'hidden' }} items-center justify-center gap-2 lg:hidden" aria-hidden="true">
                 @for ($i = 0; $i < $limaCuscoCount; $i++)
                     <button type="button"
                             @click="
@@ -691,6 +719,7 @@
                 @endfor
             </div>
 
+            @if ($limaCuscoCount > 3)
             {{-- Flechas desktop --}}
             <button type="button"
                     class="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5
@@ -714,6 +743,7 @@
                     aria-label="Siguiente">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </button>
+            @endif
         </div>
     </div>
 </section>
@@ -723,7 +753,7 @@
      SECCIÓN 3 — MÁS VISITADAS (Destinos)
      ============================================================ --}}
 <section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="destinos-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header --}}
         <div class="text-center mb-8">
@@ -845,7 +875,7 @@
      SECCIÓN 4 — POR QUÉ ELEGIRNOS
      ============================================================ --}}
 <section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="why-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header centrado --}}
         <div class="text-center mb-8 max-w-lg mx-auto">
@@ -928,8 +958,8 @@
 {{-- ============================================================
      SECCIÓN 4B — VERIFICADO Y RECOMENDADO (fusionado con "¿Por qué reservar…?": sin H2 propio)
      ============================================================ --}}
-<section class="relative bg-cream-100 px-5 pt-2 pb-14 lg:pb-20 overflow-hidden" aria-labelledby="reco-title">
-    <div class="container mx-auto max-w-5xl lg:px-5">
+<section class="relative bg-cream-100 px-5 pt-10 pb-10 lg:pb-20 overflow-hidden" aria-labelledby="reco-title">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Eyebrow pill centrado --}}
         <div class="flex items-center justify-center gap-3 mb-10">
@@ -1035,22 +1065,22 @@
             @endif
 
             {{-- Texto + card premio --}}
-            <div class="text-center lg:text-left flex-1">
+            <div class="text-center flex-1">
                 <p class="text-xs text-teal-800/70 uppercase tracking-[0.18em] font-semibold">{{ \App\Models\Setting::get('home_reco_intro_' . $locale) ?: 'Estamos recomendados por' }}</p>
                 <p id="reco-title" class="mt-2 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
                     <em class="not-italic text-amber-700 italic">{{ \App\Models\Setting::get('home_reco_headline_' . $locale) ?: 'Best Tours in Lima' }}</em>
                 </p>
-                <div class="mt-3 flex items-center justify-center lg:justify-start gap-2" aria-hidden="true">
+                <div class="mt-3 flex items-center justify-center gap-2" aria-hidden="true">
                     <span class="h-px w-8 bg-orange-500/50"></span>
                     <svg class="w-3 h-3 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
                     <span class="h-px w-8 bg-orange-500/50"></span>
                 </div>
-                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed max-w-md mx-auto lg:mx-0">
+                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed max-w-md mx-auto">
                     {{ \App\Models\Setting::get('home_reco_body_' . $locale) ?: 'Una de las mejores empresas que brindan experiencias turísticas verificadas.' }}
                 </p>
 
                 {{-- Card premio --}}
-                <div class="mt-6 bg-white rounded-2xl ring-1 ring-orange-400/30 shadow-sm p-5 flex items-start gap-4 text-left max-w-md mx-auto lg:mx-0">
+                <div class="mt-6 bg-white rounded-2xl ring-1 ring-orange-400/30 shadow-sm p-5 flex items-start gap-4 text-left max-w-md mx-auto">
                     <span class="w-14 h-14 rounded-full bg-orange-50 grid place-items-center shrink-0 ring-1 ring-orange-400/40 mt-0.5">
                         <svg class="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
                     </span>
@@ -1195,7 +1225,7 @@
 <section class="bg-white px-5 py-10 lg:py-20"
          x-data="{ tab: 'cult' }"
          aria-labelledby="tour-type-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header --}}
         <div class="text-center mb-8">
@@ -1391,7 +1421,7 @@
     $chooseItems = $homeRepeater($rawChooseItems, $defaultChooseItems);
 @endphp
 <section class="bg-white px-5 pb-10 lg:pb-20" aria-labelledby="choose-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
         <div class="text-center mb-8 max-w-2xl mx-auto">
             <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_choose_eyebrow_' . $locale) ?: $L('GUÍA RÁPIDA', 'QUICK GUIDE', 'GUIA RÁPIDO') }}</p>
             <h2 id="choose-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
@@ -1430,7 +1460,7 @@
      SECCIÓN 6 — DESCUBRE EXPERIENCIAS ÚNICAS (Carrusel)
      ============================================================ --}}
 <section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="exp-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header --}}
         <div class="text-center mb-8">
@@ -1457,7 +1487,7 @@
         <div x-data="{ current: 0, total: {{ count($expTours) }} }" class="relative">
 
             {{-- Carrusel scroll-snap --}}
-            <div class="carousel-track gap-4 pb-4 -mx-5 px-4 sm:mx-0"
+            <div class="carousel-track ct-bleed gap-4 pb-4 -mx-5 px-4 sm:mx-0"
                  style="padding-left:1rem;padding-right:1rem;"
                  id="exp-carousel"
                  @scroll.debounce.100ms="
@@ -1548,7 +1578,7 @@
 @endphp
 <section id="opiniones" class="bg-white px-5 py-10 lg:py-20 scroll-mt-24" aria-labelledby="opiniones-title"
          x-data="{ reviewModalOpen: false, review: {} }">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header --}}
         <div class="text-center mb-8">
@@ -1690,7 +1720,7 @@
 <section class="bg-cream-100 px-5 py-10 lg:py-20"
          x-data="{ open: null }"
          aria-labelledby="faq-title">
-    <div class="container mx-auto max-w-7xl lg:px-5">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
 
         {{-- Header --}}
         <div class="text-center mb-8">
