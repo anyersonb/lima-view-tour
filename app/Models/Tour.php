@@ -40,6 +40,7 @@ class Tour extends Model
         'show_best_seller' => 'boolean',
         'show_top_rated' => 'boolean',
         'show_most_sold' => 'boolean',
+        'show_in_day_trips' => 'boolean',
         'show_offer_badge' => 'boolean',
         'pickup_included' => 'boolean',
         'free_cancellation' => 'boolean',

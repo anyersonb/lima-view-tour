@@ -376,7 +376,8 @@
      ============================================================ --}}
 <section class="hidden lg:block relative z-10 pb-12 bg-cream-100"
          aria-labelledby="stats-title">
-    <h2 id="stats-title" class="sr-only">Estadísticas</h2>
+    {{-- SEO: ya no es H2 (no aporta a la jerarquía de encabezados); se mantiene como etiqueta accesible --}}
+    <p id="stats-title" class="sr-only">{{ $L('Estadísticas', 'Statistics', 'Estatísticas') }}</p>
     <div class="container mx-auto px-5 lg:px-10 max-w-7xl -mt-24 xl:-mt-28">
         <div class="bg-white text-teal-800 rounded-3xl
                     shadow-2xl ring-1 ring-black/5
@@ -431,7 +432,7 @@
                 {{ \App\Models\Setting::get('home_sec_featured_eyebrow_' . $locale) ?: 'NUESTROS TOURS' }}
             </p>
             <h2 id="bestseller-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800">
-                {{ \App\Models\Setting::get('home_sec_featured_title_' . $locale) ?: 'Más Comprados' }}
+                {{ \App\Models\Setting::get('home_sec_featured_title_' . $locale) ?: $L('Tours en Perú más vendidos', 'Best-selling tours in Peru', 'Tours no Peru mais vendidos') }}
             </h2>
             {!! $sep !!}
         </div>
@@ -581,14 +582,15 @@
         {{-- Título centrado, sin eyebrow --}}
         <div class="text-center mb-8">
             <h2 id="lima-ica-cusco-title" class="font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {{ \App\Models\Setting::get('home_sec_cities_title_' . $locale) ?: 'Tours en Lima, Ica y Cusco' }}
+                {{ \App\Models\Setting::get('home_sec_cities_title_' . $locale) ?: $L('Tours de un día desde Lima', 'Day tours from Lima', 'Tours de um dia saindo de Lima') }}
             </h2>
             {!! $sep !!}
         </div>
 
         @php
             // Sin demo ficticio: si no hay tours reales, el carrusel queda vacío.
-            $limaCuscoCols  = $normalizeTours($featuredTours->take(6));
+            // Lista propia (HomeController::fetchDayTrips), ya NO la de "Más vendidos".
+            $limaCuscoCols  = $normalizeTours(($dayTrips ?? collect())->take(6));
             $limaCuscoCount = count($limaCuscoCols);
         @endphp
 
@@ -688,7 +690,7 @@
                 <span class="h-px w-6 bg-orange-500/50"></span>{{ \App\Models\Setting::get('home_sec_destinos_eyebrow_' . $locale) ?: 'MÁS VISITADOS' }}<span class="h-px w-6 bg-orange-500/50"></span>
             </p>
             <h2 id="destinos-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {!! \App\Models\Setting::get('home_sec_destinos_title_' . $locale) ?: 'Descubre las Ciudades<br>más Visitadas del Perú' !!}
+                {!! \App\Models\Setting::get('home_sec_destinos_title_' . $locale) ?: $L('Tours por destino en Perú: Lima, Ica, Nazca y Cusco', 'Tours by destination in Peru: Lima, Ica, Nazca and Cusco', 'Tours por destino no Peru: Lima, Ica, Nazca e Cusco') !!}
             </h2>
             {!! $sep !!}
         </div>
@@ -807,7 +809,7 @@
         {{-- Header centrado --}}
         <div class="text-center mb-8 max-w-lg mx-auto">
             <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_why_eyebrow_' . $locale) ?: 'VIAJA CON CONFIANZA' }}</p>
-            <h2 id="why-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">{!! \App\Models\Setting::get('home_sec_why_title_' . $locale) ?: '¿Por qué elegir<br>Lima View Tours?' !!}</h2>
+            <h2 id="why-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">{!! \App\Models\Setting::get('home_sec_why_title_' . $locale) ?: $L('¿Por qué reservar tus tours en Perú con Lima View Tours?', 'Why book your Peru tours with Lima View Tours?', 'Por que reservar seus tours no Peru com a Lima View Tours?') !!}</h2>
             {!! $sep !!}
             <p class="mt-5 text-sm text-teal-800/70">{!! \App\Models\Setting::get('home_sec_why_subtitle_' . $locale) ?: 'Más que un tour, te ofrecemos<br>experiencias inolvidables.' !!}</p>
         </div>
@@ -882,6 +884,269 @@
     </div>
 </section>
 
+{{-- ============================================================
+     SECCIÓN 4B — VERIFICADO Y RECOMENDADO (fusionado con "¿Por qué reservar…?": sin H2 propio)
+     ============================================================ --}}
+<section class="relative bg-cream-100 px-5 pt-2 pb-14 lg:pb-20 overflow-hidden" aria-labelledby="reco-title">
+    <div class="container mx-auto max-w-5xl lg:px-5">
+
+        {{-- Eyebrow pill centrado --}}
+        <div class="flex items-center justify-center gap-3 mb-10">
+            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
+            <span class="inline-flex items-center gap-2 border border-teal-800 rounded-full px-4 py-1.5 bg-teal-800 shadow-sm">
+                <svg class="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 1.5L14.5 8H21l-5.5 4 2 6.5L12 14.5 6.5 18.5l2-6.5L3 8h6.5z"/>
+                </svg>
+                <span class="text-[10px] uppercase tracking-[0.18em] text-white font-bold">{{ \App\Models\Setting::get('home_sec_reco_eyebrow_' . $locale) ?: 'VERIFICADO Y RECOMENDADO POR' }}</span>
+            </span>
+            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
+        </div>
+
+        {{-- Bloque hero: medallón + texto centrados en mobile, 2 col en desktop --}}
+        <div class="flex flex-col items-center gap-8 lg:flex-row lg:gap-16 lg:items-center mb-14">
+
+            {{-- Medallón eliminado a pedido del cliente --}}
+            @if (false)
+            <div class="flex justify-center shrink-0">
+                <div class="relative w-48 h-48 lg:w-60 lg:h-60 drop-shadow-2xl" aria-hidden="true">
+                    <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <defs>
+                            <linearGradient id="goldRing" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%"   stop-color="#fde68a"/>
+                                <stop offset="35%"  stop-color="#f59e0b"/>
+                                <stop offset="65%"  stop-color="#d97706"/>
+                                <stop offset="100%" stop-color="#92400e"/>
+                            </linearGradient>
+                            <linearGradient id="tealBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%"   stop-color="#0f3438"/>
+                                <stop offset="100%" stop-color="#0a2326"/>
+                            </linearGradient>
+                            <filter id="medallionShadow" x="-10%" y="-10%" width="120%" height="120%">
+                                <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#00000055"/>
+                            </filter>
+                            <!-- Arco de texto superior -->
+                            <path id="arcTop" d="M 110,110 m -72,0 a 72,72 0 1,1 144,0" fill="none"/>
+                            <path id="arcBottom" d="M 110,110 m -60,0 a 60,60 0 0,0 120,0" fill="none"/>
+                        </defs>
+
+                        <!-- Sombra exterior -->
+                        <circle cx="110" cy="110" r="104" fill="url(#goldRing)" filter="url(#medallionShadow)"/>
+                        <!-- Anillo exterior dorado -->
+                        <circle cx="110" cy="110" r="104" fill="url(#goldRing)"/>
+                        <!-- Anillo interior delgado dorado -->
+                        <circle cx="110" cy="110" r="96" fill="none" stroke="#fde68a" stroke-width="1.2" opacity="0.6"/>
+                        <!-- Fondo teal interior -->
+                        <circle cx="110" cy="110" r="90" fill="url(#tealBg)"/>
+                        <!-- Segundo anillo interior decorativo -->
+                        <circle cx="110" cy="110" r="83" fill="none" stroke="#f59e0b" stroke-width="0.8" opacity="0.4"/>
+
+                        <!-- Texto en arco superior "BEST TOURS" -->
+                        <text font-family="Georgia, serif" font-size="13" font-weight="700" fill="#fcd34d" letter-spacing="3" text-anchor="middle">
+                            <textPath href="#arcTop" startOffset="50%">B E S T · T O U R S</textPath>
+                        </text>
+
+                        <!-- Laureles izquierdo -->
+                        <g fill="#fbbf24" opacity="0.85">
+                            <ellipse cx="47" cy="78"  rx="7" ry="4" transform="rotate(-40 47 78)"/>
+                            <ellipse cx="41" cy="93"  rx="7" ry="4" transform="rotate(-30 41 93)"/>
+                            <ellipse cx="38" cy="109" rx="7" ry="4" transform="rotate(-15 38 109)"/>
+                            <ellipse cx="40" cy="125" rx="7" ry="4" transform="rotate(10 40 125)"/>
+                            <ellipse cx="47" cy="139" rx="7" ry="4" transform="rotate(30 47 139)"/>
+                            <!-- Tallo -->
+                            <line x1="50" y1="73" x2="52" y2="147" stroke="#fbbf24" stroke-width="1.5" opacity="0.5"/>
+                        </g>
+                        <!-- Laureles derecho (espejado) -->
+                        <g fill="#fbbf24" opacity="0.85">
+                            <ellipse cx="173" cy="78"  rx="7" ry="4" transform="rotate(40 173 78)"/>
+                            <ellipse cx="179" cy="93"  rx="7" ry="4" transform="rotate(30 179 93)"/>
+                            <ellipse cx="182" cy="109" rx="7" ry="4" transform="rotate(15 182 109)"/>
+                            <ellipse cx="180" cy="125" rx="7" ry="4" transform="rotate(-10 180 125)"/>
+                            <ellipse cx="173" cy="139" rx="7" ry="4" transform="rotate(-30 173 139)"/>
+                            <line x1="170" y1="73" x2="168" y2="147" stroke="#fbbf24" stroke-width="1.5" opacity="0.5"/>
+                        </g>
+
+                        <!-- Separador superior -->
+                        <line x1="70" y1="82" x2="150" y2="82" stroke="#f59e0b" stroke-width="0.8" opacity="0.5"/>
+
+                        <!-- "IN" pequeño -->
+                        <text x="110" y="96" font-family="Georgia, serif" font-size="10" font-weight="400" fill="#fcd34d" letter-spacing="4" text-anchor="middle" opacity="0.9">I N</text>
+
+                        <!-- "LIMA" grande central -->
+                        <text x="110" y="130" font-family="Georgia, serif" font-size="38" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="2">LIMA</text>
+
+                        <!-- Separador inferior -->
+                        <line x1="70" y1="137" x2="150" y2="137" stroke="#f59e0b" stroke-width="0.8" opacity="0.5"/>
+
+                        <!-- 5 estrellas doradas -->
+                        <text x="110" y="154" font-family="Arial" font-size="12" fill="#fbbf24" text-anchor="middle" letter-spacing="2">★★★★★</text>
+
+                        <!-- Texto arco inferior "LIMA VIEW TOURS" -->
+                        <text font-family="Georgia, serif" font-size="9.5" font-weight="400" fill="#fcd34d" letter-spacing="2" text-anchor="middle" opacity="0.75">
+                            <textPath href="#arcBottom" startOffset="50%">LIMA · VIEW · TOURS</textPath>
+                        </text>
+                    </svg>
+
+                    <!-- Cintas decorativas -->
+                    <span class="absolute -bottom-4 left-[42px] w-7 h-12 bg-amber-500 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);"></span>
+                    <span class="absolute -bottom-4 right-[42px] w-7 h-12 bg-amber-500 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);"></span>
+                </div>
+            </div>
+            @endif
+
+            {{-- Texto + card premio --}}
+            <div class="text-center lg:text-left flex-1">
+                <p class="text-xs text-teal-800/70 uppercase tracking-[0.18em] font-semibold">{{ \App\Models\Setting::get('home_reco_intro_' . $locale) ?: 'Estamos recomendados por' }}</p>
+                <p id="reco-title" class="mt-2 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
+                    <em class="not-italic text-amber-700 italic">{{ \App\Models\Setting::get('home_reco_headline_' . $locale) ?: 'Best Tours in Lima' }}</em>
+                </p>
+                <div class="mt-3 flex items-center justify-center lg:justify-start gap-2" aria-hidden="true">
+                    <span class="h-px w-8 bg-orange-500/50"></span>
+                    <svg class="w-3 h-3 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
+                    <span class="h-px w-8 bg-orange-500/50"></span>
+                </div>
+                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed max-w-md mx-auto lg:mx-0">
+                    {{ \App\Models\Setting::get('home_reco_body_' . $locale) ?: 'Una de las mejores empresas que brindan experiencias turísticas verificadas.' }}
+                </p>
+
+                {{-- Card premio --}}
+                <div class="mt-6 bg-white rounded-2xl ring-1 ring-orange-400/30 shadow-sm p-5 flex items-start gap-4 text-left max-w-md mx-auto lg:mx-0">
+                    <span class="w-14 h-14 rounded-full bg-orange-50 grid place-items-center shrink-0 ring-1 ring-orange-400/40 mt-0.5">
+                        <svg class="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
+                    </span>
+                    <div>
+                        <p class="font-bold text-teal-800 text-sm uppercase tracking-tight leading-tight">{!! \App\Models\Setting::get('home_reco_award_title_' . $locale) ?: 'GANAMOS EL PREMIO<br>DE VERIFICACIÓN' !!}</p>
+                        <p class="mt-1.5 text-xs text-teal-800/70 leading-snug">{{ \App\Models\Setting::get('home_reco_award_desc_' . $locale) ?: 'para los mejores tours y empresas que brindan experiencias de alta calidad en Lima.' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Divider decorativo --}}
+        <div class="flex items-center gap-3 my-10" aria-hidden="true">
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+        </div>
+
+        {{-- ¿Por qué somos recomendados? --}}
+        <div>
+            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-6">
+                {{ \App\Models\Setting::get('home_sec_why_reco_title_' . $locale) ?: '¿Por qué somos recomendados?' }}
+            </h3>
+
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
+                @php
+                    $defaultRecoItems = [
+                        ['title_es'=>'Calidad Verificada',         'title_en'=>'Verified Quality',          'title_pt'=>'Qualidade Verificada',
+                         'desc_es'=>'Operadores evaluados bajo estrictos estándares de calidad.',
+                         'desc_en'=>'Operators evaluated under strict quality standards.',
+                         'desc_pt'=>'Operadores avaliados sob rigorosos padrões de qualidade.',
+                         'icon'=>'shield'],
+                        ['title_es'=>'Experiencias Auténticas',    'title_en'=>'Authentic Experiences',     'title_pt'=>'Experiências Autênticas',
+                         'desc_es'=>'Tours diseñados para brindar experiencias únicas y memorables.',
+                         'desc_en'=>'Tours designed to deliver unique and memorable experiences.',
+                         'desc_pt'=>'Tours criados para oferecer experiências únicas e memoráveis.',
+                         'icon'=>'star'],
+                        ['title_es'=>'Soporte Confiable',          'title_en'=>'Reliable Support',          'title_pt'=>'Suporte Confiável',
+                         'desc_es'=>'Acompañamiento antes, durante y después de tu viaje.',
+                         'desc_en'=>'Support before, during and after your trip.',
+                         'desc_pt'=>'Acompanhamento antes, durante e após sua viagem.',
+                         'icon'=>'headset'],
+                        ['title_es'=>'Altos Estándares de Calidad','title_en'=>'High Quality Standards',    'title_pt'=>'Altos Padrões de Qualidade',
+                         'desc_es'=>'Comprometidos con la excelencia y la satisfacción del viajero.',
+                         'desc_en'=>'Committed to excellence and traveler satisfaction.',
+                         'desc_pt'=>'Comprometidos com a excelência e a satisfação do viajante.',
+                         'icon'=>'medal'],
+                    ];
+                    $rawRecoItems = \App\Models\Setting::get('home_reco_items');
+                    $recoItems = (is_array($rawRecoItems) && count($rawRecoItems)) ? $rawRecoItems : $defaultRecoItems;
+                @endphp
+                @foreach ($recoItems as $rItem)
+                @php
+                    $rTitle = $rItem['title_' . $locale] ?? $rItem['title_es'] ?? '';
+                    $rDesc  = $rItem['desc_' . $locale]  ?? $rItem['desc_es']  ?? '';
+                    $rIcon  = $rItem['icon'] ?? 'shield';
+                @endphp
+                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-5 lg:p-6 text-center">
+                        <span class="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-teal-800 grid place-items-center mx-auto mb-4">
+                            <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                                @if ($rIcon === 'shield')
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+                                @elseif ($rIcon === 'star')
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
+                                @elseif ($rIcon === 'headset')
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75a4.5 4.5 0 004.5 4.5v8.25a3 3 0 003 3h6a3 3 0 003-3v-8.25a4.5 4.5 0 004.5-4.5h-21z"/>
+                                @else
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/>
+                                @endif
+                            </svg>
+                        </span>
+                        <p class="font-bold text-teal-800 text-sm leading-tight">{{ $rTitle }}</p>
+                        <p class="mt-2 text-[11px] text-teal-800/70 leading-snug">{{ $rDesc }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Divider decorativo --}}
+        <div class="flex items-center gap-3 my-10" aria-hidden="true">
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
+            <span class="h-px flex-1 bg-orange-400/25"></span>
+        </div>
+
+        {{-- Y también nos recomiendan --}}
+        <div>
+            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-7">
+                {{ \App\Models\Setting::get('home_sec_verified_in_' . $locale) ?: 'Recomendado y verificado en' }}
+            </h3>
+
+            {{-- Strip de logos reales, bien distribuido --}}
+            <div class="bg-white rounded-3xl ring-1 ring-cream-200 shadow-sm max-w-3xl mx-auto
+                        grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cream-200">
+
+                {{-- Tripadvisor --}}
+                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
+                    <div class="flex items-center gap-2 h-7">
+                        <svg viewBox="0 0 40 24" class="h-[22px] w-auto" aria-hidden="true">
+                            <circle cx="13" cy="12" r="9.5" fill="#00AA6C"/>
+                            <circle cx="27" cy="12" r="9.5" fill="#00AA6C"/>
+                            <circle cx="13" cy="12" r="4.4" fill="#fff"/>
+                            <circle cx="27" cy="12" r="4.4" fill="#fff"/>
+                            <circle cx="13" cy="12" r="2" fill="#0a2326"/>
+                            <circle cx="27" cy="12" r="2" fill="#0a2326"/>
+                        </svg>
+                        <span class="font-bold text-[15px] tracking-tight" style="color:#0a2326;">Tripadvisor</span>
+                    </div>
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
+                        <span class="tracking-tight" style="color:#00AA6C;letter-spacing:1px;">●●●●●</span> 4.9
+                    </span>
+                </div>
+
+                {{-- Viator --}}
+                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
+                    <span class="font-sans font-extrabold text-[26px] tracking-tight leading-7 h-7" style="color:#0a2326;">Viator</span>
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
+                        <span class="text-orange-400">★★★★★</span> 4.8
+                    </span>
+                </div>
+
+                {{-- GetYourGuide --}}
+                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
+                    <span class="font-sans font-extrabold text-[19px] tracking-tight leading-7 h-7" style="color:#FF5533;">GetYourGuide</span>
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
+                        <span class="text-orange-400">★★★★★</span> 4.9
+                    </span>
+                </div>
+            </div>
+
+            <p class="mt-6 text-center text-xs text-teal-800/70 max-w-md mx-auto leading-relaxed">
+                {{ \App\Models\Setting::get('home_reviews_footer_' . $locale) ?: 'Miles de reseñas verificadas de viajeros de todo el mundo respaldan nuestras experiencias.' }}
+            </p>
+        </div>
+    </div>
+</section>
+
 
 {{-- ============================================================
      SECCIÓN 5 — ¿QUÉ TIPO DE TOUR ESTÁS BUSCANDO?
@@ -896,7 +1161,7 @@
             {!! $brujula !!}
             <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_types_eyebrow_' . $locale) ?: 'CATEGORÍAS' }}</p>
             <h2 id="tour-type-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {!! \App\Models\Setting::get('home_sec_types_title_' . $locale) ?: '¿Qué tipo de tour <br class="sm:hidden">estás buscando?' !!}
+                {!! \App\Models\Setting::get('home_sec_types_title_' . $locale) ?: $L('Tipos de tours en Perú', 'Types of tours in Peru', 'Tipos de tours no Peru') !!}
             </h2>
             {!! $sep !!}
         </div>
@@ -1056,6 +1321,73 @@
 
 
 {{-- ============================================================
+     SECCIÓN 5B — CÓMO ELEGIR TU TOUR EN PERÚ (guía rápida, editable en Ajustes)
+     ============================================================ --}}
+@php
+    $defaultChooseItems = [
+        ['title_es' => '¿Cuántos días tienes?', 'title_en' => 'How many days do you have?', 'title_pt' => 'Quantos dias você tem?',
+         'desc_es'  => 'Con pocos días en Lima, un tour de día completo te lleva al Centro Histórico, Pachacamac o Paracas y Huacachina. Para Cusco y Machu Picchu, reserva al menos 3 o 4 días.',
+         'desc_en'  => 'With only a few days in Lima, a full-day tour takes you to the Historic Center, Pachacamac or Paracas and Huacachina. For Cusco and Machu Picchu, plan at least 3 or 4 days.',
+         'desc_pt'  => 'Com poucos dias em Lima, um tour de dia inteiro leva você ao Centro Histórico, Pachacamac ou Paracas e Huacachina. Para Cusco e Machu Picchu, reserve pelo menos 3 ou 4 dias.',
+         'iconPath' => 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z'],
+        ['title_es' => '¿Qué quieres vivir?', 'title_en' => 'What do you want to experience?', 'title_pt' => 'O que você quer viver?',
+         'desc_es'  => 'Historia y cultura en Lima y Cusco, aventura en las dunas de Huacachina, naturaleza en las Islas Ballestas o la Laguna Humantay, y la mejor gastronomía en toda la ruta.',
+         'desc_en'  => 'History and culture in Lima and Cusco, adventure on the Huacachina dunes, nature at the Ballestas Islands or Humantay Lake, and great food all along the way.',
+         'desc_pt'  => 'História e cultura em Lima e Cusco, aventura nas dunas de Huacachina, natureza nas Ilhas Ballestas ou na Lagoa Humantay e a melhor gastronomia em todo o roteiro.',
+         'iconPath' => 'M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z'],
+        ['title_es' => '¿Qué tan exigente puede ser?', 'title_en' => 'How demanding can it be?', 'title_pt' => 'Quão exigente pode ser?',
+         'desc_es'  => 'Los city tours son tranquilos. Las caminatas en altura, como Humantay o la Montaña de 7 Colores, piden buena condición física. Revisa la duración y el nivel en cada tour.',
+         'desc_en'  => 'City tours are easy-going. High-altitude hikes such as Humantay or Rainbow Mountain require good fitness. Check the duration and level of each tour.',
+         'desc_pt'  => 'Os city tours são tranquilos. As caminhadas em altitude, como Humantay ou a Montanha de 7 Cores, pedem bom condicionamento físico. Confira a duração e o nível de cada tour.',
+         'iconPath' => 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z'],
+        ['title_es' => '¿Qué incluye?', 'title_en' => 'What is included?', 'title_pt' => 'O que está incluído?',
+         'desc_es'  => 'Compara lo que trae cada tour: recojo en hotel, guía, entradas y comidas. En cada ficha verás también si tiene cancelación gratuita.',
+         'desc_en'  => 'Compare what each tour includes: hotel pickup, guide, entrance fees and meals. Each tour page also shows whether free cancellation applies.',
+         'desc_pt'  => 'Compare o que cada tour inclui: busca no hotel, guia, ingressos e refeições. Em cada página você também vê se há cancelamento gratuito.',
+         'iconPath' => 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+    ];
+    $rawChooseItems = \App\Models\Setting::get('home_choose_items');
+    // Los repeaters se guardan como JSON en un setting tipo 'string' (Settings::save): decodificar aquí.
+    if (is_string($rawChooseItems)) { $rawChooseItems = json_decode($rawChooseItems, true); }
+    $chooseItems = (is_array($rawChooseItems) && count($rawChooseItems)) ? $rawChooseItems : $defaultChooseItems;
+@endphp
+<section class="bg-white px-5 pb-10 lg:pb-20" aria-labelledby="choose-title">
+    <div class="container mx-auto max-w-7xl lg:px-5">
+        <div class="text-center mb-8 max-w-2xl mx-auto">
+            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_choose_eyebrow_' . $locale) ?: $L('GUÍA RÁPIDA', 'QUICK GUIDE', 'GUIA RÁPIDO') }}</p>
+            <h2 id="choose-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
+                {!! \App\Models\Setting::get('home_sec_choose_title_' . $locale) ?: $L('Cómo elegir tu tour en Perú', 'How to choose your tour in Peru', 'Como escolher seu tour no Peru') !!}
+            </h2>
+            {!! $sep !!}
+            <p class="mt-5 text-sm text-teal-800/70">{!! \App\Models\Setting::get('home_sec_choose_intro_' . $locale) ?: $L('Cuatro preguntas para acertar con tu tour según tu tiempo, tu estilo de viaje y lo que quieres vivir.', 'Four questions to find the right tour for your time, your travel style and what you want to experience.', 'Quatro perguntas para acertar no tour de acordo com seu tempo, seu estilo de viagem e o que você quer viver.') !!}</p>
+        </div>
+
+        <ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="list">
+            @foreach ($chooseItems as $cIdx => $cItem)
+                @php
+                    $cTitle = ($cItem['title_' . $locale] ?? '') ?: ($cItem['title_es'] ?? '');
+                    $cDesc  = ($cItem['desc_' . $locale] ?? '') ?: ($cItem['desc_es'] ?? '');
+                    $cPath  = $cItem['iconPath'] ?? ($defaultChooseItems[$cIdx]['iconPath'] ?? $defaultChooseItems[0]['iconPath']);
+                @endphp
+                <li class="bg-cream-100 rounded-3xl p-6 ring-1 ring-teal-800/5 flex flex-col">
+                    <div class="flex items-center gap-3">
+                        <span class="w-12 h-12 rounded-full bg-teal-800 grid place-items-center shrink-0">
+                            <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $cPath }}"/>
+                            </svg>
+                        </span>
+                        <span class="font-display text-3xl text-orange-400 leading-none" aria-hidden="true">{{ str_pad((string) ($cIdx + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                    </div>
+                    <h3 class="mt-4 font-bold text-teal-800 text-base leading-tight">{{ $cTitle }}</h3>
+                    <p class="mt-2 text-sm text-teal-800/75 leading-relaxed">{{ $cDesc }}</p>
+                </li>
+            @endforeach
+        </ol>
+    </div>
+</section>
+
+
+{{-- ============================================================
      SECCIÓN 6 — DESCUBRE EXPERIENCIAS ÚNICAS (Carrusel)
      ============================================================ --}}
 <section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="exp-title">
@@ -1066,7 +1398,7 @@
             {!! $brujula !!}
             <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_exp_eyebrow_' . $locale) ?: 'EXPERIENCIAS' }}</p>
             <h2 id="exp-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {!! \App\Models\Setting::get('home_sec_exp_title_' . $locale) ?: 'Descubre <br class="sm:hidden">experiencias únicas' !!}
+                {!! \App\Models\Setting::get('home_sec_exp_title_' . $locale) ?: $L('Descubre <br class="sm:hidden">experiencias únicas', 'Discover <br class="sm:hidden">unique experiences', 'Descubra <br class="sm:hidden">experiências únicas') !!}
             </h2>
             {!! $sep !!}
         </div>
@@ -1185,7 +1517,7 @@
                 <span class="h-px w-6 bg-orange-500/50"></span>{{ \App\Models\Setting::get('home_sec_reviews_eyebrow_' . $locale) ?: 'OPINIONES REALES' }}<span class="h-px w-6 bg-orange-500/50"></span>
             </p>
             <h2 id="opiniones-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {{ \App\Models\Setting::get('home_sec_reviews_title_' . $locale) ?: 'Lo que dicen nuestros viajeros' }}
+                {{ \App\Models\Setting::get('home_sec_reviews_title_' . $locale) ?: $L('Opiniones de nuestros viajeros', 'Reviews from our travelers', 'Opiniões dos nossos viajantes') }}
             </h2>
             {!! $sep !!}
             <p class="mt-5 text-sm text-teal-800/70">
@@ -1325,7 +1657,7 @@
         <div class="text-center mb-8">
             {!! $brujula !!}
             <h2 id="faq-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {{ \App\Models\Setting::get('home_sec_faq_title_' . $locale) ?: 'Preguntas frecuentes' }}
+                {{ \App\Models\Setting::get('home_sec_faq_title_' . $locale) ?: $L('Preguntas frecuentes sobre tours en Perú', 'Frequently asked questions about tours in Peru', 'Perguntas frequentes sobre tours no Peru') }}
             </h2>
             {!! $sep !!}
             <p class="mt-5 text-sm text-teal-800/70">
@@ -1436,269 +1768,6 @@
     </div>
 </section>
 
-
-{{-- ============================================================
-     SECCIÓN 8 — VERIFICADO Y RECOMENDADO
-     ============================================================ --}}
-<section class="relative bg-cream-100 px-5 pt-12 pb-14 lg:py-20 overflow-hidden" aria-labelledby="reco-title">
-    <div class="container mx-auto max-w-5xl lg:px-5">
-
-        {{-- Eyebrow pill centrado --}}
-        <div class="flex items-center justify-center gap-3 mb-10">
-            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
-            <span class="inline-flex items-center gap-2 border border-teal-800 rounded-full px-4 py-1.5 bg-teal-800 shadow-sm">
-                <svg class="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 1.5L14.5 8H21l-5.5 4 2 6.5L12 14.5 6.5 18.5l2-6.5L3 8h6.5z"/>
-                </svg>
-                <span class="text-[10px] uppercase tracking-[0.18em] text-white font-bold">{{ \App\Models\Setting::get('home_sec_reco_eyebrow_' . $locale) ?: 'VERIFICADO Y RECOMENDADO POR' }}</span>
-            </span>
-            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
-        </div>
-
-        {{-- Bloque hero: medallón + texto centrados en mobile, 2 col en desktop --}}
-        <div class="flex flex-col items-center gap-8 lg:flex-row lg:gap-16 lg:items-center mb-14">
-
-            {{-- Medallón eliminado a pedido del cliente --}}
-            @if (false)
-            <div class="flex justify-center shrink-0">
-                <div class="relative w-48 h-48 lg:w-60 lg:h-60 drop-shadow-2xl" aria-hidden="true">
-                    <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-                        <defs>
-                            <linearGradient id="goldRing" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%"   stop-color="#fde68a"/>
-                                <stop offset="35%"  stop-color="#f59e0b"/>
-                                <stop offset="65%"  stop-color="#d97706"/>
-                                <stop offset="100%" stop-color="#92400e"/>
-                            </linearGradient>
-                            <linearGradient id="tealBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%"   stop-color="#0f3438"/>
-                                <stop offset="100%" stop-color="#0a2326"/>
-                            </linearGradient>
-                            <filter id="medallionShadow" x="-10%" y="-10%" width="120%" height="120%">
-                                <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#00000055"/>
-                            </filter>
-                            <!-- Arco de texto superior -->
-                            <path id="arcTop" d="M 110,110 m -72,0 a 72,72 0 1,1 144,0" fill="none"/>
-                            <path id="arcBottom" d="M 110,110 m -60,0 a 60,60 0 0,0 120,0" fill="none"/>
-                        </defs>
-
-                        <!-- Sombra exterior -->
-                        <circle cx="110" cy="110" r="104" fill="url(#goldRing)" filter="url(#medallionShadow)"/>
-                        <!-- Anillo exterior dorado -->
-                        <circle cx="110" cy="110" r="104" fill="url(#goldRing)"/>
-                        <!-- Anillo interior delgado dorado -->
-                        <circle cx="110" cy="110" r="96" fill="none" stroke="#fde68a" stroke-width="1.2" opacity="0.6"/>
-                        <!-- Fondo teal interior -->
-                        <circle cx="110" cy="110" r="90" fill="url(#tealBg)"/>
-                        <!-- Segundo anillo interior decorativo -->
-                        <circle cx="110" cy="110" r="83" fill="none" stroke="#f59e0b" stroke-width="0.8" opacity="0.4"/>
-
-                        <!-- Texto en arco superior "BEST TOURS" -->
-                        <text font-family="Georgia, serif" font-size="13" font-weight="700" fill="#fcd34d" letter-spacing="3" text-anchor="middle">
-                            <textPath href="#arcTop" startOffset="50%">B E S T · T O U R S</textPath>
-                        </text>
-
-                        <!-- Laureles izquierdo -->
-                        <g fill="#fbbf24" opacity="0.85">
-                            <ellipse cx="47" cy="78"  rx="7" ry="4" transform="rotate(-40 47 78)"/>
-                            <ellipse cx="41" cy="93"  rx="7" ry="4" transform="rotate(-30 41 93)"/>
-                            <ellipse cx="38" cy="109" rx="7" ry="4" transform="rotate(-15 38 109)"/>
-                            <ellipse cx="40" cy="125" rx="7" ry="4" transform="rotate(10 40 125)"/>
-                            <ellipse cx="47" cy="139" rx="7" ry="4" transform="rotate(30 47 139)"/>
-                            <!-- Tallo -->
-                            <line x1="50" y1="73" x2="52" y2="147" stroke="#fbbf24" stroke-width="1.5" opacity="0.5"/>
-                        </g>
-                        <!-- Laureles derecho (espejado) -->
-                        <g fill="#fbbf24" opacity="0.85">
-                            <ellipse cx="173" cy="78"  rx="7" ry="4" transform="rotate(40 173 78)"/>
-                            <ellipse cx="179" cy="93"  rx="7" ry="4" transform="rotate(30 179 93)"/>
-                            <ellipse cx="182" cy="109" rx="7" ry="4" transform="rotate(15 182 109)"/>
-                            <ellipse cx="180" cy="125" rx="7" ry="4" transform="rotate(-10 180 125)"/>
-                            <ellipse cx="173" cy="139" rx="7" ry="4" transform="rotate(-30 173 139)"/>
-                            <line x1="170" y1="73" x2="168" y2="147" stroke="#fbbf24" stroke-width="1.5" opacity="0.5"/>
-                        </g>
-
-                        <!-- Separador superior -->
-                        <line x1="70" y1="82" x2="150" y2="82" stroke="#f59e0b" stroke-width="0.8" opacity="0.5"/>
-
-                        <!-- "IN" pequeño -->
-                        <text x="110" y="96" font-family="Georgia, serif" font-size="10" font-weight="400" fill="#fcd34d" letter-spacing="4" text-anchor="middle" opacity="0.9">I N</text>
-
-                        <!-- "LIMA" grande central -->
-                        <text x="110" y="130" font-family="Georgia, serif" font-size="38" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="2">LIMA</text>
-
-                        <!-- Separador inferior -->
-                        <line x1="70" y1="137" x2="150" y2="137" stroke="#f59e0b" stroke-width="0.8" opacity="0.5"/>
-
-                        <!-- 5 estrellas doradas -->
-                        <text x="110" y="154" font-family="Arial" font-size="12" fill="#fbbf24" text-anchor="middle" letter-spacing="2">★★★★★</text>
-
-                        <!-- Texto arco inferior "LIMA VIEW TOURS" -->
-                        <text font-family="Georgia, serif" font-size="9.5" font-weight="400" fill="#fcd34d" letter-spacing="2" text-anchor="middle" opacity="0.75">
-                            <textPath href="#arcBottom" startOffset="50%">LIMA · VIEW · TOURS</textPath>
-                        </text>
-                    </svg>
-
-                    <!-- Cintas decorativas -->
-                    <span class="absolute -bottom-4 left-[42px] w-7 h-12 bg-amber-500 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);"></span>
-                    <span class="absolute -bottom-4 right-[42px] w-7 h-12 bg-amber-500 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);"></span>
-                </div>
-            </div>
-            @endif
-
-            {{-- Texto + card premio --}}
-            <div class="text-center lg:text-left flex-1">
-                <p class="text-xs text-teal-800/70 uppercase tracking-[0.18em] font-semibold">{{ \App\Models\Setting::get('home_reco_intro_' . $locale) ?: 'Estamos recomendados por' }}</p>
-                <h2 id="reco-title" class="mt-2 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
-                    <em class="not-italic text-amber-700 italic">{{ \App\Models\Setting::get('home_reco_headline_' . $locale) ?: 'Best Tours in Lima' }}</em>
-                </h2>
-                <div class="mt-3 flex items-center justify-center lg:justify-start gap-2" aria-hidden="true">
-                    <span class="h-px w-8 bg-orange-500/50"></span>
-                    <svg class="w-3 h-3 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
-                    <span class="h-px w-8 bg-orange-500/50"></span>
-                </div>
-                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed max-w-md mx-auto lg:mx-0">
-                    {{ \App\Models\Setting::get('home_reco_body_' . $locale) ?: 'Una de las mejores empresas que brindan experiencias turísticas verificadas.' }}
-                </p>
-
-                {{-- Card premio --}}
-                <div class="mt-6 bg-white rounded-2xl ring-1 ring-orange-400/30 shadow-sm p-5 flex items-start gap-4 text-left max-w-md mx-auto lg:mx-0">
-                    <span class="w-14 h-14 rounded-full bg-orange-50 grid place-items-center shrink-0 ring-1 ring-orange-400/40 mt-0.5">
-                        <svg class="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
-                    </span>
-                    <div>
-                        <p class="font-bold text-teal-800 text-sm uppercase tracking-tight leading-tight">{!! \App\Models\Setting::get('home_reco_award_title_' . $locale) ?: 'GANAMOS EL PREMIO<br>DE VERIFICACIÓN' !!}</p>
-                        <p class="mt-1.5 text-xs text-teal-800/70 leading-snug">{{ \App\Models\Setting::get('home_reco_award_desc_' . $locale) ?: 'para los mejores tours y empresas que brindan experiencias de alta calidad en Lima.' }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Divider decorativo --}}
-        <div class="flex items-center gap-3 my-10" aria-hidden="true">
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-        </div>
-
-        {{-- ¿Por qué somos recomendados? --}}
-        <div>
-            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-6">
-                {{ \App\Models\Setting::get('home_sec_why_reco_title_' . $locale) ?: '¿Por qué somos recomendados?' }}
-            </h3>
-
-            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
-                @php
-                    $defaultRecoItems = [
-                        ['title_es'=>'Calidad Verificada',         'title_en'=>'Verified Quality',          'title_pt'=>'Qualidade Verificada',
-                         'desc_es'=>'Operadores evaluados bajo estrictos estándares de calidad.',
-                         'desc_en'=>'Operators evaluated under strict quality standards.',
-                         'desc_pt'=>'Operadores avaliados sob rigorosos padrões de qualidade.',
-                         'icon'=>'shield'],
-                        ['title_es'=>'Experiencias Auténticas',    'title_en'=>'Authentic Experiences',     'title_pt'=>'Experiências Autênticas',
-                         'desc_es'=>'Tours diseñados para brindar experiencias únicas y memorables.',
-                         'desc_en'=>'Tours designed to deliver unique and memorable experiences.',
-                         'desc_pt'=>'Tours criados para oferecer experiências únicas e memoráveis.',
-                         'icon'=>'star'],
-                        ['title_es'=>'Soporte Confiable',          'title_en'=>'Reliable Support',          'title_pt'=>'Suporte Confiável',
-                         'desc_es'=>'Acompañamiento antes, durante y después de tu viaje.',
-                         'desc_en'=>'Support before, during and after your trip.',
-                         'desc_pt'=>'Acompanhamento antes, durante e após sua viagem.',
-                         'icon'=>'headset'],
-                        ['title_es'=>'Altos Estándares de Calidad','title_en'=>'High Quality Standards',    'title_pt'=>'Altos Padrões de Qualidade',
-                         'desc_es'=>'Comprometidos con la excelencia y la satisfacción del viajero.',
-                         'desc_en'=>'Committed to excellence and traveler satisfaction.',
-                         'desc_pt'=>'Comprometidos com a excelência e a satisfação do viajante.',
-                         'icon'=>'medal'],
-                    ];
-                    $rawRecoItems = \App\Models\Setting::get('home_reco_items');
-                    $recoItems = (is_array($rawRecoItems) && count($rawRecoItems)) ? $rawRecoItems : $defaultRecoItems;
-                @endphp
-                @foreach ($recoItems as $rItem)
-                @php
-                    $rTitle = $rItem['title_' . $locale] ?? $rItem['title_es'] ?? '';
-                    $rDesc  = $rItem['desc_' . $locale]  ?? $rItem['desc_es']  ?? '';
-                    $rIcon  = $rItem['icon'] ?? 'shield';
-                @endphp
-                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-5 lg:p-6 text-center">
-                        <span class="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-teal-800 grid place-items-center mx-auto mb-4">
-                            <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-                                @if ($rIcon === 'shield')
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
-                                @elseif ($rIcon === 'star')
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
-                                @elseif ($rIcon === 'headset')
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75a4.5 4.5 0 004.5 4.5v8.25a3 3 0 003 3h6a3 3 0 003-3v-8.25a4.5 4.5 0 004.5-4.5h-21z"/>
-                                @else
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/>
-                                @endif
-                            </svg>
-                        </span>
-                        <p class="font-bold text-teal-800 text-sm leading-tight">{{ $rTitle }}</p>
-                        <p class="mt-2 text-[11px] text-teal-800/70 leading-snug">{{ $rDesc }}</p>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-
-        {{-- Divider decorativo --}}
-        <div class="flex items-center gap-3 my-10" aria-hidden="true">
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-        </div>
-
-        {{-- Y también nos recomiendan --}}
-        <div>
-            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-7">
-                {{ \App\Models\Setting::get('home_sec_verified_in_' . $locale) ?: 'Recomendado y verificado en' }}
-            </h3>
-
-            {{-- Strip de logos reales, bien distribuido --}}
-            <div class="bg-white rounded-3xl ring-1 ring-cream-200 shadow-sm max-w-3xl mx-auto
-                        grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cream-200">
-
-                {{-- Tripadvisor --}}
-                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
-                    <div class="flex items-center gap-2 h-7">
-                        <svg viewBox="0 0 40 24" class="h-[22px] w-auto" aria-hidden="true">
-                            <circle cx="13" cy="12" r="9.5" fill="#00AA6C"/>
-                            <circle cx="27" cy="12" r="9.5" fill="#00AA6C"/>
-                            <circle cx="13" cy="12" r="4.4" fill="#fff"/>
-                            <circle cx="27" cy="12" r="4.4" fill="#fff"/>
-                            <circle cx="13" cy="12" r="2" fill="#0a2326"/>
-                            <circle cx="27" cy="12" r="2" fill="#0a2326"/>
-                        </svg>
-                        <span class="font-bold text-[15px] tracking-tight" style="color:#0a2326;">Tripadvisor</span>
-                    </div>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
-                        <span class="tracking-tight" style="color:#00AA6C;letter-spacing:1px;">●●●●●</span> 4.9
-                    </span>
-                </div>
-
-                {{-- Viator --}}
-                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
-                    <span class="font-sans font-extrabold text-[26px] tracking-tight leading-7 h-7" style="color:#0a2326;">Viator</span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
-                        <span class="text-orange-400">★★★★★</span> 4.8
-                    </span>
-                </div>
-
-                {{-- GetYourGuide --}}
-                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
-                    <span class="font-sans font-extrabold text-[19px] tracking-tight leading-7 h-7" style="color:#FF5533;">GetYourGuide</span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
-                        <span class="text-orange-400">★★★★★</span> 4.9
-                    </span>
-                </div>
-            </div>
-
-            <p class="mt-6 text-center text-xs text-teal-800/70 max-w-md mx-auto leading-relaxed">
-                {{ \App\Models\Setting::get('home_reviews_footer_' . $locale) ?: 'Miles de reseñas verificadas de viajeros de todo el mundo respaldan nuestras experiencias.' }}
-            </p>
-        </div>
-    </div>
-</section>
 
 @endsection
 

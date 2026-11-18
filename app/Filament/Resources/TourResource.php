@@ -172,6 +172,11 @@ class TourResource extends Resource
                                         ->visible(fn () => \App\Support\TourFlags::has('show_most_sold'))
                                         ->helperText('Muestra el badge "Más vendido" en las tarjetas del home. Apagado por defecto: solo sale en los tours que lo marques.')
                                         ->default(false),
+                                    Forms\Components\Toggle::make('show_in_day_trips')
+                                        ->label('Mostrar en "Tours de un día desde Lima"')
+                                        ->visible(fn () => \App\Support\TourFlags::has('show_in_day_trips'))
+                                        ->helperText('Elige qué tours salen en esa sección del home. Si no marcas ninguno, se muestran tours de Lima que no estén en "Más vendidos".')
+                                        ->default(false),
                                     Forms\Components\Toggle::make('show_top_rated')
                                         ->label('Badge "Mejor valorado"')
                                         ->visible(fn () => \App\Support\TourFlags::has('show_top_rated'))

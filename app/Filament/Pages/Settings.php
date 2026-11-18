@@ -90,7 +90,7 @@ class Settings extends Page implements HasForms
         $repeaterKeys = [
             'home_destinos', 'home_why_items', 'home_tour_type_tabs',
             'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
-            'pickup_zones',
+            'home_choose_items', 'pickup_zones',
         ];
         foreach ($repeaterKeys as $rk) {
             if (isset($rows[$rk]) && is_string($rows[$rk])) {
@@ -342,26 +342,27 @@ class Settings extends Page implements HasForms
                             ]),
 
                         // ── Sección "Más Comprados" ───────────────────────────
-                        \Filament\Forms\Components\Section::make('Sección "Más Comprados"')
+                        \Filament\Forms\Components\Section::make('Sección "Tours en Perú más vendidos"')
                             ->collapsible()
                             ->columns(2)
                             ->schema([
                                 TextInput::make('home_sec_featured_eyebrow_es')->label('Eyebrow (ES)')->placeholder('NUESTROS TOURS'),
                                 TextInput::make('home_sec_featured_eyebrow_en')->label('Eyebrow (EN)')->placeholder('OUR TOURS'),
                                 TextInput::make('home_sec_featured_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('NOSSOS TOURS'),
-                                TextInput::make('home_sec_featured_title_es')->label('Título (ES)')->placeholder('Más Comprados'),
-                                TextInput::make('home_sec_featured_title_en')->label('Título (EN)')->placeholder('Best Sellers'),
-                                TextInput::make('home_sec_featured_title_pt')->label('Título (PT)')->placeholder('Mais Vendidos'),
+                                TextInput::make('home_sec_featured_title_es')->label('Título (ES)')->placeholder('Tours en Perú más vendidos'),
+                                TextInput::make('home_sec_featured_title_en')->label('Título (EN)')->placeholder('Best-selling tours in Peru'),
+                                TextInput::make('home_sec_featured_title_pt')->label('Título (PT)')->placeholder('Tours no Peru mais vendidos'),
                             ]),
 
                         // ── Sección "Tours en Lima, Ica y Cusco" ─────────────
-                        \Filament\Forms\Components\Section::make('Sección "Tours en Lima, Ica y Cusco"')
+                        \Filament\Forms\Components\Section::make('Sección "Tours de un día desde Lima"')
+                            ->description('Los tours se eligen en cada tour con el interruptor "Mostrar en Tours de un día desde Lima".')
                             ->collapsible()
                             ->columns(3)
                             ->schema([
-                                TextInput::make('home_sec_cities_title_es')->label('Título (ES)')->placeholder('Tours en Lima, Ica y Cusco'),
-                                TextInput::make('home_sec_cities_title_en')->label('Título (EN)')->placeholder('Tours in Lima, Ica and Cusco'),
-                                TextInput::make('home_sec_cities_title_pt')->label('Título (PT)')->placeholder('Tours em Lima, Ica e Cusco'),
+                                TextInput::make('home_sec_cities_title_es')->label('Título (ES)')->placeholder('Tours de un día desde Lima'),
+                                TextInput::make('home_sec_cities_title_en')->label('Título (EN)')->placeholder('Day tours from Lima'),
+                                TextInput::make('home_sec_cities_title_pt')->label('Título (PT)')->placeholder('Tours de um dia saindo de Lima'),
                             ]),
 
                         // ── Página Gracias ────────────────────────────────────
@@ -411,9 +412,9 @@ class Settings extends Page implements HasForms
                                 TextInput::make('home_sec_destinos_eyebrow_es')->label('Eyebrow (ES)')->placeholder('MÁS VISITADOS'),
                                 TextInput::make('home_sec_destinos_eyebrow_en')->label('Eyebrow (EN)')->placeholder('MOST VISITED'),
                                 TextInput::make('home_sec_destinos_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('MAIS VISITADOS'),
-                                TextInput::make('home_sec_destinos_title_es')->label('Título (ES)')->placeholder('Descubre las Ciudades<br>más Visitadas del Perú')->columnSpanFull(),
-                                TextInput::make('home_sec_destinos_title_en')->label('Título (EN)')->placeholder('Discover the Most Visited Cities of Peru')->columnSpanFull(),
-                                TextInput::make('home_sec_destinos_title_pt')->label('Título (PT)')->placeholder('Descubra as Cidades mais Visitadas do Peru')->columnSpanFull(),
+                                TextInput::make('home_sec_destinos_title_es')->label('Título (ES)')->placeholder('Tours por destino en Perú: Lima, Ica, Nazca y Cusco')->columnSpanFull(),
+                                TextInput::make('home_sec_destinos_title_en')->label('Título (EN)')->placeholder('Tours by destination in Peru: Lima, Ica, Nazca and Cusco')->columnSpanFull(),
+                                TextInput::make('home_sec_destinos_title_pt')->label('Título (PT)')->placeholder('Tours por destino no Peru: Lima, Ica, Nazca e Cusco')->columnSpanFull(),
                                 TextInput::make('home_destinos_footer_es')->label('Cierre sección (ES)')->placeholder('Experiencias auténticas, memorias inolvidables. Viaja con')->columnSpanFull(),
                                 TextInput::make('home_destinos_footer_en')->label('Cierre sección (EN)')->placeholder('Authentic experiences, unforgettable memories. Travel with')->columnSpanFull(),
                                 TextInput::make('home_destinos_footer_pt')->label('Cierre sección (PT)')->placeholder('Experiências autênticas, memórias inesquecíveis. Viaje com')->columnSpanFull(),
@@ -456,9 +457,9 @@ class Settings extends Page implements HasForms
                                 TextInput::make('home_sec_why_eyebrow_es')->label('Eyebrow (ES)')->placeholder('VIAJA CON CONFIANZA'),
                                 TextInput::make('home_sec_why_eyebrow_en')->label('Eyebrow (EN)')->placeholder('TRAVEL WITH CONFIDENCE'),
                                 TextInput::make('home_sec_why_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('VIAJE COM CONFIANÇA'),
-                                TextInput::make('home_sec_why_title_es')->label('Título (ES)')->placeholder('¿Por qué elegir<br>Lima View Tours?')->columnSpanFull(),
-                                TextInput::make('home_sec_why_title_en')->label('Título (EN)')->placeholder('Why choose<br>Lima View Tours?')->columnSpanFull(),
-                                TextInput::make('home_sec_why_title_pt')->label('Título (PT)')->placeholder('Por que escolher<br>Lima View Tours?')->columnSpanFull(),
+                                TextInput::make('home_sec_why_title_es')->label('Título (ES)')->placeholder('¿Por qué reservar tus tours en Perú con Lima View Tours?')->columnSpanFull(),
+                                TextInput::make('home_sec_why_title_en')->label('Título (EN)')->placeholder('Why book your Peru tours with Lima View Tours?')->columnSpanFull(),
+                                TextInput::make('home_sec_why_title_pt')->label('Título (PT)')->placeholder('Por que reservar seus tours no Peru com a Lima View Tours?')->columnSpanFull(),
                                 TextInput::make('home_sec_why_subtitle_es')->label('Subtítulo (ES)')->placeholder('Más que un tour, te ofrecemos<br>experiencias inolvidables.')->columnSpanFull(),
                                 TextInput::make('home_sec_why_subtitle_en')->label('Subtítulo (EN)')->placeholder('More than a tour, we offer you<br>unforgettable experiences.')->columnSpanFull(),
                                 TextInput::make('home_sec_why_subtitle_pt')->label('Subtítulo (PT)')->placeholder('Mais que um tour, oferecemos<br>experiências inesquecíveis.')->columnSpanFull(),
@@ -490,16 +491,49 @@ class Settings extends Page implements HasForms
                             ]),
 
                         // ── Sección 5: ¿Qué tipo de tour? ────────────────────────────
-                        \Filament\Forms\Components\Section::make('Sección "¿Qué tipo de tour estás buscando?"')
+                        \Filament\Forms\Components\Section::make('Sección "Tipos de tours en Perú"')
                             ->collapsible()->collapsed()
                             ->columns(3)
                             ->schema([
                                 TextInput::make('home_sec_types_eyebrow_es')->label('Eyebrow (ES)')->placeholder('CATEGORÍAS'),
                                 TextInput::make('home_sec_types_eyebrow_en')->label('Eyebrow (EN)')->placeholder('CATEGORIES'),
                                 TextInput::make('home_sec_types_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('CATEGORIAS'),
-                                TextInput::make('home_sec_types_title_es')->label('Título (ES)')->placeholder('¿Qué tipo de tour estás buscando?')->columnSpanFull(),
-                                TextInput::make('home_sec_types_title_en')->label('Título (EN)')->placeholder('What type of tour are you looking for?')->columnSpanFull(),
-                                TextInput::make('home_sec_types_title_pt')->label('Título (PT)')->placeholder('Que tipo de tour você está procurando?')->columnSpanFull(),
+                                TextInput::make('home_sec_types_title_es')->label('Título (ES)')->placeholder('Tipos de tours en Perú')->columnSpanFull(),
+                                TextInput::make('home_sec_types_title_en')->label('Título (EN)')->placeholder('Types of tours in Peru')->columnSpanFull(),
+                                TextInput::make('home_sec_types_title_pt')->label('Título (PT)')->placeholder('Tipos de tours no Peru')->columnSpanFull(),
+                            ]),
+
+                        // ── Sección 5B: Cómo elegir tu tour en Perú ─────────────────
+                        \Filament\Forms\Components\Section::make('Sección "Cómo elegir tu tour en Perú"')
+                            ->description('Guía rápida que aparece debajo de "Tipos de tours". Dejar vacío para usar los textos por defecto.')
+                            ->collapsible()->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_sec_choose_eyebrow_es')->label('Eyebrow (ES)')->placeholder('GUÍA RÁPIDA'),
+                                TextInput::make('home_sec_choose_eyebrow_en')->label('Eyebrow (EN)')->placeholder('QUICK GUIDE'),
+                                TextInput::make('home_sec_choose_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('GUIA RÁPIDO'),
+                                TextInput::make('home_sec_choose_title_es')->label('Título (ES)')->placeholder('Cómo elegir tu tour en Perú')->columnSpanFull(),
+                                TextInput::make('home_sec_choose_title_en')->label('Título (EN)')->placeholder('How to choose your tour in Peru')->columnSpanFull(),
+                                TextInput::make('home_sec_choose_title_pt')->label('Título (PT)')->placeholder('Como escolher seu tour no Peru')->columnSpanFull(),
+                                Textarea::make('home_sec_choose_intro_es')->rows(2)->label('Introducción (ES)')->columnSpanFull(),
+                                Textarea::make('home_sec_choose_intro_en')->rows(2)->label('Introducción (EN)')->columnSpanFull(),
+                                Textarea::make('home_sec_choose_intro_pt')->rows(2)->label('Introducción (PT)')->columnSpanFull(),
+                                Repeater::make('home_choose_items')
+                                    ->label('Consejos (tarjetas)')
+                                    ->helperText('Dejar vacío para usar los 4 consejos por defecto (días, tipo de experiencia, exigencia física y qué incluye).')
+                                    ->schema([
+                                        TextInput::make('title_es')->label('Título (ES)')->required(),
+                                        TextInput::make('title_en')->label('Título (EN)'),
+                                        TextInput::make('title_pt')->label('Título (PT)'),
+                                        Textarea::make('desc_es')->label('Texto (ES)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_en')->label('Texto (EN)')->rows(2)->columnSpanFull(),
+                                        Textarea::make('desc_pt')->label('Texto (PT)')->rows(2)->columnSpanFull(),
+                                    ])
+                                    ->columns(3)
+                                    ->collapsible()
+                                    ->itemLabel(fn (array $state): ?string => $state['title_es'] ?? null)
+                                    ->addActionLabel('+ Agregar consejo')
+                                    ->columnSpanFull(),
                             ]),
 
                         // ── Repeater: Tour Type Tabs ─────────────────────────────────
@@ -610,9 +644,9 @@ class Settings extends Page implements HasForms
                                 TextInput::make('home_sec_reviews_eyebrow_es')->label('Eyebrow (ES)')->placeholder('OPINIONES REALES'),
                                 TextInput::make('home_sec_reviews_eyebrow_en')->label('Eyebrow (EN)')->placeholder('REAL REVIEWS'),
                                 TextInput::make('home_sec_reviews_eyebrow_pt')->label('Eyebrow (PT)')->placeholder('OPINIÕES REAIS'),
-                                TextInput::make('home_sec_reviews_title_es')->label('Título (ES)')->placeholder('Lo que dicen nuestros viajeros')->columnSpanFull(),
-                                TextInput::make('home_sec_reviews_title_en')->label('Título (EN)')->placeholder('What our travelers say')->columnSpanFull(),
-                                TextInput::make('home_sec_reviews_title_pt')->label('Título (PT)')->placeholder('O que dizem nossos viajantes')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_title_es')->label('Título (ES)')->placeholder('Opiniones de nuestros viajeros')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_title_en')->label('Título (EN)')->placeholder('Reviews from our travelers')->columnSpanFull(),
+                                TextInput::make('home_sec_reviews_title_pt')->label('Título (PT)')->placeholder('Opiniões dos nossos viajantes')->columnSpanFull(),
                                 TextInput::make('home_sec_reviews_subtitle_es')->label('Subtítulo (ES)')->placeholder('Miles de viajeros han vivido el Perú con nosotros.')->columnSpanFull(),
                                 TextInput::make('home_sec_reviews_subtitle_en')->label('Subtítulo (EN)')->placeholder('Thousands of travelers have experienced Peru with us.')->columnSpanFull(),
                                 TextInput::make('home_sec_reviews_subtitle_pt')->label('Subtítulo (PT)')->placeholder('Milhares de viajantes viveram o Peru conosco.')->columnSpanFull(),
@@ -623,9 +657,9 @@ class Settings extends Page implements HasForms
                             ->collapsible()->collapsed()
                             ->columns(3)
                             ->schema([
-                                TextInput::make('home_sec_faq_title_es')->label('Título (ES)')->placeholder('Preguntas frecuentes')->columnSpanFull(),
-                                TextInput::make('home_sec_faq_title_en')->label('Título (EN)')->placeholder('Frequently asked questions')->columnSpanFull(),
-                                TextInput::make('home_sec_faq_title_pt')->label('Título (PT)')->placeholder('Perguntas frequentes')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_title_es')->label('Título (ES)')->placeholder('Preguntas frecuentes sobre tours en Perú')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_title_en')->label('Título (EN)')->placeholder('Frequently asked questions about tours in Peru')->columnSpanFull(),
+                                TextInput::make('home_sec_faq_title_pt')->label('Título (PT)')->placeholder('Perguntas frequentes sobre tours no Peru')->columnSpanFull(),
                                 TextInput::make('home_sec_faq_subtitle_es')->label('Subtítulo (ES)')->placeholder('Resolvemos las dudas más comunes...')->columnSpanFull(),
                                 TextInput::make('home_sec_faq_subtitle_en')->label('Subtítulo (EN)')->placeholder('We resolve the most common doubts...')->columnSpanFull(),
                                 TextInput::make('home_sec_faq_subtitle_pt')->label('Subtítulo (PT)')->placeholder('Resolvemos as dúvidas mais comuns...')->columnSpanFull(),
@@ -664,7 +698,7 @@ class Settings extends Page implements HasForms
                                 TextInput::make('home_reco_intro_es')->label('Intro "Estamos recomendados por" (ES)')->columnSpanFull(),
                                 TextInput::make('home_reco_intro_en')->label('Intro "Estamos recomendados por" (EN)')->columnSpanFull(),
                                 TextInput::make('home_reco_intro_pt')->label('Intro "Estamos recomendados por" (PT)')->columnSpanFull(),
-                                TextInput::make('home_reco_headline_es')->label('Headline (ES)')->placeholder('Best Tours in Lima')->columnSpanFull(),
+                                TextInput::make('home_reco_headline_es')->label('Frase destacada (ES) — ya no es encabezado H2')->placeholder('Best Tours in Lima')->columnSpanFull(),
                                 TextInput::make('home_reco_headline_en')->label('Headline (EN)')->placeholder('Best Tours in Lima')->columnSpanFull(),
                                 TextInput::make('home_reco_headline_pt')->label('Headline (PT)')->placeholder('Best Tours in Lima')->columnSpanFull(),
                                 Textarea::make('home_reco_body_es')->rows(2)->label('Cuerpo (ES)')->placeholder('Una de las mejores empresas...')->columnSpanFull(),
@@ -990,7 +1024,7 @@ class Settings extends Page implements HasForms
             // Serialize Repeater fields as JSON string
             $jsonRepeaterKeys = ['faqs', 'home_destinos', 'home_why_items', 'home_tour_type_tabs',
                 'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
-                'pickup_zones'];
+                'home_choose_items', 'pickup_zones'];
             if (in_array($key, $jsonRepeaterKeys, true)) {
                 Setting::set($key, json_encode(is_array($value) ? $value : []));
 

@@ -19,6 +19,7 @@ class HomeController extends Controller
     public function index(): View
     {
         $featuredTours = $this->fetchFeaturedTours();
+        $dayTrips = $this->fetchDayTrips($featuredTours);
         $toursIca = $this->fetchToursByRegion('Ica');
         $toursLima = $this->fetchToursByRegion('Lima');
         $toursCusco = $this->fetchToursByRegion('Cusco');
@@ -28,6 +29,7 @@ class HomeController extends Controller
 
         return view('home', compact(
             'featuredTours',
+            'dayTrips',
             'toursIca',
             'toursLima',
             'toursCusco',
@@ -73,6 +75,42 @@ class HomeController extends Controller
             return $featured;
         } catch (\Throwable $e) {
             Log::error('HomeController: failed to fetch featured tours', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return collect();
+        }
+    }
+
+    /**
+     * "Tours de un día desde Lima": lista PROPIA, distinta de "Más vendidos".
+     * 1) Tours marcados con show_in_day_trips en el admin.
+     * 2) Sin marcados: tours de la región Lima que NO estén en "Más vendidos".
+     * 3) Sin esos: tours de la región Lima (aunque repitan).
+     */
+    private function fetchDayTrips(\Illuminate\Support\Collection $featured): \Illuminate\Support\Collection
+    {
+        try {
+            if (\App\Support\TourFlags::has('show_in_day_trips')) {
+                $marked = Tour::published()->where('show_in_day_trips', true)->ordered()->limit(8)->get();
+                if ($marked->isNotEmpty()) {
+                    return $marked;
+                }
+            }
+
+            $lima = static fn () => Tour::published()
+                ->ordered()
+                ->whereHas('region', static fn ($q) => $q->where('name_es', 'Lima'));
+
+            $excludeIds = $featured->pluck('id')->filter()->all();
+            $distinct = $lima()
+                ->when(count($excludeIds) > 0, static fn ($q) => $q->whereNotIn('id', $excludeIds))
+                ->limit(8)
+                ->get();
+
+            return $distinct->isNotEmpty() ? $distinct : $lima()->limit(8)->get();
+        } catch (\Throwable $e) {
+            Log::error('HomeController: failed to fetch day trips', [
                 'exception' => $e->getMessage(),
             ]);
 

@@ -7,9 +7,9 @@
     <section aria-labelledby="newsletter-title" class="container mx-auto px-5 lg:px-10 py-14 grid gap-10 lg:grid-cols-2 items-center">
         <div>
             <p class="text-sm text-white/75">{{ __('footer.newsletter_eyebrow') }}</p>
-            <h2 id="newsletter-title" class="mt-3 text-white font-display text-2xl md:text-3xl lg:text-4xl leading-snug">
+            <p id="newsletter-title" class="mt-3 text-white font-display text-2xl md:text-3xl lg:text-4xl leading-snug">
                 {{ __('footer.newsletter_title') }}
-            </h2>
+            </p>
         </div>
 
         @if (session('newsletter_success'))
