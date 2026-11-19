@@ -54,7 +54,7 @@
     $languageResolved = $language ?? __('ui.language_default');
 @endphp
 
-<article class="tour-card flex flex-col bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5 h-full" {{ $attributes }}>
+<article class="tour-card flex flex-col bg-white rounded-3xl overflow-hidden shadow-md ring-1 ring-teal-800/5 h-full" data-ga-select data-ga-item-id="{{ $slug }}" data-ga-item-name="{{ $title }}" data-ga-price="{{ (float) $now }}" {{ $attributes }}>
 
     {{-- ── ZONA SUPERIOR: IMAGEN ── --}}
     <div class="relative shrink-0">
@@ -187,7 +187,7 @@
                             {{ __('ui.per_person') }}
                         </span>
                     </div>
-                    <a href="{{ $url }}"
+                    <a href="{{ $url }}" data-ga-cta="ver_tour" data-ga-location="card"
                        class="bg-teal-900 hover:bg-teal-950 active:bg-teal-950 text-white rounded-full pl-4 pr-1.5 py-1.5 inline-flex items-center gap-2 font-semibold text-sm transition shadow-md shrink-0">
                         <span class="whitespace-nowrap">{{ __('ui.see_tour') }}</span>
                         <span class="w-8 h-8 rounded-full bg-orange-500 grid place-items-center shrink-0">

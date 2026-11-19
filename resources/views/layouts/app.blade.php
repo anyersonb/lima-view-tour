@@ -300,6 +300,7 @@
        aria-label="WhatsApp"
        class="lvt-wa{{ request()->routeIs('home') ? ' lvt-wa--late' : '' }}"
        data-wa-location="flotante"
+       data-ga-cta="whatsapp" data-ga-location="whatsapp"
        style="position:fixed;bottom:calc(var(--wa-bottom,24px) + var(--sticky-bar-h, 0px));right:var(--wa-right,20px);z-index:9000;width:var(--wa-size,56px);height:var(--wa-size,56px);border-radius:9999px;background-color:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:transform .2s ease, opacity .2s ease;color:#fff;text-decoration:none;"
        onmouseover="this.style.transform='scale(1.1)'"
        onmouseout="this.style.transform='scale(1)'">
@@ -378,6 +379,27 @@
             sync();
         })();
     </script>
+
+    {{-- view_cart: la página del carrito (checkout.blade.php) no se toca; el payload sale de aquí. --}}
+    @if (request()->routeIs('cart.index'))
+        @php
+            $gaCartItems = app(\App\Services\CartService::class)->items()->map(fn ($it) => [
+                'item_id' => (string) ($it['tour_id'] ?? ''),
+                'item_name' => (string) ($it['title_snapshot'] ?? ''),
+                'price' => (float) ($it['unit_price'] ?? 0),
+                'quantity' => (int) ($it['adults'] ?? 0) + (int) ($it['children'] ?? 0),
+            ])->values();
+            $gaCartTotal = 0.0;
+            foreach ($gaCartItems as $gaIt) { $gaCartTotal += $gaIt['price'] * $gaIt['quantity']; }
+            $gaCartPayload = ['currency' => 'USD', 'value' => round($gaCartTotal, 2), 'items' => $gaCartItems];
+        @endphp
+        @if ($gaCartItems->isNotEmpty())
+            <script type="application/json" id="lvt-ga-cart">{!! json_encode($gaCartPayload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!}</script>
+        @endif
+    @endif
+
+    {{-- Eventos GA4 por delegación (select_item, cta_click, faq_open, view_cart, social_proof_view). Atributos data-ga-*. --}}
+    <script src="{{ asset('js/ga4-events.js') }}?v=20261118" defer></script>
 
     @stack('scripts')
 </body>

@@ -65,9 +65,9 @@
             'heading_es' => 'Servicio que se nota',
             'heading_en' => 'Service that shows',
             'heading_pt' => 'Serviço que se nota',
-            'body_es'    => 'Atención personalizada antes, durante y después del viaje. Nuestro equipo está disponible 24/7 para resolver cualquier inquietud y asegurar que cada detalle salga como lo soñaste.',
-            'body_en'    => 'Personalized attention before, during and after the trip. Our team is available 24/7 to resolve any concerns and ensure every detail goes as you dreamed.',
-            'body_pt'    => 'Atenção personalizada antes, durante e depois da viagem. Nossa equipe está disponível 24/7 para resolver qualquer dúvida e garantir que cada detalhe saia como você sonhou.',
+            'body_es'    => 'Atención personalizada antes, durante y después del viaje. Respondemos por WhatsApp todos los días de 9:00 a 18:30 (hora de Lima) para resolver cualquier inquietud y asegurar que cada detalle salga como lo soñaste.',
+            'body_en'    => 'Personalized attention before, during and after the trip. We reply on WhatsApp every day from 9:00 a.m. to 6:30 p.m. (Lima time) to resolve any concerns and ensure every detail goes as you dreamed.',
+            'body_pt'    => 'Atenção personalizada antes, durante e depois da viagem. Respondemos por WhatsApp todos os dias das 9:00 às 18:30 (horário de Lima) para resolver qualquer dúvida e garantir que cada detalhe saia como você sonhou.',
         ],
         [
             'key'        => 'calidad',

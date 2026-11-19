@@ -343,7 +343,7 @@
     <div class="lvt-reviews-cta__inner">
         <h2 id="reviews-cta-title" class="font-display">{{ __('cro.reviews_cta_title') }}</h2>
         <p>{{ __('cro.reviews_cta_text') }}</p>
-        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="lvt-reviews-cta__btn">{{ __('cro.reviews_cta_btn') }}</a>
+        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="lvt-reviews-cta__btn" data-ga-cta="ver_tours" data-ga-location="reviews">{{ __('cro.reviews_cta_btn') }}</a>
     </div>
 </section>
 

@@ -59,4 +59,16 @@ return [
      */
     'max_months_ahead' => (int) env('BOOKING_MAX_MONTHS_AHEAD', 18),
 
+    /*
+     | Prueba social honesta (ficha de tour, 2026-11-18). Solo se muestra el
+     | contador "N viajeros reservaron..." si hay al menos `min` personas
+     | (adultos + niños) en reservas confirmadas/pagadas de los últimos
+     | `days` días. Resultado cacheado `cache_ttl` segundos por tour.
+     */
+    'social_proof' => [
+        'min' => (int) env('BOOKING_SOCIAL_PROOF_MIN', 5),
+        'days' => (int) env('BOOKING_SOCIAL_PROOF_DAYS', 30),
+        'cache_ttl' => (int) env('BOOKING_SOCIAL_PROOF_TTL', 3600),
+    ],
+
 ];

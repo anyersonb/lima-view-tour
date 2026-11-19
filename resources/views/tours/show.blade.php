@@ -70,7 +70,8 @@
     $tourRating   = $reviewStats['average'] !== null ? number_format($reviewStats['average'], 1) : null;
     $reviewsCount = $reviewStats['total'];
     $isMostBooked = ($tour->show_best_seller ?? true) && ($tour->is_most_booked ?? $tour->is_featured ?? false);
-    $bookingsWeek = $tour->bookings_this_week ?? 30;
+    // Prueba social REAL (reservas confirmadas/pagadas, 30 días, cache 1 h). null = no se muestra.
+    $socialProof = \App\Support\SocialProof::displayable($tour);
 
     // ── Variante oferta ──
     $hasOffer = $tour->price_before && (float)$tour->price_before > (float)$tour->price;
@@ -1220,9 +1221,7 @@ if (!empty($itinerary)) {
                 <div class="m-subline">
                     @if ($freeCancellation)
                     <span class="m-subitem safe"><span class="m-ico">🛡</span><span>{{ __('ui.free_cancellation') }}</span></span>
-                    <span class="m-divider" aria-hidden="true"></span>
                     @endif
-                    <span class="m-subitem urgent"><span class="m-ico">🔥</span><span>{{ __('ui.last_spots') }}</span></span>
                 </div>
             </div>
             {{-- Contador galería abajo derecha --}}
@@ -1350,7 +1349,7 @@ if (!empty($itinerary)) {
                         <strong>US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
                     </div>
                     {{-- CTA --}}
-                    <button type="submit" form="form-reservar" class="m-cta">{{ mb_strtoupper(__('ui.book')) }} &nbsp; ›</button>
+                    <button type="submit" form="form-reservar" class="m-cta" data-ga-cta="reservar" data-ga-location="ficha">{{ mb_strtoupper(__('ui.book')) }} &nbsp; ›</button>
                     <div class="m-foot">{{ __('ui.secure_payment_no_fees') }}</div>
                 </div>
             </div>
@@ -1364,7 +1363,9 @@ if (!empty($itinerary)) {
                 @endif
                 <div class="m-trust">🔒 {{ __('ui.secure_payment') }}<small>{{ __('ui.and_protected') }}</small></div>
             </div>
-            <div class="m-notice">🔥 {{ $bookingsWeek }} {{ __('ui.travelers_booked_week') }}</div>
+            @if ($socialProof !== null)
+            <div class="m-notice" style="background:#eaf5ec;color:#145212;" data-ga-view="social_proof_view" data-ga-count="{{ $socialProof }}"><span aria-hidden="true">✔</span> {{ $socialProof }} {{ __('ui.travelers_booked_week') }}</div>
+            @endif
             <div class="m-features">
                 @if ($pickupIncluded)
                 <div class="m-feature"><div class="m-ico" aria-hidden="true">🚌</div><b>{{ __('ui.pickup_included') }}</b><small>{{ __('ui.from_your_hotel') }}</small></div>
@@ -1517,7 +1518,7 @@ if (!empty($itinerary)) {
                     </div>
                 </details>
                 @if ($tourFaqs)
-                <details class="group">
+                <details class="group" data-ga-faq="ficha">
                     <summary class="m-info-item">
                         <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg></div>
                         <div>
@@ -1767,10 +1768,6 @@ if (!empty($itinerary)) {
                     {{ __('ui.free_cancellation') }}
                 </span>
 @endif
-                <span class="inline-flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
-                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clip-rule="evenodd"/></svg>
-                    {{ __('ui.last_spots') }}
-                </span>
             </div>
 
             {{-- Miniaturas abajo (si hay más de 1 imagen) --}}
@@ -1911,10 +1908,12 @@ if (!empty($itinerary)) {
             </div>
 
             {{-- Notice urgencia --}}
-            <div class="inline-flex items-center gap-2 bg-orange-50 border border-orange-200 text-teal-800 text-sm font-medium px-4 py-2.5 rounded-full w-full justify-center mt-1">
-                <svg class="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clip-rule="evenodd"/></svg>
-                <span><strong>{{ $bookingsWeek }}</strong> {{ __('ui.travelers_booked_week') }}</span>
+            @if ($socialProof !== null)
+            <div class="inline-flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-full w-full justify-center mt-1" style="background:#eaf5ec;color:#145212;" data-ga-view="social_proof_view" data-ga-count="{{ $socialProof }}">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>
+                <span><strong>{{ $socialProof }}</strong> {{ __('ui.travelers_booked_week') }}</span>
             </div>
+            @endif
 
             {{-- Grid 4 features --}}
             <div class="grid grid-cols-4 gap-2 sm:gap-4 mt-4">
@@ -2217,7 +2216,7 @@ if (!empty($itinerary)) {
 
                 {{-- Preguntas frecuentes del tour (administrables por idioma) --}}
                 @if ($tourFaqs)
-                <details class="group">
+                <details class="group" data-ga-faq="ficha">
                     <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
                         <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
                             <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
@@ -2569,6 +2568,7 @@ if (!empty($itinerary)) {
                 {{-- CTA Reservar --}}
                 <button type="submit"
                         form="form-reservar"
+                        data-ga-cta="reservar" data-ga-location="ficha"
                         class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-sm rounded-full py-3.5 px-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800 uppercase tracking-wide">
                     {{ __('ui.book_now') }}
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
@@ -2713,7 +2713,7 @@ if (!empty($itinerary)) {
         @endif
         <p class="lvt-resbar__now"><span class="font-price">US${{ number_format((float)$tour->price, 0) }}</span> <small>{{ __('ui.per_person') }}</small></p>
     </div>
-    <button type="button" class="lvt-resbar__cta" @click="go()">{{ __('ui.check_availability') }}</button>
+    <button type="button" class="lvt-resbar__cta" @click="go()" data-ga-cta="comprobar_disponibilidad" data-ga-location="sticky">{{ __('ui.check_availability') }}</button>
 </div>
 @endif
 

@@ -50,8 +50,8 @@
             {{ $e404Body }}
         </p>
         <div class="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="btn--primary">{{ $e404Home }}</a>
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary-outline">{{ $e404Tours }}</a>
+            <a href="{{ route('home', ['locale' => $locale]) }}" class="btn--primary" data-ga-cta="volver_inicio" data-ga-location="404">{{ $e404Home }}</a>
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="btn--primary-outline" data-ga-cta="ver_tours" data-ga-location="404">{{ $e404Tours }}</a>
         </div>
     </main>
 
