@@ -44,6 +44,12 @@
 
     $galleryUrls = $tour->gallery_urls;
     $totalImgs   = count($galleryUrls);
+    // Imagen principal (LCP): variantes WebP si existen (ImageVariants), si no el original. Misma URL/sizes en la copia
+    // móvil y la de escritorio para que el navegador descargue UNA sola.
+    $heroPath    = (is_array($gallery) && ! empty($gallery[0]) && is_string($gallery[0])) ? $gallery[0] : ($tour->cover_image ?? null);
+    $heroSrcset  = \App\Support\ImageVariants::srcset($heroPath);
+    $heroSrc     = $heroSrcset ? (\App\Support\ImageVariants::responsive($heroPath, 960) ?: ($galleryUrls[0] ?? $tour->cover_url)) : ($galleryUrls[0] ?? $tour->cover_url);
+    $heroSizes   = '(min-width: 768px) 900px, 100vw';
     $comparison  = $tour->comparisonData($locale); // bloque "convencional VS premium" (null si desactivado)
 
     // Idioma del tour para el badge "Guía bilingüe": si el campo trae un valor
@@ -243,6 +249,11 @@
 @if ($customSchema)
 <x-schema-raw :json="$customSchema" />
 @endif
+@endpush
+
+@push('head')
+{{-- LCP: la imagen principal de la ficha se precarga con prioridad alta (mismos srcset/sizes que el <img>). --}}
+<link rel="preload" as="image" href="{{ $heroSrc }}" @if ($heroSrcset) imagesrcset="{{ $heroSrcset }}" imagesizes="{{ $heroSizes }}" @endif fetchpriority="high">
 @endpush
 
 @push('head')
@@ -1122,6 +1133,13 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 {{-- ─────────── CONTENIDO PRINCIPAL — single column ─────────── --}}
 @php
 // Highlights para el carrusel "¿Qué vivirás?" — compartido entre mobile y desktop
+// Alt descriptivo (generado por la vista, no de BD): "<tour> – <parada>"; si el título de la parada es solo una hora
+// ("5:00 am") o está vacío, "<tour> – foto N". Evita alts como "5:00 am" o "CITY TOUR CUSCO" repetido.
+$hlAlt = function (array $hl, int $k) use ($tour) {
+    $t = trim((string) ($hl['title'] ?? ''));
+    $timeLike = $t === '' || preg_match('/^\d{1,2}([:.]\d{2})?\s*(a\.?\s?m\.?|p\.?\s?m\.?|h|hrs)?$/iu', $t);
+    return $tour->title . ' – ' . ($timeLike ? ('foto ' . ($k + 1)) : $t);
+};
 $highlightsFromItinerary = [];
 if (!empty($itinerary)) {
     foreach (array_slice($itinerary, 0, 4) as $k => $step) {
@@ -1173,10 +1191,19 @@ if (!empty($itinerary)) {
     ══════════════════════════════════════ --}}
     <div class="md:hidden">
         <div class="m-hero"
-             style="background: url('{{ addslashes($galleryUrls[0] ?? $tour->cover_url) }}') center/cover no-repeat;"
-             :style="`background: url('${gallery[active]}') center/cover no-repeat`"
              @touchstart="heroTouchX = $event.changedTouches[0].clientX"
              @touchend="(() => { const dx = $event.changedTouches[0].clientX - heroTouchX; if (gallery.length > 1 && Math.abs(dx) > 40) { dx < 0 ? next() : prev(); } })()">
+            {{-- Imagen principal: <img> real (antes background-image) → candidata LCP con fetchpriority, srcset y dimensiones. --}}
+            <img class="m-hero__img"
+                 src="{{ $heroSrc }}"
+                 @if ($heroSrcset) srcset="{{ $heroSrcset }}" @endif
+                 sizes="{{ $heroSizes }}"
+                 :src="active === 0 ? '{{ addslashes($heroSrc) }}' : gallery[active]"
+                 :srcset="active === 0 ? '{{ addslashes((string) $heroSrcset) }}' : ''"
+                 alt="{{ $tour->title }}"
+                 width="900" height="821"
+                 loading="eager" fetchpriority="high" decoding="async"
+                 onerror="this.onerror=null;this.removeAttribute('srcset');this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
             {{-- Flechas de navegación del slider (solo si hay más de 1 imagen) --}}
             <template x-if="gallery.length > 1">
                 <div>
@@ -1286,7 +1313,7 @@ if (!empty($itinerary)) {
                                    x-model="$store.booking.date"
                                    min="{{ $bookingMinDate }}"
                                    aria-label="{{ __('ui.tour_date') }}"
-                                   style="border:none;background:transparent;font-size:12px;color:#29404a;width:100%;outline:none;">
+                                   class="lvt-date-input" style="border:none;background:transparent;color:#29404a;width:100%;outline:none;">
                             <span aria-hidden="true">📅</span>
                         </div>
                         <p class="m-date-notice">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]) }}</p>
@@ -1299,17 +1326,17 @@ if (!empty($itinerary)) {
                         <div class="m-field">
                             <span class="m-label">{{ __('ui.adults') }}</span>
                             <div class="m-input-row">
-                                <button type="button" @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)" aria-label="{{ __('ui.less_adults') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
+                                <button type="button" @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)" aria-label="{{ __('ui.less_adults') }}" class="lvt-qty-btn">−</button>
                                 <span x-text="$store.booking.adults">1</span>
-                                <button type="button" @click="$store.booking.adults++" aria-label="{{ __('ui.more_adults') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
+                                <button type="button" @click="$store.booking.adults++" aria-label="{{ __('ui.more_adults') }}" class="lvt-qty-btn">+</button>
                             </div>
                         </div>
                         <div class="m-field">
                             <span class="m-label">{{ __('ui.children') }}</span>
                             <div class="m-input-row">
-                                <button type="button" @click="$store.booking.children = Math.max(0, $store.booking.children - 1)" aria-label="{{ __('ui.less_children') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">−</button>
+                                <button type="button" @click="$store.booking.children = Math.max(0, $store.booking.children - 1)" aria-label="{{ __('ui.less_children') }}" class="lvt-qty-btn">−</button>
                                 <span x-text="$store.booking.children">0</span>
-                                <button type="button" @click="$store.booking.children++" aria-label="{{ __('ui.more_children') }}" style="background:none;border:none;cursor:pointer;font-size:16px;color:#083b31;padding:0 4px;">+</button>
+                                <button type="button" @click="$store.booking.children++" aria-label="{{ __('ui.more_children') }}" class="lvt-qty-btn">+</button>
                             </div>
                         </div>
                     </div>
@@ -1361,7 +1388,7 @@ if (!empty($itinerary)) {
         @if (count($highlightsFromItinerary) > 0)
         <div style="padding:18px 20px;">
             <div class="m-h2">
-                <h2>{{ __('ui.what_will_you_experience') }}</h2>
+                <div class="m-h2-title" role="heading" aria-level="2">{{ __('ui.what_will_you_experience') }}</div>
                 <a href="#m-itinerary">{{ __('ui.see_more') }}</a>
             </div>
             @php $expCount = count($highlightsFromItinerary); @endphp
@@ -1369,7 +1396,7 @@ if (!empty($itinerary)) {
                  @scroll.debounce.40ms="expActive = Math.round($el.scrollLeft / ($el.scrollWidth / {{ $expCount }}))">
                 @foreach ($highlightsFromItinerary as $k => $hl)
                 <div class="m-exp">
-                    <img src="{{ $hl['img'] }}" alt="{{ $hl['title'] ?: $tour->title }}" loading="lazy" width="86" height="94">
+                    <img src="{{ $hl['img'] }}" alt="{{ $hlAlt($hl, $k) }}" loading="lazy" width="86" height="94">
                     @if (!empty($hl['title']))<b>{{ \Illuminate\Support\Str::limit($hl['title'], 20) }}</b>@endif
                     @if (!empty($hl['desc']))<small>{{ \Illuminate\Support\Str::limit($hl['desc'], 30) }}</small>@endif
                 </div>
@@ -1389,7 +1416,7 @@ if (!empty($itinerary)) {
         @if (count($itinerary) > 0)
         <div id="m-itinerary" style="padding:18px 20px;">
             <div class="m-h2">
-                <h2>{{ __('ui.tour_itinerary') }}</h2>
+                <div class="m-h2-title" role="heading" aria-level="2">{{ __('ui.tour_itinerary') }}</div>
                 <a href="#m-info-desc">{{ __('ui.full_itinerary') }}</a>
             </div>
             <div class="m-timeline">
@@ -1410,7 +1437,7 @@ if (!empty($itinerary)) {
 
         {{-- 7. INFORMACIÓN IMPORTANTE — acordeón --}}
         <div style="padding:18px 20px;">
-            <h2 class="m-sec-title">{{ __('ui.important_info') }}</h2>
+            <div class="m-sec-title" role="heading" aria-level="2">{{ __('ui.important_info') }}</div>
             <div class="m-info-list">
                 <details id="m-info-desc" class="group">
                     <summary class="m-info-item">
@@ -1515,7 +1542,7 @@ if (!empty($itinerary)) {
         {{-- 7B. ¿DÓNDE TE RECOGEMOS? — zonas de recogida (mobile) --}}
         @if ($showPickup)
         <div style="padding:18px 20px;">
-            <h2 class="m-sec-title m-sec-title--tight">{{ __('ui.pickup_zones_title') }}</h2>
+            <div class="m-sec-title m-sec-title--tight" role="heading" aria-level="2">{{ __('ui.pickup_zones_title') }}</div>
             <p style="font-size:12px;color:#5f6469;line-height:1.5;margin:0 0 12px;">{{ __('ui.pickup_zones_subtitle') }}</p>
             <div id="m-pickup-map" style="width:100%;height:220px;border-radius:14px;overflow:hidden;background:#f1f0ec;margin-bottom:12px;"></div>
             <div class="m-info-list">
@@ -1534,7 +1561,7 @@ if (!empty($itinerary)) {
 
         {{-- 8. OPINIONES DE NUESTROS VIAJEROS --}}
         <div id="reviews" style="padding:18px 20px;">
-            <h2 class="m-sec-title m-sec-title--tight">{{ __('ui.traveler_reviews') }}</h2>
+            <div class="m-sec-title m-sec-title--tight" role="heading" aria-level="2">{{ __('ui.traveler_reviews') }}</div>
             <p style="font-size:12px;color:#5f6469;line-height:1.5;margin:0 0 14px;">{{ __('ui.traveler_reviews_subtitle') }}</p>
 
             @if ($reviewStats['total'] > 0)
@@ -1605,7 +1632,7 @@ if (!empty($itinerary)) {
         @if ($sidebarTours->isNotEmpty())
         <div style="padding:12px 20px 18px;">
             <div class="m-h2">
-                <h2>{{ __('ui.others_also_booked') }}</h2>
+                <div class="m-h2-title" role="heading" aria-level="2">{{ __('ui.others_also_booked') }}</div>
                 <a href="{{ route('tours.index', ['locale' => $locale]) }}">{{ __('ui.see_all') }}</a>
             </div>
             <div class="m-rec-list">
@@ -1689,7 +1716,7 @@ if (!empty($itinerary)) {
 
         {{-- 10. RESERVA CON CONFIANZA --}}
         <div class="m-confidence">
-            <h2 class="m-confidence-title">{{ __('ui.book_with_confidence') }}</h2>
+            <div class="m-confidence-title" role="heading" aria-level="2">{{ __('ui.book_with_confidence') }}</div>
             <div class="m-confidence-grid">
                 @if ($freeCancellation)
                 <div><span class="m-ico" aria-hidden="true">🛡️</span>{{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
@@ -1715,11 +1742,14 @@ if (!empty($itinerary)) {
 
         {{-- ── HERO GALERÍA DESKTOP ── --}}
         <div class="tour-gallery__hero relative rounded-2xl overflow-hidden h-[380px] lg:h-[500px] bg-teal-800/10">
-            <img :src="gallery[active] || '{{ addslashes($galleryUrls[0] ?? $tour->cover_url) }}'"
-                 src="{{ $galleryUrls[0] ?? $tour->cover_url }}"
+            <img :src="active === 0 ? '{{ addslashes($heroSrc) }}' : (gallery[active] || '{{ addslashes($heroSrc) }}')"
+                 :srcset="active === 0 ? '{{ addslashes((string) $heroSrcset) }}' : ''"
+                 src="{{ $heroSrc }}"
+                 @if ($heroSrcset) srcset="{{ $heroSrcset }}" @endif
+                 sizes="{{ $heroSizes }}"
                  alt="{{ $tour->title }}"
                  class="w-full h-full object-cover"
-                 loading="eager"
+                 loading="eager" fetchpriority="high"
                  width="900" height="500"
                  onerror="this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
 
@@ -1948,7 +1978,7 @@ if (!empty($itinerary)) {
                     <div class="bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5">
                         <div class="h-32 lg:h-40 overflow-hidden relative bg-teal-800/10">
                             <img src="{{ $hl['img'] }}"
-                                 alt="{{ $hl['title'] ?: $tour->title }}"
+                                 alt="{{ $hlAlt($hl, $k) }}"
                                  class="w-full h-full object-cover"
                                  loading="lazy"
                                  width="240" height="160">
@@ -2644,6 +2674,9 @@ if (!empty($itinerary)) {
      x-data="{
          shown: false,
          init() {
+             // Móvil: visible desde la carga (precio + CTA en el primer pantallazo); solo se oculta cuando la tarjeta
+             // de reserva ocupa la pantalla (ahí ya está el CTA propio).
+             this.shown = !window.matchMedia('(min-width: 768px)').matches;
              const target = document.getElementById('seccion-reserva');
              const mq = window.matchMedia('(min-width: 768px)');
              const sync = () => {
@@ -2653,10 +2686,12 @@ if (!empty($itinerary)) {
              this.$watch('shown', () => this.$nextTick(sync));
              mq.addEventListener('change', sync);
              window.addEventListener('resize', sync);
+             this.$nextTick(sync);
              if (!target || !('IntersectionObserver' in window)) return;
              new IntersectionObserver(([e]) => {
-                 this.shown = !mq.matches && !e.isIntersecting && e.boundingClientRect.top < 0;
-             }).observe(target);
+                 const cardOnScreen = e.intersectionRect.height > window.innerHeight * 0.55;
+                 this.shown = !mq.matches && !cardOnScreen;
+             }, { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] }).observe(target);
          },
          go() {
              const target = document.getElementById('seccion-reserva');

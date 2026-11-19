@@ -34,6 +34,8 @@ class SitemapController extends Controller
             'reviews'       => ['priority' => '0.6', 'changefreq' => 'weekly'],
             'legal.terms'   => ['priority' => '0.3', 'changefreq' => 'yearly'],
             'legal.privacy' => ['priority' => '0.3', 'changefreq' => 'yearly'],
+            'legal.refund'  => ['priority' => '0.3', 'changefreq' => 'yearly'],
+            'complaints'    => ['priority' => '0.3', 'changefreq' => 'yearly'],
         ];
 
         foreach ($staticRoutes as $r) {

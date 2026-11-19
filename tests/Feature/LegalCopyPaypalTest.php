@@ -18,14 +18,19 @@ class LegalCopyPaypalTest extends TestCase
     }
 
     /** @dataProvider locales */
-    public function test_no_copy_mentions_culqi(string $locale): void
+    public function test_legal_copy_names_culqi_and_checkout_copy_does_not(string $locale): void
     {
-        $keys = [
-            'legal.terms_s3_body', 'legal.privacy_s1_body', 'legal.privacy_s3_body',
-            'checkout.hero_subtitle', 'checkout.secure_payment',
-        ];
+        // Nov-2026: la pasarela Culqi exige que Términos y Privacidad la nombren.
+        foreach (['legal.terms_s3_body', 'legal.privacy_s1_body', 'legal.privacy_s3_body'] as $key) {
+            $text = __($key, [], $locale);
 
-        foreach ($keys as $key) {
+            $this->assertNotSame($key, $text, "missing key {$key} ({$locale})");
+            $this->assertStringContainsStringIgnoringCase('culqi', $text, "{$key} ({$locale})");
+            $this->assertStringContainsString('PayPal', $text, "{$key} ({$locale})");
+        }
+
+        // El copy del checkout no se tocó en este lote.
+        foreach (['checkout.hero_subtitle', 'checkout.secure_payment'] as $key) {
             $text = __($key, [], $locale);
 
             $this->assertNotSame($key, $text, "missing key {$key} ({$locale})");

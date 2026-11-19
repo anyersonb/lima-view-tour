@@ -257,6 +257,9 @@
 
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
+    {{-- CRO móvil 18-nov-2026: CSS plano SIN build (no depende de recompilar Vite). Va DESPUÉS de Vite y de los
+         <style> de cada vista para ganar por orden de cascada. Subir ?v= en cada cambio. --}}
+    <link rel="stylesheet" href="{{ asset('css/cro-fixes.css') }}?v=20261118a">
 </head>
 <body class="bg-white">
     {{-- Sin <noscript> de GTM: el iframe no aporta medicion util (los eventos dependen de JS). --}}
@@ -280,14 +283,24 @@
 
     <x-footer />
 
-    {{-- Botón flotante WhatsApp — posición 100% inline para funcionar sin rebuild de Tailwind --}}
-    @php $waNumber = \App\Models\Setting::get('whatsapp') ?: '51925886725'; @endphp
-    <a href="https://wa.me/{{ $waNumber }}"
+    {{-- Botón flotante WhatsApp — posición inline (funciona sin rebuild de Tailwind).
+         Mensaje precargado contextual (?text= urlencoded) por idioma: ficha de tour → nombre + URL; resto → genérico + URL.
+         Tamaño/posición vía variables CSS (--wa-*) que cro-fixes.css ajusta en móvil (48px, sobre las barras fijas). --}}
+    @php
+        $waNumber = \App\Models\Setting::get('whatsapp') ?: '51925886725';
+        $waTourName = (isset($tour) && is_object($tour)) ? trim((string) ($tour->title ?? '')) : '';
+        $waText = ($waTourName !== '' && request()->routeIs('tours.show'))
+            ? __('cro.wa_tour', ['tour' => $waTourName, 'url' => url()->current()])
+            : __('cro.wa_generic', ['url' => url()->current()]);
+        $waHref = 'https://wa.me/' . $waNumber . '?text=' . rawurlencode($waText);
+    @endphp
+    <a href="{{ $waHref }}"
        target="_blank"
        rel="noopener noreferrer"
        aria-label="WhatsApp"
+       class="lvt-wa{{ request()->routeIs('home') ? ' lvt-wa--late' : '' }}"
        data-wa-location="flotante"
-       style="position:fixed;bottom:calc(24px + var(--sticky-bar-h, 0px));right:20px;z-index:9000;width:56px;height:56px;border-radius:9999px;background-color:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:transform .2s ease;color:#fff;text-decoration:none;"
+       style="position:fixed;bottom:calc(var(--wa-bottom,24px) + var(--sticky-bar-h, 0px));right:var(--wa-right,20px);z-index:9000;width:var(--wa-size,56px);height:var(--wa-size,56px);border-radius:9999px;background-color:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:transform .2s ease, opacity .2s ease;color:#fff;text-decoration:none;"
        onmouseover="this.style.transform='scale(1.1)'"
        onmouseout="this.style.transform='scale(1)'">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -345,6 +358,25 @@
             }
             window.lvtTrack(name, { ubicacion: ubicacion }, { fb: null });
         }, true);
+    </script>
+
+    <script>
+        // WhatsApp flotante: no tapa lo que el usuario escribe ni los datos del primer pantallazo de la home (móvil/tablet).
+        (function () {
+            var wa = document.querySelector('.lvt-wa');
+            if (!wa) return;
+            var late = wa.classList.contains('lvt-wa--late');
+            var typing = false;
+            var mq = window.matchMedia('(max-width: 1023px)');
+            function sync() {
+                wa.classList.toggle('is-away', typing || (late && mq.matches && window.scrollY < 480));
+            }
+            document.addEventListener('focusin', function (e) { typing = mq.matches && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName); sync(); });
+            document.addEventListener('focusout', function () { typing = false; sync(); });
+            window.addEventListener('scroll', sync, { passive: true });
+            window.addEventListener('resize', sync);
+            sync();
+        })();
     </script>
 
     @stack('scripts')

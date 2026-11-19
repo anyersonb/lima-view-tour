@@ -133,9 +133,7 @@
             <a href="{{ $url }}" class="hover:text-orange-700 transition-colors line-clamp-2 {{ $bp('sm:line-clamp-none', 'md:line-clamp-none md:after:absolute md:after:inset-0') }}">{{ $title }}</a>
         </h3>
 
-        @if (filled($duration))
-            <p class="mt-0.5 text-[13px] font-bold text-orange-700 leading-[14px] {{ $bp('sm:hidden', 'md:hidden') }}">{{ $duration }}</p>
-        @endif
+        {{-- 18-nov: se quitó el <p> naranja con la duración (se repetía idéntico en la lista de características de abajo). --}}
 
         @if ($showRating)
             <p class="hidden items-center gap-2 {{ $bp('sm:flex mt-3 text-sm', 'md:flex mt-2.5 text-[15px]') }}">
@@ -225,7 +223,7 @@
                 @endif
 
                 {{-- CTA --}}
-                <a href="{{ $url }}" class="{{ $hasDiscount ? 'col-start-1 col-span-2 row-start-2 mt-[5px]' : 'col-start-2 row-start-1 min-w-0' }} bg-teal-900 hover:bg-teal-950 active:bg-teal-950 text-white rounded-xl h-[27px] px-3 inline-flex items-center justify-center gap-1.5 font-semibold text-[13px] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 {{ $bp(
+                <a href="{{ $url }}" class="lvt-card-cta {{ $hasDiscount ? 'col-start-1 col-span-2 row-start-2 mt-[5px]' : 'col-start-2 row-start-1 min-w-0' }} bg-teal-900 hover:bg-teal-950 active:bg-teal-950 text-white rounded-xl h-[27px] px-3 inline-flex items-center justify-center gap-1.5 font-semibold text-[13px] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 {{ $bp(
                     'sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:mt-0 sm:rounded-full sm:h-auto sm:pl-4 sm:pr-1.5 sm:py-1.5 sm:gap-2 sm:text-sm sm:justify-start sm:shadow-md',
                     'md:relative md:z-10 md:col-span-1 md:col-start-2 md:row-start-1 ' . $ctaSpan . ' md:mt-0 md:rounded-full md:h-[48px] md:pl-5 md:pr-1.5 md:gap-3 md:text-[15px] md:justify-start md:shadow-lg'
                 ) }}">

@@ -10,6 +10,8 @@ return [
     'about_short' => 'Us',
     'terms' => 'Terms and Conditions',
     'privacy' => 'Privacy Policy',
+    'complaints' => 'Complaints Book',
+    'refund' => 'Refund and change policy',
     'locate_us' => 'Locate us at',
     'address' => 'Jr. Lampa 209, Lima Center',
     'hours' => '9:00 a.m. – 6:30 p.m. Mon–Sun',

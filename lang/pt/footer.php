@@ -10,6 +10,8 @@ return [
     'about_short' => 'Sobre nós',
     'terms' => 'Termos e condições',
     'privacy' => 'Política de privacidade',
+    'complaints' => 'Livro de Reclamações',
+    'refund' => 'Política de reembolso e alterações',
     'locate_us' => 'Nos encontre em',
     'address' => 'Jr. Lampa 209, Lima Center',
     'hours' => '9:00 a.m. – 6:30 p.m. Seg–Dom',

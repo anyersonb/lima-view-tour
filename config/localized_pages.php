@@ -65,4 +65,18 @@ return [
         'pt' => 'privacidade',
     ],
 
+    // Exigencias de la pasarela Culqi / INDECOPI (nov-2026): política de
+    // cambios y devoluciones + Libro de Reclamaciones virtual.
+    'legal.refund' => [
+        'es' => 'politica-de-cambios-y-devoluciones',
+        'en' => 'refund-policy',
+        'pt' => 'politica-de-reembolso',
+    ],
+
+    'complaints' => [
+        'es' => 'libro-de-reclamaciones',
+        'en' => 'complaints-book',
+        'pt' => 'livro-de-reclamacoes',
+    ],
+
 ];

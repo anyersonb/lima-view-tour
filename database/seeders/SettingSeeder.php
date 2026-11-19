@@ -27,6 +27,12 @@ class SettingSeeder extends Seeder
             ['key' => 'contact_hours_en', 'value' => 'Mon – Fri: 9:00 a.m. – 7:00 p.m.', 'group' => 'contact'],
             ['key' => 'whatsapp', 'value' => '51935542384', 'group' => 'contact'],
 
+            // Datos legales (los completa el cliente; vacío = la línea no se muestra)
+            ['key' => 'legal_business_name', 'value' => '', 'group' => 'legal'],
+            ['key' => 'legal_ruc', 'value' => '', 'group' => 'legal'],
+            ['key' => 'legal_address', 'value' => '', 'group' => 'legal'],
+            ['key' => 'legal_refund_days', 'value' => '', 'group' => 'legal'],
+
             // Redes sociales
             ['key' => 'social_instagram', 'value' => 'https://instagram.com/limaviewtours', 'group' => 'social'],
             ['key' => 'social_facebook', 'value' => 'https://facebook.com/limaviewtours', 'group' => 'social'],

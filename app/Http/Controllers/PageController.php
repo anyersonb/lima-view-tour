@@ -54,6 +54,17 @@ class PageController extends Controller
         }
     }
 
+    public function refund(): View
+    {
+        $locale = app()->getLocale();
+        $title = __('legal.refund_title');
+        // Página del CMS opcional (slug "politica-de-cambios-y-devoluciones")
+        // para meta título/descripción; null-safe en la vista.
+        $page = Page::where('slug', 'politica-de-cambios-y-devoluciones')->first();
+
+        return view('pages.refund', compact('locale', 'title', 'page'));
+    }
+
     public function privacy(): View
     {
         try {

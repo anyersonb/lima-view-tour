@@ -121,7 +121,7 @@
                     <span class="text-[11px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.contact_name') }}</span>
                     <input type="text" name="nombre" required
                            autocomplete="given-name"
-                           placeholder="Johanna"
+                           placeholder="{{ __('cro.contact_name_placeholder') }}"
                            value="{{ old('nombre') }}"
                            data-hj-suppress
                            class="mt-1.5 w-full rounded-pill border border-teal-800/20 bg-cream-100/50 px-5 py-3 text-sm text-teal-800 placeholder:text-teal-800/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none transition">
@@ -170,9 +170,9 @@
                        class="mt-0.5 w-4 h-4 rounded border-teal-800/30 text-orange-500 focus:ring-orange-400 focus:ring-offset-0 shrink-0">
                 <span>
                     {{ __('ui.contact_privacy_accept') }}
-                    <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="text-orange-700 underline underline-offset-2 hover:text-orange-800 transition-colors">{{ __('footer.privacy') }}</a>
+                    <a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="lvt-inline-link text-orange-700 underline underline-offset-2 hover:text-orange-800 transition-colors">{{ __('footer.privacy') }}</a>
                     {{ __('ui.contact_privacy_and_terms') }}
-                    <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="text-orange-700 underline underline-offset-2 hover:text-orange-800 transition-colors">{{ __('footer.terms') }}</a>
+                    <a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="lvt-inline-link text-orange-700 underline underline-offset-2 hover:text-orange-800 transition-colors">{{ __('footer.terms') }}</a>
                 </span>
             </label>
 
@@ -188,11 +188,11 @@
     <h2 id="contact-methods-title" class="sr-only">{{ __('ui.contact_channels') }}</h2>
     <div class="container mx-auto px-5 lg:px-10 grid gap-8 sm:grid-cols-3 text-center">
         @foreach ([
-            ['email',__('ui.contact_channel_email'),__('ui.contact_channel_email_desc'),'RESERVAS@LIMAVIEWTOURS.COM','mailto:reservas@limaviewtours.com',
+            ['email',__('ui.contact_channel_email'),__('ui.contact_channel_email_desc'),'reservas@limaviewtours.com','mailto:reservas@limaviewtours.com',
                 '<path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>'],
             ['phone',__('ui.contact_channel_phone'),__('ui.contact_channel_phone_desc'),$contactPhone,'tel:' . $contactPhoneTel,
                 '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>'],
-            ['pin',__('ui.contact_channel_office'),__('ui.contact_channel_office_desc'),'JR. LAMPA 209 LIMA CENTER','https://maps.google.com/?q=Jr.+Lampa+209,+Lima',
+            ['pin',__('ui.contact_channel_office'),__('ui.contact_channel_office_desc'),'Jr. Lampa 209, Lima Center','https://maps.google.com/?q=Jr.+Lampa+209,+Lima',
                 '<path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>'],
         ] as [$iconKey,$title,$line1,$value,$href,$iconPath])
             <div class="flex flex-col items-center">
@@ -204,7 +204,7 @@
                 <h3 class="font-display text-xl text-teal-800">{{ $title }}</h3>
                 <p class="mt-2 text-xs text-teal-800/70 max-w-[14rem]">{{ $line1 }}</p>
                 <a href="{{ $href }}"
-                   class="mt-3 text-orange-700 text-sm font-semibold tracking-wide hover:text-orange-800 transition-colors underline-offset-2 hover:underline">
+                   class="lvt-contact-link mt-3 text-orange-700 text-sm font-semibold tracking-wide hover:text-orange-800 transition-colors underline-offset-2 hover:underline">
                     {{ $value }}
                 </a>
             </div>

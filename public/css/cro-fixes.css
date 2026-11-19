@@ -1,0 +1,241 @@
+/* ==========================================================================
+   Lima View Tours — CRO móvil (auditoría 18-nov-2026)
+   CSS plano, SIN build: no depende de recompilar Vite ni de public/build.
+   Se carga en layouts/app.blade.php y errors/404.blade.php DESPUÉS del CSS de
+   Vite y de los <style> de cada vista (gana por orden de cascada, no por
+   !important). Subir el ?v= del <link> en cada cambio.
+   No contiene nada de footer/legales (lo edita otro agente).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   A1 · CTAs naranjas: contraste >= 4.5:1 con texto blanco.
+   Antes #dc9343 / #e29347 + blanco = 2.5:1. #a8430f + blanco ~ 6:1.
+   -------------------------------------------------------------------------- */
+:root { --cro-cta: #a8430f; --cro-cta-hover: #8f3a0c; }
+
+.m-cta,
+.m-compact-head,
+a.bg-orange-500.text-white,
+button.bg-orange-500.text-white,
+.btn--primary {
+  background: var(--cro-cta);
+  color: #fff;
+}
+.m-cta:hover,
+a.bg-orange-500.text-white:hover,
+button.bg-orange-500.text-white:hover,
+.btn--primary:hover,
+.btn--primary:active { background: var(--cro-cta-hover); }
+
+/* Botón RESERVAR de la ficha (móvil): >=48px de alto y texto >=16px */
+.m-cta {
+  min-height: 48px;
+  font-size: 16px;
+  letter-spacing: .3px;
+  padding: 13px 12px;
+}
+.m-cta:focus-visible,
+.lvt-qty-btn:focus-visible,
+.lvt-card-cta:focus-visible { outline: 3px solid #15474B; outline-offset: 2px; }
+.m-compact-head { font-size: 11px; padding: 9px 12px; }
+
+/* --------------------------------------------------------------------------
+   A17 / B10 / B19 / B20 · Tap targets >= 44x44
+   -------------------------------------------------------------------------- */
+/* Header: carrito, hamburguesa e idioma */
+.site-header__cart-btn,
+.site-header__hamburger { min-width: 44px; min-height: 44px; }
+.site-header .rounded-pill[aria-haspopup="listbox"] { min-height: 44px; }
+
+/* Ficha: botones − / + de adultos y niños (antes 19x24) */
+.m-input-row .lvt-qty-btn {
+  flex: 0 0 auto;
+  width: 44px; height: 44px;
+  margin: 0 -8px;
+  display: inline-grid; place-items: center;
+  background: none; border: 0; cursor: pointer;
+  font-size: 22px; line-height: 1; color: #083b31;
+  border-radius: 50%;
+}
+.m-mini-grid .m-input-row { height: 48px; }
+.m-input-row:focus-within { outline: 2px solid #15474B; outline-offset: 1px; }
+.lvt-date-input { font-size: 16px; min-height: 36px; }
+
+/* Ficha: flechas del slider y contador de la galería */
+.m-hero-nav { width: 44px; height: 44px; }
+.m-counter { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; }
+
+/* Carrito: − / + de cada tour (antes 30x30) */
+.cart-qty-btn { width: 44px; height: 44px; font-size: 20px; }
+
+/* Tarjetas de tour: botón "Reservar" >= 44px y ancho consistente (A7) */
+.lvt-card-cta { min-height: 44px; min-width: 112px; }
+
+/* Reseñas: "Ver más / Ver menos" */
+.lvt-readmore { min-height: 44px; min-width: 44px; padding: 0 6px; display: inline-flex; align-items: center; font-size: 14px; }
+
+/* Enlaces en línea (casilla de contacto) y datos de contacto */
+.lvt-inline-link { display: inline-block; padding: 12px 2px; margin: -12px 0; }
+.lvt-contact-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; }
+
+/* Footer: solo CSS (no se edita footer.blade.php). Áreas táctiles >= 44px */
+.site-footer a { display: inline-flex; align-items: center; min-height: 44px; }
+.site-footer a.site-footer__link svg { flex-shrink: 0; }
+.site-footer ul li > a { padding-block: 2px; }
+.site-footer a.inline,
+.site-footer p a,
+.site-footer address a { display: inline-flex; }
+
+/* --------------------------------------------------------------------------
+   A3 / A4 · WhatsApp flotante (variables usadas por el estilo inline del <a>)
+   -------------------------------------------------------------------------- */
+.lvt-wa.is-away { opacity: 0; pointer-events: none; transform: scale(.85); }
+.lvt-wa:focus-visible { outline: 3px solid #fff; outline-offset: 3px; box-shadow: 0 0 0 6px #15474B; }
+
+@media (max-width: 1023.98px) {
+  :root { --wa-size: 48px; --wa-right: 12px; --wa-bottom: 16px; }
+  .lvt-wa svg { width: 24px; height: 24px; }
+}
+
+/* --------------------------------------------------------------------------
+   A2 / B7 · Ficha: barra fija "DESDE US$X · Ver disponibilidad" visible desde la carga.
+   body ya reserva --sticky-bar-h como padding-bottom (regla de la vista).
+   -------------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .lvt-resbar__cta { min-height: 48px; background: var(--cro-cta); font-size: 16px; }
+  .lvt-resbar__cta:active { background: var(--cro-cta-hover); }
+  .lvt-resbar__label, .lvt-resbar__old, .lvt-resbar__now small { font-size: 12px; }
+}
+
+/* --------------------------------------------------------------------------
+   A6 · Ficha: imagen principal como <img> real
+   -------------------------------------------------------------------------- */
+.m-hero { background: #15474B; overflow: hidden; }
+.m-hero__img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+  display: block;
+}
+/* A13 · encabezados móviles (role=heading) conservan el estilo que tenían como <h2> */
+.m-h2 .m-h2-title { font-family: Georgia, serif; font-size: 20px; margin: 0; color: #111; }
+
+/* --------------------------------------------------------------------------
+   A18 · Hero del home: H1 más compacto en móvil y CTA con más peso
+   -------------------------------------------------------------------------- */
+@media (max-width: 639.98px) {
+  .home-hero__title { font-size: clamp(36px, 11.2vw, 46px); line-height: .98; overflow-wrap: break-word; }
+}
+.home-hero__cta {
+  background: rgba(15, 52, 56, .92);
+  border-color: #e8a05a;
+  border-width: 2px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+  min-height: 52px;
+}
+.home-hero__cta:hover { background: #0f3438; }
+.home-hero__cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* --------------------------------------------------------------------------
+   A8 / A9 · /resenas: sin overflow horizontal + CTA final
+   -------------------------------------------------------------------------- */
+.lvt-reviews-grid { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px)  { .lvt-reviews-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .lvt-reviews-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.lvt-reviews-grid > article { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+
+.lvt-reviews-cta { background: #15474B; color: #fff; padding: 48px 20px; text-align: center; }
+.lvt-reviews-cta__inner { max-width: 640px; margin: 0 auto; }
+.lvt-reviews-cta h2 { font-size: clamp(28px, 7vw, 40px); line-height: 1.1; margin: 0; }
+.lvt-reviews-cta p { margin: 14px 0 0; font-size: 16px; line-height: 1.5; color: rgba(255, 255, 255, .88); }
+.lvt-reviews-cta__btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-top: 24px; min-height: 52px; padding: 0 32px;
+  background: var(--cro-cta); color: #fff; border-radius: 9999px;
+  font-weight: 700; font-size: 16px; text-decoration: none;
+}
+.lvt-reviews-cta__btn:hover { background: var(--cro-cta-hover); }
+.lvt-reviews-cta__btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* --------------------------------------------------------------------------
+   Inputs >= 16px en móvil (evita el zoom automático de iOS)
+   -------------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  select,
+  textarea { font-size: 16px; }
+}
+
+/* --------------------------------------------------------------------------
+   B5 · Checkout: errores inline por campo
+   -------------------------------------------------------------------------- */
+.lvt-field-error {
+  margin: 6px 0 0; font-size: 13px; line-height: 1.35; font-weight: 600;
+  color: #b3261e;
+}
+.lvt-field-error::before { content: "! "; font-weight: 900; }
+.cart-real-input.lvt-invalid,
+.cart-real-select.lvt-invalid,
+.lvt-invalid { border-color: #b3261e; box-shadow: 0 0 0 1px #b3261e; }
+.cart-field label .req { color: #b3261e; }
+
+/* B8 · Resumen "Tu viaje" (fecha + idioma ya elegidos en el carrito) */
+.lvt-trip-summary {
+  background: #fff; border: 1px solid var(--cart-line, #E6D9C8); border-radius: 14px;
+  padding: 12px 14px; display: grid; gap: 8px;
+}
+.lvt-trip-summary__title { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: #5f6b72; }
+.lvt-trip-summary__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15px; color: #143E40; }
+.lvt-trip-summary__row small { display: block; font-size: 12px; color: #5f6b72; font-weight: 600; }
+.lvt-trip-summary__row b { font-weight: 800; }
+.lvt-trip-summary__list { margin: 0; padding-left: 16px; list-style: disc; font-size: 13px; color: #5f6b72; }
+.lvt-trip-summary__change {
+  min-height: 44px; min-width: 44px; padding: 0 12px; background: none; border: 0;
+  font-size: 14px; font-weight: 700; color: #855A20; text-decoration: underline; cursor: pointer;
+}
+.lvt-trip-summary__change:focus-visible { outline: 2px solid #15474B; outline-offset: 2px; border-radius: 8px; }
+
+/* B12 · Confianza en el paso de pago */
+.lvt-pay-trust {
+  margin-top: 12px; padding: 12px 14px; border-radius: 14px;
+  background: #F2F5EF; border: 1px solid #dbe5d6; color: #143E40; text-align: center;
+}
+.lvt-pay-trust__title { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800; }
+.lvt-pay-trust__text { margin: 4px 0 0; font-size: 13px; color: #435158; }
+.lvt-pay-logos { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.lvt-pay-logo { background: #fff; border: 1px solid #e3e3e3; border-radius: 6px; padding: 5px 10px; display: inline-flex; align-items: center; min-height: 28px; }
+.lvt-pay-logo svg { height: 16px; width: auto; }
+.lvt-pay-logo--amex { background: #2E77BC; border-color: #2E77BC; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .03em; }
+.lvt-mc { display: inline-flex; align-items: center; }
+.lvt-mc i { display: inline-block; width: 16px; height: 16px; border-radius: 50%; background: #EB001B; }
+.lvt-mc i + i { background: #F79E1B; margin-left: -7px; }
+
+/* B9 · Checkout: la barra fija inferior no debe tapar campos ni su ayuda */
+@media (max-width: 1023.98px) {
+  .cart-sticky-spacer { height: 150px; }
+  .cart-panel.active { padding-bottom: 40px; }
+}
+
+/* B21 · Cabecera del carrito / pasos compactos en móvil */
+@media (max-width: 767.98px) {
+  .lvt-cart-hero > .container:first-of-type nav { padding-top: 12px; }
+  .lvt-cart-hero__body { padding-top: 14px; padding-bottom: 18px; }
+  .lvt-cart-hero__body h1 { font-size: 28px; line-height: 1.1; }
+  .lvt-cart-hero__sub { display: none; }
+  .cart-switcher { padding-top: 10px; margin-bottom: 10px; gap: 8px; }
+  .cart-segment { margin-bottom: 12px; gap: 6px; }
+  .cart-seg-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px; min-height: 44px; }
+  .cart-seg-num { margin: 0; flex-shrink: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   B15 · 404
+   -------------------------------------------------------------------------- */
+.lvt-404 { min-height: 60vh; }
+.lvt-404__code { font-size: clamp(110px, 32vw, 220px); opacity: .9; }
+
+/* --------------------------------------------------------------------------
+   B16 · Blog: tarjetas relacionadas dentro del ancho
+   -------------------------------------------------------------------------- */
+.related-slider { max-width: 100%; min-width: 0; overscroll-behavior-x: contain; }
+.related-slider > article { max-width: min(270px, 86vw); }

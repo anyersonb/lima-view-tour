@@ -156,6 +156,35 @@ class Settings extends Page implements HasForms
                                     ->columnSpanFull(),
                             ]),
                     ]),
+                    Tabs\Tab::make('Datos legales')->icon('heroicon-o-scale')->schema([
+                        \Filament\Forms\Components\Placeholder::make('legal_help')
+                            ->label('')
+                            ->content('Estos datos salen en Términos, Privacidad, Política de devoluciones y Libro de Reclamaciones. Si dejas un dato vacío, esa línea no se muestra. El teléfono oficial es el "Teléfono principal" de la pestaña Contacto.')
+                            ->columnSpanFull(),
+                        TextInput::make('legal_business_name')
+                            ->label('Razón social')
+                            ->placeholder('Ej.: NOMBRE DE LA EMPRESA S.A.C.')
+                            ->maxLength(200),
+                        TextInput::make('legal_ruc')
+                            ->label('RUC')
+                            ->placeholder('11 dígitos')
+                            ->maxLength(11)
+                            ->rule('nullable')
+                            ->rule('regex:/^[0-9]{11}$/')
+                            ->validationMessages(['regex' => 'El RUC debe tener 11 dígitos.']),
+                        TextInput::make('legal_address')
+                            ->label('Dirección fiscal')
+                            ->placeholder('Calle, número, distrito, ciudad')
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                        TextInput::make('legal_refund_days')
+                            ->label('Plazo de devolución (días hábiles)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(60)
+                            ->placeholder('10')
+                            ->helperText('Días hábiles que tardan en procesarse los reembolsos. Se muestra en la Política de cambios y devoluciones. Vacío = 10.'),
+                    ])->columns(2),
                     Tabs\Tab::make('Redes sociales')->icon('heroicon-o-share')->schema([
                         TextInput::make('social_instagram')->prefix('https://')->label('Instagram'),
                         TextInput::make('social_facebook')->prefix('https://')->label('Facebook'),

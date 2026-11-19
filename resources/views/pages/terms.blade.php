@@ -60,6 +60,10 @@
             {{ __('legal.terms_s4_title') }}
         </h2>
         <p class="text-gray-700 leading-relaxed">{{ __('legal.terms_s4_body') }}</p>
+        <p class="mt-3 text-gray-700 leading-relaxed">
+            {{ __('legal.refund_note') }}
+            <a href="{{ \App\Support\LocalizedPages::url('legal.refund', $locale) }}" class="text-teal-700 underline underline-offset-2">{{ __('legal.link_refund') }}</a>.
+        </p>
     </section>
 
     {{-- Section 5: Contact --}}
@@ -67,8 +71,14 @@
         <h2 id="terms-s5" class="font-display text-xl md:text-2xl text-teal-700 mb-3">
             {{ __('legal.terms_s5_title') }}
         </h2>
-        <p class="text-gray-700 leading-relaxed">{{ __('legal.terms_s5_body') }}</p>
+        <p class="text-gray-700 leading-relaxed">{{ __('legal.terms_s5_body', ['phone' => \App\Support\LegalInfo::phone()]) }}</p>
+        <p class="mt-3 text-gray-700 leading-relaxed">
+            {{ __('legal.complaints_note') }}
+            <a href="{{ \App\Support\LocalizedPages::url('complaints', $locale) }}" class="text-teal-700 underline underline-offset-2">{{ __('legal.link_complaints') }}</a>.
+        </p>
     </section>
+
+    @include('partials.legal-company')
 
     {{-- Back link --}}
     <div class="mt-12 pt-8 border-t border-gray-200">

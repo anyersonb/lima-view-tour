@@ -137,7 +137,7 @@
             </div>
 
             {{-- Grid de comentarios (cards uniformes, con "ver más" cuando el texto es largo) --}}
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
+            <div class="lvt-reviews-grid grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
                 @foreach ($testimonials as $t)
                     @php
                         $k = $srcKey($t);
@@ -179,7 +179,7 @@
 
                         @if ($long)
                             <button type="button" @click="exp = !exp"
-                                    class="self-start mt-1.5 text-xs font-bold text-orange-700 hover:text-orange-800 transition-colors">
+                                    class="lvt-readmore self-start mt-1.5 text-xs font-bold text-orange-700 hover:text-orange-800 transition-colors">
                                 <span x-show="!exp">{{ $L('Ver más', 'Read more', 'Ver mais') }}</span>
                                 <span x-show="exp" x-cloak>{{ $L('Ver menos', 'Show less', 'Ver menos') }}</span>
                             </button>
@@ -335,6 +335,15 @@
                 </div>
             @endif
         </div>
+    </div>
+</section>
+
+{{-- ───────── CTA FINAL (18-nov): la página no tenía ningún camino hacia la reserva ───────── --}}
+<section class="lvt-reviews-cta" aria-labelledby="reviews-cta-title">
+    <div class="lvt-reviews-cta__inner">
+        <h2 id="reviews-cta-title" class="font-display">{{ __('cro.reviews_cta_title') }}</h2>
+        <p>{{ __('cro.reviews_cta_text') }}</p>
+        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="lvt-reviews-cta__btn">{{ __('cro.reviews_cta_btn') }}</a>
     </div>
 </section>
 

@@ -70,6 +70,8 @@
         <p class="text-gray-700 leading-relaxed">{{ __('legal.privacy_s5_body') }}</p>
     </section>
 
+    @include('partials.legal-company')
+
     {{-- Back link --}}
     <div class="mt-12 pt-8 border-t border-gray-200">
         <a href="{{ route('home', ['locale' => $locale]) }}"

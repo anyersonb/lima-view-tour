@@ -186,10 +186,10 @@
                 <h2 id="related-label" class="font-display text-2xl md:text-3xl text-teal-800 mb-8">
                     {{ $L('Artículos relacionados', 'Related articles', 'Artigos relacionados') }}
                 </h2>
-                <div class="related-slider" style="display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 14px;scrollbar-width:thin;">
+                <div class="related-slider" style="display:flex;max-width:100%;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 14px;scrollbar-width:thin;">
                     @foreach ($related as $rel)
                         <article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
-                                 style="flex:0 0 270px;max-width:270px;scroll-snap-align:start;">
+                                 style="flex:0 0 min(270px,86vw);max-width:min(270px,86vw);scroll-snap-align:start;">
                             {{-- slugFor($locale), no $rel->slug: $related ya está filtrado por
                                  availableIn($locale) (BlogController::show()), pero el slug
                                  traducido puede diferir del español — usar el crudo aquí

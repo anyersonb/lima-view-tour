@@ -115,7 +115,8 @@
                                          alt="{{ $post->title }}"
                                          class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                                          itemprop="image"
-                                         loading="lazy"
+                                         @if ($loop->first) loading="eager" fetchpriority="high" @else loading="lazy" @endif
+                                         decoding="async"
                                          width="640" height="360">
                                 @else
                                     {{-- Placeholder when no cover image --}}

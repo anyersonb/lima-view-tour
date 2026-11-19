@@ -72,6 +72,17 @@
                     <li><a href="{{ \App\Support\LocalizedPages::url('contact', $locale) }}" class="site-footer__link">{{ __('nav.contact') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('legal.terms', $locale) }}" class="site-footer__link">{{ __('footer.terms') }}</a></li>
                     <li><a href="{{ \App\Support\LocalizedPages::url('legal.privacy', $locale) }}" class="site-footer__link">{{ __('footer.privacy') }}</a></li>
+                    <li><a href="{{ \App\Support\LocalizedPages::url('legal.refund', $locale) }}" class="site-footer__link" style="display:inline-flex;align-items:center;min-height:44px">{{ __('footer.refund') }}</a></li>
+                    <li>
+                        {{-- Libro de Reclamaciones (INDECOPI / Culqi): enlace visible en todas las páginas --}}
+                        <a href="{{ \App\Support\LocalizedPages::url('complaints', $locale) }}" class="site-footer__link" style="display:inline-flex;align-items:center;gap:.6rem;min-height:44px">
+                            <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" style="flex:none">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4.5A1.5 1.5 0 015.5 3H19v16H5.5A1.5 1.5 0 004 20.5v-16z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 20.5A1.5 1.5 0 005.5 22H19v-3M9 8h6M9 12h6"/>
+                            </svg>
+                            <span>{{ __('footer.complaints') }}</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
 

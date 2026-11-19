@@ -713,8 +713,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
 @section('content')
 
-{{-- ── HERO ── --}}
-<section class="relative isolate text-white">
+{{-- ── HERO ── (18-nov: .lvt-cart-hero lo compacta en móvil, ver cro-fixes.css) --}}
+<section class="lvt-cart-hero relative isolate text-white">
     <div class="absolute inset-0 -z-10">
         <img src="{{ asset('assets/banners/Rectangle 19215.jpg') }}" alt="" class="w-full h-full object-cover" loading="eager">
         <div class="absolute inset-0 bg-teal-900/65"></div>
@@ -724,9 +724,9 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
             <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-400">{{ __('ui.home') }}</a> &rsaquo; <span>{{ __('ui.cart_title') }}</span>
         </nav>
     </div>
-    <div class="container mx-auto px-5 lg:px-10 py-14 md:py-18 text-center">
+    <div class="lvt-cart-hero__body container mx-auto px-5 lg:px-10 py-14 md:py-18 text-center">
         <h1 class="font-display text-3xl md:text-4xl lg:text-5xl leading-tight">{{ __('ui.cart_title') }}</h1>
-        <p class="mt-3 mx-auto max-w-xl text-sm text-white/85">
+        <p class="lvt-cart-hero__sub mt-3 mx-auto max-w-xl text-sm text-white/85">
             {{ __('ui.cart_subtitle') }}
         </p>
     </div>
@@ -1208,6 +1208,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            value="{{ old('customer_name') }}"
                                            placeholder="Ej. María García López"
                                            autocomplete="name"
+                                           aria-required="true"
                                            data-hj-suppress
                                            class="cart-real-input @error('customer_name') border-red-500 @enderror">
                                     @error('customer_name')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
@@ -1227,7 +1228,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                             <x-phone-country-select id="phone_prefix"
                                                                     class="cart-real-select"
                                                                     style="flex:0 0 auto; width:min(200px, 45%); min-width:96px;" />
-                                            <input type="tel" id="phone_local" placeholder="999 999 999" autocomplete="tel-national" inputmode="tel" maxlength="15"
+                                            <input type="tel" id="phone_local" placeholder="999 999 999" autocomplete="tel-national" inputmode="tel" maxlength="15" aria-required="true"
                                                    data-hj-suppress
                                                    class="cart-real-input @error('customer_phone') border-red-500 @enderror" style="flex:1; min-width:0;">
                                         </div>
@@ -1250,6 +1251,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                value="{{ old('customer_email') }}"
                                                placeholder="correo@ejemplo.com"
                                                autocomplete="email"
+                                               aria-required="true"
                                                data-hj-suppress
                                                class="cart-real-input @error('customer_email') border-red-500 @enderror">
                                         @error('customer_email')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
@@ -1401,7 +1403,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            id="pickup_detail"
                                            name="pickup_detail"
                                            value="{{ old('pickup_detail') }}"
-                                           placeholder="{{ __('checkout.pickup_detail_placeholder') }}"
+                                           placeholder="{{ __('cro.pickup_detail_ph') }}"
                                            autocomplete="off"
                                            data-hj-suppress
                                            class="cart-real-input @error('pickup_detail') border-red-500 @enderror">
@@ -1409,7 +1411,37 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                 </div>
 @endif
 
-                                <div class="cart-field">
+                                @php
+                                    // Fecha e idioma ya se eligieron en el carrito: se muestran como resumen y los campos reales
+                                    // (que siguen en el formulario y viajan igual) quedan ocultos hasta pulsar "Cambiar".
+                                    $tripLangLabels = ['es' => 'Español', 'en' => 'English', 'pt' => 'Português'];
+                                    $tripLangCode   = old('tour_language', $locale);
+                                    try {
+                                        $tripDateLabel = \Illuminate\Support\Carbon::parse(old('travel_date', $firstTravelDate))->locale($locale)->translatedFormat('d M Y');
+                                    } catch (\Throwable $e) {
+                                        $tripDateLabel = (string) old('travel_date', $firstTravelDate);
+                                    }
+                                @endphp
+                                <div class="lvt-trip-summary" data-trip-summary>
+                                    <p class="lvt-trip-summary__title">{{ __('cro.trip_summary_title') }}</p>
+                                    <div class="lvt-trip-summary__row">
+                                        <span><small>{{ __('cro.trip_date') }}</small> <b data-trip-date>{{ $tripDateLabel }}</b></span>
+                                        <button type="button" class="lvt-trip-summary__change" data-trip-change-date>{{ __('cro.change') }}</button>
+                                    </div>
+                                    @if ($datesDiffer ?? false)
+                                        <ul class="lvt-trip-summary__list">
+                                            @foreach ($items as $item)
+                                                <li>{{ $item['title_snapshot'] }} — {{ \Illuminate\Support\Carbon::parse($item['travel_date'])->locale($locale)->translatedFormat('d M Y') }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                    <div class="lvt-trip-summary__row">
+                                        <span><small>{{ __('cro.trip_language') }}</small> <b data-trip-lang>{{ $tripLangLabels[$tripLangCode] ?? $tripLangCode }}</b></span>
+                                        <button type="button" class="lvt-trip-summary__change" data-trip-change-lang aria-expanded="false" aria-controls="tour_language">{{ __('cro.change') }}</button>
+                                    </div>
+                                </div>
+
+                                <div class="cart-field" data-trip-lang-field hidden>
                                     <label for="tour_language">{{ __('ui.tour_language_label') }}</label>
                                     <select id="tour_language" name="tour_language" class="cart-real-select">
                                         @foreach (['es' => 'Español', 'en' => 'English', 'pt' => 'Português'] as $langCode => $langLabel)
@@ -1424,7 +1456,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                      sigue exigiendo y alimenta los correos). Sigue readonly, pero
                                      ahora es verdad que se cambia en otro sitio, y el texto de
                                      ayuda dice en cuál. --}}
-                                <div class="cart-field">
+                                <div class="cart-field" data-trip-date-field hidden>
                                     <label for="travel_date">{{ __('checkout.travel_date') }}</label>
                                     <input type="date"
                                            id="travel_date"
@@ -1630,6 +1662,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                     {{ __('ui.contract_text') }}
                                 </span>
                             </label>
+                            <p class="cart-terms-row" style="margin-top:8px"><span><a href="{{ \App\Support\LocalizedPages::url('legal.refund', $locale) }}">{{ __('footer.refund') }}</a> · <a href="{{ \App\Support\LocalizedPages::url('complaints', $locale) }}">{{ __('footer.complaints') }}</a></span></p>
                         </div>
                     </div>
 
@@ -1641,6 +1674,17 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                          (ver el JS más abajo). Si CARD no es eligible en esta cuenta/
                          país, #card-buttons y el separador quedan vacíos/ocultos y solo
                          se ve PayPal — la página no se rompe. --}}
+                    <div class="lvt-pay-trust" role="group" aria-label="{{ __('cro.secure_payment') }}">
+                        <p class="lvt-pay-trust__title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/></svg> {{ __('cro.secure_payment') }}</p>
+                        <p class="lvt-pay-trust__text">{{ __('cro.secure_payment_d') }}</p>
+                        <ul class="lvt-pay-logos">
+                            <li class="lvt-pay-logo"><svg class="h-4 w-auto" aria-label="Visa" role="img" viewBox="0 0 60 20" fill="none"><text x="0" y="16" font-family="Arial" font-size="14" font-weight="bold" fill="#1A1F71">VISA</text></svg></li>
+                            <li class="lvt-pay-logo"><span class="lvt-mc" aria-hidden="true"><i></i><i></i></span><span class="sr-only">Mastercard</span></li>
+                            <li class="lvt-pay-logo lvt-pay-logo--amex"><span>AMEX</span></li>
+                            <li class="lvt-pay-logo"><svg class="h-4 w-auto" aria-label="PayPal" role="img" viewBox="0 0 60 20" fill="none"><text x="0" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#003087">Pay</text><text x="22" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#009cde">Pal</text></svg></li>
+                        </ul>
+                    </div>
+
                     <div id="paypal-section" style="display:none; margin-top:12px;">
                         @if ((\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')))
                             <div id="card-buttons"></div>
@@ -2136,27 +2180,91 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     }
 
     // ── Navegación CONDICIONADA por pasos ────────────────────────
-    function validateDatos() {
+    // ── Validación inline (18-nov): mensaje rojo bajo CADA campo con error, aria-invalid, scroll + foco al PRIMER
+    // campo con error (antes: alert() + el foco siempre volvía a "Nombre", aunque lo que faltara fuera el correo).
+    const LVT_ERR = {
+        name:       @json(__('cro.err_name')),
+        phone:      @json(__('cro.err_phone')),
+        email:      @json(__('cro.err_email')),
+        emailValid: @json(__('cro.err_email_valid')),
+        date:       @json(__('cro.err_date')),
+        terms:      @json(__('cro.err_terms')),
+        summary:    @json(__('cro.err_summary')),
+    };
+    const LVT_EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+    // Dónde se pinta el mensaje: bajo el campo; para la casilla de términos, al final de su tarjeta (no dentro del <label> flex).
+    function errHolder(input) {
+        return (input.id === 'accept_terms' ? input.closest('.cart-card-pad') : input.closest('.cart-field')) ?? input.parentElement;
+    }
+    function clearFieldError(input) {
+        if (!input) return;
+        input.removeAttribute('aria-invalid');
+        input.removeAttribute('aria-describedby');
+        input.classList.remove('lvt-invalid');
+        const holder = errHolder(input);
+        holder?.querySelectorAll('[data-lvt-err="' + input.id + '"]').forEach(n => n.remove());
+    }
+    function setFieldError(input, msg) {
+        if (!input) return;
+        clearFieldError(input);
+        const holder = errHolder(input);
+        const p = document.createElement('p');
+        p.className = 'lvt-field-error';
+        p.id = 'err-' + input.id;
+        p.setAttribute('data-lvt-err', input.id);
+        p.setAttribute('role', 'alert');
+        p.textContent = msg;
+        holder.appendChild(p);
+        input.setAttribute('aria-invalid', 'true');
+        input.setAttribute('aria-describedby', p.id);
+        input.classList.add('lvt-invalid');
+        const off = () => clearFieldError(input);
+        input.addEventListener('input', off, { once: true });
+        input.addEventListener('change', off, { once: true });
+    }
+    // Lista de errores de "Datos" en orden de pantalla (nombre, teléfono, correo, fecha).
+    function collectDatosErrors() {
         const d = collectCustomerData();
-        if (!d.customer_name || !d.customer_email || !d.customer_phone || !d.travel_date) {
-            alert(@json(__('checkout_paypal.validate_datos_fields')));
-            return false;
+        const errs = [];
+        if (!d.customer_name) errs.push({ input: document.getElementById('customer_name'), msg: LVT_ERR.name });
+        if (!d.customer_phone) errs.push({ input: document.getElementById('phone_local'), msg: LVT_ERR.phone });
+        if (!d.customer_email) errs.push({ input: document.getElementById('customer_email'), msg: LVT_ERR.email });
+        else if (!LVT_EMAIL_RE.test(d.customer_email)) errs.push({ input: document.getElementById('customer_email'), msg: LVT_ERR.emailValid });
+        if (!d.travel_date) {
+            // La fecha se elige en la tarjeta del tour: se muestra el campo (solo lectura) con el error y "Cambiar" lleva a "Reservas".
+            document.querySelector('[data-trip-date-field]')?.removeAttribute('hidden');
+            errs.push({ input: document.getElementById('travel_date'), msg: LVT_ERR.date });
         }
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.customer_email)) {
-            alert(@json(__('checkout_paypal.validate_email')));
-            return false;
+        return errs.filter(e => e.input);
+    }
+    function showDatosErrors(errs) {
+        ['customer_name', 'phone_local', 'customer_email', 'travel_date'].forEach(id => clearFieldError(document.getElementById(id)));
+        errs.forEach(e => setFieldError(e.input, e.msg));
+        const first = errs[0]?.input;
+        if (first) {
+            first.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+            first.focus({ preventScroll: true });
         }
-        return true;
+    }
+    function validateDatos() {
+        const errs = collectDatosErrors();
+        if (!errs.length) return true;
+        showDatosErrors(errs);
+        return false;
     }
     function canAdvanceTo(target) {
         const ti = steps.indexOf(target), ci = steps.indexOf(currentStep);
         if (ti <= ci) return true;  // volver a un paso previo siempre se permite
         if (cartState.size === 0) { alert(@json(__('checkout_paypal.validate_empty_cart'))); return false; }
         // Para llegar a "Pago" los datos deben estar completos
-        if (ti >= steps.indexOf('pago') && !validateDatos()) {
-            setStep('datos');
-            document.querySelector('#customer_name')?.focus();
-            return false;
+        if (ti >= steps.indexOf('pago')) {
+            const errs = collectDatosErrors();
+            if (errs.length) {
+                setStep('datos');
+                showDatosErrors(errs);
+                return false;
+            }
         }
         return true;
     }
@@ -2174,6 +2282,28 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         const n = steps[steps.indexOf(currentStep) + 1];
         if (n && canAdvanceTo(n)) { setStep(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     }));
+
+    // ── Resumen "Tu viaje" (fecha + idioma ya elegidos en el carrito) ──
+    (function () {
+        const langSel   = document.getElementById('tour_language');
+        const langField = document.querySelector('[data-trip-lang-field]');
+        const langBtn   = document.querySelector('[data-trip-change-lang]');
+        const langOut   = document.querySelector('[data-trip-lang]');
+        const dateBtn   = document.querySelector('[data-trip-change-date]');
+        if (langBtn && langField && langSel) {
+            langBtn.addEventListener('click', () => {
+                const open = langField.hasAttribute('hidden');
+                langField.toggleAttribute('hidden', !open);
+                langBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open) langSel.focus();
+            });
+        }
+        if (langSel && langOut) {
+            langSel.addEventListener('change', () => { langOut.textContent = langSel.options[langSel.selectedIndex]?.text ?? langSel.value; });
+        }
+        // La fecha se edita en la tarjeta del tour (paso "Reservas"): "Cambiar" vuelve allí.
+        if (dateBtn) dateBtn.addEventListener('click', () => { setStep('reservas'); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    })();
 
     // ── Helpers para validar campos del cliente ─────────────────
     function collectCustomerData() {
@@ -2228,17 +2358,21 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     });
 
     function validateCustomer() {
-        const d     = collectCustomerData();
         const terms = document.getElementById('accept_terms')?.checked;
-        if (!d.customer_name || !d.customer_email || !d.customer_phone || !d.travel_date) {
-            alert(@json(__('checkout_paypal.validate_customer_fields')));
+        const errs  = collectDatosErrors();
+        if (errs.length) {
             setStep('datos');
-            document.querySelector('#customer_name')?.focus();
+            showDatosErrors(errs);
             return false;
         }
         if (!terms) {
-            alert(@json(__('checkout_paypal.accept_terms_required')));
-            document.getElementById('accept_terms')?.focus();
+            // Error inline bajo la casilla de términos (en vez de alert()).
+            const box = document.getElementById('accept_terms');
+            if (box) {
+                setFieldError(box, LVT_ERR.terms);
+                box.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+                box.focus({ preventScroll: true });
+            }
             return false;
         }
         return true;

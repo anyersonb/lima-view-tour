@@ -3,6 +3,7 @@
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Customer\AccountController;
 use App\Http\Controllers\Customer\ForgotPasswordController;
@@ -208,6 +209,27 @@ Route::prefix('{locale}')
             ->where('privacySlug', LocalizedPages::patternExcludingBase('legal.privacy'))
             ->middleware('canonical.page')
             ->name('legal.privacy.localized');
+
+        // Política de cambios y devoluciones + Libro de Reclamaciones virtual
+        // (exigencias Culqi / INDECOPI). Mismo patrón de slug por idioma.
+        Route::get('/'.LocalizedPages::slugFor('legal.refund', 'es'), [PageController::class, 'refund'])
+            ->middleware('canonical.page')
+            ->name('legal.refund');
+        Route::get('/{refundSlug}', [PageController::class, 'refund'])
+            ->where('refundSlug', LocalizedPages::patternExcludingBase('legal.refund'))
+            ->middleware('canonical.page')
+            ->name('legal.refund.localized');
+
+        Route::get('/'.LocalizedPages::slugFor('complaints', 'es'), [ComplaintController::class, 'show'])
+            ->middleware('canonical.page')
+            ->name('complaints');
+        Route::get('/{complaintsSlug}', [ComplaintController::class, 'show'])
+            ->where('complaintsSlug', LocalizedPages::patternExcludingBase('complaints'))
+            ->middleware('canonical.page')
+            ->name('complaints.localized');
+        Route::post('/libro-de-reclamaciones/registrar', [ComplaintController::class, 'submit'])
+            ->middleware('throttle:6,1')
+            ->name('complaints.submit');
 
         // ── Customer portal (Fase 1) ──────────────────────────────────────
         Route::get('/ingresar', [LoginController::class, 'showForm'])->name('customer.login');

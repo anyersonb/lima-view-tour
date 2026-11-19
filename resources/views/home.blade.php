@@ -300,9 +300,20 @@
             ->map(fn ($w) => parse_url(asset('assets/banners/hero-machu-picchu-' . $w . 'w.webp'), PHP_URL_PATH) . ' ' . $w . 'w')
             ->implode(', ');
     @endphp
+    @php
+        // Hero editable (Setting home_hero_image, disco media): variantes WebP si existen; se precarga igual que el hero por defecto.
+        $heroCustomSet = null;
+        if (! $heroIsDefault) {
+            try { $heroCustomSet = \App\Support\ImageVariants::srcset($heroImgSetting, null, 'media'); } catch (\Throwable $e) { $heroCustomSet = null; }
+        }
+    @endphp
     @if ($heroIsDefault)
         @push('head')
             <link rel="preload" as="image" type="image/webp" imagesrcset="{{ $heroSrcset }}" imagesizes="{{ $heroSizes }}" fetchpriority="high">
+        @endpush
+    @else
+        @push('head')
+            <link rel="preload" as="image" href="{{ $heroImgUrl }}" @if ($heroCustomSet) imagesrcset="{{ $heroCustomSet }}" imagesizes="{{ $heroSizes }}" @endif fetchpriority="high">
         @endpush
     @endif
     <div class="absolute inset-0 -z-10">
@@ -310,7 +321,7 @@
             @if ($heroIsDefault)
                 <source type="image/webp" srcset="{{ $heroSrcset }}" sizes="{{ $heroSizes }}">
             @endif
-            <img src="{{ $heroImgUrl }}" alt=""
+            <img src="{{ $heroImgUrl }}" @if ($heroCustomSet) srcset="{{ $heroCustomSet }}" sizes="{{ $heroSizes }}" @endif alt=""
                  class="w-full h-full object-cover object-[60%_center] lg:object-center"
                  width="1717" height="916"
                  loading="eager" fetchpriority="high" decoding="async">
@@ -358,7 +369,7 @@
 
         {{-- CTA pill --}}
         <a href="{{ $destUrl('lima') }}"
-           class="mt-7 inline-flex items-center justify-between gap-3 self-start
+           class="home-hero__cta mt-7 inline-flex items-center justify-between gap-3 self-start
                   border border-orange-400/70 rounded-full
                   pl-5 pr-1.5 py-1.5
                   font-semibold text-sm
@@ -1590,7 +1601,8 @@
             </h2>
             {!! $sep !!}
             <p class="mt-5 text-sm text-teal-800/70">
-                {!! \App\Models\Setting::get('home_sec_reviews_subtitle_' . $locale) ?: 'Miles de viajeros han vivido el Perú con nosotros.<br class="hidden sm:block">Estas son algunas de sus experiencias.' !!}
+                {{-- 18-nov: en móvil el <br> está oculto y "nosotros.Estas" quedaba pegado; se asegura un espacio tras el punto antes del <br>. --}}
+                {!! preg_replace('/([.!?…])(<br\b)/iu', '$1 $2', \App\Models\Setting::get('home_sec_reviews_subtitle_' . $locale) ?: 'Miles de viajeros han vivido el Perú con nosotros.<br class="hidden sm:block">Estas son algunas de sus experiencias.') !!}
             </p>
         </div>
 
