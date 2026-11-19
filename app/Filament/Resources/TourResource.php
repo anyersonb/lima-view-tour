@@ -175,7 +175,7 @@ class TourResource extends Resource
                                     Forms\Components\Toggle::make('show_in_day_trips')
                                         ->label('Mostrar en "Tours de un día desde Lima"')
                                         ->visible(fn () => \App\Support\TourFlags::has('show_in_day_trips'))
-                                        ->helperText('Elige qué tours salen en esa sección del home. Si no marcas ninguno, se muestran tours de Lima que no estén en "Más vendidos".')
+                                        ->helperText('Si marcas al menos un tour, en esa sección del home se muestran SOLO los marcados. Si no marcas ninguno, se muestran automáticamente tours de Lima que no estén en «Más vendidos».')
                                         ->default(false),
                                     Forms\Components\Toggle::make('show_top_rated')
                                         ->label('Badge "Mejor valorado"')

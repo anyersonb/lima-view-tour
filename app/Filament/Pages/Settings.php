@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Concerns\HasLocalizedSeoFields;
 use App\Models\Setting;
+use App\Support\HomeDefaults;
 use App\Support\PageSeo;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -37,6 +38,39 @@ class Settings extends Page implements HasForms
     protected static string $view = 'filament.pages.settings';
 
     public ?array $data = [];
+
+    /**
+     * Repeaters del home precargados con HomeDefaults. Valor = campos NO traducibles
+     * (sin sufijo _es/_en/_pt) que SÍ existen como campo del Repeater. Lo puramente
+     * visual (iconPath, img, deco...) no se precarga: la vista lo hereda por posición.
+     */
+    protected const HOME_REPEATER_FORM_FIELDS = [
+        'home_destinos' => [],
+        'home_why_items' => [],
+        'home_tour_type_tabs' => ['id', 'price'],
+        'home_footer_features' => [],
+        'home_exp_tours' => ['badgeBg', 'slug'],
+        'home_reco_items' => ['icon'],
+        'home_faqs' => [],
+        'home_choose_items' => [],
+    ];
+
+    /**
+     * Defaults del home reducidos a los campos que el Repeater tiene.
+     */
+    protected static function homeDefaultsForForm(string $key, array $extraFields): array
+    {
+        $out = [];
+        foreach (HomeDefaults::for($key) as $item) {
+            $out[] = array_filter(
+                $item,
+                static fn ($v, $k) => (preg_match('/_(es|en|pt)$/', (string) $k) === 1 || in_array($k, $extraFields, true)) && $v !== null,
+                ARRAY_FILTER_USE_BOTH
+            );
+        }
+
+        return $out;
+    }
 
     public function mount(): void
     {
@@ -93,6 +127,16 @@ class Settings extends Page implements HasForms
                 $rows[$rk] = is_array($decoded) ? $decoded : [];
             } else {
                 $rows[$rk] = $rows[$rk] ?? [];
+            }
+        }
+
+        // Repeaters del home: si no hay nada guardado (clave ausente, JSON roto o
+        // []), precargar los textos que la web muestra hoy. Así el cliente edita
+        // lo que ve en vez de un repeater vacío (que al añadir 1 item hacía que
+        // la web pasara de N elementos a 1).
+        foreach (self::HOME_REPEATER_FORM_FIELDS as $rk => $extraFields) {
+            if (empty($rows[$rk]) || ! is_array($rows[$rk])) {
+                $rows[$rk] = self::homeDefaultsForForm($rk, $extraFields);
             }
         }
 
@@ -450,7 +494,8 @@ class Settings extends Page implements HasForms
                             ->schema([
                                 Repeater::make('home_destinos')
                                     ->label('Destinos')
-                                    ->helperText('Dejar vacío para usar los destinos por defecto (Cusco, Lima, Ica).')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
@@ -498,7 +543,8 @@ class Settings extends Page implements HasForms
                             ->schema([
                                 Repeater::make('home_why_items')
                                     ->label('Razones')
-                                    ->helperText('Dejar vacío para usar las 5 razones por defecto.')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
@@ -544,7 +590,8 @@ class Settings extends Page implements HasForms
                                 Textarea::make('home_sec_choose_intro_pt')->rows(2)->label('Introducción (PT)')->columnSpanFull(),
                                 Repeater::make('home_choose_items')
                                     ->label('Consejos (tarjetas)')
-                                    ->helperText('Dejar vacío para usar los 4 consejos por defecto (días, tipo de experiencia, exigencia física y qué incluye).')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
@@ -566,7 +613,8 @@ class Settings extends Page implements HasForms
                             ->schema([
                                 Repeater::make('home_tour_type_tabs')
                                     ->label('Tipos de tour')
-                                    ->helperText('Dejar vacío para usar los 4 tipos por defecto. El campo "id" debe ser único (cult, adv, cul, oth).')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web. El ID de cada tipo no se debe cambiar.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('id')->label('ID (único, sin espacios)')->placeholder('cult')->required(),
                                         TextInput::make('label_es')->label('Label tab (ES)')->required(),
@@ -600,7 +648,8 @@ class Settings extends Page implements HasForms
                             ->schema([
                                 Repeater::make('home_footer_features')
                                     ->label('Features (4 íconos en fila)')
-                                    ->helperText('Dejar vacío para usar los 4 features por defecto.')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('label_es')->label('Etiqueta (ES)')->required(),
                                         TextInput::make('label_en')->label('Etiqueta (EN)'),
@@ -638,7 +687,8 @@ class Settings extends Page implements HasForms
                             ->schema([
                                 Repeater::make('home_exp_tours')
                                     ->label('Experiencias')
-                                    ->helperText('Dejar vacío para usar las 4 tarjetas por defecto.')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
@@ -695,7 +745,8 @@ class Settings extends Page implements HasForms
                             ->schema([
                                 Repeater::make('home_faqs')
                                     ->label('Preguntas frecuentes (home)')
-                                    ->helperText('Estas FAQs son para el acordeón visual de la home. Son DISTINTAS a las FAQs del tab AEO/FAQ (schema estructurado). Dejar vacío para usar las 6 preguntas por defecto.')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web. Son distintas a las FAQs del tab AEO/FAQ.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('q_es')->label('Pregunta (ES)')->required()->columnSpanFull(),
                                         TextInput::make('q_en')->label('Pregunta (EN)')->columnSpanFull(),
@@ -751,7 +802,8 @@ class Settings extends Page implements HasForms
                             ->schema([
                                 Repeater::make('home_reco_items')
                                     ->label('Razones de recomendación')
-                                    ->helperText('Dejar vacío para usar las 4 razones por defecto.')
+                                    ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
