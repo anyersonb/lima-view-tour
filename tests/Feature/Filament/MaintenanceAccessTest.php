@@ -182,11 +182,14 @@ class MaintenanceAccessTest extends TestCase
 
     public function test_config_parses_admin_ids_ignoring_garbage(): void
     {
+        // env() de Laravel lee $_ENV/$_SERVER (putenv solo no basta en Windows).
         putenv('MAINTENANCE_ADMIN_IDS= 3, x,7 ,,3');
+        $_ENV['MAINTENANCE_ADMIN_IDS'] = $_SERVER['MAINTENANCE_ADMIN_IDS'] = ' 3, x,7 ,,3';
         try {
             $config = require base_path('config/admin.php');
         } finally {
             putenv('MAINTENANCE_ADMIN_IDS');
+            unset($_ENV['MAINTENANCE_ADMIN_IDS'], $_SERVER['MAINTENANCE_ADMIN_IDS']);
         }
 
         $this->assertSame(['3', '7'], $config['maintenance_user_ids']);
