@@ -35,7 +35,11 @@
 <body class="bg-cream-100 text-teal-800 font-sans">
     {{-- 18-nov: ahora con el header y el footer reales del sitio (mismas redes, métodos de pago y datos); se quitaron el
          logo duplicado/caja punteada y el footer propio con redes en "#" (incluida Vimeo, que no existe en el sitio). --}}
-    <x-header variant="solid" />
+    {{-- Fail-safe: si la BD no responde (o está vacía), la 404 se pinta igual sin header/footer en vez de dar 500. --}}
+    @php $lvtChromeOk = rescue(fn () => \Illuminate\Support\Facades\Schema::hasTable('settings'), false, false); @endphp
+    @if ($lvtChromeOk)
+        <x-header variant="solid" />
+    @endif
 
     <main id="main" role="main" class="lvt-404 relative overflow-hidden px-5 py-14 text-center flex flex-col items-center justify-center">
         {{-- decorative bg lines --}}
@@ -55,6 +59,8 @@
         </div>
     </main>
 
-    <x-footer />
+    @if ($lvtChromeOk)
+        <x-footer />
+    @endif
 </body>
 </html>
