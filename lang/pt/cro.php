@@ -29,4 +29,9 @@ return [
 
     'cart_aria' => 'Carrinho',
     'pickup_detail_ph' => 'Ex.: quarto 305, 3º andar, em frente ao parque',
+
+    // Barra fija del checkout (móvil)
+    'cta_step_continue' => 'Continuar',
+    'cta_step_payment' => 'Ir para o pagamento',
+    'cta_step_options' => 'Ver opções de pagamento',
 ];

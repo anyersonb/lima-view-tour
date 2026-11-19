@@ -68,7 +68,7 @@ class CheckoutTest extends TestCase
         // ("El pago inmediato debe realizarse a través del botón de
         // PayPal."). El cobro con Culqi vía este endpoint está desconectado
         // del checkout real desde ese cambio.
-        $this->markTestSkipped('Culqi desconectado del checkout; decisión pendiente');
+        $this->markTestSkipped('Endpoint legado checkout.process (payment_timing=now rechazado). El cobro con Culqi va por checkout.culqi.charge y lo cubre CulqiCheckoutTest (reservas, correos, rechazos).');
 
         Mail::fake();
 
@@ -107,7 +107,7 @@ class CheckoutTest extends TestCase
     {
         // B6: mismo motivo — el pago inmediato con Culqi (payment_timing=now)
         // está desconectado del checkout real.
-        $this->markTestSkipped('Culqi desconectado del checkout; decisión pendiente');
+        $this->markTestSkipped('Endpoint legado checkout.process (payment_timing=now rechazado). El cobro con Culqi va por checkout.culqi.charge y lo cubre CulqiCheckoutTest (reservas, correos, rechazos).');
 
         Mail::fake();
 
@@ -223,7 +223,7 @@ class CheckoutTest extends TestCase
     {
         // B6: mismo motivo — depende del cobro con Culqi vía payment_timing=now,
         // que processPayment() rechaza explícitamente hoy.
-        $this->markTestSkipped('Culqi desconectado del checkout; decisión pendiente');
+        $this->markTestSkipped('Endpoint legado checkout.process (payment_timing=now rechazado). El cobro con Culqi va por checkout.culqi.charge y lo cubre CulqiCheckoutTest (reservas, correos, rechazos).');
 
         Mail::fake();
 

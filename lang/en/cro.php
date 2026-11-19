@@ -29,4 +29,9 @@ return [
 
     'cart_aria' => 'Cart',
     'pickup_detail_ph' => 'E.g. room 305, 3rd floor, across from the park',
+
+    // Barra fija del checkout (móvil)
+    'cta_step_continue' => 'Continue',
+    'cta_step_payment' => 'Go to payment',
+    'cta_step_options' => 'See payment options',
 ];

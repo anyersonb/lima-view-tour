@@ -78,13 +78,15 @@ button.bg-orange-500.text-white:hover,
 .lvt-inline-link { display: inline-block; padding: 12px 2px; margin: -12px 0; }
 .lvt-contact-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; }
 
-/* Footer: solo CSS (no se edita footer.blade.php). Áreas táctiles >= 44px */
-.site-footer a { display: inline-flex; align-items: center; min-height: 44px; }
+/* Footer: áreas táctiles solo en pantallas táctiles (< 1024px). En desktop no se infla la columna de enlaces.
+   Lista de enlaces: 36px + 10px de separación (space-y-2.5) = sin solapes y >= 24px (WCAG 2.5.8) sin estirar el footer. */
 .site-footer a.site-footer__link svg { flex-shrink: 0; }
-.site-footer ul li > a { padding-block: 2px; }
-.site-footer a.inline,
-.site-footer p a,
-.site-footer address a { display: inline-flex; }
+.site-footer ul.flex > li > a.site-footer__link { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+.site-footer ul.flex.gap-3:not(.flex-wrap) { margin-left: -12px; }
+@media (max-width: 1023.98px) {
+  .site-footer a { display: inline-flex; align-items: center; min-height: 44px; }
+  .site-footer ul.space-y-2\.5 > li > a { min-height: 36px; }
+}
 
 /* --------------------------------------------------------------------------
    A3 / A4 · WhatsApp flotante (variables usadas por el estilo inline del <a>)
@@ -239,3 +241,15 @@ button.bg-orange-500.text-white:hover,
    -------------------------------------------------------------------------- */
 .related-slider { max-width: 100%; min-width: 0; overscroll-behavior-x: contain; }
 .related-slider > article { max-width: min(270px, 86vw); }
+
+/* --------------------------------------------------------------------------
+   QA cierre 19-nov · áreas táctiles que seguían < 44px (solo táctil, < 1024px).
+   Nota: el build de Vite de prod no trae clases arbitrarias nuevas (min-h-[44px]); se definen aquí.
+   -------------------------------------------------------------------------- */
+.min-h-\[44px\] { min-height: 44px; }
+@media (max-width: 1023.98px) {
+  .m-rec-btn { min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .cart-add-btn, .cart-btn-dark, .cart-btn-outline { min-height: 44px; }
+  .lvt-date-input { min-height: 44px; }
+  .scrollbar-hide > a.shrink-0.rounded-full { min-height: 40px; display: inline-flex; align-items: center; }
+}

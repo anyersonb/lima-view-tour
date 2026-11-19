@@ -38,4 +38,9 @@ return [
 
     // 404
     'cart_aria' => 'Carrito',
+
+    // Barra fija del checkout (móvil)
+    'cta_step_continue' => 'Continuar',
+    'cta_step_payment' => 'Ir al pago',
+    'cta_step_options' => 'Ver opciones de pago',
 ];

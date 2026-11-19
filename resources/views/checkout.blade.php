@@ -2162,7 +2162,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         document.querySelectorAll('[data-cart-count]').forEach(el => el.textContent = '0');
         // Ocultar steps 2 y 3 del CTA
         const ctaText = document.querySelector('[data-cta-text]');
-        if (ctaText) ctaText.textContent = 'Continuar';
+        if (ctaText) ctaText.textContent = @json(__('cro.cta_step_continue'));
     }
 
     // ── Switcher screens ─────────────────────────────────────────
@@ -2183,7 +2183,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
     // ── Stepper 3 pasos ──────────────────────────────────────────
     const steps    = ['reservas', 'datos', 'pago'];
-    const ctaLabels = { reservas: 'Continuar', datos: 'Ir al pago', pago: 'Ver opciones de pago' };
+    const ctaLabels = { reservas: @json(__('cro.cta_step_continue')), datos: @json(__('cro.cta_step_payment')), pago: @json(__('cro.cta_step_options')) };
     let currentStep = '{{ $openStep }}';
 
     function setStep(name) {
@@ -2201,7 +2201,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 
         // CTA text
         const ctaText = document.querySelector('[data-cta-text]');
-        if (ctaText) ctaText.textContent = ctaLabels[name] ?? 'Continuar';
+        if (ctaText) ctaText.textContent = ctaLabels[name] ?? ctaLabels.reservas;
 
         // Sticky: ocultar en reservas vacío; siempre visible si hay items
         const sticky = document.getElementById('cart-sticky-footer');

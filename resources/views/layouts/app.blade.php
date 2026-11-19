@@ -259,7 +259,7 @@
     @stack('head')
     {{-- CRO móvil 18-nov-2026: CSS plano SIN build (no depende de recompilar Vite). Va DESPUÉS de Vite y de los
          <style> de cada vista para ganar por orden de cascada. Subir ?v= en cada cambio. --}}
-    <link rel="stylesheet" href="{{ asset('css/cro-fixes.css') }}?v=20261118a">
+    <link rel="stylesheet" href="{{ asset('css/cro-fixes.css') }}?v=20261119a">
 </head>
 <body class="bg-white">
     {{-- Sin <noscript> de GTM: el iframe no aporta medicion util (los eventos dependen de JS). --}}
