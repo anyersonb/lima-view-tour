@@ -491,7 +491,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 /* ── Sticky footer ── */
 .cart-sticky {
     position: fixed; left: 50%; transform: translateX(-50%);
-    bottom: calc(12px + var(--cookie-banner-h, 0px)); width: min(600px, calc(100vw - 24px));
+    bottom: 12px; width: min(600px, calc(100vw - 24px));
     z-index: 40; pointer-events: none;
 }
 .cart-sticky-inner {
@@ -644,8 +644,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
 .cart-flash.error { background: rgba(200,110,87,.08); border: 1px solid rgba(200,110,87,.25); color: var(--cart-danger); }
 
 /* ── Spacer sticky ── */
-.cart-sticky-spacer { height: calc(84px + var(--cookie-banner-h, 0px)); }
-@media (max-width: 1023px) { .cart-panel.active { padding-bottom: 28px; } .cart-sticky-spacer { height: calc(112px + var(--cookie-banner-h, 0px)); } }
+.cart-sticky-spacer { height: 84px; }
+@media (max-width: 1023px) { .cart-panel.active { padding-bottom: 28px; } .cart-sticky-spacer { height: 112px; } }
 /* Desktop: el sidebar ya tiene el CTA → ocultar la barra sticky inferior (evita solape) */
 @media (min-width: 1024px) { .cart-sticky, .cart-sticky-spacer { display: none !important; } }
 
@@ -1755,6 +1755,26 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         </button>
     </div>
 </div>
+
+<script>
+    // Publica --sticky-bar-h en <html> para que el botón flotante de WhatsApp suba sobre .cart-sticky
+    // (mismo mecanismo que .lvt-resbar en la ficha). Mide el rect real, así cuenta el safe-area.
+    (() => {
+        const bar = document.getElementById('cart-sticky-footer');
+        if (!bar) return;
+        const root = document.documentElement;
+        const sync = () => {
+            const visible = getComputedStyle(bar).display !== 'none';
+            const h = visible ? Math.max(0, Math.round(window.innerHeight - bar.getBoundingClientRect().top) - 12) : 0;
+            root.style.setProperty('--sticky-bar-h', h + 'px');
+        };
+        new MutationObserver(sync).observe(bar, { attributes: true, attributeFilter: ['style'] });
+        if ('ResizeObserver' in window) new ResizeObserver(sync).observe(bar);
+        window.addEventListener('resize', sync);
+        window.addEventListener('pageshow', sync);
+        sync();
+    })();
+</script>
 
 @php
     // Payload de ecommerce para begin_checkout / add_payment_info. Calculado

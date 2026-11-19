@@ -63,8 +63,8 @@ return [
         'en/the-incas-sacred-valley'            => '/en/tours/detalle/valle-sagrado-de-los-incas',
         'en/maras-moray-and-salt-mines-quad-bike' => '/en/tours/detalle/maras-moray-y-minas-de-sal-cuatrimotos',
         'en/get-to-know-machu-picchu-if-you-dont-have-a-ticket' => '/en/tours/detalle/conoce-machu-picchu-si-no-tienes-entrada',
-        'en/the-enigmatic-nazca-lines-the-oasis-of-huacachina-and-the-ballestas-islands' => '/en/tours/detalle/las-enigmaticas-lineas-de-nazca-el-oasis-de-huacachina',
-        'en/full-day-to-the-nazca-lines' => '/en/tours/detalle/las-enigmaticas-lineas-de-nazca-el-oasis-de-huacachina',
+        'en/the-enigmatic-nazca-lines-the-oasis-of-huacachina-and-the-ballestas-islands' => '/en/tours/detalle/nazca-lines-huacachina-tour',
+        'en/full-day-to-the-nazca-lines' => '/en/tours/detalle/nazca-lines-huacachina-tour',
 
         /*
         | ⚠ SUPUESTOS PENDIENTES DE CONFIRMAR CON EL CLIENTE

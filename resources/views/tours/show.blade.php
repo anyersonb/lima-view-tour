@@ -128,13 +128,16 @@
             }
 
             // Normalizar hora a formato 24h sin am/pm (ej. "1:00 pm" → "13:00", "4:00 am" → "04:00")
-            if (!empty($time) && preg_match('/^(\d{1,2}):(\d{2})\s*(am|pm)?/iu', $time, $tm)) {
-                $h = (int) $tm[1];
-                $min = $tm[2];
-                $mer = mb_strtolower($tm[3] ?? '');
-                if ($mer === 'pm' && $h < 12) { $h += 12; }
-                if ($mer === 'am' && $h === 12) { $h = 0; }
-                $time = sprintf('%02d:%02d', $h, $min);
+            // Cada hora del texto se normaliza por separado: un rango "4:00 AM - 11:30 AM" debe
+            // quedar "04:00 - 11:30", no colapsar a la hora de inicio (dos pasos a las 04:00).
+            if (!empty($time) && preg_match('/^\d{1,2}:\d{2}/u', $time)) {
+                $time = preg_replace_callback('/(\d{1,2}):(\d{2})\s*(am|pm)?/iu', function ($tm) {
+                    $h = (int) $tm[1];
+                    $mer = mb_strtolower($tm[3] ?? '');
+                    if ($mer === 'pm' && $h < 12) { $h += 12; }
+                    if ($mer === 'am' && $h === 12) { $h = 0; }
+                    return sprintf('%02d:%02d', $h, $tm[2]);
+                }, $time);
             }
 
             // Mapear icono por palabra clave (título + descripción)
@@ -209,6 +212,16 @@
         'en' => url('/en/tours/detalle/' . $tour->slugFor('en')),
         'pt' => url('/pt/tours/detalle/' . $tour->slugFor('pt')),
     ];
+
+    // PT with no description/itinerary of its own is a copy of the Spanish body under PT
+    // labels: keep it out of the index and the hreflang cluster until it gets translated
+    // (switches itself off). EN is intentionally NOT covered, see Tour::isLocalePageIndexable().
+    $localizedAlternates = array_filter(
+        $localizedAlternates,
+        fn ($href, $alt) => $tour->isLocalePageIndexable($alt),
+        ARRAY_FILTER_USE_BOTH
+    );
+    $forceNoindex = ! $tour->isLocalePageIndexable($locale);
 @endphp
 
 @push('schema')
@@ -268,7 +281,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
     body { padding-bottom: var(--sticky-bar-h, 0px); }
     .lvt-resbar {
         display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        position: fixed; left: 0; right: 0; bottom: var(--cookie-banner-h, 0px); z-index: 40;
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
         padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
         background: #fff; box-shadow: 0 -4px 16px rgba(21,71,75,.14);
         transform: translateY(100%); visibility: hidden;
@@ -538,7 +551,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 }
 .m-stop:last-child::before { display: none; }
 .m-time {
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.25;
   font-weight: 800; font-size: 12px; color: var(--m-green);
   background: #eef3ef; border: 1px solid #d8e5d5; border-radius: 8px;
   padding: 3px 0; margin-top: 1px; letter-spacing: .3px;
@@ -1226,7 +1239,7 @@ if (!empty($itinerary)) {
 
         {{-- 2. TÍTULO + RATING --}}
         <div style="padding:18px 20px 0;">
-            <p class="m-title" role="heading" aria-level="1">{{ $titleDisplay }}</p>
+            <h1 class="m-title">{{ $titleDisplay }}</h1>
             @if ($tourRating !== null)
             <div class="m-rating">
                 <span class="m-stars" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">★★★★★</span>
@@ -1382,7 +1395,8 @@ if (!empty($itinerary)) {
             <div class="m-timeline">
                 @foreach ($itinerary as $step)
                 <div class="m-stop">
-                    <div class="m-time">{{ $step['time'] ?? '' }}</div>
+                    {{-- Rango "04:00 - 11:30": una hora por línea para caber en la columna de 48px. --}}
+                    <div class="m-time">@foreach (preg_split('/\s+[-–]\s+/u', (string) ($step['time'] ?? '')) as $tPart)<span>{{ $tPart }}</span>@endforeach</div>
                     <div class="m-dot" aria-hidden="true"></div>
                     <div>
                         @if (!empty($step['title']))<b>{{ $step['title'] }}</b>@endif
@@ -1820,9 +1834,10 @@ if (!empty($itinerary)) {
              2. TÍTULO + RATING (columna izquierda)
         ══════════════════════════════════════ --}}
         <section aria-labelledby="tour-title">
-            <h1 id="tour-title" class="font-display text-2xl md:text-3xl lg:text-4xl text-teal-800 leading-tight">
+            {{-- El único <h1> real vive en el bloque móvil (indexación mobile-first); aquí, rol equivalente para ≥ md. --}}
+            <p id="tour-title" role="heading" aria-level="1" class="font-display text-2xl md:text-3xl lg:text-4xl text-teal-800 leading-tight">
                 {{ $titleDisplay }}
-            </h1>
+            </p>
             @if ($tourRating !== null)
             <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <span class="inline-flex gap-0.5" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">
