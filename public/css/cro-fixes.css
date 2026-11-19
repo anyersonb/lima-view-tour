@@ -253,3 +253,9 @@ button.bg-orange-500.text-white:hover,
   .lvt-date-input { min-height: 44px; }
   .scrollbar-hide > a.shrink-0.rounded-full { min-height: 40px; display: inline-flex; align-items: center; }
 }
+
+/* QA prod 19-nov · reCAPTCHA v2 mide 304px fijos: en pantallas angostas desbordaba la tarjeta de contacto (scrollWidth 380 a 360). */
+@media (max-width: 380px) {
+  .g-recaptcha { width: 262px; height: 67px; overflow: visible; }
+  .g-recaptcha > div { transform: scale(.86); transform-origin: 0 0; }
+}
