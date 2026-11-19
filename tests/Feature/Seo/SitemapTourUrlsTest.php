@@ -24,6 +24,8 @@ class SitemapTourUrlsTest extends TestCase
             'slug_pt' => 'lagoa-humantay',
             'cover_image' => 'tours/155.jpg',
             'is_published' => true,
+            // PT con contenido propio: sin él la ficha PT es noindex y sale del sitemap (Tour::isLocalePageIndexable).
+            'description_pt' => '<p>Passeio à Lagoa Humantay.</p>',
         ], $overrides));
     }
 
@@ -44,7 +46,7 @@ class SitemapTourUrlsTest extends TestCase
     public function test_every_tour_loc_in_the_sitemap_answers_200_without_redirect(): void
     {
         $this->tour();
-        $this->tour(['slug' => 'city-tour-cusco', 'slug_en' => 'cusco-city-tour', 'slug_pt' => null, 'cover_image' => null]);
+        $this->tour(['slug' => 'city-tour-cusco', 'slug_en' => 'cusco-city-tour', 'slug_pt' => null, 'cover_image' => null, 'description_pt' => '<p>City tour Cusco.</p>']);
 
         $xml = $this->get('/sitemap.xml')->getContent();
         preg_match_all('#<loc>([^<]*/tours/detalle/[^<]+)</loc>#', $xml, $m);
@@ -99,5 +101,15 @@ class SitemapTourUrlsTest extends TestCase
         $pt = $this->get('/pt/tours')->getContent();
         $this->assertStringContainsString('/pt/tours/detalle/lagoa-humantay', $pt);
         $this->assertStringNotContainsString('/pt/tours/detalle/laguna-humantay', $pt);
+    }
+    public function test_an_untranslated_pt_tour_stays_out_of_the_sitemap_and_its_hreflang(): void
+    {
+        $this->tour(['description_pt' => null, 'itinerary_pt' => null]);
+
+        $xml = $this->get('/sitemap.xml')->assertOk()->getContent();
+
+        $this->assertStringContainsString('/es/tours/detalle/laguna-humantay</loc>', $xml);
+        $this->assertStringContainsString('/en/tours/detalle/humantay-lake-tour</loc>', $xml);
+        $this->assertStringNotContainsString('/pt/tours/detalle/lagoa-humantay', $xml);
     }
 }
