@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\CulqiChargeDeclinedException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -14,9 +15,9 @@ class PaymentService
 
     public function __construct()
     {
-        $this->secretKey     = config('services.culqi.secret_key', '');
-        $this->publicKey     = config('services.culqi.public_key', '');
-        $this->webhookSecret = config('services.culqi.webhook_secret', '');
+        $this->secretKey     = (string) config('services.culqi.secret_key', '');
+        $this->publicKey     = (string) config('services.culqi.public_key', '');
+        $this->webhookSecret = (string) config('services.culqi.webhook_secret', '');
         $this->apiUrl        = rtrim(config('services.culqi.api_url', 'https://api.culqi.com/v2'), '/');
     }
 
@@ -48,6 +49,19 @@ class PaymentService
                     'body'     => $response->body(),
                     'metadata' => $data['metadata'] ?? [],
                 ]);
+
+                // Rechazo de tarjeta: excepción tipada para que el checkout
+                // muestre un mensaje claro y deje reintentar. Culqi usa
+                // type=card_error (datos de tarjeta) y type=operacion_denegada
+                // (banco: fondos insuficientes, tarjeta robada, etc.; verificado
+                // contra el sandbox real con la tarjeta de fondos insuficientes).
+                if (in_array($response->json('type'), ['card_error', 'operacion_denegada'], true)) {
+                    throw new CulqiChargeDeclinedException(
+                        'Culqi charge declined: ' . ($response->json('user_message') ?? $response->json('code') ?? 'card_error'),
+                        $response->json('decline_code'),
+                        $response->json('code'),
+                    );
+                }
 
                 throw new \RuntimeException(
                     'Culqi charge failed: ' . ($response->json('user_message') ?? $response->body())

@@ -18,7 +18,7 @@ class SecurityHeaders
     private const CSP_BASE = [
         'default-src' => "'self'",
         'script-src' => "'self' 'unsafe-inline' 'unsafe-eval' "
-            .'https://checkout.culqi.com https://js.culqi.com '
+            .'https://checkout.culqi.com https://js.culqi.com https://*.culqi.com '
             .'https://www.paypal.com https://*.paypal.com https://*.paypalobjects.com '
             .'https://cdnjs.cloudflare.com '
             .'https://www.googletagmanager.com https://www.google-analytics.com '
@@ -29,14 +29,15 @@ class SecurityHeaders
             .'https://www.google.com https://www.gstatic.com',
         'style-src' => "'self' 'unsafe-inline' "
             .'https://fonts.googleapis.com https://fonts.bunny.net https://cdnjs.cloudflare.com '
+            .'https://*.culqi.com '
             .'https://*.tacdn.com https://www.tripadvisor.com',
-        'font-src' => "'self' https://fonts.gstatic.com https://fonts.bunny.net https://*.tacdn.com data:",
+        'font-src' => "'self' https://fonts.gstatic.com https://fonts.bunny.net https://*.tacdn.com https://*.culqi.com data:",
         'img-src' => "'self' data: https: blob:",
         'frame-src' => 'https://*.culqi.com https://www.googletagmanager.com '
             .'https://www.paypal.com https://*.paypal.com '
             .'https://www.tripadvisor.com https://*.tripadvisor.com '
             .'https://www.google.com',
-        'connect-src' => "'self' https://api.culqi.com "
+        'connect-src' => "'self' https://api.culqi.com https://*.culqi.com "
             .'https://www.paypal.com https://*.paypal.com https://*.paypalobjects.com '
             .'https://www.google-analytics.com '
             .'https://maps.googleapis.com https://maps.gstatic.com '

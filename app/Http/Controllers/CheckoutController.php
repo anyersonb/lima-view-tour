@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\CulqiChargeDeclinedException;
 use App\Exceptions\PayPalCardDeclinedException;
 use App\Exceptions\UnbookableDateException;
 use App\Http\Requests\ProcessPaymentRequest;
@@ -19,6 +20,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -637,6 +640,209 @@ class CheckoutController extends Controller
                 'success' => false,
                 'message' => __('booking.payment_failed'),
             ], 500);
+        }
+    }
+
+    /**
+     * Cobro con tarjeta vía Culqi Checkout v4 (token -> cargo -> reservas).
+     *
+     * El front solo manda el token de un solo uso que generó Culqi.js y los
+     * datos del cliente; el MONTO sale SIEMPRE del carrito en servidor
+     * (CartService::total()), nunca del request. Mismo orden de puertas que
+     * paypalCaptureOrder(): bloqueo de revisión manual, carrito vacío, fechas
+     * reservables/bloqueadas ANTES de cobrar; y si el cargo se hizo pero la
+     * reserva falla, se deja el PaymentLock y no se invita a reintentar.
+     */
+    public function culqiCharge(Request $request, string $locale): JsonResponse
+    {
+        if (! config('services.culqi.enabled') || ! config('services.culqi.public_key') || ! config('services.culqi.secret_key')) {
+            return response()->json(['success' => false, 'message' => __('checkout_culqi.unavailable')], 503);
+        }
+
+        if ($request->has('customer_phone') && is_string($request->input('customer_phone'))) {
+            $request->merge(['customer_phone' => preg_replace('/\s+/', '', $request->input('customer_phone'))]);
+        }
+        if ($request->has('tour_language')) {
+            $request->merge(['tour_language' => is_string($request->input('tour_language')) ? TourLanguage::normalize($request->input('tour_language')) : $request->input('tour_language')]);
+        }
+
+        $validated = $request->validate([
+            'culqi_token' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9_]+$/'],
+            'customer_name' => ['required', 'string', 'max:255'],
+            'customer_email' => ['required', 'email', 'max:255'],
+            'customer_phone' => ['required', 'string', 'regex:/^\+?\d{7,15}$/'],
+            'travel_date' => array_merge(['required'], BookingCalendar::formDateRules()),
+            'pickup_point' => ['nullable', 'string', 'max:100'],
+            'pickup_detail' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'tour_language' => ['nullable', 'string', Rule::in(TourLanguage::CODES)],
+            'accept_terms' => ['required', 'accepted'],
+        ], array_merge(BookingCalendar::dateMessages(), [
+            'customer_phone.regex' => __('checkout_paypal.phone_invalid'),
+            'customer_phone.required' => __('checkout_paypal.phone_invalid'),
+            'accept_terms.required' => __('checkout_paypal.accept_terms_required'),
+            'accept_terms.accepted' => __('checkout_paypal.accept_terms_required'),
+            'culqi_token.required' => __('checkout_culqi.token_missing'),
+            'culqi_token.regex' => __('checkout_culqi.token_missing'),
+        ]));
+
+        // Anti doble cobro por doble clic / dos pestañas de la misma sesión:
+        // un solo cargo en vuelo por sesión (el token de Culqi además es de
+        // un solo uso, pero esto evita dos tokens distintos sobre un carrito).
+        $mutex = Cache::lock('culqi-charge:'.$request->session()->getId(), 90);
+        if (! $mutex->get()) {
+            return response()->json(['success' => false, 'message' => __('checkout_culqi.in_progress')], 409);
+        }
+
+        $chargeId = null;
+        $snapshotItems = collect();
+        $total = 0.0;
+
+        try {
+            if ($lock = $this->paymentLock->current()) {
+                Log::warning('checkout.culqi_charge: blocked, pending manual review lock', [
+                    'capture_id' => $lock['capture_id'],
+                ]);
+
+                return response()->json($this->paymentLock->blockedResponsePayload($lock), 409);
+            }
+
+            $items = $this->cart->items();
+
+            if ($items->isEmpty()) {
+                return response()->json(['success' => false, 'message' => __('cart.empty_checkout_redirect')], 422);
+            }
+
+            $customer = [
+                'customer_name' => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'customer_phone' => $validated['customer_phone'],
+                'travel_date' => $validated['travel_date'],
+                'pickup_point' => $validated['pickup_point'] ?? null,
+                'pickup_detail' => $validated['pickup_detail'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'tour_language' => TourLanguage::resolve($validated['tour_language'] ?? null, $locale),
+            ];
+
+            foreach ($items as $item) {
+                $travelDate = $item['travel_date'] ?? $customer['travel_date'];
+
+                if (BlockedDate::isBlocked($travelDate, $item['tour_id'] ?? null)) {
+                    return response()->json(['success' => false, 'message' => __('booking.date_blocked')], 422);
+                }
+            }
+
+            // Antes de cobrar: rechaza fechas vencidas con el mismo contrato
+            // que paypalCreateOrder (code=date_unavailable + items).
+            $badItems = BookingCalendar::unbookableItems($items, $customer['travel_date']);
+
+            if ($badItems !== []) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'date_unavailable',
+                    'message' => implode(' ', array_column($badItems, 'message')),
+                    'items' => array_map(fn (array $b) => [
+                        'row_id' => $b['row_id'],
+                        'tour_id' => $b['tour_id'],
+                        'first_date' => $b['first_date'],
+                        'message' => $b['message'],
+                    ], $badItems),
+                ], 422);
+            }
+
+            // Monto y moneda: SIEMPRE del servidor.
+            $total = $this->cart->total();
+            $amountCents = (int) round($total * 100);
+
+            if ($amountCents <= 0) {
+                return response()->json(['success' => false, 'message' => __('checkout_culqi.charge_failed')], 422);
+            }
+
+            $snapshotItems = $items;
+
+            $charge = $this->payment->createCharge([
+                'amount' => $amountCents,
+                'currency_code' => 'USD',
+                'email' => $customer['customer_email'],
+                'source_id' => $validated['culqi_token'],
+                'capture' => true,
+                'description' => mb_substr('Lima View Tours - '.$items->count().' tour(s)', 0, 80),
+                'metadata' => [
+                    'locale' => $locale,
+                    'travel_date' => (string) $customer['travel_date'],
+                    'tour_ids' => mb_substr($items->pluck('tour_id')->filter()->implode(','), 0, 190),
+                    'customer_name' => mb_substr($customer['customer_name'], 0, 100),
+                ],
+            ]);
+
+            $chargeId = (string) ($charge['id'] ?? '');
+            $outcome = $charge['outcome']['type'] ?? null;
+
+            // Cargo creado pero NO aprobado (p.ej. requiere 3DS/revisión): no
+            // se reserva; el comprador reintenta con otra tarjeta.
+            if ($chargeId === '' || $outcome !== 'venta_exitosa' || ($charge['action_code'] ?? null) === 'REVIEW') {
+                Log::warning('checkout.culqi_charge: charge not approved', [
+                    'charge_id' => $chargeId,
+                    'outcome' => $outcome,
+                    'action_code' => $charge['action_code'] ?? null,
+                ]);
+                $chargeId = null;
+
+                return response()->json([
+                    'success' => false,
+                    'code' => 'card_declined',
+                    'message' => __('checkout_culqi.declined.generic'),
+                ], 402);
+            }
+
+            $bookings = $this->finalizeBookings($snapshotItems, $customer, 'culqi', $chargeId, true, datesAlreadyChecked: true);
+
+            $request->session()->put('last_bookings', $bookings->toArray());
+            $request->session()->put('conversion_pending', true);
+
+            return response()->json([
+                'success' => true,
+                'redirect' => route('checkout.thanks', ['locale' => $locale]),
+            ]);
+
+        } catch (CulqiChargeDeclinedException $e) {
+            Log::info('checkout.culqi_charge: card declined', [
+                'decline_code' => $e->declineCode,
+                'code' => $e->culqiCode,
+            ]);
+
+            $key = 'checkout_culqi.declined.'.($e->declineCode ?? '');
+            $message = ($e->declineCode && Lang::has($key)) ? __($key) : __('checkout_culqi.declined.generic');
+
+            return response()->json(['success' => false, 'code' => 'card_declined', 'message' => $message], 402);
+
+        } catch (\Throwable $e) {
+            Log::error('checkout.culqi_charge.error', [
+                'message' => $e->getMessage(),
+                'charge_id' => $chargeId,
+                'amount' => $total,
+                'currency' => 'USD',
+                'email' => $validated['customer_email'] ?? null,
+                'items' => $snapshotItems->values()->all(),
+            ]);
+
+            if ($chargeId !== null) {
+                // Dinero cobrado sin reserva: bloqueo y revisión manual (igual
+                // que PayPal). No invita a reintentar: cobraría dos veces.
+                $this->paymentLock->store($chargeId, $chargeId, ['total' => $total, 'currency' => 'USD', 'items' => $snapshotItems->values()->all()], $validated);
+
+                return response()->json([
+                    'success' => false,
+                    'code' => 'payment_captured_booking_pending',
+                    'message' => __('checkout_culqi.captured_booking_pending', ['reference' => $chargeId]),
+                    'reference' => $chargeId,
+                ], 200);
+            }
+
+            return response()->json(['success' => false, 'message' => __('checkout_culqi.charge_failed')], 500);
+
+        } finally {
+            $mutex->release();
         }
     }
 

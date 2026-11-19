@@ -1685,13 +1685,40 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                         </ul>
                     </div>
 
+                    @php
+                        // Culqi (tarjetas): solo se pinta si hay llave pública Y secreta.
+                        $culqiEnabled = $items->isNotEmpty()
+                            && config('services.culqi.enabled')
+                            && filled(config('services.culqi.public_key'))
+                            && filled(config('services.culqi.secret_key'));
+                        $paypalEnabled = (bool) (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id'));
+                    @endphp
                     <div id="paypal-section" style="display:none; margin-top:12px;">
-                        @if ((\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')))
+                        @if ($culqiEnabled)
+                            {{-- Culqi Checkout v4: abre el modal de Culqi, genera el token y el
+                                 servidor cobra (CheckoutController::culqiCharge). El monto lo
+                                 recalcula el servidor; el del modal es solo informativo. --}}
+                            <div id="culqi-section" class="cart-card" style="margin-bottom:0;">
+                                <div class="cart-card-pad">
+                                    <p style="margin:0 0 4px; font-size:15px; font-weight:700; color:var(--cart-green);">{{ __('checkout_culqi.title') }}</p>
+                                    <p style="margin:0 0 12px; font-size:12.5px; color:#71808a; line-height:1.4;">{{ __('checkout_culqi.subtitle') }}</p>
+                                    <button type="button" id="culqi-pay-btn" class="cart-cta-btn" style="min-height:52px; border-radius:16px; width:100%;" aria-live="polite">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                                        <span id="culqi-pay-label">{{ __('checkout_culqi.pay_button', ['amount' => number_format($total, 0)]) }}</span>
+                                    </button>
+                                    <div id="culqi-msg" role="alert" style="display:none; margin-top:10px; padding:10px 14px; border-radius:14px; font-size:13px; font-weight:600; background:rgba(200,110,87,.08); border:1px solid rgba(200,110,87,.25); color:#C86E57;"></div>
+                                </div>
+                            </div>
+                            @if ($paypalEnabled)
+                                <div id="culqi-separator" style="text-align:center; font-size:12px; font-weight:600; color:#71808a; margin:12px 0;">{{ __('checkout_culqi.or_pay_with_paypal') }}</div>
+                            @endif
+                        @endif
+                        @if ($paypalEnabled)
                             <div id="card-buttons"></div>
                             <div id="paypal-separator" style="display:none; text-align:center; font-size:12px; font-weight:600; color:#71808a; margin:12px 0;">{{ __('checkout_paypal.or_pay_with_paypal') }}</div>
                             <div id="paypal-buttons"></div>
                             <div id="paypal-msg" role="alert" style="display:none; margin-top:10px; padding:10px 14px; border-radius:14px; font-size:13px; font-weight:600; background:rgba(200,110,87,.08); border:1px solid rgba(200,110,87,.25); color:#C86E57;"></div>
-                        @else
+                        @elseif (! $culqiEnabled)
                             <div class="cart-policy-box" style="text-align:center;">
                                 <b>{{ __('ui.gateway_config_title') }}</b>
                                 {{ __('ui.gateway_config_desc') }}
@@ -1833,6 +1860,10 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
     ])->values();
 @endphp
 @push('scripts')
+@if ($culqiEnabled ?? false)
+{{-- Culqi Checkout v4 (https://docs.culqi.com/es/documentacion/checkout/v4) --}}
+<script src="https://checkout.culqi.com/js/v4"></script>
+@endif
 @if ($items->isNotEmpty() && (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')))
 <script
     src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale=es_PE&components=buttons,funding-eligibility&disable-funding=credit,paylater"
@@ -1964,6 +1995,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         const promo  = Math.max(0, before - sub);
         const total  = Math.max(0, sub - serverDiscount);
         document.querySelectorAll('[data-total]').forEach(el => el.textContent = fmt(total));
+        if (typeof window.lvtCulqiRefreshLabel === 'function') window.lvtCulqiRefreshLabel(total);
         const asSub = document.querySelector('[data-aside-subtotal]');
         const asTot = document.querySelector('[data-aside-total]');
         const asBefore = document.querySelector('[data-aside-before]');
@@ -2406,6 +2438,9 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
         if (ppSeparatorEl) ppSeparatorEl.style.display = 'none';
         const ppButtons = document.getElementById('paypal-buttons');
         if (ppButtons) ppButtons.innerHTML = '';
+        // Culqi: retirar también el bloque de tarjeta (todo #paypal-section).
+        const payMethodsEl = document.getElementById('paypal-section');
+        if (payMethodsEl) payMethodsEl.style.display = 'none';
 
         // Retirar también "reservar y pagar después" y el switcher: no debe
         // quedar ninguna vía para volver a pagar ni para crear, desde esta
@@ -2718,6 +2753,131 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
             },
         }).render('#paypal-buttons');
     }
+    @endif
+
+    @if ($culqiEnabled ?? false)
+    // ── Culqi Checkout v4: token (front) -> cargo (servidor) ─────
+    // El servidor recalcula el monto del carrito; el `amount` del modal es
+    // solo informativo para el cliente. Nunca se manda un monto al servidor.
+    (function () {
+        const chargeUrl = @json(route('checkout.culqi.charge', ['locale' => $locale]));
+        const btn   = document.getElementById('culqi-pay-btn');
+        const label = document.getElementById('culqi-pay-label');
+        const msgEl = document.getElementById('culqi-msg');
+        if (!btn || !label || !msgEl) return;
+
+        const T = {
+            pay:        @json(__('checkout_culqi.pay_button', ['amount' => ':amount'])),
+            processing: @json(__('checkout_culqi.processing')),
+            title:      @json(__('checkout_culqi.checkout_title')),
+            scriptFail: @json(__('checkout_culqi.script_failed')),
+            tokenError: @json(__('checkout_culqi.token_error')),
+            failed:     @json(__('checkout_culqi.charge_failed')),
+        };
+        let busy = false;
+
+        const payLabel = (total) => T.pay.replace(':amount', String(Math.round(total)));
+        window.lvtCulqiRefreshLabel = (total) => { if (!busy) label.textContent = payLabel(total); };
+
+        function showMsg(text) {
+            msgEl.textContent = text;
+            msgEl.style.display = '';
+            msgEl.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        }
+        function hideMsg() { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+        function setBusy(on) {
+            busy = on;
+            btn.disabled = on;
+            btn.setAttribute('aria-busy', on ? 'true' : 'false');
+            btn.style.opacity = on ? '.7' : '';
+            btn.style.cursor  = on ? 'wait' : '';
+            label.textContent = on ? T.processing : payLabel(Math.max(0, calcSubtotal() - serverDiscount));
+        }
+
+        btn.addEventListener('click', () => {
+            if (busy || paymentFlowBlocked) return;
+            hideMsg();
+            if (!validateCustomer()) return;
+            if (typeof window.Culqi === 'undefined') { showMsg(T.scriptFail); return; }
+
+            const cents = Math.round(Math.max(0, calcSubtotal() - serverDiscount) * 100);
+            Culqi.publicKey = @json(config('services.culqi.public_key'));
+            Culqi.settings({ title: T.title, currency: 'USD', amount: cents });
+            Culqi.options({
+                lang: locale === 'en' ? 'en' : 'es',
+                installments: false,
+                paymentMethods: { tarjeta: true, yape: false, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
+                style: { buttonBackground: '#143E40', buttonTextColor: '#FFFFFF' },
+            });
+            Culqi.open();
+        });
+
+        async function charge(tokenId) {
+            const c = collectCustomerData();
+            let res, data;
+            try {
+                res = await fetch(chargeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type':     'application/json',
+                        'X-CSRF-TOKEN':     CSRF,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept':           'application/json',
+                    },
+                    body: JSON.stringify({
+                        culqi_token:    tokenId,
+                        customer_name:  c.customer_name,
+                        customer_email: c.customer_email,
+                        customer_phone: c.customer_phone,
+                        travel_date:    c.travel_date,
+                        pickup_point:   c.pickup_point,
+                        pickup_detail:  c.pickup_detail,
+                        tour_language:  c.tour_language,
+                        notes:          c.notes,
+                        accept_terms:   c.accept_terms,
+                    }),
+                });
+                data = await res.json();
+            } catch (e) {
+                console.error('Culqi charge error:', e);
+                setBusy(false);
+                showMsg(T.failed);
+                return;
+            }
+
+            if (data.success && data.redirect) {
+                // Se mantiene el estado "procesando": la página navega.
+                window.location.href = data.redirect;
+                return;
+            }
+            if (data.code === 'payment_captured_booking_pending') {
+                showPaymentReviewPanel(data.message, data.reference);
+                return;
+            }
+            if (res.status === 409 && data.code === 'payment_pending_manual_review') {
+                showPaymentReviewPanel(data.error, data.reference);
+                return;
+            }
+
+            setBusy(false);
+            if (res.status === 422 && typeof showServerFieldError === 'function' && showServerFieldError(data.errors)) return;
+            if (data.code === 'date_unavailable' && typeof markExpiredItems === 'function') markExpiredItems(data.items);
+            showMsg(data.message || T.failed);
+        }
+
+        // Callback global que Culqi Checkout v4 invoca al tokenizar la tarjeta.
+        window.culqi = function () {
+            if (window.Culqi && Culqi.token) {
+                const tokenId = Culqi.token.id;
+                Culqi.close();
+                setBusy(true);
+                charge(tokenId);
+            } else if (window.Culqi && Culqi.error) {
+                console.error('Culqi token error:', Culqi.error.code || Culqi.error.type);
+                showMsg(T.tokenError);
+            }
+        };
+    })();
     @endif
 
     // ── CTA del footer sticky ────────────────────────────────────

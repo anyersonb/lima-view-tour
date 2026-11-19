@@ -136,6 +136,10 @@ Route::prefix('{locale}')
         Route::post('/checkout/paypal/capture', [CheckoutController::class, 'paypalCaptureOrder'])
             ->middleware('throttle:checkout')
             ->name('checkout.paypal.capture');
+        // Culqi (tarjetas): token de Culqi Checkout v4 -> cargo -> reservas.
+        Route::post('/checkout/culqi/charge', [CheckoutController::class, 'culqiCharge'])
+            ->middleware('throttle:checkout')
+            ->name('checkout.culqi.charge');
 
         // ── Páginas institucionales con URL traducida por idioma ──────────
         // Slug por idioma en config/localized_pages.php (propuesta ESPASEO v3).

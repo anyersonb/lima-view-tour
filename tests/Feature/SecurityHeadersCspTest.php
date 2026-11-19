@@ -106,6 +106,24 @@ class SecurityHeadersCspTest extends TestCase
         $this->assertStringContainsString('https:', $csp['img-src']);
     }
 
+    public function test_public_page_csp_allows_culqi_checkout_v4_in_the_right_directives(): void
+    {
+        $response = $this->get('/es');
+        $response->assertOk();
+
+        $csp = $this->parseCsp($response->headers->get('Content-Security-Policy'));
+
+        // Culqi Checkout v4: script (checkout.culqi.com/js/v4), iframe del
+        // modal (checkoutview/secure.culqi.com), API de tokens/cargos y assets.
+        $this->assertStringContainsString('https://checkout.culqi.com', $csp['script-src']);
+        $this->assertStringContainsString('https://*.culqi.com', $csp['script-src']);
+        $this->assertStringContainsString('https://*.culqi.com', $csp['frame-src']);
+        $this->assertStringContainsString('https://api.culqi.com', $csp['connect-src']);
+        $this->assertStringContainsString('https://*.culqi.com', $csp['connect-src']);
+        $this->assertStringContainsString('https://*.culqi.com', $csp['style-src']);
+        $this->assertStringContainsString('https://*.culqi.com', $csp['font-src']);
+        $this->assertStringContainsString('https:', $csp['img-src']);
+    }
     public function test_admin_panel_csp_does_not_receive_the_public_analytics_extras(): void
     {
         // /admin itself requires auth and its 302 to /admin/login short-circuits

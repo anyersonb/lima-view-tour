@@ -37,6 +37,9 @@ return [
         'webhook_secret' => env('CULQI_WEBHOOK_SECRET'),
         'api_url'        => env('CULQI_API_URL', 'https://api.culqi.com/v2'),
         'env'            => env('CULQI_ENV', 'sandbox'),
+        // Interruptor explícito: el bloque de tarjeta solo aparece con CULQI_ENABLED=true.
+        // Prod tiene llaves pk_test en .env: sin este flag se mostraría un cobro de sandbox a clientes reales.
+        'enabled'        => (bool) env('CULQI_ENABLED', false),
     ],
 
     'paypal' => [
