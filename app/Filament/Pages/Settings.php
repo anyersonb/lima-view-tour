@@ -49,7 +49,7 @@ class Settings extends Page implements HasForms
         'home_why_items' => [],
         'home_tour_type_tabs' => ['id', 'price'],
         'home_footer_features' => [],
-        'home_exp_tours' => ['badgeBg', 'slug'],
+        'home_exp_tours' => ['slug'],
         'home_reco_items' => ['icon'],
         'home_faqs' => [],
         'home_choose_items' => [],
@@ -495,7 +495,7 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_destinos')
                                     ->label('Destinos')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
@@ -544,7 +544,7 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_why_items')
                                     ->label('Razones')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
@@ -591,7 +591,7 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_choose_items')
                                     ->label('Consejos (tarjetas)')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
@@ -614,7 +614,7 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_tour_type_tabs')
                                     ->label('Tipos de tour')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web. El ID de cada tipo no se debe cambiar.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('id')->label('ID (único, sin espacios)')->placeholder('cult')->required(),
                                         TextInput::make('label_es')->label('Label tab (ES)')->required(),
@@ -649,7 +649,7 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_footer_features')
                                     ->label('Features (4 íconos en fila)')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('label_es')->label('Etiqueta (ES)')->required(),
                                         TextInput::make('label_en')->label('Etiqueta (EN)'),
@@ -688,19 +688,15 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_exp_tours')
                                     ->label('Experiencias')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),
                                         TextInput::make('title_pt')->label('Título (PT)'),
-                                        TextInput::make('badge_es')->label('Badge (ES)'),
-                                        TextInput::make('badge_en')->label('Badge (EN)'),
-                                        TextInput::make('badge_pt')->label('Badge (PT)'),
                                         \Filament\Forms\Components\Placeholder::make('img_note')
                                             ->label('Imagen')
                                             ->content('La imagen se sube en la sección "Imágenes de las tarjetas del Home" (más abajo), por posición.')
                                             ->columnSpanFull(),
-                                        TextInput::make('badgeBg')->label('Color badge (teal-800 / orange-500)')->placeholder('teal-800'),
                                         TextInput::make('slug')->label('Slug del tour'),
                                     ])
                                     ->columns(3)
@@ -746,7 +742,7 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_faqs')
                                     ->label('Preguntas frecuentes (home)')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web. Son distintas a las FAQs del tab AEO/FAQ.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('q_es')->label('Pregunta (ES)')->required()->columnSpanFull(),
                                         TextInput::make('q_en')->label('Pregunta (EN)')->columnSpanFull(),
@@ -803,7 +799,7 @@ class Settings extends Page implements HasForms
                                 Repeater::make('home_reco_items')
                                     ->label('Razones de recomendación')
                                     ->helperText('Estos son los textos que se ven hoy en la web. Edítalos aquí; si borras un elemento, desaparece de la web.')
-                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
+                                    ->deleteAction(fn (\Filament\Forms\Components\Actions\Action $action) => $action->requiresConfirmation()->modalHeading('¿Borrar este elemento?')->modalDescription('Desaparecerá de la web cuando pulses «Guardar».')->modalSubmitActionLabel('Sí, borrar'))
                                     ->schema([
                                         TextInput::make('title_es')->label('Título (ES)')->required(),
                                         TextInput::make('title_en')->label('Título (EN)'),

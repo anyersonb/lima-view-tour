@@ -63,7 +63,7 @@ class HomeDefaults
              'desc_en'  => 'Tours selected and designed for you.',
              'desc_pt'  => 'Tours selecionados e criados para você.',
              'iconPath' => 'M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0'],
-            ['title_es' => 'Soporte 24/7',        'title_en' => 'Support 24/7',          'title_pt' => 'Suporte 24/7',
+            ['title_es' => 'Atención por WhatsApp',        'title_en' => 'WhatsApp support',          'title_pt' => 'Atendimento por WhatsApp',
              'desc_es'  => 'Estamos para ayudarte antes, durante y después de tu viaje.',
              'desc_en'  => 'We are here to help you before, during and after your trip.',
              'desc_pt'  => 'Estamos aqui para ajudá-lo antes, durante e após sua viagem.',
@@ -144,7 +144,7 @@ class HomeDefaults
     {
         return [
             ['label_es' => 'Reserva fácil',        'label_en' => 'Easy booking',         'label_pt' => 'Reserva fácil',        'iconPath' => 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z'],
-            ['label_es' => 'Soporte 24/7',         'label_en' => 'Support 24/7',          'label_pt' => 'Suporte 24/7',         'iconPath' => 'M2.25 6.75a4.5 4.5 0 004.5 4.5v8.25a3 3 0 003 3h6a3 3 0 003-3v-8.25a4.5 4.5 0 004.5-4.5h-21z'],
+            ['label_es' => 'Atención por WhatsApp',         'label_en' => 'WhatsApp support',          'label_pt' => 'Atendimento por WhatsApp',         'iconPath' => 'M2.25 6.75a4.5 4.5 0 004.5 4.5v8.25a3 3 0 003 3h6a3 3 0 003-3v-8.25a4.5 4.5 0 004.5-4.5h-21z'],
             ['label_es' => 'Cancelación gratuita', 'label_en' => 'Free cancellation',     'label_pt' => 'Cancelamento grátis', 'iconPath' => 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5'],
             ['label_es' => 'Mejores experiencias', 'label_en' => 'Best experiences',      'label_pt' => 'Melhores experiências','iconPath' => 'M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497'],
         ];
