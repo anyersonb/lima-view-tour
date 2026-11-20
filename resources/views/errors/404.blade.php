@@ -31,7 +31,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700&family=Hedvig+Letters+Serif:opsz@12..24&family=Instrument+Serif:ital@0;1&display=swap">
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/cro-fixes.css') }}?v=20261119b">
-    <link rel="stylesheet" href="{{ asset('css/redesign.css') }}?v=20261120g">
+    <link rel="stylesheet" href="{{ asset('css/redesign.css') }}?v=20261120h">
 </head>
 <body class="bg-cream-100 text-teal-800 font-sans">
     {{-- 18-nov: ahora con el header y el footer reales del sitio (mismas redes, métodos de pago y datos); se quitaron el

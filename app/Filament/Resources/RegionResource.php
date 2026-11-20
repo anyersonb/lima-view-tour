@@ -55,6 +55,8 @@ class RegionResource extends Resource
                 Forms\Components\FileUpload::make('hero_image')
                     ->fetchFileInformation(false)
                     ->image()
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->helperText('Foto en JPG, PNG o WebP (las fotos HEIC de iPhone no se ven en los navegadores: expórtalas como JPG).')
                     // Hallazgo de seguridad #5 (2026-09-30): nombre en disco
                     // desde el MIME detectado, nunca la extensión del cliente.
                     ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),

@@ -144,7 +144,7 @@ class HomeFinalSections
                 'name' => (string) ($r->{"name_{$locale}"} ?: $r->name_es),
                 'eyebrow' => $text('eyebrow'),
                 'description' => $text('description'),
-                'image' => ImagePath::url($r->hero_image),
+                'image' => preg_match('/\.(heic|heif)$/i', (string) $r->hero_image) ? null : ImagePath::url($r->hero_image), // HEIC/HEIF (iPhone) no se ve en navegadores → variante sin foto
                 'url' => route('tours.category', ['locale' => $locale, 'categoria' => $r->slug]),
                 'tours_count' => $r->tours->count(),
                 'featured' => $i === 0,

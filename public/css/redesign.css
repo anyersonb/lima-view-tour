@@ -822,3 +822,8 @@ main h1, main h2, main h3 { text-wrap: balance; }
 
 /* QA 20-nov UX-1: "Ver fechas" ancla bajo el header sticky (72px) */
 #seccion-reserva, #seccion-reserva-desktop { scroll-margin-top: 88px; }
+
+/* Prod 20-nov: con el H1 SEO largo el texto se montaba sobre la foto del hero en móvil → velo crema más fuerte a la izquierda */
+@media (max-width: 1023px) {
+  .fh-hero__bg::after { background: linear-gradient(90deg, #f5f0e6 0, rgba(245,240,230,.92) 30%, rgba(245,240,230,.55) 58%, rgba(245,240,230,.1) 85%), linear-gradient(0deg, #f5f0e6 0, rgba(245,240,230,0) 35%); }
+}
