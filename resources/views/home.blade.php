@@ -5,6 +5,7 @@
 @section('title', \App\Support\PageSeo::title('home', __('seo.home_title')))
 @section('description', \App\Support\PageSeo::description('home', __('seo.home_description')))
 @section('header_variant', 'transparent')
+@section('body_class', 'lvt-page-home')
 
 {{-- Lote B (2026-08-31): se apagó el WebSite automático que se pintaba aquí
      siempre (duplicaba el global de <x-jsonld />, hoy también apagado). Si
@@ -106,6 +107,7 @@
                 'freeCancellation' => (bool) data_get($t, 'free_cancellation', true),
                 'topRated'  => (bool) data_get($t, 'show_top_rated', false),
                 'bestSeller' => (bool) data_get($t, 'show_most_sold', false),
+                'eyebrow'   => ($t instanceof \App\Models\Tour) ? $t->region?->name : null,
             ];
         })->all();
     };
@@ -163,14 +165,14 @@
     };
 
     // Separador decorativo reutilizable
-    $sep = '<div class="flex items-center justify-center gap-2 mt-4 mb-0" aria-hidden="true">
+    $sep = '<div class="lvt-sep flex items-center justify-center gap-2 mt-4 mb-0" aria-hidden="true">
         <span class="h-px w-8 bg-orange-500/50"></span>
         <svg class="w-3 h-3 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
         <span class="h-px w-8 bg-orange-500/50"></span>
     </div>';
 
     // Brújula SVG naranja outline (para secciones con fondo claro)
-    $brujula = '<svg class="w-11 h-11 text-orange-500 mx-auto mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z" fill="currentColor" opacity=".9"/></svg>';
+    $brujula = '<svg class="lvt-brujula w-11 h-11 text-orange-500 mx-auto mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z" fill="currentColor" opacity=".9"/></svg>';
 @endphp
 
 @section('content')
@@ -282,7 +284,7 @@
      del hero hace que la card quede half-inside half-outside.
      Siguiente sección tiene margin-top negativo para el overlap.
      ============================================================ --}}
-<section class="relative isolate text-white" aria-labelledby="hero-title">
+<section class="relative isolate text-white lvt-on-dark{{ ! empty($homeSearch) ? ' lvt-has-finder' : '' }}" aria-labelledby="hero-title">
 
     {{-- Hero background image (editable via Settings > Home) --}}
     @php
@@ -402,102 +404,104 @@
             </span>
         </div>
 
-        @php
-            // Stats values — editable via Settings > Home; fallback to original hardcoded values
-            $statRating    = \App\Models\Setting::get('stats_rating')    ?: '4.8';
-            $statTravelers = \App\Models\Setting::get('home_stat_travelers') ?: '+2,000';
-            $statYears     = \App\Models\Setting::get('stats_years')     ?: '+11';
-            $statTours     = \App\Models\Setting::get('stats_tours')     ?: '+50';
-            $statRatingLabel    = \App\Models\Setting::get('home_stat_rating_label')    ?: $L('Valoración', 'Rating', 'Avaliação');
-            $statTravelersLabel = \App\Models\Setting::get('home_stat_travelers_label') ?: $L('Viajeros felices', 'Happy travelers', 'Viajantes felizes');
-            $statYearsLabel     = \App\Models\Setting::get('home_stat_years_label')     ?: $L('Años de experiencia', 'Years of experience', 'Anos de experiência');
-            $statToursLabel     = \App\Models\Setting::get('home_stat_tours_label')     ?: $L('Tours únicos', 'Unique tours', 'Tours exclusivos');
-        @endphp
-        {{-- STATS CARD — empujada al fondo con mt-auto, sobresale del hero --}}
-        <div class="mt-auto pt-10 lg:hidden">
-            <div id="stats-card-mobile"
-                 class="bg-white text-teal-800 rounded-2xl
-                        shadow-2xl ring-1 ring-black/5
-                        px-3 py-5
-                        grid grid-cols-4 gap-1">
-
-                {{-- Valoración --}}
-                <div class="text-center">
-                    <svg class="w-6 h-6 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">{{ $statRating }}</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70">{{ $statRatingLabel }}</p>
-                    <p class="mt-0.5 text-orange-400 text-[10px]" aria-hidden="true">★★★★★</p>
-                </div>
-                <div class="text-center border-l border-cream-200/80">
-                    <svg class="w-6 h-6 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">{{ $statTravelers }}</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70 leading-tight">{{ $statTravelersLabel }}</p>
-                    <div class="mx-auto mt-1.5 h-0.5 w-6 bg-orange-400"></div>
-                </div>
-                <div class="text-center border-l border-cream-200/80">
-                    <svg class="w-6 h-6 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">{{ $statYears }}</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70 leading-tight">{{ $statYearsLabel }}</p>
-                    <div class="mx-auto mt-1.5 h-0.5 w-6 bg-orange-400"></div>
-                </div>
-                <div class="text-center border-l border-cream-200/80">
-                    <svg class="w-6 h-6 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z"/></svg>
-                    <p class="font-display text-2xl mt-2 leading-none">{{ $statTours }}</p>
-                    <p class="mt-1 text-[10px] text-teal-800/70">{{ $statToursLabel }}</p>
-                    <div class="mx-auto mt-1.5 h-0.5 w-6 bg-orange-400"></div>
-                </div>
+        {{-- BUSCADOR DE 3 PREGUNTAS (contrato §1: $homeSearch). Sin opción preseleccionada; solo opciones con tours;
+             se oculta entero si no hay opciones. GET a la lista de tours con ?duracion=&experiencia=&destino= --}}
+        @if (! empty($homeSearch))
+            @php
+                $hsP = $homeSearch['params'] ?? ['duration' => 'duracion', 'experience' => 'experiencia', 'destination' => 'destino'];
+                $hsQs = [
+                    ['key' => 'duration',    'list' => $homeSearch['durations'] ?? [],    'q' => $L('¿Cuánto tiempo tienes?', 'How much time do you have?', 'Quanto tempo você tem?')],
+                    ['key' => 'experience',  'list' => $homeSearch['experiences'] ?? [],  'q' => $L('¿Qué te gustaría vivir?', 'What would you like to experience?', 'O que você gostaria de viver?')],
+                    ['key' => 'destination', 'list' => $homeSearch['destinations'] ?? [], 'q' => $L('¿A dónde te gustaría ir?', 'Where would you like to go?', 'Para onde você gostaria de ir?')],
+                ];
+                $hsQs = array_values(array_filter($hsQs, fn ($q) => count($q['list'])));
+            @endphp
+            <div class="lvt-hero-find">
+                <form class="lvt-finder" id="lvt-finder" method="GET" action="{{ $homeSearch['action'] }}" novalidate aria-labelledby="lvt-finder-title">
+                    <div class="lvt-finder__head">
+                        <h2 id="lvt-finder-title" class="lvt-finder__title">{{ $L('Encuentra tu tour', 'Find your tour', 'Encontre seu tour') }}</h2>
+                        <span class="lvt-finder__hint">{{ count($hsQs) }} {{ $L('preguntas', 'questions', 'perguntas') }}</span>
+                    </div>
+                    @foreach ($hsQs as $qi => $q)
+                        <fieldset class="lvt-q">
+                            <legend><small>{{ $qi + 1 }}/{{ count($hsQs) }}</small> {{ $q['q'] }}</legend>
+                            <div class="lvt-chips">
+                                @foreach ($q['list'] as $opt)
+                                    <label class="lvt-chip">
+                                        <input type="radio" name="{{ $hsP[$q['key']] }}" value="{{ $opt['value'] }}">
+                                        <span>{{ $opt['label'] }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </fieldset>
+                    @endforeach
+                    <p class="lvt-finder__err" id="lvt-finder-err" role="alert" hidden>{{ $L('Elige al menos una opción para buscar.', 'Choose at least one option to search.', 'Escolha pelo menos uma opção para buscar.') }}</p>
+                    <button type="submit" class="lvt-btn lvt-btn--gold lvt-finder__cta" data-ga-cta="finder_submit" data-ga-location="home_hero">
+                        {{ $L('Ver tours recomendados', 'See recommended tours', 'Ver tours recomendados') }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                    </button>
+                </form>
             </div>
-        </div>
+            <script>
+                (function () {
+                    var f = document.getElementById('lvt-finder'); if (!f) return;
+                    f.addEventListener('submit', function (e) {
+                        if (!f.querySelector('input[type=radio]:checked')) { e.preventDefault(); document.getElementById('lvt-finder-err').hidden = false; }
+                    });
+                    f.addEventListener('change', function () { document.getElementById('lvt-finder-err').hidden = true; });
+                })();
+            </script>
+        @endif
+
     </div>
 </section>
 
 {{-- ============================================================
-     STATS CARD DESKTOP — solo lg+, overlap sobre hero
+     CIFRAS DE CONFIANZA — una sola banda. Datos: $homeStats (HomeSections::stats, contrato §4).
+     Cada cifra se OCULTA si value es null; la fuente de la valoración se imprime si el admin la cargó.
      ============================================================ --}}
-<section class="hidden lg:block relative z-10 pb-12 bg-cream-100"
-         aria-labelledby="stats-title">
-    {{-- SEO: ya no es H2 (no aporta a la jerarquía de encabezados); se mantiene como etiqueta accesible --}}
-    <p id="stats-title" class="sr-only">{{ $L('Estadísticas', 'Statistics', 'Estatísticas') }}</p>
-    <div class="home-stats__wrap container mx-auto px-5 lg:px-10 max-w-7xl -mt-24 xl:-mt-28">
-        <div class="bg-white text-teal-800 rounded-3xl
-                    shadow-2xl ring-1 ring-black/5
-                    px-12 py-10
-                    grid grid-cols-4 gap-6">
+@php
+    $statItems = [];
+    foreach (['rating', 'travelers', 'years', 'tours'] as $sk) {
+        $sv = $homeStats[$sk] ?? null;
+        if (is_array($sv) && filled($sv['value'] ?? null)) {
+            $statItems[] = ['v' => $sv['value'], 'l' => $sv['label'] ?? '', 'src' => $sv['source'] ?? null];
+        }
+    }
+    $statSource = collect($statItems)->pluck('src')->filter()->first();
+@endphp
+@if (count($statItems))
+<section class="lvt-stats lvt-on-dark" aria-label="{{ $L('Cifras de confianza', 'Trust figures', 'Números de confiança') }}">
+    <div class="lvt-stats__grid" style="--cols: {{ count($statItems) }}">
+        @foreach ($statItems as $s)
+            <div class="lvt-stat"><b>{{ $s['v'] }}</b><span>{{ $s['l'] }}</span></div>
+        @endforeach
+    </div>
+    @if ($statSource)
+        <p class="lvt-stats__src">{{ $statSource }}</p>
+    @endif
+</section>
+@endif
 
-            {{-- Valoración --}}
-            <div class="text-center">
-                <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statRating }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70">{{ $statRatingLabel }}</p>
-                <p class="mt-0.5 text-orange-400 text-[10px] lg:text-base tracking-tight" aria-hidden="true">★★★★★</p>
-            </div>
-
-            {{-- Viajeros --}}
-            <div class="text-center border-l border-cream-200/80">
-                <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statTravelers }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">{{ $statTravelersLabel }}</p>
-                <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
-            </div>
-
-            {{-- Años --}}
-            <div class="text-center border-l border-cream-200/80">
-                <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statYears }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70 leading-tight">{{ $statYearsLabel }}</p>
-                <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
-            </div>
-
-            {{-- Tours --}}
-            <div class="text-center border-l border-cream-200/80">
-                <svg class="w-6 h-6 lg:w-9 lg:h-9 mx-auto text-teal-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z"/></svg>
-                <p class="font-display text-2xl lg:text-5xl mt-2 leading-none">{{ $statTours }}</p>
-                <p class="mt-1 text-[10px] lg:text-sm text-teal-800/70">{{ $statToursLabel }}</p>
-                <div class="mx-auto mt-1.5 h-0.5 w-6 lg:w-10 bg-orange-400"></div>
-            </div>
+{{-- BANDA PROMO — oferta vigente real (contrato §6: $homePromo). Oculta si no hay Offer activa. --}}
+@if (! empty($homePromo))
+<section class="bg-cream-100 px-5 pt-10" aria-labelledby="promo-title">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
+        <div class="lvt-promo lvt-on-dark">
+            <p class="lvt-over">{{ $L('Oferta vigente', 'Current offer', 'Oferta vigente') }}</p>
+            <h2 id="promo-title">{{ $homePromo['title'] }}</h2>
+            @if (filled($homePromo['description'] ?? null))<p>{{ $homePromo['description'] }}</p>@endif
+            @if (! empty($homePromo['valid_until']))
+                <p>{{ $L('Válida hasta el', 'Valid until', 'Válida até') }} {{ $homePromo['valid_until']->locale($locale)->isoFormat('D [de] MMMM') }}</p>
+            @endif
+            @if (filled($homePromo['cta_url'] ?? null))
+                <div><a href="{{ $homePromo['cta_url'] }}" class="lvt-btn lvt-btn--gold">{{ $homePromo['cta_label'] ?: $L('Ver oferta', 'See offer', 'Ver oferta') }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a></div>
+            @endif
         </div>
     </div>
 </section>
+@endif
 
 
 {{-- ============================================================
@@ -759,6 +763,34 @@
     </div>
 </section>
 
+{{-- TOUR ESTRELLA — contrato §2: $homeStar (tour publicado elegido en Ajustes). Oculto si es null. --}}
+@if (! empty($homeStar))
+<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="star-title">
+    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
+        <p class="lvt-over mb-3">{{ $L('La experiencia estrella', 'The star experience', 'A experiência estrela') }}</p>
+        <a href="{{ $homeStar['url'] }}" class="lvt-star lvt-on-dark" data-ga-select data-ga-item-id="{{ $homeStar['tour']->getKey() }}" data-ga-item-name="{{ $homeStar['title'] }}" data-ga-price="{{ $homeStar['price'] }}">
+            <img src="{{ $homeStar['image'] }}" alt="" loading="lazy" decoding="async" width="1280" height="640">
+            <div class="lvt-star__body">
+                <h2 id="star-title" style="margin:0;font:inherit;color:inherit"><span class="lvt-star__h">{{ $homeStar['title'] }}</span></h2>
+                @if (filled($homeStar['lead']))<p>{{ $homeStar['lead'] }}</p>@endif
+                @if (count($homeStar['milestones']))
+                    <ul class="lvt-tc__tags" style="margin:0">
+                        @foreach ($homeStar['milestones'] as $mi => $ms)
+                            <li class="lvt-tc__tag" style="background:rgba(255,255,255,.14);color:#fff"><b>{{ str_pad((string) ($mi + 1), 2, '0', STR_PAD_LEFT) }}</b> {{ $ms }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+                <div class="lvt-star__row">
+                    <div class="lvt-star__price">{{ __('ui.from') }}<b>US${{ number_format($homeStar['price'], 0) }}</b>{{ __('ui.per_person') }}@if ($homeStar['price_before']) · <s>US${{ number_format($homeStar['price_before'], 0) }}</s>@endif</div>
+                    <span class="lvt-btn lvt-btn--gold">{{ $L('Ver experiencia', 'View experience', 'Ver experiência') }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></span>
+                </div>
+            </div>
+        </a>
+    </div>
+</section>
+@endif
+
 
 {{-- ============================================================
      SECCIÓN 3 — MÁS VISITADAS (Destinos)
@@ -894,18 +926,6 @@
             @endforeach
         </div>
 
-        {{-- Trust banner --}}
-        <div class="relative bg-cream-200/70 rounded-2xl px-5 py-4 flex items-center gap-4 overflow-hidden max-w-2xl mx-auto lg:max-w-4xl">
-            <span class="w-12 h-12 rounded-full bg-cream-100 grid place-items-center shrink-0 relative z-10">
-                <svg class="w-6 h-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-            </span>
-            <p class="flex-1 text-sm text-teal-800 leading-tight relative z-10">
-                {!! \App\Models\Setting::get('home_trust_banner_' . $locale) ?: 'Reserva fácil, segura y<br><strong class="font-bold text-orange-800">100% garantizada</strong>' !!}
-            </p>
-            <svg class="absolute right-0 top-0 h-full w-1/2 text-orange-400/40 pointer-events-none" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="1" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
-                <path d="M0 60 L20 45 L35 55 L50 30 L70 50 L85 25 L100 45 L120 35 L120 80 L0 80 Z"/>
-            </svg>
-        </div>
     </div>
 </section>
 
@@ -1024,7 +1044,7 @@
                 <p id="reco-title" class="mt-2 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
                     <em class="not-italic text-amber-700 italic">{{ \App\Models\Setting::get('home_reco_headline_' . $locale) ?: 'Best Tours in Lima' }}</em>
                 </p>
-                <div class="mt-3 flex items-center justify-center gap-2" aria-hidden="true">
+                <div class="lvt-sep mt-3 flex items-center justify-center gap-2" aria-hidden="true">
                     <span class="h-px w-8 bg-orange-500/50"></span>
                     <svg class="w-3 h-3 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
                     <span class="h-px w-8 bg-orange-500/50"></span>
@@ -1047,7 +1067,7 @@
         </div>
 
         {{-- Divider decorativo --}}
-        <div class="flex items-center gap-3 my-10" aria-hidden="true">
+        <div class="lvt-sep flex items-center gap-3 my-10" aria-hidden="true">
             <span class="h-px flex-1 bg-orange-400/25"></span>
             <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
             <span class="h-px flex-1 bg-orange-400/25"></span>
@@ -1093,7 +1113,7 @@
         </div>
 
         {{-- Divider decorativo --}}
-        <div class="flex items-center gap-3 my-10" aria-hidden="true">
+        <div class="lvt-sep flex items-center gap-3 my-10" aria-hidden="true">
             <span class="h-px flex-1 bg-orange-400/25"></span>
             <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
             <span class="h-px flex-1 bg-orange-400/25"></span>
@@ -1122,30 +1142,27 @@
                         </svg>
                         <span class="font-bold text-[15px] tracking-tight" style="color:#0a2326;">Tripadvisor</span>
                     </div>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
-                        <span class="tracking-tight" style="color:#00AA6C;letter-spacing:1px;">●●●●●</span> 4.9
-                    </span>
+                    @php $scoreTa = trim((string) \App\Models\Setting::get('home_score_tripadvisor')); @endphp
+                    @if ($scoreTa !== '')<span class="lvt-src-score">{{ $scoreTa }}</span>@endif
                 </div>
 
                 {{-- Viator --}}
                 <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
                     <span class="font-sans font-extrabold text-[26px] tracking-tight leading-7 h-7" style="color:#0a2326;">Viator</span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
-                        <span class="text-orange-400">★★★★★</span> 4.8
-                    </span>
+                    @php $scoreVi = trim((string) \App\Models\Setting::get('home_score_viator')); @endphp
+                    @if ($scoreVi !== '')<span class="lvt-src-score">{{ $scoreVi }}</span>@endif
                 </div>
 
                 {{-- GetYourGuide --}}
                 <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
                     <span class="font-sans font-extrabold text-[19px] tracking-tight leading-7 h-7" style="color:#FF5533;">GetYourGuide</span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800/70">
-                        <span class="text-orange-400">★★★★★</span> 4.9
-                    </span>
+                    @php $scoreGy = trim((string) \App\Models\Setting::get('home_score_getyourguide')); @endphp
+                    @if ($scoreGy !== '')<span class="lvt-src-score">{{ $scoreGy }}</span>@endif
                 </div>
             </div>
 
             <p class="mt-6 text-center text-xs text-teal-800/70 max-w-md mx-auto leading-relaxed">
-                {{ \App\Models\Setting::get('home_reviews_footer_' . $locale) ?: 'Miles de reseñas verificadas de viajeros de todo el mundo respaldan nuestras experiencias.' }}
+                {{ \App\Models\Setting::get('home_reviews_footer_' . $locale) ?: 'Reseñas reales de viajeros respaldan nuestras experiencias.' }}
             </p>
         </div>
     </div>
@@ -1211,7 +1228,9 @@
             $tImg     = $tab['img'] ?? '';
             $tEyebrow = $tab['eyebrow_' . $locale] ?? $tab['eyebrow_es'] ?? '';
             $tDesc    = $tab['desc_' . $locale] ?? $tab['desc_es'] ?? '';
-            $tPrice   = $tab['price'] ?? 0;
+            // Precio solo si el admin lo cargó (los defaults 200/250/180/220 son ilustrativos: no se publican).
+            $ownTabs   = is_string($rawTourTypeTabs) ? json_decode($rawTourTypeTabs, true) : $rawTourTypeTabs;
+            $tPrice    = (is_array($ownTabs) && isset($ownTabs[$ttIdx]['price']) && is_numeric($ownTabs[$ttIdx]['price']) && (float) $ownTabs[$ttIdx]['price'] > 0) ? $ownTabs[$ttIdx]['price'] : null;
             $iconPath = $tab['iconPath'] ?? '';
         @endphp
             <article role="tabpanel"
@@ -1249,11 +1268,13 @@
                     <p class="mt-3 text-sm text-teal-800/75 leading-relaxed">{{ $tDesc }}</p>
                     <hr class="my-5 border-cream-200/80">
                     <div class="flex items-center justify-between gap-3">
+                        @if ($tPrice)
                         <div class="min-w-0">
                             <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.from') }}</p>
                             <p class="font-price text-2xl text-teal-800 font-semibold leading-none">US${{ $tPrice }}</p>
                             <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.per_person') }}</p>
                         </div>
+                        @endif
                         <a href="{{ route('tours.index', ['locale' => $locale]) }}"
                            class="inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-5 py-3 font-semibold text-xs uppercase tracking-wider transition shrink-0">
                             RESERVAR TOUR
@@ -1264,24 +1285,6 @@
             </article>
         @endforeach
 
-        {{-- Footer 4 features --}}
-        @php
-            $defaultFooterFeatures = \App\Support\HomeDefaults::footerFeatures();
-            $rawFooterFeatures = \App\Models\Setting::get('home_footer_features');
-            $footerFeatures = $homeRepeater($rawFooterFeatures, $defaultFooterFeatures);
-        @endphp
-        <div class="mt-8 grid grid-cols-4 gap-2 text-center max-w-2xl mx-auto lg:max-w-4xl">
-            @foreach ($footerFeatures as $feat)
-            @php
-                $fLabel = $feat['label_' . $locale] ?? $feat['label_es'] ?? '';
-                $fPath  = $feat['iconPath'] ?? '';
-            @endphp
-                <div class="flex flex-col items-center gap-1.5">
-                    <svg class="w-6 h-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $fPath }}"/></svg>
-                    <p class="text-[9px] font-bold uppercase tracking-tight text-teal-800 leading-tight">{{ $fLabel }}</p>
-                </div>
-            @endforeach
-        </div>
     </div>
 </section>
 
@@ -1326,6 +1329,29 @@
                 </li>
             @endforeach
         </ol>
+
+        {{-- COMPARADOR — contrato §3: $homeCompare (2 tours reales con datos reales). Oculto si es null. --}}
+        @if (! empty($homeCompare))
+            <div class="mt-10">
+                @if (filled($homeCompare['intro'] ?? null))<p class="text-center mb-4" style="color:var(--muted)">{{ $homeCompare['intro'] }}</p>@endif
+                <div class="lvt-compare">
+                    @foreach ($homeCompare['tours'] as $ct)
+                        <article class="lvt-cmp">
+                            <h3><a href="{{ $ct['url'] }}" style="color:inherit;text-decoration:none">{{ $ct['title'] }}</a></h3>
+                            <dl>
+                                <div><dt>{{ $L('Precio', 'Price', 'Preço') }}</dt><dd>{{ __('ui.from') }} US${{ number_format($ct['price'], 0) }}</dd></div>
+                                @if ($ct['duration'])<div><dt>{{ $L('Duración', 'Duration', 'Duração') }}</dt><dd>{{ $ct['duration'] }}</dd></div>@endif
+                                @if ($ct['category'])<div><dt>{{ $L('Tipo', 'Type', 'Tipo') }}</dt><dd>{{ $ct['category'] }}</dd></div>@endif
+                                @if ($ct['region'])<div><dt>{{ $L('Destino', 'Destination', 'Destino') }}</dt><dd>{{ $ct['region'] }}</dd></div>@endif
+                                <div><dt>{{ $L('Recojo', 'Pickup', 'Transporte') }}</dt><dd>{{ $ct['pickup'] ? $L('Incluido', 'Included', 'Incluído') : $L('No incluido', 'Not included', 'Não incluído') }}</dd></div>
+                                @if ($ct['rating'])<div><dt>{{ $L('Valoración', 'Rating', 'Avaliação') }}</dt><dd>{{ number_format($ct['rating']['rating'], 1) }} ({{ $ct['rating']['count'] }})</dd></div>@endif
+                            </dl>
+                            <a href="{{ $ct['url'] }}" class="lvt-btn lvt-btn--ghost">{{ $L('Ver detalles', 'See details', 'Ver detalhes') }}</a>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
 </section>
 
@@ -1389,19 +1415,6 @@
                         </div>
                         <div class="p-4">
                             <h3 class="font-display text-lg text-teal-800 leading-tight line-clamp-2 group-hover:text-orange-700 transition-colors">{{ $eTitle }}</h3>
-                            <div class="mt-3 grid grid-cols-3 divide-x divide-cream-200/80 text-center text-[11px] text-teal-800/75">
-                                <div class="px-2">
-                                    <svg class="w-4 h-4 mx-auto mb-1 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
-                                    <span class="leading-tight">{!! str_replace(' / ', '/<br>', e(__('ui.language_default'))) !!}</span>
-                                </div>
-                                <div class="px-2">
-                                    <svg class="w-4 h-4 mx-auto mb-1 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/></svg>
-                                    <span class="leading-tight">Full Day</span>
-                                </div>
-                                <div class="px-2">
-                                    <svg class="w-4 h-4 mx-auto mb-1 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
-                                    <span class="leading-tight">Tour<br>Grupal</span>
-                                </div>
                             </div>
                         </div>
                     </a>
@@ -1435,14 +1448,6 @@
      ============================================================ --}}
 @php
     $reviews = ($testimonials ?? collect());
-    if ($reviews->isEmpty()) {
-        $reviews = collect([
-            (object)['name' => 'María Fernanda G.', 'country' => 'México',         'rating' => 5, 'source' => 'Tripadvisor', 'quote' => 'Una experiencia impecable de principio a fin. El guía fue excelente y todo estuvo perfectamente organizado. ¡Volvería sin dudarlo!', 'avatar' => null],
-            (object)['name' => 'James K.',          'country' => 'Estados Unidos', 'rating' => 5, 'source' => 'Google',      'quote' => 'Best tour experience in Peru. Punctual pickup, knowledgeable guide and breathtaking views. Highly recommended.', 'avatar' => null],
-            (object)['name' => 'Carla R.',          'country' => 'Perú',           'rating' => 5, 'source' => 'Viator',      'quote' => 'Atención de primera, premium en todo sentido. Huacachina y las Islas Ballestas fueron mágicas. Gracias Lima View Tours.', 'avatar' => null],
-            (object)['name' => 'Sofia M.',          'country' => 'Brasil',         'rating' => 5, 'source' => 'GetYourGuide', 'quote' => 'Tudo perfeito! Organização excelente e guia muito atencioso. Recomendo demais para quem visita o Peru.', 'avatar' => null],
-        ]);
-    }
     $reviewCount = $reviews->count();
 @endphp
 <section id="opiniones" class="bg-white px-5 py-10 lg:py-20 scroll-mt-24" aria-labelledby="opiniones-title"
@@ -1460,11 +1465,49 @@
             {!! $sep !!}
             <p class="mt-5 text-sm text-teal-800/70">
                 {{-- 18-nov: en móvil el <br> está oculto y "nosotros.Estas" quedaba pegado; se asegura un espacio tras el punto antes del <br>. --}}
-                {!! preg_replace('/([.!?…])(<br\b)/iu', '$1 $2', \App\Models\Setting::get('home_sec_reviews_subtitle_' . $locale) ?: 'Miles de viajeros han vivido el Perú con nosotros.<br class="hidden sm:block">Estas son algunas de sus experiencias.') !!}
+                {!! preg_replace('/([.!?…])(<br\b)/iu', '$1 $2', \App\Models\Setting::get('home_sec_reviews_subtitle_' . $locale) ?: 'Viajeros reales cuentan cómo vivieron el Perú con nosotros.') !!}
             </p>
         </div>
 
-        {{-- Carrusel mobile / grid desktop --}}
+        {{-- DISTRIBUCIÓN + FILTRO POR DESTINO — contrato §5: $homeReviewStats (todas las reseñas publicadas). Oculto si es null. --}}
+        @if (! empty($homeReviewStats))
+            @php $rs = $homeReviewStats; @endphp
+            <div class="lvt-revsum" x-data="{ dest: '' }">
+                <div class="lvt-revsum__avg">
+                    <b>{{ number_format($rs['average'], 1) }}</b>
+                    <span>{{ $L('de 5', 'out of 5', 'de 5') }} · {{ number_format($rs['total']) }} {{ $rs['total'] === 1 ? $L('reseña', 'review', 'avaliação') : $L('reseñas', 'reviews', 'avaliações') }}</span>
+                </div>
+                <ul class="lvt-bars" aria-label="{{ $L('Distribución de valoraciones', 'Rating distribution', 'Distribuição das avaliações') }}">
+                    @foreach ($rs['distribution'] as $star => $d)
+                        <li><span>{{ $star }} ★</span><i style="--w: {{ $d['percent'] }}%"></i><span>{{ $d['percent'] }}%</span></li>
+                    @endforeach
+                </ul>
+            </div>
+            @if (count($rs['destinations']) > 1)
+                <div class="lvt-filter" role="group" aria-label="{{ $L('Filtrar reseñas por destino', 'Filter reviews by destination', 'Filtrar avaliações por destino') }}" id="lvt-rev-filter">
+                    <button type="button" data-dest="" aria-pressed="true">{{ $L('Todos', 'All', 'Todos') }}</button>
+                    @foreach ($rs['destinations'] as $dd)
+                        <button type="button" data-dest="{{ $dd['slug'] }}" aria-pressed="false">{{ $dd['name'] }} ({{ $dd['count'] }})</button>
+                    @endforeach
+                </div>
+                <script>
+                    (function () {
+                        var box = document.getElementById('lvt-rev-filter'); if (!box) return;
+                        box.addEventListener('click', function (e) {
+                            var b = e.target.closest('button[data-dest]'); if (!b) return;
+                            box.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+                            document.querySelectorAll('#reviews-carousel > .review-card').forEach(function (c) {
+                                c.style.display = (!b.dataset.dest || c.dataset.dest === b.dataset.dest) ? '' : 'none';
+                            });
+                            var el = document.getElementById('reviews-carousel'); if (el) el.scrollLeft = 0;
+                        });
+                    })();
+                </script>
+            @endif
+        @endif
+
+        {{-- Carrusel mobile / grid desktop (solo con reseñas reales; sin ejemplos inventados) --}}
+        @if ($reviewCount > 0)
         <div x-data="{ current: 0, total: {{ $reviewCount }} }" class="relative">
             <div class="carousel-track gap-4 pb-4"
                  id="reviews-carousel"
@@ -1487,7 +1530,7 @@
                         $rvQuoteShort  = \Illuminate\Support\Str::limit($rvQuoteFull, 80);
                         $rvQuoteIsLong = mb_strlen($rvQuoteFull) > 80;
                     @endphp
-                    <figure class="review-card tour-slide-4 snap-start
+                    <figure data-dest="{{ $homeReviewStats['destination_by_testimonial'][is_object($rev) ? ($rev->id ?? 0) : 0] ?? '' }}" class="review-card tour-slide-4 snap-start
                                    bg-cream-100 rounded-3xl ring-1 ring-teal-800/5 shadow-sm p-6 flex flex-col">
                         {{-- Comillas + estrellas --}}
                         <div class="flex items-center justify-between mb-3">
@@ -1532,6 +1575,8 @@
                 @endfor
             </div>
         </div>
+
+        @endif
 
         {{-- CTA: ver todas las reseñas reales en Google (editable en Configuración → Redes sociales) --}}
         @php
@@ -1625,57 +1670,46 @@
             }
         @endphp
 
-        {{-- Accordion (único bloque de FAQ de la home; microdatos FAQPage == texto visible) --}}
-        <div class="space-y-3 mb-6 max-w-2xl mx-auto lg:max-w-4xl lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0" itemscope itemtype="https://schema.org/FAQPage">
+        {{-- FAQ: <details>/<summary> nativo. El texto de la respuesta está SIEMPRE en el HTML (sin hidden/x-show),
+             microdatos FAQPage == texto visible. --}}
+        <div class="lvt-faq" itemscope itemtype="https://schema.org/FAQPage">
             @foreach ($faqs as $i => $faqItem)
             @php
-                $q        = $faqItem['q_' . $locale] ?? $faqItem['q_es'] ?? '';
-                $a        = $faqItem['a_' . $locale] ?? $faqItem['a_es'] ?? '';
-                $iconPath = $faqItem['iconPath'] ?? '';
+                $q = $faqItem['q_' . $locale] ?? $faqItem['q_es'] ?? '';
+                $a = $faqItem['a_' . $locale] ?? $faqItem['a_es'] ?? '';
             @endphp
-                <div class="bg-white rounded-2xl shadow-sm ring-1 ring-teal-800/5 overflow-hidden" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-                    <button type="button"
-                            @click="open = open === {{ $i }} ? null : {{ $i }}"
-                            :aria-expanded="open === {{ $i }} ? 'true' : 'false'"
-                            aria-controls="home-faq-answer-{{ $i }}"
-                            class="w-full flex items-center gap-4 px-4 py-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500">
-                        <span class="w-11 h-11 rounded-xl bg-teal-800 grid place-items-center shrink-0">
-                            <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath }}"/>
-                            </svg>
-                        </span>
-                        <span class="flex-1 font-display text-base text-teal-800 leading-tight" itemprop="name">{{ $q }}</span>
-                        <span class="w-7 h-7 grid place-items-center text-orange-700 text-2xl font-light shrink-0 transition-transform duration-200"
-                              :class="open === {{ $i }} ? 'rotate-45' : ''"
-                              aria-hidden="true">+</span>
-                    </button>
-                    <div id="home-faq-answer-{{ $i }}" x-show="open === {{ $i }}" x-collapse itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-                        <p class="px-4 pb-4 text-sm text-teal-800/75 leading-relaxed" itemprop="text">{{ $a }}</p>
+                <details class="lvt-faq__item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+                    <summary>
+                        <span itemprop="name">{{ $q }}</span>
+                        <span class="lvt-faq__plus" aria-hidden="true">+</span>
+                    </summary>
+                    <div class="lvt-faq__a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+                        <p itemprop="text">{{ $a }}</p>
                     </div>
-                </div>
+                </details>
             @endforeach
         </div>
 
-        {{-- Trust banner footer --}}
-        <div class="relative bg-cream-200/70 rounded-2xl px-5 py-5 flex items-center gap-4 overflow-hidden max-w-2xl mx-auto lg:max-w-4xl">
-            <span class="w-12 h-12 rounded-full bg-cream-100 grid place-items-center shrink-0 relative z-10">
-                <svg class="w-6 h-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-            </span>
-            <div class="flex-1 relative z-10 min-w-0">
-                <p class="text-sm text-teal-800 leading-tight font-bold">
-                    Reserva fácil, segura y<br><span class="text-orange-800">100% garantizada</span>
-                </p>
-                <p class="mt-1 text-[11px] text-teal-800/70 leading-snug">
-                    Tu información está protegida y<br>tus reservas están en buenas manos.
-                </p>
-            </div>
-            <svg class="absolute right-0 top-0 h-full w-1/2 text-orange-400/30 pointer-events-none" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="1" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
-                <path d="M0 60 L20 45 L35 55 L50 30 L70 50 L85 25 L100 45 L120 35 L120 80 L0 80 Z"/>
-            </svg>
-        </div>
     </div>
 </section>
 
+
+{{-- ============================================================
+     CTA FINAL — "El Perú te espera" (texto editable: home_cta_*; default traducido)
+     ============================================================ --}}
+<section class="lvt-cta lvt-on-dark" aria-labelledby="cta-title">
+    <div class="lvt-cta__in">
+        <p class="lvt-over">{{ \App\Models\Setting::get('home_cta_eyebrow_' . $locale) ?: $L('Tu historia empieza aquí', 'Your story starts here', 'Sua história começa aqui') }}</p>
+        <h2 id="cta-title" class="lvt-cta__title">
+            {!! \App\Models\Setting::get('home_cta_title_' . $locale) ?: $L('El Perú te espera. <span class="lvt-accent">Nosotros te guiamos.</span>', 'Peru is waiting. <span class="lvt-accent">We guide you.</span>', 'O Peru te espera. <span class="lvt-accent">Nós guiamos você.</span>') !!}
+        </h2>
+        <p class="lvt-cta__sub">{{ \App\Models\Setting::get('home_cta_sub_' . $locale) ?: $L('Elige tu experiencia y reserva en pocos pasos.', 'Choose your experience and book in a few steps.', 'Escolha sua experiência e reserve em poucos passos.') }}</p>
+        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="lvt-btn lvt-btn--gold" data-ga-cta="cta_final" data-ga-location="home_final">
+            {{ $L('Descubrir mis experiencias', 'Discover my experiences', 'Descobrir minhas experiências') }}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+        </a>
+    </div>
+</section>
 
 @endsection
 

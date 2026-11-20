@@ -33,7 +33,8 @@ class OfferResource extends Resource
                 Forms\Components\TextInput::make('title_es')
                     ->required()
                     ->maxLength(255)
-                    ->label('Título (Español)'),
+                    ->label('Título (Español)')
+                    ->helperText('Es el texto de la banda de promoción del home. Escribe solo ofertas reales.'),
                 Forms\Components\TextInput::make('title_en')
                     ->maxLength(255)
                     ->label('Title (English)'),
@@ -70,16 +71,31 @@ class OfferResource extends Resource
                     ->maxLength(255)
                     ->label('CTA (Português)'),
                 Forms\Components\TextInput::make('cta_url')
-                    ->maxLength(255),
+                    ->label('Enlace del botón')
+                    ->maxLength(255)
+                    ->helperText('Ej.: /es/tours o https://... Si lo dejas vacío y eliges un tour, el botón lleva a ese tour.')
+                    ->rule(fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (filled($value) && ! preg_match('#^(https?://|/(?!/))#i', (string) $value)) {
+                            $fail('El enlace debe empezar con https:// o con / (ruta interna).');
+                        }
+                    }),
                 Forms\Components\Select::make('tour_id')
-                    ->relationship('tour', 'id'),
+                    ->label('Tour de la oferta (opcional)')
+                    ->relationship('tour', 'title_es')
+                    ->searchable()
+                    ->preload()
+                    ->helperText('Si eliges un tour que luego se despublica, la oferta deja de mostrarse sola.'),
                 Forms\Components\Toggle::make('is_active')
+                    ->label('Oferta activa')
+                    ->helperText('Apagada = no se muestra. Si no hay ninguna oferta activa y vigente, la banda de promoción del home no aparece.')
                     ->required(),
                 Forms\Components\TextInput::make('order')
                     ->required()
                     ->numeric()
                     ->default(0),
-                Forms\Components\DateTimePicker::make('valid_until'),
+                Forms\Components\DateTimePicker::make('valid_until')
+                    ->label('Válida hasta')
+                    ->helperText('Después de esta fecha y hora la oferta se oculta sola. Vacío = sin fecha de fin.'),
             ]);
     }
 

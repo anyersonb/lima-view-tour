@@ -404,4 +404,17 @@ culture',
     'badge_top_rated' => 'Top rated',
     'badge_best_seller' => 'Best seller',
     'home_faq_pickup_answer' => 'Yes. On tours departing from Lima we pick you up at your hotel within our pickup zone: Miraflores, San Isidro and Barranco. In Cusco, pickup is at hotels in the Plaza de Armas area.',
+    // Home search / /tours filter (TourSearch)
+    'search_duration_medio_dia' => 'Half day (up to 5 hours)',
+    'search_duration_1_dia' => 'Full day',
+    'search_duration_2_mas_dias' => '2 days or more',
+    'search_empty_whatsapp_text' => 'Hi, I am looking for a tour and could not find one with my filters. Can you help me?',
+    // Home trust figures: generic labels if the admin did not write one
+    'home_stat_rating' => 'Rating',
+    'home_stat_travelers' => 'Happy travelers',
+    'home_stat_years' => 'Years of experience',
+    'home_stat_tours' => 'Unique tours',
+    'see_experience' => 'View experience',
+    'review_one' => 'review',
+    'reviews_lower' => 'reviews',
 ];

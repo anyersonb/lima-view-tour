@@ -150,6 +150,34 @@ class Tour extends Model
         $this->attributes['departure_time'] = \App\Support\DepartureTime::normalize($value);
     }
 
+    /**
+     * Descuento real en % (entero redondeado) o null.
+     *
+     * Solo existe cuando `price_before` es MAYOR que `price` y ambos son
+     * positivos. Con price_before vacío, igual o menor al precio actual
+     * devuelve null: la vista NO debe pintar precio tachado ni "-X%". Usar
+     * este accesor (`$tour->discount_percent`) y nunca calcular el % en Blade.
+     */
+    public function getDiscountPercentAttribute(): ?int
+    {
+        $now = (float) $this->price;
+        $before = (float) $this->price_before;
+
+        if ($now <= 0 || $before <= $now) {
+            return null;
+        }
+
+        $percent = (int) round((1 - $now / $before) * 100);
+
+        return $percent >= 1 ? $percent : null;
+    }
+
+    /** true solo si hay descuento real (price_before > price). */
+    public function getHasDiscountAttribute(): bool
+    {
+        return $this->discount_percent !== null;
+    }
+
     public function getTitleAttribute(): string
     {
         $locale = app()->getLocale();

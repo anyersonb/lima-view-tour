@@ -404,4 +404,17 @@ local',
     'badge_top_rated' => 'Mejor valorado',
     'badge_best_seller' => 'Más vendido',
     'home_faq_pickup_answer' => 'Sí. En los tours que salen de Lima te recogemos en tu hotel dentro de nuestra zona de recojo: Miraflores, San Isidro y Barranco. En Cusco, el recojo es en hoteles de la zona de la Plaza de Armas.',
+    // Buscador del home / filtro de /tours (TourSearch)
+    'search_duration_medio_dia' => 'Medio día (hasta 5 horas)',
+    'search_duration_1_dia' => '1 día completo',
+    'search_duration_2_mas_dias' => '2 días o más',
+    'search_empty_whatsapp_text' => 'Hola, busco un tour y no encontré uno con mis filtros. ¿Me pueden ayudar?',
+    // Cifras de confianza del home: etiquetas genéricas si el admin no escribió una
+    'home_stat_rating' => 'Valoración',
+    'home_stat_travelers' => 'Viajeros felices',
+    'home_stat_years' => 'Años de experiencia',
+    'home_stat_tours' => 'Tours únicos',
+    'see_experience' => 'Ver experiencia',
+    'review_one' => 'reseña',
+    'reviews_lower' => 'reseñas',
 ];

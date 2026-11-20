@@ -260,8 +260,9 @@
     {{-- CRO móvil 18-nov-2026: CSS plano SIN build (no depende de recompilar Vite). Va DESPUÉS de Vite y de los
          <style> de cada vista para ganar por orden de cascada. Subir ?v= en cada cambio. --}}
     <link rel="stylesheet" href="{{ asset('css/cro-fixes.css') }}?v=20261119b">
+    <link rel="stylesheet" href="{{ asset('css/redesign.css') }}?v=20261120a">
 </head>
-<body class="bg-white">
+<body class="bg-white @yield('body_class')">
     {{-- Sin <noscript> de GTM: el iframe no aporta medicion util (los eventos dependen de JS). --}}
 
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:bg-orange-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">

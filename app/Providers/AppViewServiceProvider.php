@@ -26,6 +26,10 @@ class AppViewServiceProvider extends ServiceProvider
             }
         });
 
+        // Datos reales de las secciones del rediseño (ver contrato-datos.md).
+        View::composer('home', \App\View\Composers\HomeComposer::class);
+        View::composer('checkout', \App\View\Composers\CheckoutComposer::class);
+
         // <title>, og:title, twitter:title and the descriptions are read by
         // layouts/app.blade.php with yieldContent(). Child views fill them with
         // the inline @section('title', $x), which Blade already escapes, and

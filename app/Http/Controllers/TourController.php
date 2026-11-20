@@ -7,17 +7,31 @@ use App\Models\Region;
 use App\Models\Testimonial;
 use App\Models\Tour;
 use App\Support\BookingCalendar;
+use App\Support\TourSearch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class TourController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        // Buscador del home: ?duracion=&experiencia=&destino= (whitelist en
+        // TourSearch; un valor inválido se ignora). Sin parámetros válidos el
+        // listado es el de siempre.
+        $searchFilters = TourSearch::filtersFromRequest($request);
+        $searchActive = TourSearch::isActive($searchFilters);
+        $tours = $searchActive ? TourSearch::apply($searchFilters) : Tour::published()->ordered()->get();
+
         return view('tours.index', [
             'categoria' => null,
-            'tours' => Tour::published()->ordered()->get(),
+            'tours' => $tours,
+            // Contrato para la vista (ver contrato-datos.md, sección 1).
+            'searchFilters' => $searchFilters,
+            'searchActive' => $searchActive,
+            'searchNoResults' => $searchActive && $tours->isEmpty(),
+            'searchChips' => $searchActive ? TourSearch::chips($searchFilters) : [],
+            'searchWhatsappUrl' => $searchActive && $tours->isEmpty() ? TourSearch::whatsappUrl() : null,
             'regions' => Region::active()->orderBy('order')->get(),
             'testimonials' => Testimonial::published()->featured()->orderBy('order')->limit(4)->get(),
         ]);

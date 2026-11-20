@@ -62,14 +62,17 @@ class TourResource extends Resource
                                     Forms\Components\Select::make('region_id')
                                         ->relationship('region', 'name_es')
                                         ->searchable()->preload()
-                                        ->label('Región'),
+                                        ->label('Región')
+                                        ->helperText('Es el "¿Dónde?" del buscador del home. Solo aparecen en el buscador las regiones que tengan al menos un tour publicado.'),
                                     Forms\Components\Select::make('category_id')
                                         ->relationship('category', 'name_es')
                                         ->searchable()->preload()
-                                        ->label('Categoría'),
+                                        ->label('Categoría')
+                                        ->helperText('Es el "¿Qué quieres vivir?" del buscador del home (cultural, aventura, etc.). Solo aparecen las categorías con al menos un tour publicado.'),
                                 ]),
                                 Forms\Components\Grid::make(3)->schema([
-                                    Forms\Components\TextInput::make('duration')->label('Duración')->placeholder('Full Day'),
+                                    Forms\Components\TextInput::make('duration')->label('Duración')->placeholder('Full Day')
+                                        ->helperText('Escríbela así: "4 horas", "Full Day" o "2 Días". El buscador del home la usa para agrupar: medio día (hasta 5 horas), 1 día o 2 días o más. Si escribes otra cosa, el tour no saldrá al filtrar por duración.'),
                                     Forms\Components\TextInput::make('language')->label('Idiomas')->default('Español / Inglés'),
                                     Forms\Components\TextInput::make('group_type')->label('Tipo de grupo')->default('Grupal'),
                                 ]),

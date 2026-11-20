@@ -16,6 +16,7 @@
 
 @section('title', __('ui.cart_title') . ' — ' . __('seo.site_name'))
 @section('description', __('ui.cart_subtitle'))
+@section('body_class', 'lvt-page-cart')
 
 @push('head')
 <style>
@@ -920,6 +921,10 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                     @if ($item['children'] > 0)
                                                         · <span data-children-label>{{ $item['children'] }}</span> niño{{ $item['children'] !== 1 ? 's' : '' }}
                                                     @endif
+                                                @php $depT = $checkoutInfo['departure_times'][$item['tour_id'] ?? 0] ?? null; @endphp
+                                                @if ($depT)
+                                                    <div class="cart-depart">{{ $locale === 'pt' ? 'Saída' : ($locale === 'en' ? 'Departure' : 'Salida') }} <b>{{ $depT['label'] }}</b></div>
+                                                @endif
                                                 </div>
                                                 <div class="cart-sub">{{ $hasDiscount ? __('ui.booking_with_discount') : __('ui.regular_price_no_discount') }}</div>
                                             </div>
@@ -1199,6 +1204,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                     <div class="cart-card" data-hj-suppress data-clarity-mask="true">
                         <div class="cart-card-pad">
                             <div class="cart-form-grid">
+                                <p class="cart-field-help" style="margin-top:0">{{ $locale === 'pt' ? 'Pedimos só o necessário para coordenar sua reserva. Você não precisa criar uma conta.' : ($locale === 'en' ? 'We only ask for what we need to arrange your booking. No account required.' : 'Solo pedimos lo necesario para coordinar tu reserva. No necesitas crear una cuenta.') }}</p>
 
                                 <div class="cart-field">
                                     <label for="customer_name">{{ __('customer.name') }} <span class="req">*</span></label>
@@ -1206,12 +1212,12 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            id="customer_name"
                                            name="customer_name"
                                            value="{{ old('customer_name') }}"
-                                           placeholder="Ej. María García López"
+                                           placeholder="{{ $locale === 'en' ? 'e.g. Maria Garcia' : 'Ej. María García López' }}"
                                            autocomplete="name"
                                            aria-required="true"
                                            data-hj-suppress
-                                           class="cart-real-input @error('customer_name') border-red-500 @enderror">
-                                    @error('customer_name')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
+                                           @error('customer_name') aria-invalid="true" aria-describedby="srv-customer_name" @enderror class="cart-real-input @error('customer_name') border-red-500 @enderror">
+                                    @error('customer_name')<p id="srv-customer_name" role="alert" class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                 </div>
 
                                 <div class="cart-two">
@@ -1230,10 +1236,10 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                                     style="flex:0 0 auto; width:min(200px, 45%); min-width:96px;" />
                                             <input type="tel" id="phone_local" placeholder="999 999 999" autocomplete="tel-national" inputmode="tel" maxlength="15" aria-required="true"
                                                    data-hj-suppress
-                                                   class="cart-real-input @error('customer_phone') border-red-500 @enderror" style="flex:1; min-width:0;">
+                                                   @error('customer_phone') aria-invalid="true" aria-describedby="srv-customer_phone" @enderror class="cart-real-input @error('customer_phone') border-red-500 @enderror" style="flex:1; min-width:0;">
                                         </div>
                                         <input type="hidden" name="customer_phone" id="customer_phone" value="{{ old('customer_phone') }}" data-hj-suppress>
-                                        @error('customer_phone')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
+                                        @error('customer_phone')<p id="srv-customer_phone" role="alert" class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                         <script>
                                         (function(){
                                             var pfx=document.getElementById('phone_prefix'), loc=document.getElementById('phone_local'), hid=document.getElementById('customer_phone');
@@ -1249,17 +1255,20 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                                id="customer_email"
                                                name="customer_email"
                                                value="{{ old('customer_email') }}"
-                                               placeholder="correo@ejemplo.com"
+                                               placeholder="{{ $locale === 'en' ? 'name@email.com' : 'correo@ejemplo.com' }}"
                                                autocomplete="email"
                                                aria-required="true"
                                                data-hj-suppress
-                                               class="cart-real-input @error('customer_email') border-red-500 @enderror">
-                                        @error('customer_email')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
+                                               @error('customer_email') aria-invalid="true" aria-describedby="srv-customer_email" @enderror class="cart-real-input @error('customer_email') border-red-500 @enderror">
+                                        @error('customer_email')<p id="srv-customer_email" role="alert" class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                     </div>
                                 </div>
 
 @if ($cartHasPickup)
-                                <div class="cart-field" data-pickup-block>
+                                <details class="lvt-fold" data-pickup-block @if (old('pickup_point') || old('pickup_detail') || $errors->has('pickup_point') || $errors->has('pickup_detail')) open @endif>
+                                    <summary><span class="lvt-fold__plus" aria-hidden="true">+</span> {{ $locale === 'pt' ? 'Quer adicionar seu hotel ou alguma indicação?' : ($locale === 'en' ? 'Want to add your hotel or any note?' : '¿Quieres añadir tu hotel o alguna indicación?') }}</summary>
+                                <div class="lvt-fold__body">
+                                <div class="cart-field">
                                     <label for="pickup_point">{{ __('ui.pickup_hotel_label') }} <span class="text-teal-800/70 font-normal normal-case">({{ __('ui.optional') }})</span></label>
                                     @php
                                         // Punto de recojo. Si hay Google Maps API Key configurada se usa
@@ -1397,7 +1406,7 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                      vacío. Campo aparte de pickup_point: acá va un
                                      detalle adicional (habitación, piso, referencia
                                      para el conductor), no el hotel en sí. --}}
-                                <div class="cart-field" data-pickup-block>
+                                <div class="cart-field">
                                     <label for="pickup_detail">{{ __('checkout_paypal.pickup_detail_label') }} <span class="text-teal-800/70 font-normal normal-case">({{ __('ui.optional') }})</span></label>
                                     <input type="text"
                                            id="pickup_detail"
@@ -1409,6 +1418,8 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                                            class="cart-real-input @error('pickup_detail') border-red-500 @enderror">
                                     @error('pickup_detail')<p class="text-xs mt-1" style="color:var(--cart-danger)">{{ $message }}</p>@enderror
                                 </div>
+                                </div>
+                                </details>
 @endif
 
                                 @php
@@ -1607,6 +1618,9 @@ textarea.cart-real-input { padding-top: 12px; min-height: 90px; resize: vertical
                         </div>
                     </div>
 
+                    @if (filled($checkoutInfo['cancellation_summary'] ?? null))
+                        <p class="lvt-cancel-note">{{ $checkoutInfo['cancellation_summary'] }}</p>
+                    @endif
                     {{-- Pay chips --}}
                     <div class="cart-pay-chips">
                         <div class="cart-pay-chip">{{ __('ui.secure_payment_chip') }}</div>

@@ -76,7 +76,8 @@
             {{ $L('Comentarios de nuestros clientes', 'Reviews from our clients', 'Comentários dos nossos clientes') }}
         </h1>
 
-        {{-- Rating global --}}
+        {{-- Rating global: solo con reseñas reales (sin reseñas no se inventa un 5.0) --}}
+        @if ($overall['count'] > 0)
         <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
             <span class="text-orange-400 text-2xl leading-none" aria-hidden="true">
                 @php $full = (int) round($overall['rating']); @endphp
@@ -84,9 +85,10 @@
             </span>
             <span class="text-lg font-semibold">{{ number_format($overall['rating'], 1) }}/5</span>
             <span class="text-white/75 text-sm">
-                {{ $overall['count'] }} {{ $L('reseñas verificadas', 'verified reviews', 'avaliações verificadas') }}
+                {{ $overall['count'] }} {{ $overall['count'] == 1 ? $L('reseña verificada', 'verified review', 'avaliação verificada') : $L('reseñas verificadas', 'verified reviews', 'avaliações verificadas') }}
             </span>
         </div>
+        @endif
     </div>
 </section>
 

@@ -47,7 +47,7 @@ class Settings extends Page implements HasForms
     protected const HOME_REPEATER_FORM_FIELDS = [
         'home_destinos' => [],
         'home_why_items' => [],
-        'home_tour_type_tabs' => ['id', 'price'],
+        'home_tour_type_tabs' => ['id'],
         'home_footer_features' => [],
         'home_exp_tours' => ['slug'],
         'home_reco_items' => ['icon'],
@@ -120,6 +120,7 @@ class Settings extends Page implements HasForms
             'home_destinos', 'home_why_items', 'home_tour_type_tabs',
             'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
             'home_choose_items', 'pickup_zones',
+            'home_star_milestones_es', 'home_star_milestones_en', 'home_star_milestones_pt',
         ];
         foreach ($repeaterKeys as $rk) {
             if (isset($rows[$rk]) && is_string($rows[$rk])) {
@@ -138,6 +139,11 @@ class Settings extends Page implements HasForms
             if (empty($rows[$rk]) || ! is_array($rows[$rk])) {
                 $rows[$rk] = self::homeDefaultsForForm($rk, $extraFields);
             }
+        }
+
+        // Los Select de tours comparan contra claves int: el Setting guarda texto.
+        foreach (['home_star_tour_id', 'home_compare_tour_a', 'home_compare_tour_b'] as $k) {
+            $rows[$k] = (isset($rows[$k]) && is_numeric($rows[$k])) ? (int) $rows[$k] : null;
         }
 
         $this->form->fill($rows);
@@ -228,6 +234,23 @@ class Settings extends Page implements HasForms
                             ->maxValue(60)
                             ->placeholder('10')
                             ->helperText('Días hábiles que tardan en procesarse los reembolsos. Se muestra en la Política de cambios y devoluciones. Vacío = 10.'),
+                        \Filament\Forms\Components\Section::make('Resumen de cancelación (checkout)')
+                            ->description('Texto corto que se muestra en el checkout, junto al botón de pago. Debe coincidir con tu Política de cambios y devoluciones. Si lo dejas vacío en todos los idiomas, no se muestra ningún texto de cancelación en el checkout.')
+                            ->columnSpanFull()
+                            ->schema([
+                                Textarea::make('legal_cancellation_summary_es')
+                                    ->label('Resumen (Español)')
+                                    ->rows(2)->maxLength(300)
+                                    ->placeholder('Ej.: Cancela gratis hasta 24 horas antes de la salida.'),
+                                Textarea::make('legal_cancellation_summary_en')
+                                    ->label('Summary (English)')
+                                    ->rows(2)->maxLength(300)
+                                    ->helperText('Vacío = se usa el de español.'),
+                                Textarea::make('legal_cancellation_summary_pt')
+                                    ->label('Resumo (Português)')
+                                    ->rows(2)->maxLength(300)
+                                    ->helperText('Vacío = se usa el de español.'),
+                            ]),
                     ])->columns(2),
                     Tabs\Tab::make('Redes sociales')->icon('heroicon-o-share')->schema([
                         TextInput::make('social_instagram')->prefix('https://')->label('Instagram'),
@@ -378,36 +401,156 @@ class Settings extends Page implements HasForms
                             ]),
 
                         // ── Stats ─────────────────────────────────────────────
-                        \Filament\Forms\Components\Section::make('Stats (4 indicadores)')
-                            ->description('Valores numéricos y etiquetas de los 4 indicadores. Las etiquetas son únicas (sin idioma).')
+                        \Filament\Forms\Components\Section::make('Cifras de confianza (4 indicadores)')
+                            ->description('Los 4 números que salen debajo del banner del home. Escribe SOLO datos reales y verificables. Si dejas un valor VACÍO, ese indicador no se muestra en la web (no hay valores por defecto). Las etiquetas son únicas (sin idioma); si dejas una vacía se usa el texto estándar traducido.')
                             ->collapsible()
                             ->columns(2)
                             ->schema([
                                 TextInput::make('stats_rating')
-                                    ->label('Stat 1 — Valor (Valoración)')
-                                    ->placeholder('4.8'),
+                                    ->label('Valoración — Valor')
+                                    ->placeholder('Ej.: 4.9')
+                                    ->maxLength(12)
+                                    ->helperText('Nota promedio real (de Tripadvisor, Google, etc.). Vacío = no se muestra.'),
                                 TextInput::make('home_stat_rating_label')
-                                    ->label('Stat 1 — Etiqueta')
-                                    ->placeholder('Valoración'),
+                                    ->label('Valoración — Etiqueta')
+                                    ->placeholder('Valoración')
+                                    ->maxLength(40),
+                                TextInput::make('stats_rating_source_es')
+                                    ->label('Valoración — Fuente (Español)')
+                                    ->placeholder('Ej.: Tripadvisor')
+                                    ->maxLength(60)
+                                    ->helperText('De dónde sale la nota. Se muestra junto a la valoración ("según Tripadvisor"). Vacío = sin fuente.'),
+                                TextInput::make('stats_rating_source_en')
+                                    ->label('Valoración — Fuente (English)')
+                                    ->maxLength(60)
+                                    ->helperText('Si lo dejas vacío se usa la fuente en español.'),
+                                TextInput::make('stats_rating_source_pt')
+                                    ->label('Valoración — Fuente (Português)')
+                                    ->maxLength(60)
+                                    ->helperText('Si lo dejas vacío se usa la fuente en español.'),
+                                \Filament\Forms\Components\Placeholder::make('stats_rating_source_spacer')->label('')->content(''),
                                 TextInput::make('home_stat_travelers')
-                                    ->label('Stat 2 — Valor (Viajeros)')
-                                    ->placeholder('+2,000'),
+                                    ->label('Viajeros — Valor')
+                                    ->placeholder('Ej.: +8.000')
+                                    ->maxLength(20)
+                                    ->helperText('Cantidad real de viajeros atendidos. Vacío = no se muestra.'),
                                 TextInput::make('home_stat_travelers_label')
-                                    ->label('Stat 2 — Etiqueta')
-                                    ->placeholder('Viajeros felices'),
+                                    ->label('Viajeros — Etiqueta')
+                                    ->placeholder('Viajeros felices')
+                                    ->maxLength(40),
                                 TextInput::make('stats_years')
-                                    ->label('Stat 3 — Valor (Años)')
-                                    ->placeholder('+11'),
+                                    ->label('Años de experiencia — Valor')
+                                    ->placeholder('Ej.: +11')
+                                    ->maxLength(20)
+                                    ->helperText('Vacío = no se muestra.'),
                                 TextInput::make('home_stat_years_label')
-                                    ->label('Stat 3 — Etiqueta')
-                                    ->placeholder('Años de experiencia'),
+                                    ->label('Años de experiencia — Etiqueta')
+                                    ->placeholder('Años de experiencia')
+                                    ->maxLength(40),
                                 TextInput::make('stats_tours')
-                                    ->label('Stat 4 — Valor (Tours)')
-                                    ->placeholder('+50'),
+                                    ->label('Tours — Valor')
+                                    ->placeholder('Ej.: +50')
+                                    ->maxLength(20)
+                                    ->helperText('Vacío = no se muestra.'),
                                 TextInput::make('home_stat_tours_label')
-                                    ->label('Stat 4 — Etiqueta')
-                                    ->placeholder('Tours únicos'),
+                                    ->label('Tours — Etiqueta')
+                                    ->placeholder('Tours únicos')
+                                    ->maxLength(40),
                             ]),
+
+                        // ── Tour estrella ─────────────────────────────────────
+                        \Filament\Forms\Components\Section::make('⭐ Tour estrella')
+                            ->description('Bloque grande con foto de UN tour que quieres destacar en el home. Si no eliges ningún tour, el bloque NO se muestra. La foto, precio y duración salen del propio tour (edítalos en Tours).')
+                            ->collapsible()
+                            ->collapsed()
+                            ->columns(1)
+                            ->schema([
+                                Select::make('home_star_tour_id')
+                                    ->label('Tour a destacar')
+                                    ->options(fn (): array => static::publishedTourOptions())
+                                    ->searchable()
+                                    ->placeholder('— Ninguno (el bloque no se muestra) —')
+                                    ->helperText('Solo aparecen los tours publicados.'),
+                                Tabs::make('home_star_langs')->tabs([
+                                    Tabs\Tab::make('Español')->schema(static::starLangFields('es')),
+                                    Tabs\Tab::make('English')->schema(static::starLangFields('en')),
+                                    Tabs\Tab::make('Português')->schema(static::starLangFields('pt')),
+                                ]),
+                            ]),
+
+                        // ── Comparador ────────────────────────────────────────
+                        \Filament\Forms\Components\Section::make('⚖️ Comparador "¿X o Y?" (dentro de "Cómo elegir tu tour")')
+                            ->description('Compara dos tours lado a lado (precio, duración, categoría, foto). Los datos salen de cada tour. Si no eliges los dos tours, el comparador NO se muestra.')
+                            ->collapsible()
+                            ->collapsed()
+                            ->columns(2)
+                            ->schema([
+                                Select::make('home_compare_tour_a')
+                                    ->label('Primer tour')
+                                    ->options(fn (): array => static::publishedTourOptions())
+                                    ->searchable()
+                                    ->placeholder('— Ninguno —')
+                                    ->different('home_compare_tour_b')
+                                    ->validationMessages(['different' => 'Elige dos tours distintos.']),
+                                Select::make('home_compare_tour_b')
+                                    ->label('Segundo tour')
+                                    ->options(fn (): array => static::publishedTourOptions())
+                                    ->searchable()
+                                    ->placeholder('— Ninguno —'),
+                                TextInput::make('home_compare_intro_es')
+                                    ->label('Frase de ayuda (Español)')
+                                    ->maxLength(200)
+                                    ->placeholder('Ej.: ¿No sabes cuál elegir? Compáralos.')
+                                    ->helperText('Opcional. Va encima de las dos tarjetas.'),
+                                TextInput::make('home_compare_intro_en')
+                                    ->label('Frase de ayuda (English)')
+                                    ->maxLength(200)
+                                    ->helperText('Opcional. Vacío = se usa la de español.'),
+                                TextInput::make('home_compare_intro_pt')
+                                    ->label('Frase de ayuda (Português)')
+                                    ->maxLength(200)
+                                    ->helperText('Opcional. Vacío = se usa la de español.'),
+                            ]),
+
+// ── Puntuaciones por plataforma ───────────────────────
+                        \Filament\Forms\Components\Section::make('Puntuación en cada plataforma')
+                            ->description('Notas que salen en la franja "Recomendado y verificado en". Escribe SOLO la nota real que ves hoy en cada plataforma. Si dejas una vacía, esa plataforma muestra su logo sin nota.')
+                            ->collapsible()
+                            ->collapsed()
+                            ->columns(3)
+                            ->schema([
+                                TextInput::make('home_score_tripadvisor')->label('Tripadvisor')->placeholder('Ej.: 4.9')->maxLength(8)
+                                    ->helperText('Vacío = sin nota.'),
+                                TextInput::make('home_score_viator')->label('Viator')->placeholder('Ej.: 4.8')->maxLength(8)
+                                    ->helperText('Vacío = sin nota.'),
+                                TextInput::make('home_score_getyourguide')->label('GetYourGuide')->placeholder('Ej.: 4.9')->maxLength(8)
+                                    ->helperText('Vacío = sin nota.'),
+                            ]),
+
+                        // ── CTA final "El Perú te espera" ─────────────────────
+                        \Filament\Forms\Components\Section::make('Cierre del home: "El Perú te espera"')
+                            ->description('Bloque final con el botón de reservar. Si dejas un texto vacío se usa el texto estándar (ya traducido a los 3 idiomas).')
+                            ->collapsible()
+                            ->collapsed()
+                            ->columns(1)
+                            ->schema(array_merge(
+                                ...array_map(static fn (string $l, string $n): array => [
+                                    TextInput::make("home_cta_eyebrow_{$l}")->label("Texto pequeño superior ({$n})")->maxLength(80)
+                                        ->placeholder($l === 'es' ? 'Tu historia empieza aquí' : null)
+                                        ->helperText('Frase corta encima del título.'),
+                                    TextInput::make("home_cta_title_{$l}")->label("Título ({$n})")->maxLength(160)
+                                        ->placeholder($l === 'es' ? 'El Perú te espera. Nosotros te guiamos.' : null)
+                                        ->helperText('Para resaltar una parte en color escríbela así: <span class="lvt-accent">texto</span>. No se permite ningún otro código.')
+                                        ->rules([static fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                                            $rest = preg_replace('#</?span(?: class="lvt-accent")?>#i', '', (string) $value);
+                                            if (str_contains((string) $rest, '<') || str_contains((string) $rest, '>')) {
+                                                $fail('Solo se permite resaltar con <span class="lvt-accent">texto</span>. Quita cualquier otro código.');
+                                            }
+                                        }]),
+                                    TextInput::make("home_cta_sub_{$l}")->label("Subtítulo ({$n})")->maxLength(200)
+                                        ->helperText('Una frase que invita a reservar.'),
+                                ], ['es', 'en', 'pt'], ['Español', 'English', 'Português'])
+                            )),
 
                         // ── Sección "Más Comprados" ───────────────────────────
                         \Filament\Forms\Components\Section::make('Sección "Tours en Perú más vendidos"')
@@ -633,7 +776,7 @@ class Settings extends Page implements HasForms
                                         Textarea::make('desc_es')->label('Descripción (ES)')->rows(2)->columnSpanFull(),
                                         Textarea::make('desc_en')->label('Descripción (EN)')->rows(2)->columnSpanFull(),
                                         Textarea::make('desc_pt')->label('Descripción (PT)')->rows(2)->columnSpanFull(),
-                                        TextInput::make('price')->label('Precio desde (USD)')->numeric(),
+                                        TextInput::make('price')->label('Precio desde (USD)')->numeric()->helperText('Opcional. Si lo dejas vacío no se muestra ningún precio en esa pestaña.'),
                                     ])
                                     ->columns(3)
                                     ->collapsible()
@@ -1076,7 +1219,8 @@ class Settings extends Page implements HasForms
             // Serialize Repeater fields as JSON string
             $jsonRepeaterKeys = ['faqs', 'home_destinos', 'home_why_items', 'home_tour_type_tabs',
                 'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
-                'home_choose_items', 'pickup_zones'];
+                'home_choose_items', 'pickup_zones',
+                'home_star_milestones_es', 'home_star_milestones_en', 'home_star_milestones_pt'];
             if (in_array($key, $jsonRepeaterKeys, true)) {
                 Setting::set($key, json_encode(is_array($value) ? $value : []));
 
@@ -1097,6 +1241,51 @@ class Settings extends Page implements HasForms
             ->send();
     }
 
+    /**
+     * Tours publicados para los Select del home (id => título). Se evalúa al
+     * abrir el formulario, no al cargar la clase.
+     *
+     * @return array<int, string>
+     */
+    protected static function publishedTourOptions(): array
+    {
+        return \App\Models\Tour::published()->orderBy('title_es')->pluck('title_es', 'id')->all();
+    }
+
+    /** Campos por idioma del bloque "Tour estrella". */
+    protected static function starLangFields(string $l): array
+    {
+        $name = ['es' => 'Español', 'en' => 'English', 'pt' => 'Português'][$l];
+
+        return [
+            TextInput::make("home_star_title_{$l}")
+                ->label("Titular corto ({$name})")
+                ->maxLength(90)
+                ->helperText($l === 'es'
+                    ? 'Ej.: "Un día entre el desierto y el mar". Si lo dejas vacío se usa el nombre del tour.'
+                    : 'Vacío = se usa el titular en español.'),
+            Textarea::make("home_star_lead_{$l}")
+                ->label("Bajada ({$name})")
+                ->rows(2)
+                ->maxLength(220)
+                ->helperText($l === 'es'
+                    ? 'Una o dos frases que venden la experiencia. Vacío = no se muestra.'
+                    : 'Vacío = se usa la bajada en español.'),
+            Repeater::make("home_star_milestones_{$l}")
+                ->label("Hitos ({$name}) — máximo 4")
+                ->schema([
+                    TextInput::make('text')->label('Hito')->required()->maxLength(80)
+                        ->placeholder('Ej.: Paseo en lancha a las Islas Ballestas'),
+                ])
+                ->maxItems(4)
+                ->defaultItems(0)
+                ->reorderable()
+                ->addActionLabel('Añadir hito')
+                ->helperText($l === 'es'
+                    ? 'Lo más atractivo del tour en frases cortas. Sin hitos = no se muestra la lista.'
+                    : 'Si no escribes hitos en este idioma se usan los de español.'),
+        ];
+    }
     /**
      * Bloques "Metas por página" del tab SEO: una sección plegable por página
      * de sistema (home, catálogo, catálogo por región, listado del blog) con

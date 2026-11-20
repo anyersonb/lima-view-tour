@@ -124,12 +124,10 @@ class ToursListingCardDataTest extends TestCase
 
         $cards = $this->mobileCards($this->get('/en/tours')->assertOk()->getContent());
 
-        // Defaults only survive on the >=640 card (li.max-sm:hidden); the compact row never shows them.
-        $row = preg_replace('#<li class="[^"]*max-sm:hidden[^"]*">.*?</li>#s', '', $cards);
+        // Rediseño 19-nov: la card ya no tiene defaults inventados en ningún ancho.
         $this->assertStringContainsString('<article', $cards);
-        $this->assertStringContainsString('max-sm:hidden', $cards);
-        $this->assertStringNotContainsString('Full Day', $row);
-        $this->assertStringNotContainsString('Spanish', $row);
+        $this->assertStringNotContainsString('Full Day', $cards);
+        $this->assertStringNotContainsString('Spanish', $cards);
     }
 
     public function test_cards_carry_titles_in_the_three_languages_for_the_client_search(): void

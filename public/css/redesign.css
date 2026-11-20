@@ -1,0 +1,405 @@
+/* ==========================================================================
+   Lima View Tours — Rediseño 19-nov-2026 (adaptación, no reemplazo)
+   CSS plano SIN build (el build de Vite de prod no se recompila).
+   Se carga DESPUÉS de Vite, de los <style> de cada vista y de cro-fixes.css:
+   gana por orden de cascada. Subir el ?v= del <link> en cada cambio.
+   Fuentes: se conservan las que ya cargan (Albert Sans + Hedvig Letters Serif + Instrument Serif).
+   ========================================================================== */
+
+/* ---------- 1. Tokens (UN solo :root) ---------- */
+:root {
+  --forest: #0b4039;
+  --forest-2: #12504a;
+  --dark: #092e2e;
+  --cream: #f6f0e5;
+  --paper: #fffdfa;
+  --sage: #e4ebe0;
+  --sage-ink: #285d53;
+  --gold: #dfa94a;          /* SOLO como fondo/botón con texto oscuro */
+  --gold-light: #f7e7c9;
+  --gold-ink: #855a20;      /* dorado para TEXTO: 5.1:1 sobre crema */
+  --ink: #163b38;
+  --muted: #5b6b66;         /* 4.9:1 sobre crema, 5.6:1 sobre blanco */
+  --line: #e7e0d4;
+  --error: #b32732;
+  --ok: #0d6d50;
+  --radius-card: 18px;
+  --radius-btn: 14px;
+  --shadow-card: 0 12px 36px rgba(20, 62, 64, .08);
+  --ease: 200ms ease-out;
+
+  /* alias del checkout (--cart-*) */
+  --cart-ink: var(--ink);
+  --cart-muted: var(--muted);
+  --cart-line: var(--line);
+  --cart-green: var(--forest);
+  --cart-green2: var(--forest-2);
+  --cart-gold: var(--gold);
+  --cart-gold-ink: var(--gold-ink);
+  --cart-soft: var(--cream);
+  --cart-okbg: #eaf3ec;
+  --cart-ok: var(--ok);
+  --cart-danger: var(--error);
+  --cart-paper: var(--paper);
+  --cart-shadow: var(--shadow-card);
+}
+
+/* Paleta global: las utilidades compiladas de Tailwind se alinean a los tokens (sin recompilar) */
+.bg-teal-800, .hover\:bg-teal-800:hover { background-color: var(--forest); }
+.bg-teal-900, .bg-teal-950 { background-color: var(--dark); }
+.hover\:bg-teal-900:hover, .hover\:bg-teal-950:hover { background-color: var(--dark); }
+.text-teal-800, .hover\:text-teal-800:hover { color: var(--forest); }
+.text-teal-800\/70, .text-teal-800\/75, .text-teal-800\/80, .text-teal-800\/85 { color: var(--muted); }
+.bg-cream-100 { background-color: var(--cream); }
+.bg-cream-200\/70 { background-color: var(--sage); }
+.text-orange-700, .text-orange-800, .hover\:text-orange-700:hover { color: var(--gold-ink); }
+.ring-teal-800\/5 { --tw-ring-color: rgba(11, 64, 57, .08); }
+
+/* ---------- 2. Base: foco visible, movimiento, tamaños ---------- */
+:focus-visible { outline: 3px solid var(--forest); outline-offset: 3px; border-radius: 6px; }
+.lvt-on-dark :focus-visible,
+.site-header :focus-visible { outline-color: #fff; box-shadow: 0 0 0 6px var(--forest); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; } /* !important: anula scroll-behavior inline/utilidades; accesibilidad */
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+main h1, main h2, main h3 { text-wrap: balance; }
+
+/* Botones del rediseño: dorado = acción principal, bosque = secundaria */
+.lvt-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 48px; padding: 0 22px; border-radius: var(--radius-btn);
+  font-weight: 700; font-size: 15px; line-height: 1.1; text-decoration: none; cursor: pointer;
+  border: 0; font-family: inherit; transition: background var(--ease), transform var(--ease), box-shadow var(--ease);
+}
+.lvt-btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.lvt-btn--gold { background: var(--gold); color: var(--dark); box-shadow: 0 10px 24px rgba(223, 169, 74, .35); }
+.lvt-btn--gold:hover { background: #e8b75c; }
+.lvt-btn--forest { background: var(--forest); color: #fff; }
+.lvt-btn--forest:hover { background: var(--dark); }
+.lvt-btn--ghost { background: transparent; color: var(--forest); border: 1.5px solid var(--forest); }
+.lvt-btn--ghost:hover { background: var(--sage); }
+.lvt-btn[disabled], .lvt-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; box-shadow: none; }
+
+.lvt-over { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; font-weight: 800; color: var(--gold-ink); margin: 0; }
+.lvt-accent { font-style: italic; color: var(--gold-ink); }
+
+/* Tipografía mínima legible en el home y listados (legado: utilidades de 9-11px) */
+.lvt-page-home [class*="text-[9px]"], .lvt-page-home [class*="text-[10px]"], .lvt-page-home [class*="text-[11px]"],
+.lvt-page-tours [class*="text-[9px]"], .lvt-page-tours [class*="text-[10px]"], .lvt-page-tours [class*="text-[11px]"] { font-size: 12px; }
+.lvt-page-home p[class*="tracking-[0.25em]"], .lvt-page-home h3[class*="tracking-[0.22em]"] { font-size: 12px; letter-spacing: .16em; color: var(--gold-ink); }
+.lvt-page-home h3[class*="tracking-[0.22em]"] { color: var(--muted); }
+
+/* Separadores decorativos (estrella) y brújulas: se retiran para aligerar el home */
+.lvt-page-home .lvt-sep, .lvt-page-home .lvt-brujula { display: none; }
+
+/* Títulos de sección del home */
+.lvt-page-home h2.font-display { color: var(--forest); letter-spacing: -.01em; line-height: 1.08; }
+.lvt-page-home section { scroll-margin-top: 84px; }
+
+/* ---------- 3. Card de tour (.lvt-tc) ---------- */
+.lvt-tc {
+  position: relative; display: flex; background: #fff; border: 1px solid var(--line);
+  border-radius: var(--radius-card); box-shadow: 0 2px 14px rgba(11, 64, 57, .07);
+  overflow: hidden; min-height: 150px; transition: box-shadow var(--ease), transform var(--ease);
+}
+.lvt-tc.hidden { display: none; } /* los filtros de /tours alternan la clase .hidden */
+.lvt-tc:hover { box-shadow: var(--shadow-card); }
+.lvt-tc__media { position: relative; flex: 0 0 40%; background: var(--cream); }
+.lvt-tc__img-link { position: absolute; inset: 0; display: block; }
+.lvt-tc__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; color: transparent; }
+.lvt-tc__badges { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.lvt-tc__badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 8px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.lvt-tc__badge svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.lvt-tc__badge--light { background: #fff; color: var(--forest); }
+.lvt-tc__badge--gold { background: var(--gold); color: var(--dark); }
+.lvt-tc__body { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; padding: 12px 12px 12px; gap: 6px; }
+.lvt-tc__eyebrow { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-ink); }
+.lvt-tc__title { margin: 0; font-family: 'Hedvig Letters Serif', Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.15; color: var(--forest); }
+.lvt-tc__title-link { color: inherit; text-decoration: none; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.lvt-tc__title-link::after { content: ""; position: absolute; inset: 0; z-index: 1; } /* toda la card es clicable */
+.lvt-tc__rating { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.lvt-tc__rating svg { width: 15px; height: 15px; color: var(--gold); flex: 0 0 auto; }
+.lvt-tc__rating b { color: var(--ink); font-weight: 800; }
+.lvt-tc__tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.lvt-tc__tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: var(--sage); color: var(--sage-ink); font-size: 12px; font-weight: 600; line-height: 1.2; }
+.lvt-tc__tag svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.lvt-tc__foot { margin-top: auto; padding-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.lvt-tc__price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; color: var(--muted); font-size: 13px; }
+.lvt-tc__from { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+.lvt-tc__amount { font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1; color: var(--forest); }
+.lvt-tc__was { flex-basis: 100%; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.lvt-tc__save { background: var(--gold-light); color: var(--gold-ink); padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.lvt-tc__cta {
+  position: relative; z-index: 2; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 16px; border-radius: 12px; background: var(--forest); color: #fff;
+  font-size: 14px; font-weight: 700; text-decoration: none; transition: background var(--ease);
+}
+.lvt-tc__cta svg { width: 16px; height: 16px; }
+.lvt-tc__cta:hover { background: var(--dark); color: #fff; }
+.lvt-tc .lvt-card-cta { min-width: 0; }
+/* Móvil (fila compacta): el CTA ocupa todo el ancho de la columna de texto */
+@media (max-width: 639.98px) {
+  .lvt-tc--home .lvt-tc__tags li:nth-child(n+3) { display: none; }
+  .lvt-tc--list .lvt-tc__tags li:nth-child(n+3) { display: none; }
+}
+/* Card vertical: lista desde 640, home desde 768 */
+@media (min-width: 640px) {
+  .lvt-tc--list { flex-direction: column; min-height: 0; height: 100%; }
+  .lvt-tc--list .lvt-tc__media { flex: none; aspect-ratio: 4 / 3; }
+}
+@media (min-width: 768px) {
+  .lvt-tc--home { flex-direction: column; min-height: 0; height: 100%; }
+  .lvt-tc--home .lvt-tc__media { flex: none; aspect-ratio: 6 / 5; }
+}
+@media (min-width: 640px) {
+  .lvt-tc__body { padding: 16px 18px 18px; gap: 8px; }
+  .lvt-tc__title { font-size: 22px; }
+  .lvt-tc__foot { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .lvt-tc__price { flex: 1 1 auto; min-width: 0; }
+}
+@media (min-width: 640px) and (max-width: 1100px) {
+  .lvt-tc__foot { flex-direction: column; align-items: stretch; }
+}
+@media (hover: hover) { .lvt-tc:hover { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .lvt-tc:hover { transform: none; } }
+
+/* ---------- 4. Home: hero + buscador ---------- */
+.lvt-hero-find { position: relative; z-index: 5; margin-top: 28px; }
+.lvt-finder {
+  background: var(--paper); color: var(--ink); border-radius: 22px; padding: 18px 16px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .28); border: 0; max-width: 100%;
+}
+.lvt-finder__head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 4px; }
+.lvt-finder__title { margin: 0; font-family: 'Hedvig Letters Serif', Georgia, serif; font-size: 22px; line-height: 1.1; color: var(--forest); }
+.lvt-finder__hint { font-size: 12px; color: var(--muted); font-weight: 600; }
+.lvt-q { border: 0; margin: 14px 0 0; padding: 0; min-width: 0; }
+.lvt-q > legend { padding: 0; font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; }
+.lvt-q > legend small { font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--gold-ink); }
+.lvt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.lvt-chip { position: relative; }
+.lvt-chip input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.lvt-chip span {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  background: var(--sage); color: var(--sage-ink); font-size: 14px; font-weight: 700; border: 1.5px solid transparent;
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
+}
+.lvt-chip input:checked + span { background: var(--forest); color: #fff; }
+.lvt-chip input:focus-visible + span { outline: 3px solid var(--forest); outline-offset: 3px; }
+.lvt-chip:hover span { border-color: var(--forest); }
+.lvt-finder__cta { width: 100%; margin-top: 18px; }
+.lvt-finder__note { margin: 10px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
+.lvt-finder__err { margin: 10px 0 0; font-size: 13px; font-weight: 700; color: var(--error); }
+@media (min-width: 1024px) {
+  .lvt-hero-find { margin-top: 0; position: absolute; right: 2.5rem; top: 50%; transform: translateY(-46%); width: 420px; }
+  .lvt-has-finder .home-hero__title { max-width: 560px; }
+}
+
+
+/* ---------- 5. Cifras de confianza (con fuente) ---------- */
+.lvt-stats { background: var(--forest); color: #fff; padding: 36px 20px; }
+.lvt-stats__grid { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; text-align: center; }
+@media (min-width: 768px) { .lvt-stats__grid { grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); } }
+.lvt-stat b { display: block; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 44px; line-height: 1; color: #f0d49b; }
+.lvt-stat span { display: block; margin-top: 6px; font-size: 14px; color: #dce9df; }
+.lvt-stat small { display: block; margin-top: 2px; font-size: 12px; color: #b9d0c4; }
+.lvt-stats__src, .lvt-stats__srcx { max-width: 1280px; margin: 20px auto 0; text-align: center; font-size: 12px; color: #b9d0c4; }
+
+/* ---------- 6. Tour estrella, comparador, promo, reseñas ---------- */
+.lvt-star { position: relative; display: block; border-radius: 24px; overflow: hidden; min-height: 380px; color: #fff; isolation: isolate; text-decoration: none; background: var(--dark); }
+.lvt-star img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.lvt-star::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(9, 46, 46, .15) 0%, rgba(9, 46, 46, .55) 45%, rgba(9, 46, 46, .94) 100%); }
+.lvt-star__body { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 20px; display: grid; gap: 10px; }
+.lvt-star__body h3 { margin: 0; font-family: 'Hedvig Letters Serif', Georgia, serif; font-weight: 400; font-size: clamp(26px, 6vw, 40px); line-height: 1.08; color: #fff; }
+.lvt-star__body p { margin: 0; color: #eef3ef; font-size: 15px; max-width: 52ch; }
+.lvt-star__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.lvt-star__price { font-size: 13px; color: #dce9df; }
+.lvt-star__price b { display: block; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 34px; line-height: 1; color: #fff; }
+.lvt-star .lvt-over { color: #f0d49b; }
+
+.lvt-compare { display: grid; gap: 14px; }
+@media (min-width: 768px) { .lvt-compare { grid-template-columns: 1fr 1fr; gap: 20px; } }
+.lvt-cmp { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-card); padding: 18px; display: grid; gap: 12px; }
+.lvt-cmp h3 { margin: 0; font-family: 'Hedvig Letters Serif', Georgia, serif; font-weight: 400; font-size: 22px; color: var(--forest); }
+.lvt-cmp dl { margin: 0; display: grid; gap: 0; }
+.lvt-cmp dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.lvt-cmp dt { color: var(--muted); }
+.lvt-cmp dd { margin: 0; font-weight: 700; color: var(--ink); text-align: right; }
+
+.lvt-promo { background: var(--forest); color: #fff; border-radius: 24px; padding: 26px 22px; display: grid; gap: 12px; }
+.lvt-promo .lvt-over { color: #f0d49b; }
+.lvt-promo h2, .lvt-promo h3 { margin: 0; color: #fff !important; font-family: 'Hedvig Letters Serif', Georgia, serif; font-weight: 400; font-size: clamp(24px, 5vw, 34px); line-height: 1.12; } /* !important: pisa .lvt-page-home h2.font-display (verde) sobre fondo oscuro */
+.lvt-promo p { margin: 0; color: #dce9df; font-size: 15px; }
+
+.lvt-revsum { display: grid; gap: 18px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-card); padding: 20px; margin-bottom: 22px; }
+@media (min-width: 768px) { .lvt-revsum { grid-template-columns: 220px 1fr; align-items: center; gap: 32px; } }
+.lvt-revsum__avg b { display: block; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 60px; line-height: 1; color: var(--forest); }
+.lvt-revsum__avg span { font-size: 14px; color: var(--muted); }
+.lvt-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lvt-bars li { display: grid; grid-template-columns: 34px 1fr 40px; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.lvt-bars i { display: block; height: 8px; border-radius: 99px; background: var(--sage); overflow: hidden; position: relative; }
+.lvt-bars i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w, 0%); background: var(--gold); border-radius: 99px; }
+.lvt-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.lvt-filter button {
+  min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff;
+  color: var(--sage-ink); font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
+}
+.lvt-filter button[aria-pressed="true"] { background: var(--forest); color: #fff; border-color: var(--forest); }
+
+/* ---------- 7. FAQ (details/summary: el texto está siempre en el HTML) ---------- */
+.lvt-faq { display: grid; gap: 12px; max-width: 880px; margin: 0 auto; }
+@media (min-width: 1024px) { .lvt-faq { max-width: none; grid-template-columns: 1fr 1fr; align-items: start; } }
+.lvt-faq__item { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.lvt-faq__item summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 12px 16px;
+  font-family: 'Hedvig Letters Serif', Georgia, serif; font-size: 17px; line-height: 1.25; color: var(--forest);
+}
+.lvt-faq__item summary::-webkit-details-marker { display: none; }
+.lvt-faq__item summary > span:first-child { flex: 1; min-width: 0; }
+.lvt-faq__plus { flex: 0 0 auto; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--sage); color: var(--sage-ink); font-size: 22px; line-height: 1; transition: transform var(--ease); }
+.lvt-faq__item[open] .lvt-faq__plus { transform: rotate(45deg); }
+.lvt-faq__item summary:focus-visible { outline: 3px solid var(--forest); outline-offset: -3px; border-radius: 16px; }
+.lvt-faq__a { padding: 0 16px 16px; color: var(--muted); font-size: 15px; line-height: 1.6; }
+.lvt-faq__a p { margin: 0; }
+
+/* ---------- 8. CTA final ---------- */
+.lvt-cta { background: var(--forest); color: #fff; padding: 56px 20px; text-align: center; }
+.lvt-cta__in { max-width: 680px; margin: 0 auto; display: grid; gap: 14px; justify-items: center; }
+.lvt-cta .lvt-over { color: #f0d49b; }
+.lvt-cta .lvt-cta__title { margin: 0; font-family: 'Hedvig Letters Serif', Georgia, serif; font-size: clamp(30px, 7vw, 46px); line-height: 1.08; color: #fff; }
+.lvt-cta .lvt-cta__title .lvt-accent { color: #f0d49b; }
+.lvt-cta p.lvt-cta__sub { margin: 0; font-size: 16px; color: #dce9df; }
+
+/* Franja "verificado en": cifras solo si existen (ocultas si no hay dato) */
+.lvt-src-score { font-size: 13px; font-weight: 700; color: var(--muted); }
+
+/* Estado vacío de listados */
+.lvt-empty { background: #fff; border: 1px dashed var(--line); border-radius: var(--radius-card); padding: 28px 20px; text-align: center; display: grid; gap: 12px; justify-items: center; }
+.lvt-empty h2, .lvt-empty h3 { margin: 0; font-family: 'Hedvig Letters Serif', Georgia, serif; font-weight: 400; font-size: 24px; color: var(--forest); }
+.lvt-empty p { margin: 0; color: var(--muted); max-width: 48ch; }
+
+/* ---------- 9. Carrito / checkout ---------- */
+.lvt-page-cart .lvt-cart-hero { background: var(--dark); }
+.lvt-page-cart .cart-head h2 { font-family: 'Hedvig Letters Serif', Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.1; }
+.lvt-page-cart .cart-meta-link { font-size: 12px; color: var(--muted); font-weight: 700; }
+/* Stepper: círculo numerado + etiqueta; inactivos legibles (>= 4.5:1) */
+.lvt-page-cart .cart-seg-btn { border-radius: 14px; min-height: 52px; border-color: var(--line); box-shadow: none; }
+.lvt-page-cart .cart-seg-btn.active { border-color: var(--forest); background: #fff; box-shadow: 0 6px 18px rgba(11, 64, 57, .08); }
+.lvt-page-cart .cart-seg-num { background: var(--sage); color: var(--sage-ink); font-size: 12px; width: 26px; height: 26px; }
+.lvt-page-cart .cart-seg-btn.active .cart-seg-num { background: var(--forest); color: #fff; }
+.lvt-page-cart .cart-seg-label { font-size: 13px; color: var(--muted); }
+.lvt-page-cart .cart-seg-btn.active .cart-seg-label { color: var(--forest); }
+.lvt-page-cart .cart-switch-btn { font-size: 14px; min-height: 44px; border-radius: 14px; box-shadow: none; }
+.lvt-page-cart .cart-switch-btn.active, .lvt-page-cart .cart-switch-btn:focus-visible { background: var(--forest); }
+/* Card de tour del carrito */
+.lvt-page-cart .cart-tour-card { border-radius: var(--radius-card); border-color: var(--line); }
+.lvt-page-cart .cart-tour-card::before { background: var(--gold); }
+.lvt-page-cart .cart-tour-info h3 { font-weight: 400; font-size: 18px; }
+.lvt-page-cart .cart-thumb { width: 96px; height: 96px; border-radius: 14px; }
+.lvt-page-cart .cart-tour-top { grid-template-columns: 96px 1fr auto; }
+.lvt-page-cart .cart-chip, .lvt-page-cart .cart-payment-badge, .lvt-page-cart .cart-pay-chip, .lvt-page-cart .cart-payment-order { font-size: 12px; background: var(--sage); border-color: transparent; color: var(--sage-ink); font-weight: 700; }
+.lvt-page-cart .cart-chip.promo, .lvt-page-cart .cart-payment-badge.promo { background: var(--gold-light); color: var(--gold-ink); }
+.lvt-page-cart .cart-price-tag { font-size: 12px; color: var(--muted); }
+.lvt-page-cart .cart-price-before { font-size: 13px; color: var(--muted); }
+.lvt-page-cart .cart-price-saved { font-size: 12px; background: var(--gold-light); border-color: transparent; color: var(--gold-ink); }
+.lvt-page-cart .cart-remove-btn { font-size: 13px; min-height: 44px; min-width: 44px; padding: 0 4px; color: var(--error); }
+.lvt-page-cart .cart-meta-line { font-size: 13px; }
+.lvt-page-cart .cart-sub { font-size: 12px; color: var(--muted); }
+.lvt-page-cart .cart-field-box, .lvt-page-cart .cart-pax-shell { background: var(--cream); border-color: var(--line); border-radius: 16px; }
+.lvt-page-cart .cart-field-box label, .lvt-page-cart .cart-field label, .lvt-page-cart .cart-pax-head strong { font-size: 12px; color: var(--muted); letter-spacing: .06em; }
+.lvt-page-cart .cart-field label { font-size: 14px; font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.lvt-page-cart .cart-pax-head span { font-size: 12px; color: var(--muted); }
+.lvt-page-cart .cart-pax-card label { font-size: 14px; }
+/* Contador de personas: botones 44px, redondos, bosque */
+.lvt-page-cart .cart-qty-btn { width: 44px; height: 44px; background: var(--sage); border-color: transparent; color: var(--forest); font-size: 22px; }
+.lvt-page-cart .cart-qty-btn:hover { background: #d6e3d4; border-color: transparent; }
+.lvt-page-cart .cart-qty-value { font-size: 20px; min-width: 28px; }
+/* Campos */
+.lvt-page-cart .cart-real-input, .lvt-page-cart .cart-real-select, .lvt-page-cart .cart-mini-input, .lvt-page-cart .cart-mini-select {
+  min-height: 48px; border-radius: 14px; border: 1.5px solid #cfc6b6; background: #fff; color: var(--ink); font-size: 16px;
+}
+.lvt-page-cart .cart-real-input::placeholder, .lvt-page-cart textarea::placeholder { color: #6b7570; opacity: 1; } /* >= 4.5:1 sobre blanco */
+.lvt-page-cart .cart-real-input:focus, .lvt-page-cart .cart-real-select:focus, .lvt-page-cart .cart-mini-input:focus, .lvt-page-cart .cart-mini-select:focus { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(11, 64, 57, .2); outline: none; }
+.lvt-page-cart [aria-invalid="true"], .lvt-page-cart .lvt-invalid { border-color: var(--error); box-shadow: 0 0 0 1px var(--error); }
+.lvt-page-cart .lvt-field-error, .lvt-page-cart .cart-field-error { color: var(--error); font-size: 13px; font-weight: 700; margin: 6px 0 0; }
+.lvt-page-cart .cart-field-help { font-size: 13px; color: var(--muted); background: var(--cream); border-color: var(--line); border-radius: 12px; }
+.lvt-page-cart .cart-date-expired { font-size: 13px; color: var(--error); background: #fdeeee; border-color: #f1c5c8; }
+/* Hotel / indicaciones plegado */
+.lvt-fold { border-top: 1px dashed var(--line); padding-top: 4px; }
+.lvt-fold > summary { list-style: none; cursor: pointer; min-height: 48px; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; color: var(--forest); }
+.lvt-fold > summary::-webkit-details-marker { display: none; }
+.lvt-fold > summary .lvt-fold__plus { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--sage); font-size: 20px; line-height: 1; transition: transform var(--ease); }
+.lvt-fold[open] > summary .lvt-fold__plus { transform: rotate(45deg); }
+.lvt-fold[hidden] { display: none; }
+.lvt-fold__body { display: grid; gap: 11px; padding-bottom: 6px; }
+/* Tarjetas radio (pagar ahora / después, métodos de pago) */
+.lvt-page-cart .cart-timing-label { border: 1.5px solid var(--line); border-radius: 16px; min-height: 64px; align-items: center; background: #fff; }
+.lvt-page-cart .cart-timing-label:has(input:checked) { border-color: var(--forest); background: var(--cart-okbg); }
+.lvt-page-cart .cart-timing-label input { width: 22px; height: 22px; accent-color: var(--forest); margin: 0; flex: 0 0 auto; }
+.lvt-page-cart .cart-timing-text b { font-size: 15px; }
+.lvt-page-cart .cart-timing-text span { font-size: 13px; color: var(--muted); }
+.lvt-page-cart .cart-timing-price { font-size: 22px; }
+.lvt-page-cart .cart-terms-row { font-size: 14px; color: var(--muted); align-items: flex-start; }
+.lvt-page-cart .cart-terms-row input { width: 22px; height: 22px; flex: 0 0 auto; accent-color: var(--forest); margin: 0; }
+.lvt-page-cart .cart-terms-row a { color: var(--gold-ink); }
+.lvt-page-cart .cart-policy-box { background: var(--cart-okbg); border-color: #cfe3d6; font-size: 14px; border-radius: 16px; color: var(--ink); }
+.lvt-page-cart .cart-summary-row span, .lvt-page-cart .cart-payment-row span { font-size: 14px; color: var(--muted); }
+.lvt-page-cart .cart-payment-order { letter-spacing: .04em; }
+.lvt-page-cart .cart-payment-final span, .lvt-page-cart .cart-total-label, .lvt-page-cart .cart-aside-total-label { font-size: 12px; color: var(--muted); }
+.lvt-page-cart .cart-card, .lvt-page-cart .cart-aside, .lvt-page-cart .cart-payment-tour-card { border-radius: var(--radius-card); }
+/* Botones primarios del carrito */
+.lvt-page-cart .cart-cta-btn { background: var(--forest); min-height: 52px; border-radius: 14px; font-size: 16px; box-shadow: 0 10px 22px rgba(11, 64, 57, .22); }
+.lvt-page-cart .cart-cta-arrow { background: var(--gold); color: var(--dark); }
+.lvt-page-cart .cart-step-btn { min-height: 48px; font-size: 15px; }
+.lvt-page-cart .cart-step-btn.primary { background: var(--forest); }
+.lvt-page-cart .cart-coupon-card { background: var(--forest); }
+.lvt-page-cart .cart-coupon-input { min-height: 44px; font-size: 16px; }
+.lvt-page-cart .cart-coupon-input::placeholder { color: rgba(255, 255, 255, .75); }
+.lvt-page-cart .cart-coupon-submit { min-height: 44px; }
+.lvt-page-cart .cart-add-btn { background: var(--sage); border-color: transparent; color: var(--forest); }
+.lvt-page-cart .cart-more-tag, .lvt-page-cart .cart-section-title-card span { font-size: 12px; }
+/* Barra sticky móvil: total + CTA; reserva espacio; el FAB de WhatsApp queda oculto aquí */
+.lvt-page-cart .cart-sticky-inner { border-radius: 18px; border-color: var(--line); padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
+.lvt-page-cart .cart-total-price { font-size: 28px; }
+.lvt-page-cart .lvt-wa { display: none !important; } /* !important: el <a> trae display:flex inline; el CTA de pago/total no puede quedar tapado */
+@media (max-width: 1023.98px) {
+  .lvt-page-cart .cart-sticky-spacer { height: calc(150px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---------- 10. Accesibilidad de tap targets y estados (global) ---------- */
+@media (max-width: 1023.98px) {
+  .lvt-filter button, .lvt-chip span, .lvt-faq__item summary, .lvt-fold > summary { min-height: 44px; }
+}
+
+@media (max-width: 767.98px) { .lvt-stat:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+
+.lvt-star__h { display: block; font-family: 'Hedvig Letters Serif', Georgia, serif; font-weight: 400; font-size: clamp(26px, 6vw, 40px); line-height: 1.08; color: #fff; }
+.lvt-has-finder .home-hero__wrap { padding-bottom: 28px; }
+@media (min-width: 1024px) { .lvt-has-finder .home-hero__wrap { padding-bottom: 80px; } }
+
+/* Card vertical: precio arriba, CTA a todo el ancho debajo (evita que "Ver experiencia" parta en 2 líneas) */
+@media (min-width: 640px) {
+  .lvt-tc__foot { flex-direction: column; align-items: stretch; }
+  .lvt-tc__price { align-items: baseline; }
+}
+.lvt-tc__cta { white-space: nowrap; }
+
+/* El estado vacío ya ofrece WhatsApp: el flotante no puede tapar ese CTA */
+.lvt-page-tours:has(.lvt-empty) .lvt-wa { display: none !important; } /* !important: el <a> trae display:flex inline */
+
+/* Checkout: salida real del tour y resumen de cancelación (solo si hay dato) */
+.cart-depart { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 5px; padding: 3px 10px; border-radius: 999px; background: var(--sage); color: var(--sage-ink); font-size: 13px; font-weight: 600; }
+.cart-depart b { font-weight: 800; }
+.lvt-cancel-note { margin: -4px 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--cart-okbg); border: 1px solid #cfe3d6; color: var(--ink); font-size: 14px; line-height: 1.45; }
+.cart-depart { display: flex; width: fit-content; max-width: 100%; white-space: nowrap; }
+.lvt-page-cart .cart-pax-grid > * { min-width: 0; }
+.lvt-page-cart .cart-qty-control { gap: 2px; }
+.lvt-page-cart .cart-pax-card { padding: 10px 8px; }
+.lvt-page-cart .cart-qty-value { min-width: 22px; }
+
+/* QA 20-nov BUG-1: paso Pago a 320px con badges de 12px desbordaba (lista grid sin minmax + badges nowrap) */
+.lvt-page-cart .cart-payment-tour-list { grid-template-columns: minmax(0, 1fr); }
+.lvt-page-cart .cart-payment-tour-card { min-width: 0; }
+@media (max-width: 380px) {
+  .lvt-page-cart .cart-payment-badge, .lvt-page-cart .cart-payment-order { font-size: 11px; white-space: normal; }
+}

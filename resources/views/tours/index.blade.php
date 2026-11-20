@@ -108,6 +108,7 @@
             'groupSlug'      => $modality['slug'] ?? null,
             'searchText'     => $searchTitles,
             'regionSlug'     => $region?->slug,
+            'regionName'     => $region?->name,
             'isOffer'        => $before !== null && $before > $now,
             'nameSort'       => $normalizeAscii($titleVal),
         ];
@@ -207,6 +208,7 @@
 @endpush
 @endif
 
+@section('body_class', 'lvt-page-tours')
 @section('content')
 
 {{-- ───────── HERO ─────────
@@ -404,6 +406,28 @@
                     </label>
                 </div>
 
+                {{-- Filtros del buscador del home (contrato §1): chips quitables + estado vacío con salida a WhatsApp --}}
+                @if (! empty($searchChips))
+                    <div class="lvt-filter" role="group" aria-label="{{ app()->getLocale() === 'en' ? 'Active filters' : (app()->getLocale() === 'pt' ? 'Filtros ativos' : 'Filtros activos') }}">
+                        @foreach ($searchChips as $chip)
+                            <a href="{{ $chip['remove_url'] }}" class="lvt-btn lvt-btn--ghost" style="min-height:44px;padding:0 14px;font-size:14px" aria-label="{{ (app()->getLocale() === 'en' ? 'Remove filter: ' : (app()->getLocale() === 'pt' ? 'Remover filtro: ' : 'Quitar filtro: ')) . $chip['label'] }}">{{ $chip['label'] }} <span aria-hidden="true">✕</span></a>
+                        @endforeach
+                        <a href="{{ route('tours.index', ['locale' => app()->getLocale()]) }}" class="lvt-btn" style="min-height:44px;padding:0 10px;font-size:14px;color:var(--forest);text-decoration:underline">{{ app()->getLocale() === 'en' ? 'Clear all' : (app()->getLocale() === 'pt' ? 'Limpar tudo' : 'Quitar todos') }}</a>
+                    </div>
+                @endif
+                @if (! empty($searchNoResults))
+                    <div class="lvt-empty">
+                        <h2>{{ app()->getLocale() === 'en' ? 'We have no tour with those filters' : (app()->getLocale() === 'pt' ? 'Não temos um tour com esses filtros' : 'No tenemos un tour con esos filtros') }}</h2>
+                        <p>{{ app()->getLocale() === 'en' ? 'Try removing one, or tell us what you are looking for and we will help you.' : (app()->getLocale() === 'pt' ? 'Tente remover algum ou nos conte o que procura e nós ajudamos.' : 'Prueba quitando alguno o cuéntanos qué buscas y te ayudamos.') }}</p>
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">
+                            <a href="{{ route('tours.index', ['locale' => app()->getLocale()]) }}" class="lvt-btn lvt-btn--forest">{{ app()->getLocale() === 'en' ? 'See all tours' : (app()->getLocale() === 'pt' ? 'Ver todos os tours' : 'Ver todos los tours') }}</a>
+                            @if (! empty($searchWhatsappUrl))
+                                <a href="{{ $searchWhatsappUrl }}" target="_blank" rel="noopener noreferrer" class="lvt-btn lvt-btn--gold" data-wa-location="tours_sin_resultados">{{ app()->getLocale() === 'en' ? 'Ask us on WhatsApp' : (app()->getLocale() === 'pt' ? 'Fale conosco no WhatsApp' : 'Escríbenos por WhatsApp') }}</a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
                 {{-- UN solo <article> por tour: fila compacta <640, card vertical (2/3 col.) desde 640 --}}
                 <div class="flex flex-col gap-2 -mx-[3px] sm:mx-0 sm:grid sm:gap-6 sm:grid-cols-2 lg:grid-cols-3" data-tour-cards>
                     @foreach ($cardData as $i => $tour)
@@ -433,6 +457,7 @@
                             :reviews="$tour['reviews']"
                             :duration="$tour['durationLabel']"
                             :language="$tour['languageLabel']"
+                            :eyebrow="$tour['regionName']"
                             :show-offer="$tour['showOffer']"
                             :pickup="$tour['pickup']"
                             :free-cancellation="$tour['freeCancellation']"
