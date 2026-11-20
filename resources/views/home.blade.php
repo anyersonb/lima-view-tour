@@ -1415,7 +1415,6 @@
                         </div>
                         <div class="p-4">
                             <h3 class="font-display text-lg text-teal-800 leading-tight line-clamp-2 group-hover:text-orange-700 transition-colors">{{ $eTitle }}</h3>
-                            </div>
                         </div>
                     </a>
                 @endforeach
