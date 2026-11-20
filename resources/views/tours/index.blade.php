@@ -268,7 +268,7 @@
                     <span class="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 text-teal-800/60 sm:text-teal-800/60" aria-hidden="true">
                         <svg class="w-[18px] h-[18px] sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                     </span>
-                    <input type="search" name="q" data-tour-search enterkeyhint="search" autocomplete="off" placeholder="{{ __('ui.search_tour') }}"
+                    <input type="search" name="q" value="{{ $searchQuery ?? '' }}" data-tour-search enterkeyhint="search" autocomplete="off" placeholder="{{ __('ui.search_tour') }}"
                            class="w-full h-8 sm:h-auto rounded-lg sm:rounded-2xl border border-teal-800/15 bg-cream-100 pl-10 sm:pl-11 pr-3 py-0 sm:py-3.5 text-base text-teal-800 placeholder-teal-800/70 sm:placeholder-teal-800/70 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none"
                            aria-label="{{ __('ui.search_tour_label') }}">
                 </div>

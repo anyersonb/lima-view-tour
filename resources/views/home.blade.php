@@ -4,7 +4,7 @@
      Si el campo está vacío cae al texto por defecto de lang/{idioma}/seo.php. --}}
 @section('title', \App\Support\PageSeo::title('home', __('seo.home_title')))
 @section('description', \App\Support\PageSeo::description('home', __('seo.home_description')))
-@section('header_variant', 'transparent')
+@section('header_variant', 'solid')
 @section('body_class', 'lvt-page-home')
 
 {{-- Lote B (2026-08-31): se apagó el WebSite automático que se pintaba aquí
@@ -108,6 +108,8 @@
                 'topRated'  => (bool) data_get($t, 'show_top_rated', false),
                 'bestSeller' => (bool) data_get($t, 'show_most_sold', false),
                 'eyebrow'   => ($t instanceof \App\Models\Tour) ? $t->region?->name : null,
+                'discountPct' => (($t instanceof \App\Models\Tour) ? $t->discount_percent : null),
+                'category'  => (($t instanceof \App\Models\Tour) ? $t->category?->name : null),
             ];
         })->all();
     };
@@ -278,156 +280,176 @@
 </style>
 
 {{-- ============================================================
-     SECCIÓN 1 — HERO + STATS
-     Stats card está DENTRO del hero. El hero usa flex-col con
-     mt-auto en la card para empujarla al fondo. padding-bottom
-     del hero hace que la card quede half-inside half-outside.
-     Siguiente sección tiene margin-top negativo para el overlap.
+     HOME FINAL (diseño aprobado por el cliente, 20-nov-2026). Móvil = archivo "FINAL HOME"; escritorio = mismo diseño ensanchado.
+     Estilos: public/css/redesign.css, bloque "HOME FINAL" (.fh-*). Todo dato es real o se oculta.
      ============================================================ --}}
-<section class="relative isolate text-white lvt-on-dark{{ ! empty($homeSearch) ? ' lvt-has-finder' : '' }}" aria-labelledby="hero-title">
 
-    {{-- Hero background image (editable via Settings > Home) --}}
-    @php
-        $heroImgSetting = \App\Models\Setting::get('home_hero_image');
-        if (is_array($heroImgSetting)) { $heroImgSetting = $heroImgSetting[0] ?? ''; }
-        $heroImgSetting = trim((string) $heroImgSetting);
-        $heroImgUrl = ($heroImgSetting !== '' && $heroImgSetting !== '[]' && $heroImgSetting !== '""')
-            ? \Illuminate\Support\Facades\Storage::disk('media')->url($heroImgSetting)
-            : asset('assets/banners/hero-machu-picchu.png');
-        // Hero por defecto: derivadas WebP 640/1024/1600/1717 (nativo). `sizes` usa el ancho que de verdad
-        // cubre el hero (object-cover sobre ~700 px de alto en móvil exige ~1300 px de imagen).
-        $heroIsDefault = $heroImgUrl === asset('assets/banners/hero-machu-picchu.png');
-        $heroSizes     = 'max(100vw, 1300px)';
-        $heroSrcset    = collect([640, 1024, 1600, 1717])
-            ->map(fn ($w) => parse_url(asset('assets/banners/hero-machu-picchu-' . $w . 'w.webp'), PHP_URL_PATH) . ' ' . $w . 'w')
-            ->implode(', ');
-    @endphp
-    @php
-        // Hero editable (Setting home_hero_image, disco media): variantes WebP si existen; se precarga igual que el hero por defecto.
-        $heroCustomSet = null;
-        if (! $heroIsDefault) {
-            try { $heroCustomSet = \App\Support\ImageVariants::srcset($heroImgSetting, null, 'media'); } catch (\Throwable $e) { $heroCustomSet = null; }
-        }
-    @endphp
-    @if ($heroIsDefault)
-        @push('head')
-            <link rel="preload" as="image" type="image/webp" imagesrcset="{{ $heroSrcset }}" imagesizes="{{ $heroSizes }}" fetchpriority="high">
-        @endpush
-    @else
-        @push('head')
-            <link rel="preload" as="image" href="{{ $heroImgUrl }}" @if ($heroCustomSet) imagesrcset="{{ $heroCustomSet }}" imagesizes="{{ $heroSizes }}" @endif fetchpriority="high">
-        @endpush
-    @endif
-    <div class="absolute inset-0 -z-10">
-        <picture class="contents">
-            @if ($heroIsDefault)
-                <source type="image/webp" srcset="{{ $heroSrcset }}" sizes="{{ $heroSizes }}">
-            @endif
-            <img src="{{ $heroImgUrl }}" @if ($heroCustomSet) srcset="{{ $heroCustomSet }}" sizes="{{ $heroSizes }}" @endif alt=""
-                 class="w-full h-full object-cover object-[60%_center] lg:object-center"
-                 width="1717" height="916"
-                 loading="eager" fetchpriority="high" decoding="async">
-        </picture>
-        <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/75"></div>
+{{-- ── Franja de confianza superior + HERO ── --}}
+@php
+    $fhRating = filled($homeStats['rating']['value'] ?? null)
+        ? $homeStats['rating']['value']
+        : (! empty($homeReviewStats) ? number_format($homeReviewStats['average'], 1) : null);
+
+    // H1 desde Ajustes (home_hero_title_*); default nuevo del diseño. Última línea en cursiva dorada cuando hay 2+ líneas.
+    $heroTitleDefault = [
+        'es' => "Tu próxima aventura\nempieza aquí.",
+        'en' => "Your next adventure\nstarts here.",
+        'pt' => "Sua próxima aventura\ncomeça aqui.",
+    ];
+    $heroStored = trim((string) \App\Models\Setting::get('home_hero_title_' . $locale));
+    $heroTitleRaw = $heroStored !== '' ? $heroStored : ($heroTitleDefault[$locale] ?? $heroTitleDefault['es']);
+    $heroLines = array_values(array_filter(array_map('trim', preg_split('/\R/u', (string) $heroTitleRaw)), fn ($l) => $l !== ''));
+    $heroLast  = count($heroLines) > 1 ? array_pop($heroLines) : null;
+
+    // Imagen del hero: la del admin si existe; si no, la ilustración del diseño aprobado.
+    $heroImgSetting = \App\Models\Setting::get('home_hero_image');
+    if (is_array($heroImgSetting)) { $heroImgSetting = $heroImgSetting[0] ?? ''; }
+    $heroImgSetting = trim((string) $heroImgSetting);
+    $heroCustom = ($heroImgSetting !== '' && $heroImgSetting !== '[]' && $heroImgSetting !== '""');
+    $heroImgUrl = $heroCustom ? \Illuminate\Support\Facades\Storage::disk('media')->url($heroImgSetting) : asset('assets/home/hero-catedral.webp');
+    $heroCustomSet = null;
+    if ($heroCustom) {
+        try { $heroCustomSet = \App\Support\ImageVariants::srcset($heroImgSetting, null, 'media'); } catch (\Throwable $e) { $heroCustomSet = null; }
+    }
+    $heroSizes = '(min-width:1024px) 520px, 60vw';
+
+    // Chips rápidos: $homeChips (contrato FINAL HOME §2): cada chip filtra /tours con un solo parámetro. Sin chips = no se pinta la fila.
+    $fhQuick = [];
+    foreach (($homeChips ?? []) as $c) {
+        if (! is_array($c) || ! filled($c['label'] ?? null) || ! filled($c['url'] ?? null)) { continue; }
+        $fhQuick[] = ['label' => trim(preg_replace('/\s*\(.*?\)/u', '', (string) $c['label'])), 'url' => $c['url'], 'type' => $c['type'] ?? 'categoria'];
+    }
+    $fhQuick = array_slice($fhQuick, 0, 5);
+    $fhQuickIcon = static function (array $c, int $i): string {
+        $l = mb_strtolower($c['label']);
+        if (($c['type'] ?? '') === 'duracion') { return preg_match('/(complet|full|inteiro|d[ií]a)/u', $l) && ! preg_match('/(medio|half|meio)/u', $l) ? 'sun' : 'clock'; }
+        if (($c['type'] ?? '') === 'destino') { return 'compass'; }
+        if (preg_match('/(aventur|advent)/u', $l)) { return 'mountain'; }
+        if (preg_match('/(arque|archaeo)/u', $l)) { return 'pyramid'; }
+        if (preg_match('/(histor|cultur)/u', $l)) { return 'pillars'; }
+        if (preg_match('/(natur|gastro|food|comid|culinar)/u', $l)) { return 'leaf'; }
+        return 'compass';
+    };
+    $fhIcons = [
+        'clock'    => '<circle cx="12" cy="12" r="8.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5V12l3 2"/>',
+        'sun'      => '<circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
+        'pillars'  => '<path stroke-linecap="round" stroke-linejoin="round" d="M3.5 9L12 4l8.5 5M5 9.5v8M9.5 9.5v8M14.5 9.5v8M19 9.5v8M3.5 20h17M3.5 17.5h17"/>',
+        'mountain' => '<path stroke-linecap="round" stroke-linejoin="round" d="M2.5 19L9 7l4 7 2.5-4 6 9z"/>',
+        'pyramid'  => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3.5L21 19.5H3z"/><path stroke-linecap="round" d="M9.2 15h5.6"/>',
+        'leaf'     => '<path stroke-linecap="round" stroke-linejoin="round" d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14M5 19c3-4 6-6 9-8"/>',
+        'compass'  => '<circle cx="12" cy="12" r="8.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M15.5 8.5l-2 5-5 2 2-5 5-2z"/>',
+    ];
+@endphp
+
+<div class="fh-top">
+    <ul class="fh-top__in">
+        @if ($fhRating)<li><b>{{ $fhRating }}</b> {{ $L('en nuestra web', 'on our website', 'em nosso site') }}</li>@endif
+        <li>{{ $L('Guías locales', 'Local guides', 'Guias locais') }}</li>
+        <li>{{ $L('Atención por WhatsApp', 'WhatsApp support', 'Atendimento por WhatsApp') }}</li>
+    </ul>
+</div>
+
+@push('head')
+    <link rel="preload" as="image" href="{{ $heroImgUrl }}" @if ($heroCustomSet) imagesrcset="{{ $heroCustomSet }}" imagesizes="{{ $heroSizes }}" @endif fetchpriority="high">
+@endpush
+
+<section class="fh-hero" aria-labelledby="hero-title">
+    <div class="fh-hero__bg" aria-hidden="true">
+        <img src="{{ $heroImgUrl }}" @if ($heroCustomSet) srcset="{{ $heroCustomSet }}" sizes="{{ $heroSizes }}" @endif alt=""
+             width="436" height="604" loading="eager" fetchpriority="high" decoding="async">
     </div>
-
-    {{-- Flex column: texto arriba, stats card al fondo --}}
-    <div class="home-hero__wrap relative px-5
-                pt-24 pb-0
-                sm:pt-28
-                md:pt-36
-                lg:px-10 lg:pt-[130px] lg:pb-20
-                xl:pt-[150px]
-                min-h-[640px] sm:min-h-[700px] md:min-h-[760px] lg:min-h-[660px] xl:min-h-[760px]
-                flex flex-col
-                container mx-auto max-w-7xl">
-
-        {{-- Línea decorativa + spark --}}
-        <div class="flex items-center gap-2 mb-5" aria-hidden="true">
-            <span class="h-px w-12 bg-orange-400"></span>
-            <svg class="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
+    <div class="fh-hero__in">
+        <div class="fh-hero__copy">
+            <p class="fh-hero__eyebrow">{{ \App\Models\Setting::get('home_hero_eyebrow_' . $locale) ?: $L('Experiencias reales · Lima y Perú', 'Real experiences · Lima & Peru', 'Experiências reais · Lima e Peru') }}</p>
+            <h1 id="hero-title" class="fh-hero__title">{!! nl2br(e(implode("\n", $heroLines))) !!}@if ($heroLast)<br><em>{{ $heroLast }}</em>@endif</h1>
+            <p class="fh-hero__lead">{{ \App\Models\Setting::get('home_hero_subtitle_' . $locale) ?: $L('Tours increíbles, información clara y reservas sin complicaciones.', 'Amazing tours, clear information and hassle-free bookings.', 'Tours incríveis, informação clara e reservas sem complicações.') }}</p>
         </div>
 
-        @php
-            // Hero title: Setting with fallback to hardcoded originals
-            $heroTitleDefault = [
-                'es' => "Descubre\nlo que te\ntransforma.",
-                'en' => "Discover\nwhat\ntransforms you.",
-                'pt' => "Descubra\no que\ntransforma você.",
-            ];
-            $heroTitleRaw = \App\Models\Setting::get('home_hero_title_' . $locale)
-                ?: ($heroTitleDefault[$locale] ?? $heroTitleDefault['es']);
-        @endphp
-        <h1 id="hero-title"
-            class="home-hero__title font-display font-normal
-                   text-[52px] leading-[0.92]
-                   sm:text-[68px]
-                   md:text-[76px]
-                   lg:text-[88px]
-                   xl:text-[104px] max-w-3xl">
-            {!! nl2br(e($heroTitleRaw)) !!}
-        </h1>
-        @php $heroCtaLabel = $L('EXPLORAR EXPERIENCIAS', 'EXPLORE EXPERIENCES', 'EXPLORAR EXPERIÊNCIAS'); @endphp
-
-        {{-- CTA pill --}}
-        <a href="{{ $destUrl('lima') }}"
-           class="home-hero__cta mt-7 inline-flex items-center justify-between gap-3 self-start
-                  border border-orange-400/70 rounded-full
-                  pl-5 pr-1.5 py-1.5
-                  font-semibold text-sm
-                  bg-black/15 backdrop-blur-sm hover:bg-black/25 transition">
-            <span class="inline-flex items-center gap-3">
-                <svg class="w-5 h-5 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9"/>
-                    <path d="M15 9l-2 6-4 2 2-6 4-2z" fill="currentColor"/>
-                </svg>
-                <span class="uppercase tracking-wider text-white">{{ $heroCtaLabel }}</span>
-            </span>
-            <span class="w-9 h-9 rounded-full bg-orange-400 grid place-items-center text-teal-900 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-            </span>
-        </a>
-
-        {{-- Trust pills --}}
-        <div class="mt-5 flex flex-wrap gap-2">
-            <span class="inline-flex items-center gap-2 border border-white/35 rounded-full px-3.5 py-1.5 text-[12px] bg-black/15 backdrop-blur-sm">
-                <svg class="w-4 h-4 text-orange-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                {{ $L('Reserva fácil', 'Easy booking', 'Reserva fácil') }}
-            </span>
-            <span class="inline-flex items-center gap-2 border border-white/35 rounded-full px-3.5 py-1.5 text-[12px] bg-black/15 backdrop-blur-sm">
-                <svg class="w-4 h-4 text-orange-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                {{ $L('Segura', 'Secure', 'Segura') }}
-            </span>
-            <span class="inline-flex items-center gap-2 border border-white/35 rounded-full px-3.5 py-1.5 text-[12px] bg-black/15 backdrop-blur-sm">
-                <svg class="w-4 h-4 text-orange-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25L15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                {{ $L('100% garantizada', '100% guaranteed', '100% garantida') }}
-            </span>
-        </div>
-
-        {{-- BUSCADOR DE 3 PREGUNTAS (contrato §1: $homeSearch). Sin opción preseleccionada; solo opciones con tours;
-             se oculta entero si no hay opciones. GET a la lista de tours con ?duracion=&experiencia=&destino= --}}
         @if (! empty($homeSearch))
-            @php
-                $hsP = $homeSearch['params'] ?? ['duration' => 'duracion', 'experience' => 'experiencia', 'destination' => 'destino'];
-                $hsQs = [
-                    ['key' => 'duration',    'list' => $homeSearch['durations'] ?? [],    'q' => $L('¿Cuánto tiempo tienes?', 'How much time do you have?', 'Quanto tempo você tem?')],
-                    ['key' => 'experience',  'list' => $homeSearch['experiences'] ?? [],  'q' => $L('¿Qué te gustaría vivir?', 'What would you like to experience?', 'O que você gostaria de viver?')],
-                    ['key' => 'destination', 'list' => $homeSearch['destinations'] ?? [], 'q' => $L('¿A dónde te gustaría ir?', 'Where would you like to go?', 'Para onde você gostaria de ir?')],
-                ];
-                $hsQs = array_values(array_filter($hsQs, fn ($q) => count($q['list'])));
-            @endphp
-            <div class="lvt-hero-find">
-                <form class="lvt-finder" id="lvt-finder" method="GET" action="{{ $homeSearch['action'] }}" novalidate aria-labelledby="lvt-finder-title">
-                    <div class="lvt-finder__head">
-                        <h2 id="lvt-finder-title" class="lvt-finder__title">{{ $L('Encuentra tu tour', 'Find your tour', 'Encontre seu tour') }}</h2>
-                        <span class="lvt-finder__hint">{{ count($hsQs) }} {{ $L('preguntas', 'questions', 'perguntas') }}</span>
-                    </div>
+        <div class="fh-hero__find">
+            <form class="fh-search" role="search" method="GET" action="{{ $homeSearch['action'] }}">
+                <svg class="fh-search__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path stroke-linecap="round" d="M15.5 15.5L21 21"/></svg>
+                <label for="fh-q" class="sr-only">{{ $L('¿Qué te gustaría descubrir en Perú?', 'What would you like to discover in Peru?', 'O que você gostaria de descobrir no Peru?') }}</label>
+                <input id="fh-q" type="search" name="{{ $homeSearch['params']['query'] ?? 'q' }}" autocomplete="off" maxlength="{{ $homeSearch['query_max'] ?? 80 }}"
+                       placeholder="{{ $L('¿Qué te gustaría descubrir en Perú?', 'What would you like to discover in Peru?', 'O que você gostaria de descobrir no Peru?') }}">
+                <button type="submit" class="fh-search__btn" data-ga-cta="buscar_texto" data-ga-location="home_hero">{{ $L('Buscar', 'Search', 'Buscar') }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
+            </form>
+
+            @if (count($fhQuick))
+                <p class="fh-quick__lead"><span>{{ $L('Toca una opción y descubre tours recomendados', 'Tap an option and discover recommended tours', 'Toque em uma opção e descubra tours recomendados') }}</span></p>
+                <ul class="fh-quick">
+                    @foreach ($fhQuick as $qi => $qc)
+                        <li><a href="{{ $qc['url'] }}" class="fh-chip fh-chip--{{ $qi }}" data-ga-cta="chip_rapido" data-ga-location="home_hero">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">{!! $fhIcons[$fhQuickIcon($qc, $qi)] !!}</svg>{{ $qc['label'] }}</a></li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+        @endif
+    </div>
+</section>
+
+{{-- ── ELIGE TU EXPERIENCIA (tours reales; H2 SEO id bestseller-title: fusiona el carrusel "más vendidos") ── --}}
+@php
+    // "Elige tu experiencia": $homePick (contrato FINAL HOME §3): tours destacados reales; 1..4. Sin tours = sección oculta.
+    $fhPick = array_slice(array_values(array_filter((array) ($homePick ?? []), 'is_array')), 0, 4);
+    $fhPickImgs = [];
+    if (count($fhPick)) {
+        try {
+            $fhPickRows = \App\Models\Tour::whereIn('id', array_column($fhPick, 'id'))->get(['id', 'cover_image'])->keyBy('id');
+            foreach ($fhPick as $pk) {
+                $cv = $fhPickRows[$pk['id']]->cover_image ?? null;
+                $cd = \App\Support\ImageVariants::card($cv ?: null, '(min-width:1024px) 280px, 190px');
+                $fhPickImgs[$pk['id']] = ['src' => $cd['src'] ?: null, 'srcset' => $cd['srcset'], 'sizes' => $cd['sizes']];
+            }
+        } catch (\Throwable $e) { $fhPickImgs = []; }
+    }
+@endphp
+@if (count($fhPick))
+<section class="fh-sec fh-exp" aria-labelledby="bestseller-title">
+    <div class="fh-wrap">
+        <p class="fh-tag"><i aria-hidden="true"></i>{{ \App\Models\Setting::get('home_sec_featured_eyebrow_' . $locale) ?: $L('Tours para enamorarte de Perú', 'Tours to fall in love with Peru', 'Tours para se apaixonar pelo Peru') }}</p>
+        <div class="fh-sec__head">
+<h2 id="bestseller-title" class="fh-h2">{!! e(trim((string) \App\Models\Setting::get('home_sec_featured_title_' . $locale))) ?: $L('Elige tu <span class="fh-u">experiencia</span>.', 'Choose your <span class="fh-u">experience</span>.', 'Escolha sua <span class="fh-u">experiência</span>.') !!}</h2>
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="fh-more">{{ $L('Ver todos', 'See all', 'Ver todos') }} <span aria-hidden="true">›</span></a>
+        </div>
+        <div class="fh-grid">
+            @foreach ($fhPick as $fp)
+                <x-fh-tour-card :p="$fp" :img="$fhPickImgs[$fp['id']] ?? []" />
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
+
+{{-- ── ENCUENTRA TU TOUR (buscador de 3 preguntas, $homeSearch; oculto si no hay opciones) ── --}}
+@if (! empty($homeSearch))
+@php
+    $hsP = $homeSearch['params'] ?? ['duration' => 'duracion', 'experience' => 'experiencia', 'destination' => 'destino'];
+    $hsQs = [
+        ['key' => 'duration',    'list' => $homeSearch['durations'] ?? [],    'q' => $L('¿Cuánto tiempo tienes?', 'How much time do you have?', 'Quanto tempo você tem?')],
+        ['key' => 'experience',  'list' => $homeSearch['experiences'] ?? [],  'q' => $L('¿Qué te gustaría vivir?', 'What would you like to experience?', 'O que você gostaria de viver?')],
+        ['key' => 'destination', 'list' => $homeSearch['destinations'] ?? [], 'q' => $L('¿En qué destino?', 'Which destination?', 'Em qual destino?')],
+    ];
+    $hsQs = array_values(array_filter($hsQs, fn ($q) => count($q['list'])));
+@endphp
+<section class="fh-sec fh-finder-sec" id="encuentra-tu-tour" aria-labelledby="lvt-finder-title">
+    <div class="fh-wrap">
+        <div class="fh-finder">
+            <div class="fh-finder__intro">
+                <p class="fh-finder__eyebrow">{{ $L('Tu asesor automático', 'Your automatic advisor', 'Seu assessor automático') }}</p>
+                <h2 id="lvt-finder-title" class="fh-finder__title">{{ $L('Encuentra tu tour', 'Find your tour', 'Encontre seu tour') }}<span>{{ $L('con tres preguntas.', 'with three questions.', 'com três perguntas.') }}</span></h2>
+                <p class="fh-finder__sub">{{ $L('Haz clic en lo que te interesa y descubre automáticamente tu tour ideal.', 'Click on what interests you and automatically find your ideal tour.', 'Clique no que lhe interessa e descubra automaticamente seu tour ideal.') }}</p>
+            </div>
+            <form class="fh-finder__form" id="lvt-finder" method="GET" action="{{ $homeSearch['action'] }}" novalidate aria-labelledby="lvt-finder-title">
+                <div class="fh-finder__panel">
                     @foreach ($hsQs as $qi => $q)
-                        <fieldset class="lvt-q">
-                            <legend><small>{{ $qi + 1 }}/{{ count($hsQs) }}</small> {{ $q['q'] }}</legend>
-                            <div class="lvt-chips">
+                        <fieldset class="fh-q">
+                            <legend><span class="fh-q__n" aria-hidden="true">{{ str_pad((string) ($qi + 1), 2, '0', STR_PAD_LEFT) }}</span>{{ $q['q'] }}</legend>
+                            <div class="fh-opts">
                                 @foreach ($q['list'] as $opt)
-                                    <label class="lvt-chip">
+                                    <label class="fh-opt">
                                         <input type="radio" name="{{ $hsP[$q['key']] }}" value="{{ $opt['value'] }}">
                                         <span>{{ $opt['label'] }}</span>
                                     </label>
@@ -435,1243 +457,419 @@
                             </div>
                         </fieldset>
                     @endforeach
-                    <p class="lvt-finder__err" id="lvt-finder-err" role="alert" hidden>{{ $L('Elige al menos una opción para buscar.', 'Choose at least one option to search.', 'Escolha pelo menos uma opção para buscar.') }}</p>
-                    <button type="submit" class="lvt-btn lvt-btn--gold lvt-finder__cta" data-ga-cta="finder_submit" data-ga-location="home_hero">
-                        {{ $L('Ver tours recomendados', 'See recommended tours', 'Ver tours recomendados') }}
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                    </button>
-                </form>
-            </div>
-            <script>
-                (function () {
-                    var f = document.getElementById('lvt-finder'); if (!f) return;
-                    f.addEventListener('submit', function (e) {
-                        if (!f.querySelector('input[type=radio]:checked')) { e.preventDefault(); document.getElementById('lvt-finder-err').hidden = false; }
-                    });
-                    f.addEventListener('change', function () { document.getElementById('lvt-finder-err').hidden = true; });
-                })();
-            </script>
-        @endif
-
-    </div>
-</section>
-
-{{-- ============================================================
-     CIFRAS DE CONFIANZA — una sola banda. Datos: $homeStats (HomeSections::stats, contrato §4).
-     Cada cifra se OCULTA si value es null; la fuente de la valoración se imprime si el admin la cargó.
-     ============================================================ --}}
-@php
-    $statItems = [];
-    foreach (['rating', 'travelers', 'years', 'tours'] as $sk) {
-        $sv = $homeStats[$sk] ?? null;
-        if (is_array($sv) && filled($sv['value'] ?? null)) {
-            $statItems[] = ['v' => $sv['value'], 'l' => $sv['label'] ?? '', 'src' => $sv['source'] ?? null];
-        }
-    }
-    $statSource = collect($statItems)->pluck('src')->filter()->first();
-@endphp
-@if (count($statItems))
-<section class="lvt-stats lvt-on-dark" aria-label="{{ $L('Cifras de confianza', 'Trust figures', 'Números de confiança') }}">
-    <div class="lvt-stats__grid" style="--cols: {{ count($statItems) }}">
-        @foreach ($statItems as $s)
-            <div class="lvt-stat"><b>{{ $s['v'] }}</b><span>{{ $s['l'] }}</span></div>
-        @endforeach
-    </div>
-    @if ($statSource)
-        <p class="lvt-stats__src">{{ $statSource }}</p>
-    @endif
-</section>
-@endif
-
-{{-- BANDA PROMO — oferta vigente real (contrato §6: $homePromo). Oculta si no hay Offer activa. --}}
-@if (! empty($homePromo))
-<section class="bg-cream-100 px-5 pt-10" aria-labelledby="promo-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-        <div class="lvt-promo lvt-on-dark">
-            <p class="lvt-over">{{ $L('Oferta vigente', 'Current offer', 'Oferta vigente') }}</p>
-            <h2 id="promo-title">{{ $homePromo['title'] }}</h2>
-            @if (filled($homePromo['description'] ?? null))<p>{{ $homePromo['description'] }}</p>@endif
-            @if (! empty($homePromo['valid_until']))
-                <p>{{ $L('Válida hasta el', 'Valid until', 'Válida até') }} {{ $homePromo['valid_until']->locale($locale)->isoFormat('D [de] MMMM') }}</p>
-            @endif
-            @if (filled($homePromo['cta_url'] ?? null))
-                <div><a href="{{ $homePromo['cta_url'] }}" class="lvt-btn lvt-btn--gold">{{ $homePromo['cta_label'] ?: $L('Ver oferta', 'See offer', 'Ver oferta') }}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a></div>
-            @endif
-        </div>
-    </div>
-</section>
-@endif
-
-
-{{-- ============================================================
-     SECCIÓN 2 — MÁS COMPRADOS (carrusel compacto con peek)
-     ============================================================ --}}
-<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="bestseller-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Header --}}
-        <div class="text-center mb-8">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">
-                {{ \App\Models\Setting::get('home_sec_featured_eyebrow_' . $locale) ?: 'NUESTROS TOURS' }}
-            </p>
-            <h2 id="bestseller-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800">
-                {{ \App\Models\Setting::get('home_sec_featured_title_' . $locale) ?: $L('Tours en Perú más vendidos', 'Best-selling tours in Peru', 'Tours no Peru mais vendidos') }}
-            </h2>
-            {!! $sep !!}
-        </div>
-
-        @php
-            // Sin demo ficticio: si no hay tours reales, el carrusel queda vacío.
-            $mcTours = $normalizeTours($featuredTours->take(8));
-            $mcCount = count($mcTours);
-        @endphp
-
-        {{-- Carrusel Alpine scroll-snap (mismo patrón que sección 2B) --}}
-        <div x-data="{
-                current: 0,
-                total: {{ $mcCount }},
-                nav(dir) {
-                    let el = document.getElementById('mc-carousel');
-                    let cx = el.getBoundingClientRect().left + el.clientWidth / 2;
-                    let cur = 0, bd = Infinity;
-                    [...el.children].forEach((ch, i) => {
-                        let r = ch.getBoundingClientRect();
-                        let d = Math.abs((r.left + r.width / 2) - cx);
-                        if (d < bd) { bd = d; cur = i; }
-                    });
-                    this.goTo(Math.min(Math.max(cur + dir, 0), this.total - 1));
-                },
-                goTo(i) {
-                    let el = document.getElementById('mc-carousel');
-                    let c = el.children[i];
-                    if (!c) return;
-                    let target = el.scrollLeft + c.getBoundingClientRect().left - el.getBoundingClientRect().left - (el.clientWidth - c.clientWidth) / 2;
-                    target = Math.max(0, Math.min(target, el.scrollWidth - el.clientWidth));
-                    this.current = i;
-                    // Snap mandatory cancela el scroll suave programático: lo apagamos durante la animación.
-                    el.style.scrollSnapType = 'none';
-                    el.scrollTo({ left: target, behavior: 'smooth' });
-                    // Fallback fiable: si el suave no progresó (motion reducido / headless), saltar; luego restaurar snap.
-                    clearTimeout(this._snapT);
-                    this._snapT = setTimeout(() => {
-                        if (Math.abs(el.scrollLeft - target) > 4) el.scrollTo({ left: target, behavior: 'instant' });
-                        el.style.scrollSnapType = 'x mandatory';
-                    }, 420);
-                }
-             }" class="relative">
-
-            {{-- Track --}}
-            <div class="carousel-track ct-bleed gap-4 pb-2 -mx-5 px-4 sm:mx-0"
-                 style="padding-left:1rem;padding-right:1rem;"
-                 id="mc-carousel"
-                 @scroll.debounce.100ms="
-                     let el = $el;
-                     let cx = el.getBoundingClientRect().left + el.clientWidth / 2;
-                     let best = 0, bestD = Infinity;
-                     [...el.children].forEach((ch, i) => {
-                         let r = ch.getBoundingClientRect();
-                         let d = Math.abs((r.left + r.width / 2) - cx);
-                         if (d < bestD) { bestD = d; best = i; }
-                     });
-                     current = best;
-                 ">
-
-                @foreach ($mcTours as $i => $mct)
-                    <div class="tour-slide">
-                        <x-tour-card-responsive
-                            variant="home"
-                            :title="$mct['title']"
-                            :slug="$mct['slug']"
-                            :img="$mct['img']"
-                            :img-thumb="$mct['imgThumb']"
-                            :img-path="$mct['imgPath']"
-                            :before="$mct['before']"
-                            :now="$mct['now']"
-                            :rating="$mct['rating']"
-                            :reviews="$mct['reviews']"
-                            :duration="$mct['duration']"
-                            :language="$mct['language']"
-                            :pickup="$mct['pickup']"
-                            :free-cancellation="$mct['freeCancellation']"
-                            :show-offer="$mct['showOffer']"
-                            :top-rated="$mct['topRated']"
-                            :best-seller="$mct['bestSeller']"
-                        />
-                    </div>
-                @endforeach
-            </div>
-
-            {{-- Flechas DESKTOP (slider) --}}
-            <button type="button" @click="nav(-1)" aria-label="Tour anterior"
-                    class="hidden lg:flex"
-                    style="position:absolute;top:42%;left:0;transform:translateY(-50%);margin-left:-12px;width:46px;height:46px;border-radius:9999px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.14);align-items:center;justify-content:center;color:#15474B;border:1px solid rgba(20,71,75,.1);z-index:20;cursor:pointer;">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <button type="button" @click="nav(1)" aria-label="Tour siguiente"
-                    class="hidden lg:flex"
-                    style="position:absolute;top:42%;right:0;transform:translateY(-50%);margin-right:-12px;width:46px;height:46px;border-radius:9999px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.14);align-items:center;justify-content:center;color:#15474B;border:1px solid rgba(20,71,75,.1);z-index:20;cursor:pointer;">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </button>
-
-            {{-- Controles inferiores: flecha + dots + flecha (mobile/tablet) --}}
-            <div class="mt-5 flex items-center justify-center gap-3 lg:hidden">
-                <button type="button" @click="nav(-1)" aria-label="Tour anterior"
-                        class="w-8 h-8 rounded-full bg-white shadow ring-1 ring-teal-800/10 grid place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <div class="flex items-center gap-2" aria-hidden="true">
-                    @for ($i = 0; $i < $mcCount; $i++)
-                        <button type="button" @click="goTo({{ $i }})"
-                                class="transition-all duration-200 rounded-full"
-                                :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
-                                :aria-label="'Ir a tour {{ $i + 1 }}'"></button>
-                    @endfor
                 </div>
-                <button type="button" @click="nav(1)" aria-label="Siguiente tour"
-                        class="w-8 h-8 rounded-full bg-white shadow ring-1 ring-teal-800/10 grid place-items-center text-teal-800 hover:bg-teal-800 hover:text-white transition shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                <p class="fh-finder__err" id="lvt-finder-err" role="alert" hidden>{{ $L('Elige al menos una opción para buscar.', 'Choose at least one option to search.', 'Escolha pelo menos uma opção para buscar.') }}</p>
+                <button type="submit" class="fh-finder__cta" data-ga-cta="finder_submit" data-ga-location="home_finder">
+                    {{ $L('Ver mi tour recomendado', 'See my recommended tour', 'Ver meu tour recomendado') }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </button>
-            </div>
-
-        </div>
-
-        {{-- Link ver todos (mobile, centrado debajo del hint) --}}
-        <div class="mt-6 text-center lg:hidden">
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-               class="inline-flex items-center gap-2 text-teal-800 hover:text-orange-700 transition text-sm font-semibold uppercase tracking-wider">
-                Ver todos los tours
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-            </a>
-        </div>
-
-        {{-- Link ver todos (desktop, alineado a la derecha) --}}
-        <div class="hidden lg:flex justify-end mt-6">
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-               class="inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-6 py-3 font-semibold text-sm uppercase tracking-wider transition">
-                Ver todos los tours
-                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-            </a>
+            </form>
         </div>
     </div>
 </section>
+<script>
+    (function () {
+        var f = document.getElementById('lvt-finder'); if (!f) return;
+        f.addEventListener('submit', function (e) {
+            if (!f.querySelector('input[type=radio]:checked')) { e.preventDefault(); document.getElementById('lvt-finder-err').hidden = false; }
+        });
+        f.addEventListener('change', function () { document.getElementById('lvt-finder-err').hidden = true; });
+    })();
+</script>
+@endif
 
-
-{{-- ============================================================
-     SECCIÓN 2B — TOURS EN LIMA, ICA Y CUSCO (carrusel tour-card)
-     ============================================================ --}}
-<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="lima-ica-cusco-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Título centrado, sin eyebrow --}}
-        <div class="text-center mb-8">
-            <h2 id="lima-ica-cusco-title" class="font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {{ \App\Models\Setting::get('home_sec_cities_title_' . $locale) ?: $L('Tours de un día desde Lima', 'Day tours from Lima', 'Tours de um dia saindo de Lima') }}
-            </h2>
-            {!! $sep !!}
-        </div>
-
-        @php
-            // Sin demo ficticio: si no hay tours reales, el carrusel queda vacío.
-            // Lista propia (HomeController::fetchDayTrips), ya NO la de "Más vendidos".
-            $limaCuscoCols  = $normalizeTours(($dayTrips ?? collect())->take(6));
-            $limaCuscoCount = count($limaCuscoCols);
-        @endphp
-
-        {{-- Carrusel Alpine + scroll-snap --}}
-        <div x-data="{ current: 0, total: {{ $limaCuscoCount }} }" class="relative">
-
-            {{-- Track --}}
-            <div class="carousel-track ct-bleed gap-4 pb-4 -mx-5 px-4 sm:mx-0 {{ $limaCuscoCount <= 1 ? 'ct-one' : ($limaCuscoCount < 3 ? 'ct-few' : '') }}"
-                 style="padding-left:1rem;padding-right:1rem;"
-                 id="lc-carousel"
-                 @scroll.debounce.100ms="
-                     let el = $el;
-                     let w = el.scrollWidth - el.clientWidth;
-                     if (w > 0) { current = Math.round((el.scrollLeft / w) * (total - 1)); }
-                 ">
-
-                @foreach ($limaCuscoCols as $i => $lct)
-                    <div class="tour-slide">
-                        <x-tour-card-responsive
-                            variant="home"
-                            :title="$lct['title']"
-                            :slug="$lct['slug']"
-                            :img="$lct['img']"
-                            :img-thumb="$lct['imgThumb']"
-                            :img-path="$lct['imgPath']"
-                            :before="$lct['before']"
-                            :now="$lct['now']"
-                            :rating="$lct['rating']"
-                            :reviews="$lct['reviews']"
-                            :duration="$lct['duration']"
-                            :language="$lct['language']"
-                            :pickup="$lct['pickup']"
-                            :free-cancellation="$lct['freeCancellation']"
-                            :show-offer="$lct['showOffer']"
-                            :top-rated="$lct['topRated']"
-                            :best-seller="$lct['bestSeller']"
-                        />
-                    </div>
-                @endforeach
-            </div>
-
-            {{-- Dots (mobile/tablet) --}}
-            <div class="mt-5 {{ $limaCuscoCount > 1 ? 'flex' : 'hidden' }} items-center justify-center gap-2 lg:hidden" aria-hidden="true">
-                @for ($i = 0; $i < $limaCuscoCount; $i++)
-                    <button type="button"
-                            @click="
-                                current = {{ $i }};
-                                document.getElementById('lc-carousel').scrollTo({
-                                    left: document.getElementById('lc-carousel').scrollWidth / {{ $limaCuscoCount }} * {{ $i }},
-                                    behavior: 'smooth'
-                                });
-                            "
-                            class="transition-all duration-200 rounded-full"
-                            :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
-                            :aria-label="'Ir a tour {{ $i + 1 }}'">
-                    </button>
-                @endfor
-            </div>
-
-            @if ($limaCuscoCount > 3)
-            {{-- Flechas desktop --}}
-            <button type="button"
-                    class="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5
-                           w-10 h-10 rounded-full bg-white shadow-md ring-1 ring-teal-800/10
-                           items-center justify-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-10"
-                    @click="
-                        let el = document.getElementById('lc-carousel');
-                        el.scrollBy({ left: -el.offsetWidth / 3, behavior: 'smooth' });
-                    "
-                    aria-label="Anterior">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <button type="button"
-                    class="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-5
-                           w-10 h-10 rounded-full bg-white shadow-md ring-1 ring-teal-800/10
-                           items-center justify-center text-teal-800 hover:bg-teal-800 hover:text-white transition z-10"
-                    @click="
-                        let el = document.getElementById('lc-carousel');
-                        el.scrollBy({ left: el.offsetWidth / 3, behavior: 'smooth' });
-                    "
-                    aria-label="Siguiente">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </button>
-            @endif
-        </div>
-    </div>
-</section>
-
-{{-- TOUR ESTRELLA — contrato §2: $homeStar (tour publicado elegido en Ajustes). Oculto si es null. --}}
+{{-- ── LA EXPERIENCIA ESTRELLA ($homeStar; oculto si es null). H2 id star-title ── --}}
 @if (! empty($homeStar))
-<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="star-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-        <p class="lvt-over mb-3">{{ $L('La experiencia estrella', 'The star experience', 'A experiência estrela') }}</p>
-        <a href="{{ $homeStar['url'] }}" class="lvt-star lvt-on-dark" data-ga-select data-ga-item-id="{{ $homeStar['tour']->getKey() }}" data-ga-item-name="{{ $homeStar['title'] }}" data-ga-price="{{ $homeStar['price'] }}">
-            <img src="{{ $homeStar['image'] }}" alt="" loading="lazy" decoding="async" width="1280" height="640">
-            <div class="lvt-star__body">
-                <h2 id="star-title" style="margin:0;font:inherit;color:inherit"><span class="lvt-star__h">{{ $homeStar['title'] }}</span></h2>
-                @if (filled($homeStar['lead']))<p>{{ $homeStar['lead'] }}</p>@endif
-                @if (count($homeStar['milestones']))
-                    <ul class="lvt-tc__tags" style="margin:0">
-                        @foreach ($homeStar['milestones'] as $mi => $ms)
-                            <li class="lvt-tc__tag" style="background:rgba(255,255,255,.14);color:#fff"><b>{{ str_pad((string) ($mi + 1), 2, '0', STR_PAD_LEFT) }}</b> {{ $ms }}</li>
+@php
+    $fhSt = $homeStar;
+    $fhStTone = ['teal', 'peach', 'sage', 'sand'];
+@endphp
+<section class="fh-sec fh-star-sec" aria-labelledby="star-title">
+    <div class="fh-wrap">
+        <p class="fh-over">{{ $L('La experiencia estrella', 'The star experience', 'A experiência estrela') }}</p>
+        <h2 id="star-title" class="fh-star__h">{{ $fhSt['title'] }}</h2>
+        <div class="fh-star">
+            <a href="{{ $fhSt['url'] }}" class="fh-star__media" data-ga-select data-ga-item-id="{{ $fhSt['tour']->getKey() }}" data-ga-item-name="{{ $fhSt['title'] }}" data-ga-price="{{ $fhSt['price'] }}" tabindex="-1" aria-hidden="true">
+                <img src="{{ $fhSt['image'] }}" alt="" loading="lazy" decoding="async" width="1280" height="900">
+                @if (filled($fhSt['lead']) || ! empty($fhSt['rating']))
+                    <span class="fh-star__over">
+                        @if (filled($fhSt['lead']))<span class="fh-star__lead">{{ $fhSt['lead'] }}</span>@endif
+                        @if (! empty($fhSt['rating']))<span class="fh-star__rate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8L12 2.5z" fill="currentColor"/></svg><b>{{ number_format($fhSt['rating']['rating'], 1) }}</b> ({{ number_format($fhSt['rating']['count']) }})</span>@endif
+                    </span>
+                @endif
+            </a>
+            <div class="fh-star__card">
+                @if (count($fhSt['milestones']))
+                    <ul class="fh-hitos">
+                        @foreach ($fhSt['milestones'] as $mi => $ms)
+                            <li class="fh-hito fh-hito--{{ $fhStTone[$mi % 4] }}"><b>{{ str_pad((string) ($mi + 1), 2, '0', STR_PAD_LEFT) }}</b><span>{{ $ms }}</span></li>
                         @endforeach
                     </ul>
                 @endif
-                <div class="lvt-star__row">
-                    <div class="lvt-star__price">{{ __('ui.from') }}<b>US${{ number_format($homeStar['price'], 0) }}</b>{{ __('ui.per_person') }}@if ($homeStar['price_before']) · <s>US${{ number_format($homeStar['price_before'], 0) }}</s>@endif</div>
-                    <span class="lvt-btn lvt-btn--gold">{{ $L('Ver experiencia', 'View experience', 'Ver experiência') }}
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></span>
+                <div class="fh-star__buy">
+                    <div class="fh-star__price">
+                        <span class="fh-star__from">{{ __('ui.from') }} / {{ __('ui.per_person') }}</span>
+                        <b>US${{ number_format($fhSt['price'], 0) }}</b>
+                        @if ($fhSt['price_before'])<s>US${{ number_format($fhSt['price_before'], 0) }}</s>@endif
+                    </div>
+                    <a href="{{ $fhSt['url'] }}" class="fh-star__cta" data-ga-cta="estrella_reservar" data-ga-location="home_estrella">{{ $L('Ver fechas y reservar', 'See dates & book', 'Ver datas e reservar') }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></a>
                 </div>
+                <p class="fh-star__note">{{ $L('Recorridos y entradas sujetos a la opción reservada.', 'Routes and tickets depend on the option booked.', 'Roteiros e ingressos sujeitos à opção reservada.') }}</p>
             </div>
-        </a>
+        </div>
     </div>
 </section>
 @endif
 
-
-{{-- ============================================================
-     SECCIÓN 3 — MÁS VISITADAS (Destinos)
-     ============================================================ --}}
-<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="destinos-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Header --}}
-        <div class="text-center mb-8">
-            <p class="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">
-                <span class="h-px w-6 bg-orange-500/50"></span>{{ \App\Models\Setting::get('home_sec_destinos_eyebrow_' . $locale) ?: 'MÁS VISITADOS' }}<span class="h-px w-6 bg-orange-500/50"></span>
-            </p>
-            <h2 id="destinos-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {!! \App\Models\Setting::get('home_sec_destinos_title_' . $locale) ?: $L('Tours por destino en Perú: Lima, Ica, Nazca y Cusco', 'Tours by destination in Peru: Lima, Ica, Nazca and Cusco', 'Tours por destino no Peru: Lima, Ica, Nazca e Cusco') !!}
-            </h2>
-            {!! $sep !!}
+{{-- ── EXPLORA PERÚ POR DESTINOS (H2 SEO id destinos-title). Datos: $homeDestinations (contrato FINAL HOME §4): Regiones activas con tours ── --}}
+@php
+    $fhDest = array_values(array_filter((array) ($homeDestinations ?? []), 'is_array'));
+    // La "destacada" (featured) va primero y es la grande.
+    usort($fhDest, fn ($a, $b) => (int) ! empty($b['featured']) <=> (int) ! empty($a['featured']));
+    $fhDest = array_slice($fhDest, 0, 3);
+@endphp
+@if (count($fhDest))
+<section class="fh-sec fh-dest-sec" aria-labelledby="destinos-title">
+    <div class="fh-wrap">
+        <div class="fh-dest__head">
+            <h2 id="destinos-title" class="fh-h2 fh-h2--c">{!! \App\Models\Setting::get('home_sec_destinos_title_' . $locale) ?: $L('Explora Perú por destinos', 'Explore Peru by destination', 'Explore o Peru por destinos') !!}</h2>
+            <p class="fh-dest__sub">{{ \App\Models\Setting::get('home_destinos_sub_' . $locale) ?: $L('Descubre experiencias inolvidables en Lima, Ica y Cusco.', 'Discover unforgettable experiences in Lima, Ica and Cusco.', 'Descubra experiências inesquecíveis em Lima, Ica e Cusco.') }}</p>
         </div>
-
-        @php
-            $defaultDestinos = \App\Support\HomeDefaults::destinos();
-            $rawDestinos = \App\Models\Setting::get('home_destinos');
-            $destinos = $homeRepeater($rawDestinos, $defaultDestinos);
-        @endphp
-
-        {{-- Banners: apilados en mobile, grid 3 columnas en desktop --}}
-        <div class="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6">
-            @foreach ($destinos as $dIdx => $destino)
-                <article class="relative block w-full rounded-3xl overflow-hidden shadow-md min-h-[280px] lg:min-h-0 lg:aspect-[3/4]">
-                    {{-- Imagen de fondo --}}
-                    @php $dv = $mediaVariants(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1)), '(min-width:1024px) 400px, 100vw'); @endphp
-                    <img src="{{ \App\Support\ImageVariants::relative($dv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_destino_img_' . ($dIdx + 1))) ?: (\App\Support\ImagePath::homeImage($destino['img'] ?? null) ?: asset('assets/banners/Rectangle 19218.jpg')))) }}"{!! $dv['attrs'] !!}
-                         alt="{{ $destino['title_' . $locale] ?? $destino['title_es'] ?? '' }}"
-                         class="absolute inset-0 w-full h-full object-cover object-center"
-                         loading="lazy"
-                         width="1280" height="560">
-
-                    {{-- Overlay degradado teal: izquierda opaco → derecha transparente --}}
-                    <div class="absolute inset-0"
-                         style="background: linear-gradient(to right, rgba(10,35,38,0.92) 0%, rgba(10,35,38,0.75) 40%, rgba(10,35,38,0.25) 75%, transparent 100%);"></div>
-                    {{-- Refuerzo extra en mobile (toda la superficie) --}}
-                    <div class="absolute inset-0 md:hidden"
-                         style="background: rgba(10,35,38,0.45);"></div>
-
-                    {{-- Contenido sobre imagen --}}
-                    <div class="relative z-10 h-full flex items-end lg:items-center px-6 md:px-8 lg:px-8 py-8 max-w-full">
-                        <div>
-                            {{-- Icono circular borde dorado --}}
-                            <div class="w-12 h-12 lg:w-14 lg:h-14 rounded-full border-2 border-amber-400 bg-teal-900/60 grid place-items-center mb-3 shadow-md">
-                                <svg class="w-6 h-6 lg:w-7 lg:h-7 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $destino['iconPath'] }}"/>
-                                </svg>
-                            </div>
-
-                            {{-- Badge --}}
-                            <span class="inline-block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-300 mb-2">
-                                {{ $destino['badge_' . $locale] ?? $destino['badge_es'] ?? '' }}
-                            </span>
-
-                            {{-- Título --}}
-                            <h3 class="font-display text-2xl lg:text-2xl text-white leading-tight">
-                                {{ $destino['title_' . $locale] ?? $destino['title_es'] ?? '' }}
-                            </h3>
-
-                            {{-- Descripción: oculta en columnas desktop para no colapsar --}}
-                            <p class="mt-2 text-sm text-white/80 leading-relaxed max-w-sm lg:hidden xl:block xl:max-w-[180px]">
-                                {{ $destino['desc_' . $locale] ?? $destino['desc_es'] ?? '' }}
-                            </p>
-
-                            {{-- CTA outline dorado --}}
-                            @php $dDest = $destFromText($destino['title_es'] ?? '', $destino['title_en'] ?? '', $destino['title_pt'] ?? ''); @endphp
-                            <a href="{{ $destUrl($dDest) }}"
-                               class="mt-4 inline-flex items-center gap-2 border border-amber-400 text-amber-300 hover:bg-amber-400/10 rounded-full px-4 py-2 font-semibold text-xs uppercase tracking-wider transition">
-                                VER TOURS
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                            </a>
-                        </div>
+        <div class="fh-dest">
+            @foreach ($fhDest as $di => $d)
+                <article class="fh-dcard{{ $di === 0 ? ' fh-dcard--big' : '' }}{{ empty($d['image']) ? ' fh-dcard--noimg' : '' }}">
+                    @if (! empty($d['image']))
+                        <img src="{{ $d['image'] }}" alt="" class="fh-dcard__img" loading="lazy" decoding="async" width="{{ $di === 0 ? 1280 : 640 }}" height="{{ $di === 0 ? 700 : 640 }}">
+                    @endif
+                    <div class="fh-dcard__body">
+                        @if (filled($d['eyebrow'] ?? null))<span class="fh-dcard__badge">{{ $d['eyebrow'] }}</span>@endif
+                        <h3 class="fh-dcard__title"><a href="{{ $d['url'] }}" class="fh-dcard__link">{{ $d['name'] }}</a></h3>
+                        @if (filled($d['description'] ?? null))<p class="fh-dcard__desc">{{ $d['description'] }}</p>@endif
+                        @if ($di === 0)
+                            <span class="fh-dcard__cta fh-dcard__cta--gold">{{ $L('Explorar', 'Explore', 'Explorar') }} {{ $d['name'] }}
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M9 7h8v8"/></svg></span>
+                        @else
+                            <span class="fh-dcard__cta"><u>{{ $L('Ver tours', 'See tours', 'Ver tours') }}</u>
+                                <i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M9 7h8v8"/></svg></i></span>
+                        @endif
                     </div>
                 </article>
             @endforeach
         </div>
-
-        {{-- Cierre: línea experiencias auténticas --}}
-        <p class="mt-8 text-center text-sm text-teal-800/70 flex items-center justify-center gap-2 flex-wrap">
-            <svg class="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/>
-            </svg>
-            {{ \App\Models\Setting::get('home_destinos_footer_' . $locale) ?: 'Experiencias auténticas, memorias inolvidables. Viaja con' }} <span class="text-orange-700 font-semibold ml-1">Lima View Tours.</span>
-        </p>
     </div>
 </section>
+@endif
 
-
-{{-- ============================================================
-     SECCIÓN 4 — POR QUÉ ELEGIRNOS
-     ============================================================ --}}
-<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="why-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Header centrado --}}
-        <div class="text-center mb-8 max-w-lg mx-auto">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_why_eyebrow_' . $locale) ?: 'VIAJA CON CONFIANZA' }}</p>
-            <h2 id="why-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">{!! \App\Models\Setting::get('home_sec_why_title_' . $locale) ?: $L('¿Por qué reservar tus tours en Perú con Lima View Tours?', 'Why book your Peru tours with Lima View Tours?', 'Por que reservar seus tours no Peru com a Lima View Tours?') !!}</h2>
-            {!! $sep !!}
-            <p class="mt-5 text-sm text-teal-800/70">{!! \App\Models\Setting::get('home_sec_why_subtitle_' . $locale) ?: 'Más que un tour, te ofrecemos<br>experiencias inolvidables.' !!}</p>
-        </div>
-
-        {{-- Lista de razones en card blanca --}}
-        <div class="bg-white rounded-3xl shadow-sm ring-1 ring-teal-800/5 divide-y divide-cream-200/60 mb-5 max-w-2xl mx-auto lg:max-w-4xl">
-            @php
-                $defaultWhyItems = \App\Support\HomeDefaults::whyItems();
-                $rawWhyItems = \App\Models\Setting::get('home_why_items');
-                $whyItems = $homeRepeater($rawWhyItems, $defaultWhyItems);
-            @endphp
-
-            @foreach ($whyItems as $wItem)
-            @php
-                $wTitle = $wItem['title_' . $locale] ?? $wItem['title_es'] ?? '';
-                $wDesc  = $wItem['desc_' . $locale]  ?? $wItem['desc_es']  ?? '';
-                $wPath  = $wItem['iconPath'] ?? '';
-            @endphp
-                <div class="flex items-center gap-4 px-5 py-4 lg:py-5">
-                    <span class="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-teal-800 grid place-items-center shrink-0">
-                        <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $wPath }}"/>
-                        </svg>
-                    </span>
-                    <span class="flex-1 min-w-0">
-                        <span class="block font-bold text-teal-800 text-[15px] lg:text-base leading-tight">{{ $wTitle }}</span>
-                        <span class="block text-xs lg:text-sm text-teal-800/70 leading-snug mt-1">{{ $wDesc }}</span>
-                    </span>
-                    <svg class="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </div>
+{{-- ── VIAJA CON TRANQUILIDAD (banda de confianza; H2 SEO id why-title). Datos: $homeTrust (contrato FINAL HOME §5); solo ítems con dato ── --}}
+@php
+    $fhTrust = [];
+    $fhTrustMeta = ['cancellation' => ['cal', 'sand'], 'years' => ['award', 'sage'], 'travelers' => ['people', 'sage'], 'rating' => ['star', 'sand']];
+    foreach ((array) ($homeTrust['items'] ?? []) as $it) {
+        $k = $it['key'] ?? '';
+        if (! isset($fhTrustMeta[$k]) || ! filled($it['value'] ?? null)) { continue; }
+        $val = (string) $it['value'];
+        if ($k === 'rating' && preg_match('/^\d+([.,]\d+)?$/', $val)) { $val .= ' / 5'; }
+        $lbl = (string) ($it['label'] ?? '');
+        if ($k === 'rating' && filled($it['source'] ?? null)) { $lbl = trim($lbl . ' · ' . $it['source'], ' ·'); }
+        $fhTrust[] = ['icon' => $fhTrustMeta[$k][0], 'tone' => $fhTrustMeta[$k][1], 'v' => $val, 'l' => $lbl, 'k' => $k];
+    }
+    $fhHasCancel = collect($fhTrust)->contains('k', 'cancellation');
+    $fhTrustIcons = [
+        'cal'    => '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path stroke-linecap="round" d="M3.5 9.5h17M8 3v4M16 3v4"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 15l2 2 4-4"/>',
+        'award'  => '<circle cx="12" cy="9.5" r="5.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.8 14.2L7.5 21l4.5-2.6 4.5 2.6-1.3-6.8"/>',
+        'people' => '<circle cx="12" cy="8" r="2.8"/><circle cx="5.8" cy="10" r="2.2"/><circle cx="18.2" cy="10" r="2.2"/><path stroke-linecap="round" d="M7.5 19c0-2.8 2.2-4.8 4.5-4.8s4.5 2 4.5 4.8M2.5 18c0-2 1.5-3.5 3.3-3.5M21.5 18c0-2-1.5-3.5-3.3-3.5"/>',
+        'star'   => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8L12 3.5z"/>',
+    ];
+@endphp
+@if (count($fhTrust))
+<section class="fh-sec fh-trust" aria-labelledby="why-title">
+    <div class="fh-wrap">
+        {{-- SEO: el H2 why-title conserva el texto SEO cargado en home_sec_why_title_* (18-nov); si está vacío, el título corto de la banda. --}}
+        <h2 id="why-title" class="fh-over">{{ trim(strip_tags((string) \App\Models\Setting::get('home_sec_why_title_' . $locale))) ?: (\App\Models\Setting::get('home_trust_title_' . $locale) ?: $L('Viaja con tranquilidad', 'Travel with peace of mind', 'Viaje com tranquilidade')) }}</h2>
+        <ul class="fh-trust__grid">
+            @foreach ($fhTrust as $ti)
+                <li class="fh-tcard">
+                    <span class="fh-tcard__ico fh-tcard__ico--{{ $ti['tone'] }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">{!! $fhTrustIcons[$ti['icon']] !!}</svg></span>
+                    <span class="fh-tcard__txt"><b>{{ $ti['v'] }}</b>@if ($ti['l'] !== '')<small>{{ $ti['l'] }}</small>@endif</span>
+                </li>
             @endforeach
-        </div>
-
+        </ul>
+        @if ($fhHasCancel)<p class="fh-trust__note">* {{ $L('Cancelación sujeta a las condiciones de cada tour y canal de reserva.', 'Cancellation subject to the conditions of each tour and booking channel.', 'Cancelamento sujeito às condições de cada tour e canal de reserva.') }}</p>@endif
     </div>
 </section>
+@endif
 
-{{-- ============================================================
-     SECCIÓN 4B — VERIFICADO Y RECOMENDADO (fusionado con "¿Por qué reservar…?": sin H2 propio)
-     ============================================================ --}}
-<section class="relative bg-cream-100 px-5 pt-10 pb-10 lg:pb-20 overflow-hidden" aria-labelledby="reco-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Eyebrow pill centrado --}}
-        <div class="flex items-center justify-center gap-3 mb-10">
-            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
-            <span class="inline-flex items-center gap-2 border border-teal-800 rounded-full px-4 py-1.5 bg-teal-800 shadow-sm">
-                <svg class="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 1.5L14.5 8H21l-5.5 4 2 6.5L12 14.5 6.5 18.5l2-6.5L3 8h6.5z"/>
-                </svg>
-                <span class="text-[10px] uppercase tracking-[0.18em] text-white font-bold">{{ \App\Models\Setting::get('home_sec_reco_eyebrow_' . $locale) ?: 'VERIFICADO Y RECOMENDADO POR' }}</span>
-            </span>
-            <span class="h-px flex-1 bg-orange-400/40 max-w-[60px]"></span>
+{{-- ── HISTORIAS CONTADAS POR NUESTROS VIAJEROS (reseñas reales; H2 SEO id opiniones-title) ──
+     Tarjetas y filtros: $homeReviews (contrato FINAL HOME §6). Promedio/distribución: $homeReviewStats. Sin reseñas = solo el resumen (si hay). --}}
+@php
+    $rs = ! empty($homeReviewStats) ? $homeReviewStats : null;
+    $fhCards = (array) ($homeReviews['cards'] ?? []);
+    $reviewCount = count($fhCards);
+    $fhAvg = $rs ? number_format($rs['average'], 1) : $fhRating;
+    $fhPlatforms = collect((array) ($homeReviews['platforms'] ?? []))->filter(fn ($p) => in_array($p['key'] ?? '', ['google', 'tripadvisor', 'viator'], true))->values();
+    $fhShowPlat = ! empty($homeReviews['show_platform_filter']) && $fhPlatforms->count() > 1;
+    $fhShowDest = ! empty($homeReviews['show_destination_filter']);
+    $fhShowPhotos = ! empty($homeReviews['show_photos_filter']);
+    $fhHasFilters = $reviewCount > 0 && ($fhShowPlat || $fhShowDest || $fhShowPhotos);
+    $fhStarsOn = $fhAvg ? max(1, min(5, (int) round((float) $fhAvg))) : 5;
+    $googleReviewsUrl = \App\Models\Setting::get('social_google_reviews')
+        ?: 'https://www.google.com/maps/place/Lima+view+tours/@-12.0457338,-77.0281479,17z/data=!3m1!4b1!4m6!3m5!1s0x9105c90e82ab0695:0xad0c3b21492d1a96!8m2!3d-12.0457338!4d-77.0281479!16s%2Fg%2F11w7s4b74q!18m1!1e1';
+    $fhStarPath = 'M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8L12 2.5z';
+@endphp
+<section id="opiniones" class="fh-sec fh-rev-sec scroll-mt-24" aria-labelledby="opiniones-title" x-data="{ reviewModalOpen: false, review: {} }">
+    <div class="fh-wrap">
+        <div class="fh-rev__head">
+            <svg class="fh-rev__dunes" viewBox="0 0 120 36" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path stroke-linecap="round" d="M2 30c14-18 28-18 44-4 12-12 26-16 42-6 10-8 20-10 30-6"/></svg>
+            <h2 id="opiniones-title" class="fh-h2">{!! \App\Models\Setting::get('home_sec_reviews_title_' . $locale) ?: $L('Historias contadas por <em>nuestros viajeros.</em>', 'Stories told by <em>our travelers.</em>', 'Histórias contadas por <em>nossos viajantes.</em>') !!}</h2>
         </div>
 
-        {{-- Bloque hero: medallón + texto centrados en mobile, 2 col en desktop --}}
-        <div class="flex flex-col items-center gap-8 lg:flex-row lg:gap-16 lg:items-center mb-14">
-
-            {{-- Medallón eliminado a pedido del cliente --}}
-            @if (false)
-            <div class="flex justify-center shrink-0">
-                <div class="relative w-48 h-48 lg:w-60 lg:h-60 drop-shadow-2xl" aria-hidden="true">
-                    <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-                        <defs>
-                            <linearGradient id="goldRing" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%"   stop-color="#fde68a"/>
-                                <stop offset="35%"  stop-color="#f59e0b"/>
-                                <stop offset="65%"  stop-color="#d97706"/>
-                                <stop offset="100%" stop-color="#92400e"/>
-                            </linearGradient>
-                            <linearGradient id="tealBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%"   stop-color="#0f3438"/>
-                                <stop offset="100%" stop-color="#0a2326"/>
-                            </linearGradient>
-                            <filter id="medallionShadow" x="-10%" y="-10%" width="120%" height="120%">
-                                <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#00000055"/>
-                            </filter>
-                            <!-- Arco de texto superior -->
-                            <path id="arcTop" d="M 110,110 m -72,0 a 72,72 0 1,1 144,0" fill="none"/>
-                            <path id="arcBottom" d="M 110,110 m -60,0 a 60,60 0 0,0 120,0" fill="none"/>
-                        </defs>
-
-                        <!-- Sombra exterior -->
-                        <circle cx="110" cy="110" r="104" fill="url(#goldRing)" filter="url(#medallionShadow)"/>
-                        <!-- Anillo exterior dorado -->
-                        <circle cx="110" cy="110" r="104" fill="url(#goldRing)"/>
-                        <!-- Anillo interior delgado dorado -->
-                        <circle cx="110" cy="110" r="96" fill="none" stroke="#fde68a" stroke-width="1.2" opacity="0.6"/>
-                        <!-- Fondo teal interior -->
-                        <circle cx="110" cy="110" r="90" fill="url(#tealBg)"/>
-                        <!-- Segundo anillo interior decorativo -->
-                        <circle cx="110" cy="110" r="83" fill="none" stroke="#f59e0b" stroke-width="0.8" opacity="0.4"/>
-
-                        <!-- Texto en arco superior "BEST TOURS" -->
-                        <text font-family="Georgia, serif" font-size="13" font-weight="700" fill="#fcd34d" letter-spacing="3" text-anchor="middle">
-                            <textPath href="#arcTop" startOffset="50%">B E S T · T O U R S</textPath>
-                        </text>
-
-                        <!-- Laureles izquierdo -->
-                        <g fill="#fbbf24" opacity="0.85">
-                            <ellipse cx="47" cy="78"  rx="7" ry="4" transform="rotate(-40 47 78)"/>
-                            <ellipse cx="41" cy="93"  rx="7" ry="4" transform="rotate(-30 41 93)"/>
-                            <ellipse cx="38" cy="109" rx="7" ry="4" transform="rotate(-15 38 109)"/>
-                            <ellipse cx="40" cy="125" rx="7" ry="4" transform="rotate(10 40 125)"/>
-                            <ellipse cx="47" cy="139" rx="7" ry="4" transform="rotate(30 47 139)"/>
-                            <!-- Tallo -->
-                            <line x1="50" y1="73" x2="52" y2="147" stroke="#fbbf24" stroke-width="1.5" opacity="0.5"/>
-                        </g>
-                        <!-- Laureles derecho (espejado) -->
-                        <g fill="#fbbf24" opacity="0.85">
-                            <ellipse cx="173" cy="78"  rx="7" ry="4" transform="rotate(40 173 78)"/>
-                            <ellipse cx="179" cy="93"  rx="7" ry="4" transform="rotate(30 179 93)"/>
-                            <ellipse cx="182" cy="109" rx="7" ry="4" transform="rotate(15 182 109)"/>
-                            <ellipse cx="180" cy="125" rx="7" ry="4" transform="rotate(-10 180 125)"/>
-                            <ellipse cx="173" cy="139" rx="7" ry="4" transform="rotate(-30 173 139)"/>
-                            <line x1="170" y1="73" x2="168" y2="147" stroke="#fbbf24" stroke-width="1.5" opacity="0.5"/>
-                        </g>
-
-                        <!-- Separador superior -->
-                        <line x1="70" y1="82" x2="150" y2="82" stroke="#f59e0b" stroke-width="0.8" opacity="0.5"/>
-
-                        <!-- "IN" pequeño -->
-                        <text x="110" y="96" font-family="Georgia, serif" font-size="10" font-weight="400" fill="#fcd34d" letter-spacing="4" text-anchor="middle" opacity="0.9">I N</text>
-
-                        <!-- "LIMA" grande central -->
-                        <text x="110" y="130" font-family="Georgia, serif" font-size="38" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="2">LIMA</text>
-
-                        <!-- Separador inferior -->
-                        <line x1="70" y1="137" x2="150" y2="137" stroke="#f59e0b" stroke-width="0.8" opacity="0.5"/>
-
-                        <!-- 5 estrellas doradas -->
-                        <text x="110" y="154" font-family="Arial" font-size="12" fill="#fbbf24" text-anchor="middle" letter-spacing="2">★★★★★</text>
-
-                        <!-- Texto arco inferior "LIMA VIEW TOURS" -->
-                        <text font-family="Georgia, serif" font-size="9.5" font-weight="400" fill="#fcd34d" letter-spacing="2" text-anchor="middle" opacity="0.75">
-                            <textPath href="#arcBottom" startOffset="50%">LIMA · VIEW · TOURS</textPath>
-                        </text>
-                    </svg>
-
-                    <!-- Cintas decorativas -->
-                    <span class="absolute -bottom-4 left-[42px] w-7 h-12 bg-amber-500 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);"></span>
-                    <span class="absolute -bottom-4 right-[42px] w-7 h-12 bg-amber-500 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);"></span>
+        <div class="fh-rev{{ ($fhAvg || $rs) ? '' : ' fh-rev--solo' }}">
+            @if ($fhAvg || $rs)
+                <div class="fh-rev__sum">
+                    <div class="fh-rev__top">
+                        <div class="fh-rev__score">
+                            <b>{{ $fhAvg }}</b>
+                            <span class="fh-stars fh-stars--lg" role="img" aria-label="{{ $fhAvg }} / 5">@for ($i = 1; $i <= 5; $i++)<svg viewBox="0 0 24 24" aria-hidden="true" class="{{ $i <= $fhStarsOn ? 'on' : 'off' }}"><path d="{{ $fhStarPath }}" fill="currentColor"/></svg>@endfor</span>
+                            @if ($rs)<small>{{ $L('Calificación promedio de', 'Average rating from', 'Avaliação média de') }} {{ number_format($rs['total']) }} {{ $rs['total'] === 1 ? $L('reseña', 'review', 'avaliação') : $L('reseñas', 'reviews', 'avaliações') }}</small>@endif
+                        </div>
+                        <a href="{{ \App\Support\LocalizedPages::url('reviews', $locale) }}" class="fh-rev__all">{{ $L('Ver reseñas', 'See reviews', 'Ver avaliações') }} <span aria-hidden="true">›</span></a>
+                    </div>
+                    @if ($rs)
+                        <ul class="fh-bars" aria-label="{{ $L('Distribución de valoraciones', 'Rating distribution', 'Distribuição das avaliações') }}">
+                            @foreach ($rs['distribution'] as $star => $d)
+                                <li><span>{{ $star }} {{ $star === 1 ? $L('estrella', 'star', 'estrela') : $L('estrellas', 'stars', 'estrelas') }}</span><i style="--w: {{ $d['percent'] }}%"></i><span>{{ $d['percent'] }}%</span></li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
-            </div>
             @endif
 
-            {{-- Texto + card premio --}}
-            <div class="text-center flex-1">
-                <p class="text-xs text-teal-800/70 uppercase tracking-[0.18em] font-semibold">{{ \App\Models\Setting::get('home_reco_intro_' . $locale) ?: 'Estamos recomendados por' }}</p>
-                <p id="reco-title" class="mt-2 font-display text-3xl md:text-4xl lg:text-5xl text-teal-800 leading-tight">
-                    <em class="not-italic text-amber-700 italic">{{ \App\Models\Setting::get('home_reco_headline_' . $locale) ?: 'Best Tours in Lima' }}</em>
-                </p>
-                <div class="lvt-sep mt-3 flex items-center justify-center gap-2" aria-hidden="true">
-                    <span class="h-px w-8 bg-orange-500/50"></span>
-                    <svg class="w-3 h-3 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
-                    <span class="h-px w-8 bg-orange-500/50"></span>
-                </div>
-                <p class="mt-4 text-sm text-teal-800/75 leading-relaxed max-w-md mx-auto">
-                    {{ \App\Models\Setting::get('home_reco_body_' . $locale) ?: 'Una de las mejores empresas que brindan experiencias turísticas verificadas.' }}
-                </p>
-
-                {{-- Card premio --}}
-                <div class="mt-6 bg-white rounded-2xl ring-1 ring-orange-400/30 shadow-sm p-5 flex items-start gap-4 text-left max-w-md mx-auto">
-                    <span class="w-14 h-14 rounded-full bg-orange-50 grid place-items-center shrink-0 ring-1 ring-orange-400/40 mt-0.5">
-                        <svg class="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
-                    </span>
-                    <div>
-                        <p class="font-bold text-teal-800 text-sm uppercase tracking-tight leading-tight">{!! \App\Models\Setting::get('home_reco_award_title_' . $locale) ?: 'GANAMOS EL PREMIO<br>DE VERIFICACIÓN' !!}</p>
-                        <p class="mt-1.5 text-xs text-teal-800/70 leading-snug">{{ \App\Models\Setting::get('home_reco_award_desc_' . $locale) ?: 'para los mejores tours y empresas que brindan experiencias de alta calidad en Lima.' }}</p>
+            <div class="fh-rev__list">
+                @if ($fhHasFilters)
+                    <div class="fh-filter" role="group" aria-label="{{ $L('Filtrar reseñas', 'Filter reviews', 'Filtrar avaliações') }}" id="fh-rev-filter">
+                        <button type="button" data-f="all" aria-pressed="true" class="fh-f fh-f--all">{{ $L('Todos', 'All', 'Todos') }}</button>
+                        @if ($fhShowPlat)
+                            @foreach ($fhPlatforms as $si => $pl)
+                                <button type="button" data-f="platform" data-v="{{ $pl['key'] }}" aria-pressed="false" class="fh-f fh-f--s{{ $si % 3 }}">{{ $pl['label'] }}</button>
+                            @endforeach
+                        @endif
+                        @if ($fhShowDest)
+                            @foreach ((array) ($homeReviews['destinations'] ?? []) as $di => $dd)
+                                <button type="button" data-f="dest" data-v="{{ $dd['slug'] }}" aria-pressed="false" class="fh-f fh-f--d{{ $di % 4 }}">{{ $dd['name'] }}</button>
+                            @endforeach
+                        @endif
+                        @if ($fhShowPhotos)
+                            <button type="button" data-f="photos" aria-pressed="false" class="fh-f fh-f--p">{{ $L('Con fotos', 'With photos', 'Com fotos') }}</button>
+                        @endif
                     </div>
+                @endif
+
+                @if ($reviewCount > 0)
+                    <div class="fh-revs" id="fh-revs">
+                        @foreach ($fhCards as $c)
+                            @php
+                                $rvName    = $c['name'] ?: $L('Viajero', 'Traveler', 'Viajante');
+                                $rvRating  = max(0, min(5, (int) round((float) ($c['rating'] ?? 5))));
+                                $rvQuote   = trim((string) ($c['quote'] ?? ''));
+                                $rvAvatarUrl = $c['avatar_url'] ?? null;
+                                $rvInitial = mb_strtoupper(mb_substr(trim($rvName), 0, 1));
+                                $rvDate    = null;
+                                try { $rvDate = ! empty($c['date']) ? \Carbon\Carbon::parse($c['date'])->locale($locale)->translatedFormat('F Y') : null; } catch (\Throwable $e) { $rvDate = null; }
+                                $rvTourT   = $c['tour']['title'] ?? null;
+                                $rvMeta    = trim(implode(' · ', array_filter(($rvTourT || $rvDate) ? [$rvTourT, $rvDate] : [$c['country'] ?? null, ($c['platform'] ?? 'web') !== 'web' ? ($c['platform_label'] ?? null) : null])));
+                                $rvPhotoUrls = array_slice((array) ($c['photos'] ?? []), 0, 3);
+                                $rvLong    = mb_strlen($rvQuote) > 150;
+                            @endphp
+                            <figure class="fh-rv" data-platform="{{ $c['platform'] ?? 'web' }}" data-destino="{{ $c['destination'] ?? '' }}" data-fotos="{{ ! empty($c['has_photos']) ? 1 : 0 }}">
+                                <div class="fh-rv__av">
+                                    @if ($rvAvatarUrl)
+                                        <img src="{{ $rvAvatarUrl }}" alt="" loading="lazy" width="50" height="50">
+                                    @else
+                                        <span aria-hidden="true">{{ $rvInitial }}</span>
+                                    @endif
+                                </div>
+                                <div class="fh-rv__main">
+                                    <div class="fh-rv__head">
+                                        <div class="fh-rv__who">
+                                            <figcaption class="fh-rv__name">{{ $rvName }}</figcaption>
+                                            @if ($rvMeta !== '')<p class="fh-rv__meta">{{ $rvMeta }}</p>@endif
+                                        </div>
+                                        <span class="fh-stars" role="img" aria-label="{{ $rvRating }} / 5">@for ($i = 1; $i <= 5; $i++)<svg viewBox="0 0 24 24" aria-hidden="true" class="{{ $i <= $rvRating ? 'on' : 'off' }}"><path d="{{ $fhStarPath }}" fill="currentColor"/></svg>@endfor</span>
+                                    </div>
+                                    <blockquote class="fh-rv__q{{ $rvLong ? ' is-clamped' : '' }}">{{ $rvQuote }}</blockquote>
+                                    @if ($rvLong)
+                                        <button type="button" class="fh-rv__more"
+                                                @click="review = { name: @js($rvName), meta: @js($rvMeta), quote: @js($rvQuote), rating: {{ $rvRating }}, avatar: @js($rvAvatarUrl), initial: @js($rvInitial) }; reviewModalOpen = true">{{ __('ui.see_more') }}</button>
+                                    @endif
+                                    @if (count($rvPhotoUrls))
+                                        <div class="fh-rv__photos">@foreach ($rvPhotoUrls as $pu)<img src="{{ $pu }}" alt="" loading="lazy" decoding="async" width="120" height="100">@endforeach</div>
+                                    @endif
+                                </div>
+                            </figure>
+                        @endforeach
+                    </div>
+                    <p class="fh-rev__empty" id="fh-rev-empty" hidden>{{ $L('No hay reseñas con ese filtro.', 'No reviews match this filter.', 'Não há avaliações com esse filtro.') }}</p>
+                @endif
+
+                <div class="fh-rev__google">
+                    <a href="{{ $googleReviewsUrl }}" target="_blank" rel="noopener nofollow" class="fh-gbtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.85 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.67-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.67 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></svg>
+                        {{ __('ui.see_all_google_reviews') }} <span aria-hidden="true">→</span>
+                    </a>
                 </div>
             </div>
         </div>
+    </div>
 
-        {{-- Divider decorativo --}}
-        <div class="lvt-sep flex items-center gap-3 my-10" aria-hidden="true">
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-        </div>
+    @if ($fhHasFilters)
+    <script>
+        (function () {
+            var box = document.getElementById('fh-rev-filter'); if (!box) return;
+            var cards = document.querySelectorAll('#fh-revs > .fh-rv'), empty = document.getElementById('fh-rev-empty');
+            box.addEventListener('click', function (e) {
+                var b = e.target.closest('button[data-f]'); if (!b) return;
+                box.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+                var t = b.dataset.f, v = b.dataset.v || '', n = 0;
+                cards.forEach(function (c) {
+                    var ok = t === 'all' || (t === 'platform' && c.dataset.platform === v) || (t === 'dest' && c.dataset.destino === v) || (t === 'photos' && c.dataset.fotos === '1');
+                    c.hidden = !ok; if (ok) n++;
+                });
+                if (empty) empty.hidden = n > 0;
+            });
+        })();
+    </script>
+    @endif
 
-        {{-- ¿Por qué somos recomendados? --}}
-        <div>
-            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-6">
-                {{ \App\Models\Setting::get('home_sec_why_reco_title_' . $locale) ?: '¿Por qué somos recomendados?' }}
-            </h3>
-
-            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
-                @php
-                    $defaultRecoItems = \App\Support\HomeDefaults::recoItems();
-                    $rawRecoItems = \App\Models\Setting::get('home_reco_items');
-                    $recoItems = $homeRepeater($rawRecoItems, $defaultRecoItems);
-                @endphp
-                @foreach ($recoItems as $rItem)
-                @php
-                    $rTitle = $rItem['title_' . $locale] ?? $rItem['title_es'] ?? '';
-                    $rDesc  = $rItem['desc_' . $locale]  ?? $rItem['desc_es']  ?? '';
-                    $rIcon  = $rItem['icon'] ?? 'shield';
-                @endphp
-                    <div class="bg-white rounded-2xl shadow-sm ring-1 ring-cream-200 p-5 lg:p-6 text-center">
-                        <span class="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-teal-800 grid place-items-center mx-auto mb-4">
-                            <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-                                @if ($rIcon === 'shield')
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
-                                @elseif ($rIcon === 'star')
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
-                                @elseif ($rIcon === 'headset')
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75a4.5 4.5 0 004.5 4.5v8.25a3 3 0 003 3h6a3 3 0 003-3v-8.25a4.5 4.5 0 004.5-4.5h-21z"/>
-                                @else
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/>
-                                @endif
-                            </svg>
-                        </span>
-                        <p class="font-bold text-teal-800 text-sm leading-tight">{{ $rTitle }}</p>
-                        <p class="mt-2 text-[11px] text-teal-800/70 leading-snug">{{ $rDesc }}</p>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-
-        {{-- Divider decorativo --}}
-        <div class="lvt-sep flex items-center gap-3 my-10" aria-hidden="true">
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-            <svg class="w-4 h-4 text-orange-400/60 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z"/></svg>
-            <span class="h-px flex-1 bg-orange-400/25"></span>
-        </div>
-
-        {{-- Y también nos recomiendan --}}
-        <div>
-            <h3 class="text-center text-[10px] uppercase tracking-[0.22em] text-teal-800/70 font-bold mb-7">
-                {{ \App\Models\Setting::get('home_sec_verified_in_' . $locale) ?: 'Recomendado y verificado en' }}
-            </h3>
-
-            {{-- Strip de logos reales, bien distribuido --}}
-            <div class="bg-white rounded-3xl ring-1 ring-cream-200 shadow-sm max-w-3xl mx-auto
-                        grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cream-200">
-
-                {{-- Tripadvisor --}}
-                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
-                    <div class="flex items-center gap-2 h-7">
-                        <svg viewBox="0 0 40 24" class="h-[22px] w-auto" aria-hidden="true">
-                            <circle cx="13" cy="12" r="9.5" fill="#00AA6C"/>
-                            <circle cx="27" cy="12" r="9.5" fill="#00AA6C"/>
-                            <circle cx="13" cy="12" r="4.4" fill="#fff"/>
-                            <circle cx="27" cy="12" r="4.4" fill="#fff"/>
-                            <circle cx="13" cy="12" r="2" fill="#0a2326"/>
-                            <circle cx="27" cy="12" r="2" fill="#0a2326"/>
-                        </svg>
-                        <span class="font-bold text-[15px] tracking-tight" style="color:#0a2326;">Tripadvisor</span>
-                    </div>
-                    @php $scoreTa = trim((string) \App\Models\Setting::get('home_score_tripadvisor')); @endphp
-                    @if ($scoreTa !== '')<span class="lvt-src-score">{{ $scoreTa }}</span>@endif
-                </div>
-
-                {{-- Viator --}}
-                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
-                    <span class="font-sans font-extrabold text-[26px] tracking-tight leading-7 h-7" style="color:#0a2326;">Viator</span>
-                    @php $scoreVi = trim((string) \App\Models\Setting::get('home_score_viator')); @endphp
-                    @if ($scoreVi !== '')<span class="lvt-src-score">{{ $scoreVi }}</span>@endif
-                </div>
-
-                {{-- GetYourGuide --}}
-                <div class="flex flex-col items-center justify-center gap-2.5 px-5 py-7">
-                    <span class="font-sans font-extrabold text-[19px] tracking-tight leading-7 h-7" style="color:#FF5533;">GetYourGuide</span>
-                    @php $scoreGy = trim((string) \App\Models\Setting::get('home_score_getyourguide')); @endphp
-                    @if ($scoreGy !== '')<span class="lvt-src-score">{{ $scoreGy }}</span>@endif
+    {{-- Popup: comentario completo (se abre desde "Ver más") --}}
+    <div x-cloak x-show="reviewModalOpen" x-transition.opacity @keydown.escape.window="reviewModalOpen = false"
+         class="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-teal-950/60 backdrop-blur-sm" @click="reviewModalOpen = false"></div>
+        <div x-show="reviewModalOpen" x-transition.scale.origin.center
+             class="relative z-10 w-full max-w-md bg-cream-100 rounded-3xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
+            <button type="button" @click="reviewModalOpen = false"
+                    class="absolute top-4 right-4 w-11 h-11 grid place-items-center rounded-full bg-teal-800/10 text-teal-800 hover:bg-teal-800/20"
+                    aria-label="{{ $L('Cerrar', 'Close', 'Fechar') }}">✕</button>
+            <div class="text-orange-400 text-lg leading-none mb-3" x-text="'★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5))"></div>
+            <blockquote class="text-sm text-teal-800/90 leading-relaxed whitespace-pre-line" x-text="'“' + (review.quote || '') + '”'"></blockquote>
+            <div class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
+                <template x-if="review.avatar"><img :src="review.avatar" :alt="review.name" class="w-11 h-11 rounded-full object-cover shrink-0"></template>
+                <template x-if="!review.avatar"><span class="w-11 h-11 rounded-full bg-teal-800 text-white grid place-items-center font-display text-lg shrink-0" x-text="review.initial"></span></template>
+                <div class="min-w-0">
+                    <p class="font-bold text-teal-800 text-sm leading-tight" x-text="review.name"></p>
+                    <p class="text-[11px] text-teal-800/70 leading-tight" x-text="review.meta"></p>
                 </div>
             </div>
-
-            <p class="mt-6 text-center text-xs text-teal-800/70 max-w-md mx-auto leading-relaxed">
-                {{ \App\Models\Setting::get('home_reviews_footer_' . $locale) ?: 'Reseñas reales de viajeros respaldan nuestras experiencias.' }}
-            </p>
         </div>
     </div>
 </section>
 
-
-{{-- ============================================================
-     SECCIÓN 5 — ¿QUÉ TIPO DE TOUR ESTÁS BUSCANDO?
-     ============================================================ --}}
-<section class="bg-white px-5 py-10 lg:py-20"
-         x-data="{ tab: 'cult' }"
-         aria-labelledby="tour-type-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Header --}}
-        <div class="text-center mb-8">
-            {!! $brujula !!}
-            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_types_eyebrow_' . $locale) ?: 'CATEGORÍAS' }}</p>
-            <h2 id="tour-type-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {!! \App\Models\Setting::get('home_sec_types_title_' . $locale) ?: $L('Tipos de tours en Perú', 'Types of tours in Peru', 'Tipos de tours no Peru') !!}
-            </h2>
-            {!! $sep !!}
-        </div>
-
-        @php
-            $defaultTourTypeTabs = \App\Support\HomeDefaults::tourTypeTabs();
-            $rawTourTypeTabs = \App\Models\Setting::get('home_tour_type_tabs');
-            $tourTypeTabs = $homeRepeater($rawTourTypeTabs, $defaultTourTypeTabs, ['id']);
-        @endphp
-
-        {{-- Tabs grid 2×2 --}}
-        <div role="tablist" class="grid grid-cols-2 gap-2.5 mb-6 max-w-2xl mx-auto lg:max-w-4xl lg:grid-cols-4">
-            @foreach ($tourTypeTabs as $idx => $tab)
-            @php
-                $id       = $tab['id'] ?? 'tab' . $idx;
-                $label    = $tab['label_' . $locale] ?? $tab['label_es'] ?? '';
-                $iconPath = $tab['iconPath'] ?? '';
-            @endphp
-                <button type="button"
-                        role="tab"
-                        id="tab-{{ $id }}"
-                        aria-controls="panel-{{ $id }}"
-                        :aria-selected="tab === '{{ $id }}' ? 'true' : 'false'"
-                        @click="tab = '{{ $id }}'"
-                        class="rounded-2xl px-3 py-3.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-tight transition border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
-                        :class="tab === '{{ $id }}'
-                            ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                            : 'bg-white text-teal-800 border-teal-800/15 hover:border-teal-800/30'">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath }}"/>
-                    </svg>
-                    <span class="text-left leading-tight">{{ $label }}</span>
-                </button>
+{{-- ── TOURS DE UN DÍA DESDE LIMA (H2 SEO id lima-ica-cusco-title) — mismas tarjetas del home FINAL. Datos: $dayTrips; oculto si no hay ── --}}
+@php
+    $fhDay = [];
+    $fhDayImgs = [];
+    foreach ($normalizeTours(($dayTrips ?? collect())->take(4)) as $dt) {
+        $dChips = [];
+        if (filled($dt['duration'])) { $dChips[] = ['type' => 'duration', 'label' => $dt['duration']]; }
+        if (filled($dt['language'])) { $dChips[] = ['type' => 'language', 'label' => $dt['language']]; }
+        if ($dt['pickup']) { $dChips[] = ['type' => 'pickup', 'label' => 'pickup']; }
+        if ($dt['freeCancellation']) { $dChips[] = ['type' => 'cancellation', 'label' => __('ui.free_cancellation')]; }
+        $dKey = $dt['slug'] ?: $dt['title'];
+        $fhDay[] = [
+            'id' => $dKey, 'title' => $dt['title'], 'url' => route('tours.show', ['locale' => $locale, 'slug' => $dt['slug']]),
+            'region' => $dt['eyebrow'], 'badge' => $dt['badge'],
+            'rating' => ($dt['rating'] && (int) $dt['reviews'] > 0) ? ['rating' => (float) $dt['rating'], 'count' => (int) $dt['reviews']] : null,
+            'chips' => $dChips, 'price' => (float) $dt['now'],
+            'price_before' => $dt['discountPct'] ? (float) $dt['before'] : null, 'discount_percent' => $dt['discountPct'],
+            'image' => $dt['img'],
+        ];
+        $cd = \App\Support\ImageVariants::card($dt['imgPath'], '(min-width:1024px) 280px, 190px');
+        $fhDayImgs[$dKey] = ['src' => $cd['src'] ?: null, 'srcset' => $cd['srcset'], 'sizes' => $cd['sizes']];
+    }
+@endphp
+@if (count($fhDay))
+<section class="fh-sec fh-day" aria-labelledby="lima-ica-cusco-title">
+    <div class="fh-wrap">
+        <h2 id="lima-ica-cusco-title" class="fh-h2">{{ \App\Models\Setting::get('home_sec_cities_title_' . $locale) ?: $L('Tours de un día desde Lima', 'Day tours from Lima', 'Tours de um dia saindo de Lima') }}</h2>
+        <div class="fh-grid">
+            @foreach ($fhDay as $fp)
+                <x-fh-tour-card :p="$fp" :img="$fhDayImgs[$fp['id']] ?? []" />
             @endforeach
         </div>
-
-        {{-- Paneles de contenido --}}
-        @foreach ($tourTypeTabs as $ttIdx => $tab)
-        @php
-            $id       = $tab['id'] ?? 'tab0';
-            $label    = $tab['label_' . $locale] ?? $tab['label_es'] ?? '';
-            $tTitle   = $tab['title_' . $locale] ?? $tab['title_es'] ?? '';
-            $tImg     = $tab['img'] ?? '';
-            $tEyebrow = $tab['eyebrow_' . $locale] ?? $tab['eyebrow_es'] ?? '';
-            $tDesc    = $tab['desc_' . $locale] ?? $tab['desc_es'] ?? '';
-            // Precio solo si el admin lo cargó (los defaults 200/250/180/220 son ilustrativos: no se publican).
-            $ownTabs   = is_string($rawTourTypeTabs) ? json_decode($rawTourTypeTabs, true) : $rawTourTypeTabs;
-            $tPrice    = (is_array($ownTabs) && isset($ownTabs[$ttIdx]['price']) && is_numeric($ownTabs[$ttIdx]['price']) && (float) $ownTabs[$ttIdx]['price'] > 0) ? $ownTabs[$ttIdx]['price'] : null;
-            $iconPath = $tab['iconPath'] ?? '';
-        @endphp
-            <article role="tabpanel"
-                     id="panel-{{ $id }}"
-                     aria-labelledby="tab-{{ $id }}"
-                     x-show="tab === '{{ $id }}'"
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0"
-                     x-transition:enter-end="opacity-100"
-                     class="bg-white rounded-3xl overflow-hidden shadow-sm ring-1 ring-teal-800/5 max-w-2xl mx-auto lg:max-w-4xl lg:grid lg:grid-cols-2">
-
-                {{-- Imagen --}}
-                <div class="relative">
-                    @php $tv = $mediaVariants(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1)), '(min-width:1024px) 512px, (min-width:672px) 672px, 100vw'); @endphp
-                    <img src="{{ \App\Support\ImageVariants::relative($tv['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_tourtype_img_' . ($ttIdx + 1))) ?: (\App\Support\ImagePath::homeImage($tImg) ?: asset('assets/banners/Rectangle 19215.jpg')))) }}"{!! $tv['attrs'] !!}
-                         alt="{{ $tTitle }}"
-                         class="w-full h-48 lg:h-full object-cover" loading="lazy" decoding="async" width="672" height="192">
-                    <span class="absolute top-4 left-4 inline-flex items-center gap-2 bg-teal-800 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
-                        <svg class="w-3 h-3 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        {{ $tEyebrow }}
-                    </span>
-                </div>
-
-                {{-- Texto --}}
-                <div class="p-5 lg:p-7">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="w-10 h-10 rounded-full bg-teal-800 grid place-items-center shrink-0">
-                            <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath }}"/>
-                            </svg>
-                        </span>
-                        <h3 class="font-display text-2xl text-teal-800 leading-tight">{{ $tTitle }}</h3>
-                    </div>
-                    <p class="mt-2 text-[11px] uppercase tracking-[0.15em] text-orange-700 font-bold">{{ $tEyebrow }}</p>
-                    <p class="mt-3 text-sm text-teal-800/75 leading-relaxed">{{ $tDesc }}</p>
-                    <hr class="my-5 border-cream-200/80">
-                    <div class="flex items-center justify-between gap-3">
-                        @if ($tPrice)
-                        <div class="min-w-0">
-                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.from') }}</p>
-                            <p class="font-price text-2xl text-teal-800 font-semibold leading-none">US${{ $tPrice }}</p>
-                            <p class="text-[10px] uppercase tracking-[0.15em] text-teal-800/70 font-semibold">{{ __('ui.per_person') }}</p>
-                        </div>
-                        @endif
-                        <a href="{{ route('tours.index', ['locale' => $locale]) }}"
-                           class="inline-flex items-center gap-2 bg-teal-800 hover:bg-teal-900 text-white rounded-full px-5 py-3 font-semibold text-xs uppercase tracking-wider transition shrink-0">
-                            RESERVAR TOUR
-                            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                        </a>
-                    </div>
-                </div>
-            </article>
-        @endforeach
-
     </div>
 </section>
+@endif
 
-
-{{-- ============================================================
-     SECCIÓN 5B — CÓMO ELEGIR TU TOUR EN PERÚ (guía rápida, editable en Ajustes)
-     ============================================================ --}}
+{{-- ── CÓMO ELEGIR TU TOUR EN PERÚ + comparador (H2 SEO id choose-title). Textos editables: home_choose_items / home_sec_choose_* ── --}}
 @php
-    $defaultChooseItems = \App\Support\HomeDefaults::chooseItems();
-    $rawChooseItems = \App\Models\Setting::get('home_choose_items');
-    $chooseItems = $homeRepeater($rawChooseItems, $defaultChooseItems);
+    $fhChooseDef = \App\Support\HomeDefaults::chooseItems();
+    $fhChoose = $homeRepeater(\App\Models\Setting::get('home_choose_items'), $fhChooseDef);
 @endphp
-<section class="bg-white px-5 pb-10 lg:pb-20" aria-labelledby="choose-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-        <div class="text-center mb-8 max-w-2xl mx-auto">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_choose_eyebrow_' . $locale) ?: $L('GUÍA RÁPIDA', 'QUICK GUIDE', 'GUIA RÁPIDO') }}</p>
-            <h2 id="choose-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {!! \App\Models\Setting::get('home_sec_choose_title_' . $locale) ?: $L('Cómo elegir tu tour en Perú', 'How to choose your tour in Peru', 'Como escolher seu tour no Peru') !!}
-            </h2>
-            {!! $sep !!}
-            <p class="mt-5 text-sm text-teal-800/70">{!! \App\Models\Setting::get('home_sec_choose_intro_' . $locale) ?: $L('Cuatro preguntas para acertar con tu tour según tu tiempo, tu estilo de viaje y lo que quieres vivir.', 'Four questions to find the right tour for your time, your travel style and what you want to experience.', 'Quatro perguntas para acertar no tour de acordo com seu tempo, seu estilo de viagem e o que você quer viver.') !!}</p>
-        </div>
-
-        <ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="list">
-            @foreach ($chooseItems as $cIdx => $cItem)
+<section class="fh-sec fh-choose" aria-labelledby="choose-title">
+    <div class="fh-wrap">
+        <p class="fh-over">{{ \App\Models\Setting::get('home_sec_choose_eyebrow_' . $locale) ?: $L('Guía rápida', 'Quick guide', 'Guia rápido') }}</p>
+        <h2 id="choose-title" class="fh-h2">{!! \App\Models\Setting::get('home_sec_choose_title_' . $locale) ?: $L('Cómo elegir tu tour en Perú', 'How to choose your tour in Peru', 'Como escolher seu tour no Peru') !!}</h2>
+        <p class="fh-choose__intro">{!! \App\Models\Setting::get('home_sec_choose_intro_' . $locale) ?: $L('Cuatro preguntas para acertar con tu tour según tu tiempo, tu estilo de viaje y lo que quieres vivir.', 'Four questions to find the right tour for your time, your travel style and what you want to experience.', 'Quatro perguntas para acertar no tour de acordo com seu tempo, seu estilo de viagem e o que você quer viver.') !!}</p>
+        <ol class="fh-steps">
+            @foreach ($fhChoose as $cIdx => $cItem)
                 @php
                     $cTitle = ($cItem['title_' . $locale] ?? '') ?: ($cItem['title_es'] ?? '');
                     $cDesc  = ($cItem['desc_' . $locale] ?? '') ?: ($cItem['desc_es'] ?? '');
-                    $cPath  = $cItem['iconPath'] ?? ($defaultChooseItems[$cIdx]['iconPath'] ?? $defaultChooseItems[0]['iconPath']);
                 @endphp
-                <li class="bg-cream-100 rounded-3xl p-6 ring-1 ring-teal-800/5 flex flex-col">
-                    <div class="flex items-center gap-3">
-                        <span class="w-12 h-12 rounded-full bg-teal-800 grid place-items-center shrink-0">
-                            <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $cPath }}"/>
-                            </svg>
-                        </span>
-                        <span class="font-display text-3xl text-orange-400 leading-none" aria-hidden="true">{{ str_pad((string) ($cIdx + 1), 2, '0', STR_PAD_LEFT) }}</span>
-                    </div>
-                    <h3 class="mt-4 font-bold text-teal-800 text-base leading-tight">{{ $cTitle }}</h3>
-                    <p class="mt-2 text-sm text-teal-800/75 leading-relaxed">{{ $cDesc }}</p>
+                <li class="fh-step">
+                    <span class="fh-step__n" aria-hidden="true">{{ str_pad((string) ($cIdx + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                    <h3>{{ $cTitle }}</h3>
+                    <p>{{ $cDesc }}</p>
                 </li>
             @endforeach
         </ol>
 
-        {{-- COMPARADOR — contrato §3: $homeCompare (2 tours reales con datos reales). Oculto si es null. --}}
         @if (! empty($homeCompare))
-            <div class="mt-10">
-                @if (filled($homeCompare['intro'] ?? null))<p class="text-center mb-4" style="color:var(--muted)">{{ $homeCompare['intro'] }}</p>@endif
-                <div class="lvt-compare">
-                    @foreach ($homeCompare['tours'] as $ct)
-                        <article class="lvt-cmp">
-                            <h3><a href="{{ $ct['url'] }}" style="color:inherit;text-decoration:none">{{ $ct['title'] }}</a></h3>
-                            <dl>
-                                <div><dt>{{ $L('Precio', 'Price', 'Preço') }}</dt><dd>{{ __('ui.from') }} US${{ number_format($ct['price'], 0) }}</dd></div>
-                                @if ($ct['duration'])<div><dt>{{ $L('Duración', 'Duration', 'Duração') }}</dt><dd>{{ $ct['duration'] }}</dd></div>@endif
-                                @if ($ct['category'])<div><dt>{{ $L('Tipo', 'Type', 'Tipo') }}</dt><dd>{{ $ct['category'] }}</dd></div>@endif
-                                @if ($ct['region'])<div><dt>{{ $L('Destino', 'Destination', 'Destino') }}</dt><dd>{{ $ct['region'] }}</dd></div>@endif
-                                <div><dt>{{ $L('Recojo', 'Pickup', 'Transporte') }}</dt><dd>{{ $ct['pickup'] ? $L('Incluido', 'Included', 'Incluído') : $L('No incluido', 'Not included', 'Não incluído') }}</dd></div>
-                                @if ($ct['rating'])<div><dt>{{ $L('Valoración', 'Rating', 'Avaliação') }}</dt><dd>{{ number_format($ct['rating']['rating'], 1) }} ({{ $ct['rating']['count'] }})</dd></div>@endif
-                            </dl>
-                            <a href="{{ $ct['url'] }}" class="lvt-btn lvt-btn--ghost">{{ $L('Ver detalles', 'See details', 'Ver detalhes') }}</a>
-                        </article>
-                    @endforeach
-                </div>
+            @if (filled($homeCompare['intro'] ?? null))<p class="fh-choose__intro fh-choose__intro--cmp">{{ $homeCompare['intro'] }}</p>@endif
+            <div class="fh-cmps">
+                @foreach ($homeCompare['tours'] as $ct)
+                    <article class="fh-cmp">
+                        <h3><a href="{{ $ct['url'] }}">{{ $ct['title'] }}</a></h3>
+                        <dl>
+                            <div><dt>{{ $L('Precio', 'Price', 'Preço') }}</dt><dd>{{ __('ui.from') }} US${{ number_format($ct['price'], 0) }}</dd></div>
+                            @if ($ct['duration'])<div><dt>{{ $L('Duración', 'Duration', 'Duração') }}</dt><dd>{{ $ct['duration'] }}</dd></div>@endif
+                            @if ($ct['category'])<div><dt>{{ $L('Tipo', 'Type', 'Tipo') }}</dt><dd>{{ $ct['category'] }}</dd></div>@endif
+                            @if ($ct['region'])<div><dt>{{ $L('Destino', 'Destination', 'Destino') }}</dt><dd>{{ $ct['region'] }}</dd></div>@endif
+                            <div><dt>{{ $L('Recojo', 'Pickup', 'Transporte') }}</dt><dd>{{ $ct['pickup'] ? $L('Incluido', 'Included', 'Incluído') : $L('No incluido', 'Not included', 'Não incluído') }}</dd></div>
+                            @if ($ct['rating'])<div><dt>{{ $L('Valoración', 'Rating', 'Avaliação') }}</dt><dd>{{ number_format($ct['rating']['rating'], 1) }} ({{ $ct['rating']['count'] }})</dd></div>@endif
+                        </dl>
+                        <a href="{{ $ct['url'] }}" class="fh-cmp__cta">{{ $L('Ver detalles', 'See details', 'Ver detalhes') }}</a>
+                    </article>
+                @endforeach
             </div>
         @endif
     </div>
 </section>
 
-
-{{-- ============================================================
-     SECCIÓN 6 — DESCUBRE EXPERIENCIAS ÚNICAS (Carrusel)
-     ============================================================ --}}
-<section class="bg-cream-100 px-5 py-10 lg:py-20" aria-labelledby="exp-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Header --}}
-        <div class="text-center mb-8">
-            {!! $brujula !!}
-            <p class="mt-2 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">{{ \App\Models\Setting::get('home_sec_exp_eyebrow_' . $locale) ?: 'EXPERIENCIAS' }}</p>
-            <h2 id="exp-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {!! \App\Models\Setting::get('home_sec_exp_title_' . $locale) ?: $L('Descubre <br class="sm:hidden">experiencias únicas', 'Discover <br class="sm:hidden">unique experiences', 'Descubra <br class="sm:hidden">experiências únicas') !!}
-            </h2>
-            {!! $sep !!}
-        </div>
-
-        {{-- Carrusel Alpine + scroll-snap --}}
-        @php
-            $defaultExpTours = \App\Support\HomeDefaults::expTours();
-            $rawExpTours = \App\Models\Setting::get('home_exp_tours');
-            $expTours = $homeRepeater($rawExpTours, $defaultExpTours);
-        @endphp
-
-        <div x-data="{ current: 0, total: {{ count($expTours) }} }" class="relative">
-
-            {{-- Carrusel scroll-snap --}}
-            <div class="carousel-track ct-bleed gap-4 pb-4 -mx-5 px-4 sm:mx-0"
-                 style="padding-left:1rem;padding-right:1rem;"
-                 id="exp-carousel"
-                 @scroll.debounce.100ms="
-                     let el = $el;
-                     let w = el.scrollWidth - el.clientWidth;
-                     if (w > 0) {
-                         current = Math.round((el.scrollLeft / w) * (total - 1));
-                     }
-                 ">
-
-                @foreach ($expTours as $i => $expItem)
-                @php
-                    $eImg      = $expItem['img'] ?? '';
-                    $eTitle    = $expItem['title_' . $locale] ?? $expItem['title_es'] ?? '';
-                    $eSlug     = $expItem['slug'] ?? '';
-                @endphp
-                    @php
-                        $eUrl = $destUrl($destFromText($eSlug, $eTitle));
-                    @endphp
-                    <a href="{{ $eUrl }}"
-                       class="tour-slide-4
-                              block group rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5
-                              bg-white hover:shadow-md transition-shadow">
-                        <div class="relative aspect-[4/3] overflow-hidden">
-                            @php $ev = $mediaVariants(\App\Models\Setting::get('home_exp_img_' . ($i + 1)), '(min-width:1024px) 300px, (min-width:768px) 45vw, (min-width:640px) 60vw, 88vw'); @endphp
-                            <img src="{{ \App\Support\ImageVariants::relative($ev['src'] ?: (\App\Support\ImagePath::homeImage(\App\Models\Setting::get('home_exp_img_' . ($i + 1))) ?: (\App\Support\ImagePath::homeImage($eImg) ?: asset('assets/banners/Rectangle 19216.jpg')))) }}"{!! $ev['attrs'] !!}
-                                 alt="{{ $eTitle }}"
-                                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                 loading="lazy" decoding="async" width="640" height="480">
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-display text-lg text-teal-800 leading-tight line-clamp-2 group-hover:text-orange-700 transition-colors">{{ $eTitle }}</h3>
-                        </div>
-                    </a>
-                @endforeach
-            </div>
-
-            {{-- Dots paginación (solo mobile/tablet) --}}
-            <div class="mt-5 flex items-center justify-center gap-2 lg:hidden" aria-hidden="true">
-                @foreach ($expTours as $i => $__)
-                    <button type="button"
-                            @click="
-                                current = {{ $i }};
-                                document.getElementById('exp-carousel').scrollTo({
-                                    left: document.getElementById('exp-carousel').scrollWidth / {{ count($expTours) }} * {{ $i }},
-                                    behavior: 'smooth'
-                                });
-                            "
-                            class="transition-all duration-200 rounded-full"
-                            :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
-                            :aria-label="'Ir a experiencia {{ $i + 1 }}'">
-                    </button>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-
-
-{{-- ============================================================
-     SECCIÓN 6B — OPINIONES DE VIAJEROS (Testimonios)
-     ============================================================ --}}
+{{-- ── PREGUNTAS FRECUENTES (H2 SEO id faq-title). details/summary: el texto está SIEMPRE en el HTML = microdatos FAQPage ── --}}
 @php
-    $reviews = ($testimonials ?? collect());
-    $reviewCount = $reviews->count();
+    $defaultHomeFaqs = \App\Support\HomeDefaults::faqs();
+    $rawHomeFaqs = \App\Models\Setting::get('home_faqs');
+    $faqs = $homeRepeater($rawHomeFaqs, $defaultHomeFaqs);
+
+    // Fuente única del texto: Setting 'faqs' (question_/answer_). home_faqs / defaults solo si 'faqs' está vacío.
+    $rawAeoFaqs = \App\Models\Setting::get('faqs');
+    if (is_string($rawAeoFaqs)) { $rawAeoFaqs = json_decode($rawAeoFaqs, true); }
+    $aeoFaqs = collect(is_array($rawAeoFaqs) ? $rawAeoFaqs : [])
+        ->filter(fn ($x) => ! empty($x['question_' . $locale] ?? ($x['question_es'] ?? null)))
+        ->values();
+    if ($aeoFaqs->isNotEmpty()) {
+        $faqs = $aeoFaqs->map(fn ($x, $k) => [
+            'q_' . $locale => $x['question_' . $locale] ?? $x['question_es'],
+            'a_' . $locale => $x['answer_' . $locale] ?? ($x['answer_es'] ?? ''),
+        ])->all();
+    }
 @endphp
-<section id="opiniones" class="bg-white px-5 py-10 lg:py-20 scroll-mt-24" aria-labelledby="opiniones-title"
-         x-data="{ reviewModalOpen: false, review: {} }">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Header --}}
-        <div class="text-center mb-8">
-            <p class="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-orange-700 font-bold">
-                <span class="h-px w-6 bg-orange-500/50"></span>{{ \App\Models\Setting::get('home_sec_reviews_eyebrow_' . $locale) ?: 'OPINIONES REALES' }}<span class="h-px w-6 bg-orange-500/50"></span>
-            </p>
-            <h2 id="opiniones-title" class="mt-3 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {{ \App\Models\Setting::get('home_sec_reviews_title_' . $locale) ?: $L('Opiniones de nuestros viajeros', 'Reviews from our travelers', 'Opiniões dos nossos viajantes') }}
-            </h2>
-            {!! $sep !!}
-            <p class="mt-5 text-sm text-teal-800/70">
-                {{-- 18-nov: en móvil el <br> está oculto y "nosotros.Estas" quedaba pegado; se asegura un espacio tras el punto antes del <br>. --}}
-                {!! preg_replace('/([.!?…])(<br\b)/iu', '$1 $2', \App\Models\Setting::get('home_sec_reviews_subtitle_' . $locale) ?: 'Viajeros reales cuentan cómo vivieron el Perú con nosotros.') !!}
-            </p>
-        </div>
-
-        {{-- DISTRIBUCIÓN + FILTRO POR DESTINO — contrato §5: $homeReviewStats (todas las reseñas publicadas). Oculto si es null. --}}
-        @if (! empty($homeReviewStats))
-            @php $rs = $homeReviewStats; @endphp
-            <div class="lvt-revsum" x-data="{ dest: '' }">
-                <div class="lvt-revsum__avg">
-                    <b>{{ number_format($rs['average'], 1) }}</b>
-                    <span>{{ $L('de 5', 'out of 5', 'de 5') }} · {{ number_format($rs['total']) }} {{ $rs['total'] === 1 ? $L('reseña', 'review', 'avaliação') : $L('reseñas', 'reviews', 'avaliações') }}</span>
-                </div>
-                <ul class="lvt-bars" aria-label="{{ $L('Distribución de valoraciones', 'Rating distribution', 'Distribuição das avaliações') }}">
-                    @foreach ($rs['distribution'] as $star => $d)
-                        <li><span>{{ $star }} ★</span><i style="--w: {{ $d['percent'] }}%"></i><span>{{ $d['percent'] }}%</span></li>
-                    @endforeach
-                </ul>
-            </div>
-            @if (count($rs['destinations']) > 1)
-                <div class="lvt-filter" role="group" aria-label="{{ $L('Filtrar reseñas por destino', 'Filter reviews by destination', 'Filtrar avaliações por destino') }}" id="lvt-rev-filter">
-                    <button type="button" data-dest="" aria-pressed="true">{{ $L('Todos', 'All', 'Todos') }}</button>
-                    @foreach ($rs['destinations'] as $dd)
-                        <button type="button" data-dest="{{ $dd['slug'] }}" aria-pressed="false">{{ $dd['name'] }} ({{ $dd['count'] }})</button>
-                    @endforeach
-                </div>
-                <script>
-                    (function () {
-                        var box = document.getElementById('lvt-rev-filter'); if (!box) return;
-                        box.addEventListener('click', function (e) {
-                            var b = e.target.closest('button[data-dest]'); if (!b) return;
-                            box.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-                            document.querySelectorAll('#reviews-carousel > .review-card').forEach(function (c) {
-                                c.style.display = (!b.dataset.dest || c.dataset.dest === b.dataset.dest) ? '' : 'none';
-                            });
-                            var el = document.getElementById('reviews-carousel'); if (el) el.scrollLeft = 0;
-                        });
-                    })();
-                </script>
-            @endif
-        @endif
-
-        {{-- Carrusel mobile / grid desktop (solo con reseñas reales; sin ejemplos inventados) --}}
-        @if ($reviewCount > 0)
-        <div x-data="{ current: 0, total: {{ $reviewCount }} }" class="relative">
-            <div class="carousel-track gap-4 pb-4"
-                 id="reviews-carousel"
-                 @scroll.debounce.100ms="
-                     let el = $el; let w = el.scrollWidth - el.clientWidth;
-                     if (w > 0) { current = Math.round((el.scrollLeft / w) * (total - 1)); }
-                 ">
-                @foreach ($reviews as $rev)
-                    @php
-                        $rvName    = is_object($rev) ? ($rev->name ?? 'Viajero') : ($rev['name'] ?? 'Viajero');
-                        $rvCountry = is_object($rev) ? ($rev->country ?? null) : ($rev['country'] ?? null);
-                        $rvRating  = max(0, min(5, (int) round(is_object($rev) ? ($rev->rating ?? 5) : ($rev['rating'] ?? 5))));
-                        $rvSource  = is_object($rev) ? ($rev->source ?? null) : ($rev['source'] ?? null);
-                        $rvQuote   = is_object($rev) ? ($rev->quote ?? '') : ($rev['quote'] ?? '');
-                        $rvAvatar  = is_object($rev) ? ($rev->avatar ?? null) : ($rev['avatar'] ?? null);
-                        $rvAvatarUrl = $rvAvatar ? (\Illuminate\Support\Str::startsWith($rvAvatar, ['http', '/']) ? $rvAvatar : asset($rvAvatar)) : null;
-                        $rvInitial = mb_strtoupper(mb_substr(trim($rvName), 0, 1));
-                        $rvMeta = trim(implode(' · ', array_filter([$rvCountry, $rvSource])));
-                        $rvQuoteFull   = trim((string) $rvQuote);
-                        $rvQuoteShort  = \Illuminate\Support\Str::limit($rvQuoteFull, 80);
-                        $rvQuoteIsLong = mb_strlen($rvQuoteFull) > 80;
-                    @endphp
-                    <figure data-dest="{{ $homeReviewStats['destination_by_testimonial'][is_object($rev) ? ($rev->id ?? 0) : 0] ?? '' }}" class="review-card tour-slide-4 snap-start
-                                   bg-cream-100 rounded-3xl ring-1 ring-teal-800/5 shadow-sm p-6 flex flex-col">
-                        {{-- Comillas + estrellas --}}
-                        <div class="flex items-center justify-between mb-3">
-                            <svg class="w-9 h-9 text-orange-400/40" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.17 6A5.17 5.17 0 002 11.17V18h6.83v-6.83H5.5A1.67 1.67 0 017.17 9.5V6zm9 0A5.17 5.17 0 0011 11.17V18h6.83v-6.83H14.5a1.67 1.67 0 011.67-1.67V6z"/></svg>
-                            <span class="text-orange-400 text-base leading-none tracking-tight" aria-label="{{ $rvRating }} de 5 estrellas">{{ str_repeat('★', $rvRating) }}{{ str_repeat('☆', 5 - $rvRating) }}</span>
-                        </div>
-                        {{-- Texto: recortado a 40 caracteres; "Ver más" abre el popup con el comentario completo --}}
-                        <blockquote class="text-sm text-teal-800/85 leading-relaxed">“{{ $rvQuoteShort }}”</blockquote>
-                        @if ($rvQuoteIsLong)
-                            <button type="button"
-                                    class="mt-2 self-start text-xs font-bold text-orange-700 hover:text-orange-800 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-                                    @click="review = { name: @js($rvName), meta: @js($rvMeta), quote: @js($rvQuoteFull), rating: {{ $rvRating }}, avatar: @js($rvAvatarUrl), initial: @js($rvInitial) }; reviewModalOpen = true">
-                                {{ __('ui.see_more') }}
-                            </button>
-                        @endif
-                        <div class="flex-1"></div>
-                        {{-- Autor --}}
-                        <figcaption class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
-                            @if ($rvAvatarUrl)
-                                <img src="{{ $rvAvatarUrl }}" alt="{{ $rvName }}" class="w-11 h-11 rounded-full object-cover shrink-0" loading="lazy" width="44" height="44">
-                            @else
-                                <span class="w-11 h-11 rounded-full bg-teal-800 text-white grid place-items-center font-display text-lg shrink-0" aria-hidden="true">{{ $rvInitial }}</span>
-                            @endif
-                            <div class="min-w-0">
-                                <p class="font-bold text-teal-800 text-sm leading-tight truncate">{{ $rvName }}</p>
-                                <p class="text-[11px] text-teal-800/70 leading-tight truncate">{{ $rvMeta }}</p>
-                            </div>
-                            <svg class="w-5 h-5 text-emerald-500 ml-auto shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" title="Reseña verificada"><path fill-rule="evenodd" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" clip-rule="evenodd"/></svg>
-                        </figcaption>
-                    </figure>
-                @endforeach
-            </div>
-
-            {{-- Dots (mobile/tablet) --}}
-            <div class="mt-5 flex items-center justify-center gap-2 lg:hidden" aria-hidden="true">
-                @for ($i = 0; $i < $reviewCount; $i++)
-                    <button type="button"
-                            @click="current = {{ $i }}; document.getElementById('reviews-carousel').scrollTo({ left: document.getElementById('reviews-carousel').scrollWidth / {{ $reviewCount }} * {{ $i }}, behavior: 'smooth' });"
-                            class="transition-all duration-200 rounded-full"
-                            :class="current === {{ $i }} ? 'h-2 w-6 bg-orange-500' : 'h-2 w-2 bg-cream-300'"
-                            :aria-label="'Ir a opinión {{ $i + 1 }}'"></button>
-                @endfor
-            </div>
-        </div>
-
-        @endif
-
-        {{-- CTA: ver todas las reseñas reales en Google (editable en Configuración → Redes sociales) --}}
-        @php
-            $googleReviewsUrl = \App\Models\Setting::get('social_google_reviews')
-                ?: 'https://www.google.com/maps/place/Lima+view+tours/@-12.0457338,-77.0281479,17z/data=!3m1!4b1!4m6!3m5!1s0x9105c90e82ab0695:0xad0c3b21492d1a96!8m2!3d-12.0457338!4d-77.0281479!16s%2Fg%2F11w7s4b74q!18m1!1e1';
-        @endphp
-        <div class="mt-8 text-center">
-            <a href="{{ $googleReviewsUrl }}" target="_blank" rel="noopener nofollow"
-               class="inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-teal-800/15 px-6 py-3 text-sm font-bold text-teal-800 shadow-sm hover:ring-teal-800/30 hover:shadow transition">
-                <svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.85 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.67-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.67 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></svg>
-                {{ __('ui.see_all_google_reviews') }}
-                <span aria-hidden="true">→</span>
-            </a>
-        </div>
-
-        {{-- Popup: comentario completo (se abre desde "Ver más") --}}
-        <div x-cloak
-             x-show="reviewModalOpen"
-             x-transition.opacity
-             @keydown.escape.window="reviewModalOpen = false"
-             class="fixed inset-0 z-[70] flex items-center justify-center p-4"
-             role="dialog" aria-modal="true">
-            <div class="absolute inset-0 bg-teal-950/60 backdrop-blur-sm" @click="reviewModalOpen = false"></div>
-            <div x-show="reviewModalOpen"
-                 x-transition.scale.origin.center
-                 class="relative z-10 w-full max-w-md bg-cream-100 rounded-3xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
-                <button type="button" @click="reviewModalOpen = false"
-                        class="absolute top-4 right-4 w-8 h-8 grid place-items-center rounded-full bg-teal-800/10 text-teal-800 hover:bg-teal-800/20"
-                        aria-label="Cerrar">✕</button>
-                <div class="text-orange-400 text-lg leading-none mb-3"
-                     x-text="'★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5))"></div>
-                <blockquote class="text-sm text-teal-800/90 leading-relaxed whitespace-pre-line"
-                            x-text="'“' + (review.quote || '') + '”'"></blockquote>
-                <div class="mt-5 pt-4 border-t border-teal-800/10 flex items-center gap-3">
-                    <template x-if="review.avatar">
-                        <img :src="review.avatar" :alt="review.name" class="w-11 h-11 rounded-full object-cover shrink-0">
-                    </template>
-                    <template x-if="!review.avatar">
-                        <span class="w-11 h-11 rounded-full bg-teal-800 text-white grid place-items-center font-display text-lg shrink-0"
-                              x-text="review.initial"></span>
-                    </template>
-                    <div class="min-w-0">
-                        <p class="font-bold text-teal-800 text-sm leading-tight" x-text="review.name"></p>
-                        <p class="text-[11px] text-teal-800/70 leading-tight" x-text="review.meta"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-{{-- ============================================================
-     SECCIÓN 7 — PREGUNTAS FRECUENTES (FAQ)
-     ============================================================ --}}
-<section class="bg-cream-100 px-5 py-10 lg:py-20"
-         x-data="{ open: null }"
-         aria-labelledby="faq-title">
-    <div class="home-wrap container mx-auto max-w-7xl lg:px-5">
-
-        {{-- Header --}}
-        <div class="text-center mb-8">
-            {!! $brujula !!}
-            <h2 id="faq-title" class="mt-2 font-display text-3xl lg:text-5xl text-teal-800 leading-tight">
-                {{ \App\Models\Setting::get('home_sec_faq_title_' . $locale) ?: $L('Preguntas frecuentes sobre tours en Perú', 'Frequently asked questions about tours in Peru', 'Perguntas frequentes sobre tours no Peru') }}
-            </h2>
-            {!! $sep !!}
-            <p class="mt-5 text-sm text-teal-800/70">
-                {!! \App\Models\Setting::get('home_sec_faq_subtitle_' . $locale) ?: 'Resolvemos las dudas más comunes<br>antes de vivir tu experiencia en Perú.' !!}
-            </p>
-        </div>
-
-        @php
-            $defaultHomeFaqs = \App\Support\HomeDefaults::faqs();
-            $rawHomeFaqs = \App\Models\Setting::get('home_faqs');
-            $faqs = $homeRepeater($rawHomeFaqs, $defaultHomeFaqs);
-
-            // Fuente única del texto: Setting 'faqs' (question_/answer_, el bloque que ya llevaba microdatos FAQPage).
-            // home_faqs / defaults solo aportan el icono por posición. Si 'faqs' está vacío se usa home_faqs / defaults.
-            $rawAeoFaqs = \App\Models\Setting::get('faqs');
-            if (is_string($rawAeoFaqs)) { $rawAeoFaqs = json_decode($rawAeoFaqs, true); }
-            $aeoFaqs = collect(is_array($rawAeoFaqs) ? $rawAeoFaqs : [])
-                ->filter(fn ($x) => ! empty($x['question_' . $locale] ?? ($x['question_es'] ?? null)))
-                ->values();
-            if ($aeoFaqs->isNotEmpty()) {
-                $faqs = $aeoFaqs->map(fn ($x, $k) => [
-                    'q_' . $locale => $x['question_' . $locale] ?? $x['question_es'],
-                    'a_' . $locale => $x['answer_' . $locale] ?? ($x['answer_es'] ?? ''),
-                    'iconPath'     => ($faqs[$k] ?? $defaultHomeFaqs[$k % count($defaultHomeFaqs)])['iconPath'] ?? '',
-                ])->all();
-            }
-        @endphp
-
-        {{-- FAQ: <details>/<summary> nativo. El texto de la respuesta está SIEMPRE en el HTML (sin hidden/x-show),
-             microdatos FAQPage == texto visible. --}}
-        <div class="lvt-faq" itemscope itemtype="https://schema.org/FAQPage">
+<section class="fh-sec fh-faq-sec" aria-labelledby="faq-title">
+    <div class="fh-wrap">
+        <p class="fh-over">{{ \App\Models\Setting::get('home_sec_faq_eyebrow_' . $locale) ?: $L('Respuestas sin fricción', 'Answers without friction', 'Respostas sem atrito') }}</p>
+        <h2 id="faq-title" class="fh-h2 fh-h2--reg">{{ \App\Models\Setting::get('home_sec_faq_title_' . $locale) ?: $L('Lo que quizá te preguntas', 'What you may be wondering', 'O que você talvez esteja se perguntando') }}</h2>
+        <div class="lvt-faq fh-faq" itemscope itemtype="https://schema.org/FAQPage">
             @foreach ($faqs as $i => $faqItem)
             @php
                 $q = $faqItem['q_' . $locale] ?? $faqItem['q_es'] ?? '';
@@ -1688,31 +886,25 @@
                 </details>
             @endforeach
         </div>
-
     </div>
 </section>
 
-
-{{-- ============================================================
-     CTA FINAL — "El Perú te espera" (texto editable: home_cta_*; default traducido)
-     ============================================================ --}}
-<section class="lvt-cta lvt-on-dark" aria-labelledby="cta-title">
-    <div class="lvt-cta__in">
-        <p class="lvt-over">{{ \App\Models\Setting::get('home_cta_eyebrow_' . $locale) ?: $L('Tu historia empieza aquí', 'Your story starts here', 'Sua história começa aqui') }}</p>
-        <h2 id="cta-title" class="lvt-cta__title">
-            {!! \App\Models\Setting::get('home_cta_title_' . $locale) ?: $L('El Perú te espera. <span class="lvt-accent">Nosotros te guiamos.</span>', 'Peru is waiting. <span class="lvt-accent">We guide you.</span>', 'O Peru te espera. <span class="lvt-accent">Nós guiamos você.</span>') !!}
-        </h2>
-        <p class="lvt-cta__sub">{{ \App\Models\Setting::get('home_cta_sub_' . $locale) ?: $L('Elige tu experiencia y reserva en pocos pasos.', 'Choose your experience and book in a few steps.', 'Escolha sua experiência e reserve em poucos passos.') }}</p>
-        <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="lvt-btn lvt-btn--gold" data-ga-cta="cta_final" data-ga-location="home_final">
-            {{ $L('Descubrir mis experiencias', 'Discover my experiences', 'Descobrir minhas experiências') }}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-        </a>
+{{-- ── CIERRE "El Perú te espera" (texto editable: home_cta_*; default traducido) ── --}}
+<section class="fh-sec fh-cta-sec" aria-labelledby="cta-title">
+    <div class="fh-wrap">
+        <div class="fh-cta">
+            <div class="fh-cta__txt">
+                <p class="fh-cta__eyebrow">{{ \App\Models\Setting::get('home_cta_eyebrow_' . $locale) ?: $L('Tu historia empieza aquí', 'Your story starts here', 'Sua história começa aqui') }}</p>
+                <h2 id="cta-title" class="fh-cta__title">
+                    {!! \App\Models\Setting::get('home_cta_title_' . $locale) ?: $L('El Perú te espera. <span class="lvt-accent">Nosotros te guiamos.</span>', 'Peru is waiting. <span class="lvt-accent">We guide you.</span>', 'O Peru te espera. <span class="lvt-accent">Nós guiamos você.</span>') !!}
+                </h2>
+            </div>
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="fh-cta__btn" data-ga-cta="cta_final" data-ga-location="home_final">
+                {{ $L('Descubrir mis experiencias', 'Discover my experiences', 'Descobrir minhas experiências') }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </a>
+        </div>
     </div>
 </section>
 
 @endsection
-
-{{-- Lote B (2026-08-31): se apagó el FAQPage automático que generaba
-     partials/faq-schema.blade.php (ahora borrado) a partir del setting
-     "faqs". La home tiene UN solo bloque de FAQ (sección 7, con microdatos
-     FAQPage == texto visible); no lo repitas con <x-faq-section />. --}}

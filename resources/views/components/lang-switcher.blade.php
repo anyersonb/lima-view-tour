@@ -23,9 +23,9 @@
             @click="lang = !lang"
             :aria-expanded="lang.toString()"
             aria-haspopup="listbox"
-            aria-label="{{ __('nav.language_label') }} ({{ $labels[$current] ?? strtoupper($current) }})">
+            aria-label="{{ strtoupper($current) }} · {{ __('nav.language_label') }} ({{ $labels[$current] ?? strtoupper($current) }})">
         <span aria-hidden="true" class="text-base leading-none">{{ $flags[$current] ?? '🌐' }}</span>
-        <span>{{ $labels[$current] ?? strtoupper($current) }}</span>
+        <span class="lvt-lang-full">{{ $labels[$current] ?? strtoupper($current) }}</span><span class="lvt-lang-short" aria-hidden="true">{{ strtoupper($current) }}</span>
         <svg class="w-3 h-3 transition-transform duration-150"
              :class="{ 'rotate-180': lang }"
              aria-hidden="true" fill="currentColor" viewBox="0 0 12 12">

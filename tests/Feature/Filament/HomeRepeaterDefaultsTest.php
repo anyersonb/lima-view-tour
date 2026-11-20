@@ -20,7 +20,7 @@ class HomeRepeaterDefaultsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const CHOOSE_LI = '<li class="bg-cream-100 rounded-3xl p-6 ring-1 ring-teal-800/5 flex flex-col">';
+    private const CHOOSE_LI = '<li class="fh-step">'; // home FINAL 20-nov
 
     private function admin(): User
     {

@@ -30,6 +30,7 @@ class TourController extends Controller
             'searchFilters' => $searchFilters,
             'searchActive' => $searchActive,
             'searchNoResults' => $searchActive && $tours->isEmpty(),
+            'searchQuery' => $searchFilters[TourSearch::PARAM_QUERY],
             'searchChips' => $searchActive ? TourSearch::chips($searchFilters) : [],
             'searchWhatsappUrl' => $searchActive && $tours->isEmpty() ? TourSearch::whatsappUrl() : null,
             'regions' => Region::active()->orderBy('order')->get(),
@@ -141,14 +142,11 @@ class TourController extends Controller
 
     public function search(Request $request): View
     {
-        $q = trim((string) $request->query('q'));
+        // Mismo saneo/escape que ?q= de /tours (TourSearch): máx. 80 caracteres,
+        // LIKE escapado, y aquí además la descripción ES (comportamiento previo).
+        $q = (string) TourSearch::normalizeQuery($request->query('q'));
         $tours = Tour::published()
-            ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
-                $w->where('title_es', 'like', "%{$q}%")
-                  ->orWhere('title_en', 'like', "%{$q}%")
-                  ->orWhere('title_pt', 'like', "%{$q}%")
-                  ->orWhere('description_es', 'like', "%{$q}%");
-            }))
+            ->when($q !== '', fn ($query) => TourSearch::scopeText($query, $q, true))
             ->ordered()->paginate(12)->withQueryString();
 
         return view('tours.results', [

@@ -417,4 +417,11 @@ local',
     'see_experience' => 'Ver experiencia',
     'review_one' => 'reseña',
     'reviews_lower' => 'reseñas',
+    // Home FINAL: chips rápidos, tarjetas "Elige tu experiencia", banda de confianza, filtros de reseñas
+    'chip_duration_medio_dia' => 'Medio día',
+    'chip_duration_1_dia' => 'Día completo',
+    'chip_pickup' => 'Recojo incluido',
+    'chip_free_cancellation' => 'Cancelación gratuita',
+    'trust_cancellation_generic' => 'Cancelación',
+    'review_platform_web' => 'Sitio web',
 ];

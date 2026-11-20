@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Region;
 use App\Models\Setting;
 use App\Models\Tour;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -30,6 +31,19 @@ class TourSearch
     public const PARAM_EXPERIENCE = 'experiencia';
 
     public const PARAM_DESTINATION = 'destino';
+
+    /** Búsqueda de texto del hero (título/subtítulo/región/categoría). */
+    public const PARAM_QUERY = 'q';
+
+    public const QUERY_MAX_LENGTH = 80;
+
+    /** Máximo de palabras que se evalúan de `q` (todas deben coincidir). */
+    public const QUERY_MAX_TERMS = 5;
+
+    /** Máximo de chips rápidos del hero. */
+    public const QUICK_CHIPS_MAX = 8;
+
+    private const LOCALES = ['es', 'en', 'pt'];
 
     /** Valores válidos de ?duracion= (en orden de presentación). */
     public const DURATIONS = ['medio-dia', '1-dia', '2-mas-dias'];
@@ -67,7 +81,8 @@ class TourSearch
      *
      * @return array{
      *   action: string,
-     *   params: array{duration: string, experience: string, destination: string},
+     *   params: array{duration: string, experience: string, destination: string, query: string},
+     *   query_max: int,
      *   durations: array<int, array{value: string, label: string, count: int}>,
      *   experiences: array<int, array{value: string, label: string, count: int}>,
      *   destinations: array<int, array{value: string, label: string, count: int}>,
@@ -111,7 +126,9 @@ class TourSearch
                 'duration' => self::PARAM_DURATION,
                 'experience' => self::PARAM_EXPERIENCE,
                 'destination' => self::PARAM_DESTINATION,
+                'query' => self::PARAM_QUERY,
             ],
+            'query_max' => self::QUERY_MAX_LENGTH,
             'durations' => $durations,
             'experiences' => $experiences,
             'destinations' => $destinations,
@@ -147,7 +164,84 @@ class TourSearch
                 && Category::active()->where('slug', $experience)->exists() ? $experience : null,
             self::PARAM_DESTINATION => $destination !== null
                 && Region::active()->where('slug', $destination)->exists() ? $destination : null,
+            self::PARAM_QUERY => self::normalizeQuery($request->query(self::PARAM_QUERY)),
         ];
+    }
+
+    /**
+     * Texto libre de búsqueda saneado: solo string (un array `q[]=` se
+     * descarta), sin caracteres de control, espacios colapsados y máx. 80
+     * caracteres. Null si queda vacío. No se limita el alfabeto (acentos,
+     * ñ, ç...): el escape se hace al consultar (escapeLike) y al pintar ({{ }}).
+     */
+    public static function normalizeQuery(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $clean = preg_replace('/[\p{C}\s]+/u', ' ', $value);
+        if (! is_string($clean)) { // UTF-8 inválido
+            return null;
+        }
+
+        $clean = trim(mb_substr(trim($clean), 0, self::QUERY_MAX_LENGTH));
+
+        return $clean !== '' ? $clean : null;
+    }
+
+    /** Escapa % _ y el propio carácter de escape ('!') para usarlos en LIKE ... ESCAPE '!'. */
+    public static function escapeLike(string $term): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term);
+    }
+
+    /**
+     * Filtra por texto: cada palabra de $q (máx. 5) debe aparecer en el
+     * título o subtítulo (idioma actual + ES), en el nombre de la región o en
+     * el de la categoría. Con $withDescription también en la descripción ES.
+     * LIKE siempre con ESCAPE '!' y valores enlazados (nunca interpolados;
+     * los nombres de columna salen de una lista fija + locale en whitelist).
+     */
+    public static function scopeText(Builder $query, string $q, bool $withDescription = false, ?string $locale = null): Builder
+    {
+        $locale ??= app()->getLocale();
+        $locale = in_array($locale, self::LOCALES, true) ? $locale : 'es';
+        $grammar = $query->getQuery()->getGrammar();
+        $like = static fn (string $col): string => $grammar->wrap($col)." like ? escape '!'";
+
+        $terms = array_slice(
+            array_values(array_filter(preg_split('/[\s,;]+/u', $q) ?: [], static fn ($t) => $t !== '')),
+            0,
+            self::QUERY_MAX_TERMS
+        );
+
+        $tourCols = array_unique(["title_{$locale}", 'title_es', "subtitle_{$locale}", 'subtitle_es']);
+        if ($withDescription) {
+            $tourCols[] = 'description_es';
+        }
+        $nameCols = array_unique(["name_{$locale}", 'name_es']);
+
+        foreach ($terms as $term) {
+            $pattern = '%'.self::escapeLike($term).'%';
+
+            $query->where(function (Builder $w) use ($tourCols, $nameCols, $like, $pattern): void {
+                foreach ($tourCols as $col) {
+                    $w->orWhereRaw($like($col), [$pattern]);
+                }
+                foreach (['region', 'category'] as $relation) {
+                    $w->orWhereHas($relation, function (Builder $r) use ($nameCols, $like, $pattern): void {
+                        $r->where(function (Builder $n) use ($nameCols, $like, $pattern): void {
+                            foreach ($nameCols as $col) {
+                                $n->orWhereRaw($like($col), [$pattern]);
+                            }
+                        });
+                    });
+                }
+            });
+        }
+
+        return $query;
     }
 
     /**
@@ -168,6 +262,10 @@ class TourSearch
         if ($filters[self::PARAM_DESTINATION] ?? null) {
             $slug = $filters[self::PARAM_DESTINATION];
             $query->whereHas('region', fn ($q) => $q->where('slug', $slug));
+        }
+
+        if ($text = $filters[self::PARAM_QUERY] ?? null) {
+            self::scopeText($query, $text);
         }
 
         $tours = $query->get();
@@ -203,6 +301,7 @@ class TourSearch
             }
 
             $label = match ($param) {
+                self::PARAM_QUERY => $value,
                 self::PARAM_DURATION => self::durationLabel($value, $locale),
                 self::PARAM_EXPERIENCE => ($c = Category::where('slug', $value)->first()) ? (string) ($c->{"name_{$locale}"} ?: $c->name_es) : $value,
                 default => ($r = Region::where('slug', $value)->first()) ? (string) ($r->{"name_{$locale}"} ?: $r->name_es) : $value,

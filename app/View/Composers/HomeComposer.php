@@ -2,6 +2,9 @@
 
 namespace App\View\Composers;
 
+use App\Models\Testimonial;
+use App\Support\HomeFinalSections;
+use App\Support\HomeSearchChips;
 use App\Support\HomeSections;
 use App\Support\TourSearch;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +17,8 @@ use Illuminate\View\View;
  * nunca rompe el home: esa sección queda en null y se registra en el log.
  *
  * Variables: $homeSearch, $homeStar, $homeCompare, $homeStats,
- * $homeReviewStats, $homePromo. Ver contrato-datos.md.
+ * $homeReviewStats, $homePromo y (home FINAL) $homeChips, $homePick,
+ * $homeDestinations, $homeTrust, $homeReviews. Ver contrato-datos.md.
  */
 class HomeComposer
 {
@@ -29,6 +33,14 @@ class HomeComposer
             'homeStats' => $this->safe('stats', static fn () => HomeSections::stats()),
             'homeReviewStats' => $this->safe('review_stats', static fn () => HomeSections::reviewStats()),
             'homePromo' => $this->safe('promo', static fn () => HomeSections::promo()),
+            // Home FINAL (diseño aprobado 20-nov). Ver contrato-datos.md, "FINAL HOME".
+            'homeChips' => $this->safe('chips', static fn () => ($search['has_options'] ?? false) ? HomeSearchChips::all() : []) ?? [],
+            'homePick' => $this->safe('pick', static fn () => HomeFinalSections::pickTours()),
+            'homeDestinations' => $this->safe('destinations', static fn () => HomeFinalSections::destinations()) ?? [],
+            'homeTrust' => $this->safe('trust', static fn () => HomeFinalSections::trust()),
+            'homeReviews' => $this->safe('reviews', static fn () => HomeFinalSections::reviews(
+                $view->getData()['testimonials'] ?? Testimonial::published()->featured()->orderBy('order')->limit(8)->get()
+            )),
         ]);
     }
 

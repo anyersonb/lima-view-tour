@@ -140,8 +140,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     {{-- Fuentes (display=swap) sin bloquear el render: la hoja se aplica al cargar; sin JS, el <noscript> la carga normal. --}}
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700&family=Hedvig+Letters+Serif:opsz@12..24&family=Instrument+Serif:ital@0;1&display=swap" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700&family=Hedvig+Letters+Serif:opsz@12..24&family=Instrument+Serif:ital@0;1&display=swap"></noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700&family=Hedvig+Letters+Serif:opsz@12..24&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700&family=Hedvig+Letters+Serif:opsz@12..24&family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap"></noscript>
 
     @php
         // Configuración → SEO → "Schema global del sitio". Vacío por defecto:
@@ -260,7 +260,7 @@
     {{-- CRO móvil 18-nov-2026: CSS plano SIN build (no depende de recompilar Vite). Va DESPUÉS de Vite y de los
          <style> de cada vista para ganar por orden de cascada. Subir ?v= en cada cambio. --}}
     <link rel="stylesheet" href="{{ asset('css/cro-fixes.css') }}?v=20261119b">
-    <link rel="stylesheet" href="{{ asset('css/redesign.css') }}?v=20261120a">
+    <link rel="stylesheet" href="{{ asset('css/redesign.css') }}?v=20261120g">
 </head>
 <body class="bg-white @yield('body_class')">
     {{-- Sin <noscript> de GTM: el iframe no aporta medicion util (los eventos dependen de JS). --}}

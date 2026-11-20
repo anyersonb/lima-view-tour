@@ -119,7 +119,7 @@ class Settings extends Page implements HasForms
         $repeaterKeys = [
             'home_destinos', 'home_why_items', 'home_tour_type_tabs',
             'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
-            'home_choose_items', 'pickup_zones',
+            'home_choose_items', 'pickup_zones', 'home_search_chips',
             'home_star_milestones_es', 'home_star_milestones_en', 'home_star_milestones_pt',
         ];
         foreach ($repeaterKeys as $rk) {
@@ -456,6 +456,65 @@ class Settings extends Page implements HasForms
                                     ->label('Tours — Etiqueta')
                                     ->placeholder('Tours únicos')
                                     ->maxLength(40),
+                            ]),
+
+                        // ── Banda de confianza: cancelación ───────────────────
+                        \Filament\Forms\Components\Section::make('Banda de confianza — Cancelación')
+                            ->description('Primer indicador de la banda de confianza (ej. "Cancelación gratuita" / "Hasta 24 h antes"). Si lo dejas vacío en los tres idiomas se usa el "Resumen de cancelación" de Datos legales; si tampoco hay, el indicador no se muestra. Escribe SOLO lo que realmente ofreces.')
+                            ->collapsible()
+                            ->collapsed()
+                            ->columns(2)
+                            ->schema(array_merge(
+                                ...array_map(static fn (string $l, string $n): array => [
+                                    TextInput::make("home_trust_cancel_title_{$l}")
+                                        ->label("Título corto ({$n})")
+                                        ->placeholder($l === 'es' ? 'Cancelación gratuita' : null)
+                                        ->maxLength(40)
+                                        ->helperText($l === 'es' ? 'Vacío = se usa el resumen de Datos legales.' : 'Vacío = se usa el de español.'),
+                                    TextInput::make("home_trust_cancel_text_{$l}")
+                                        ->label("Detalle ({$n})")
+                                        ->placeholder($l === 'es' ? 'Hasta 24 h antes' : null)
+                                        ->maxLength(80)
+                                        ->helperText('Opcional. Vacío = solo se muestra el título.'),
+                                ], ['es', 'en', 'pt'], ['Español', 'English', 'Português'])
+                            )),
+
+                        // ── Chips rápidos del buscador ────────────────────────
+                        \Filament\Forms\Components\Section::make('Chips rápidos del buscador (hero)')
+                            ->description('Botones bajo la caja de búsqueda del inicio (ej. "Medio día", "Historia"). Si no añades ninguno, el sitio genera solos los de duración y categorías que tengan tours. Un chip cuyo destino no tenga tours publicados no se muestra. Máximo 8.')
+                            ->collapsible()
+                            ->collapsed()
+                            ->schema([
+                                Repeater::make('home_search_chips')
+                                    ->label('Chips del buscador')
+                                    ->schema([
+                                        TextInput::make('label_es')->label('Texto (Español)')->required()->maxLength(40),
+                                        TextInput::make('label_en')->label('Texto (English)')->maxLength(40)->helperText('Vacío = se usa el de español.'),
+                                        TextInput::make('label_pt')->label('Texto (Português)')->maxLength(40)->helperText('Vacío = se usa el de español.'),
+                                        Select::make('type')
+                                            ->label('Qué filtra')
+                                            ->options(['duracion' => 'Duración', 'categoria' => 'Categoría', 'destino' => 'Destino (región)'])
+                                            ->required()
+                                            ->live()
+                                            ->afterStateUpdated(fn (\Filament\Forms\Set $set) => $set('value', null)),
+                                        Select::make('value')
+                                            ->label('Valor')
+                                            ->required()
+                                            ->options(fn (\Filament\Forms\Get $get): array => match ($get('type')) {
+                                                'duracion' => collect(\App\Support\TourSearch::DURATIONS)
+                                                    ->mapWithKeys(fn (string $d) => [$d => \App\Support\TourSearch::durationLabel($d, 'es')])->all(),
+                                                'categoria' => \App\Models\Category::active()->orderBy('order')->pluck('name_es', 'slug')->all(),
+                                                'destino' => \App\Models\Region::active()->orderBy('order')->pluck('name_es', 'slug')->all(),
+                                                default => [],
+                                            }),
+                                    ])
+                                    ->columns(2)
+                                    ->maxItems(8)
+                                    ->defaultItems(0)
+                                    ->reorderable()
+                                    ->addActionLabel('Añadir chip')
+                                    ->itemLabel(fn (array $state): ?string => $state['label_es'] ?? null)
+                                    ->helperText('Para chips como "Historia" o "Arqueología" apúntalos a una categoría existente (créala antes en Categorías si no existe).'),
                             ]),
 
                         // ── Tour estrella ─────────────────────────────────────
@@ -1219,7 +1278,7 @@ class Settings extends Page implements HasForms
             // Serialize Repeater fields as JSON string
             $jsonRepeaterKeys = ['faqs', 'home_destinos', 'home_why_items', 'home_tour_type_tabs',
                 'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
-                'home_choose_items', 'pickup_zones',
+                'home_choose_items', 'pickup_zones', 'home_search_chips',
                 'home_star_milestones_es', 'home_star_milestones_en', 'home_star_milestones_pt'];
             if (in_array($key, $jsonRepeaterKeys, true)) {
                 Setting::set($key, json_encode(is_array($value) ? $value : []));

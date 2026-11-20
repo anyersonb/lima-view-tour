@@ -31,13 +31,14 @@ class TestimonialResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
+                Forms\Components\TextInput::make('name')->label('Nombre del viajero')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('country')
+                Forms\Components\TextInput::make('country')->label('País')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('avatar')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->helperText('Opcional. Enlace (https://...) o ruta de la foto del viajero. Vacío = se muestran sus iniciales.'),
                 Forms\Components\TextInput::make('title_es')
                     ->label('Título (Español)')
                     ->maxLength(255)
@@ -52,15 +53,15 @@ class TestimonialResource extends Resource
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('quote_es')
                     ->required()
-                    ->label('Comentário (Español)')
+                    ->label('Comentario (Español)')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('quote_en')
-                    ->label('Comentário (English)')
+                    ->label('Comentario (English)')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('quote_pt')
-                    ->label('Comentário (Português)')
+                    ->label('Comentario (Português)')
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('rating')
+                Forms\Components\TextInput::make('rating')->label('Calificación (1 a 5)')
                     ->required()
                     ->numeric()
                     ->minValue(1)
@@ -82,9 +83,12 @@ class TestimonialResource extends Resource
                     ->native(false)
                     ->helperText('Vacío = se usa la fecha de creación del registro.'),
                 Forms\Components\TextInput::make('source')
+                    ->label('Origen (plataforma)')
                     ->required()
                     ->maxLength(255)
-                    ->default('Google'),
+                    ->default('Google')
+                    ->datalist(['Google', 'Tripadvisor', 'Viator', 'Web'])
+                    ->helperText('Plataforma donde se publicó la reseña: Google, Tripadvisor, Viator o Web. Con eso funciona el filtro por plataforma del inicio; solo aparecen las plataformas que tengan reseñas visibles.'),
                 Forms\Components\Select::make('status')
                     ->label('Estado de moderación')
                     ->options([
@@ -96,12 +100,12 @@ class TestimonialResource extends Resource
                     ->native(false)
                     ->required()
                     ->helperText('Solo "Aprobado" + "Aprobado" (interruptor de abajo) sale al sitio público.'),
-                Forms\Components\Toggle::make('is_featured')
+                Forms\Components\Toggle::make('is_featured')->label('Destacado en el home')
                     ->required(),
                 Forms\Components\Toggle::make('is_active')
                     ->label('Aprobado (visible en el sitio)')
                     ->required(),
-                Forms\Components\TextInput::make('order')
+                Forms\Components\TextInput::make('order')->label('Orden')
                     ->required()
                     ->numeric()
                     ->default(0),
@@ -118,6 +122,7 @@ class TestimonialResource extends Resource
                     ->reorderable()
                     ->disk('public')
                     ->directory('reviews')
+                    ->maxFiles(4)
                     ->maxSize(4096)
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->rules([static::photoExtensionRule()])
@@ -136,7 +141,7 @@ class TestimonialResource extends Resource
                         'image/png' => 'png',
                         'image/webp' => 'webp',
                     ]))
-                    ->helperText('JPG, PNG o WEBP, máx. 4MB cada una. No se muestran hoy en el sitio (fase 2).')
+                    ->helperText('Hasta 4 fotos (JPG, PNG o WEBP, máx. 4 MB cada una). Se muestran dentro de la reseña en el inicio y activan el filtro "Con fotos". Sin fotos = la reseña no lleva galería.')
                     ->columnSpanFull(),
             ]);
     }
