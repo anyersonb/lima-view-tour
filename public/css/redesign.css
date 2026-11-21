@@ -1234,3 +1234,11 @@ html.fh-sh-lock, html.fh-sh-lock body { overflow: hidden; }
 @media (max-width: 359.98px) { .fh-card__was { flex-wrap: wrap; } }
 /* 21-nov g (ajuste): 4 columnas desde 768 (mi base móvil de 2 columnas va después de la regla de escritorio y la pisaba) */
 @media (min-width: 768px) { .fh-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* 21-nov h: la columna interna de la tarjeta no puede crecer más que la tarjeta (precio de 3 cifras + descuento la ensanchaba) */
+.fh-card { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.fh-card__body { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.fh-card__body > * { min-width: 0; }
+.fh-card__chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fh-card__amt { min-width: 0; }
+.fh-card__lbl { white-space: normal; overflow: visible; text-overflow: clip; letter-spacing: .03em; line-height: 1.15; }
