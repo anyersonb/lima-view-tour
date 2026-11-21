@@ -229,6 +229,10 @@ class CartService
      */
     public function applyCoupon(string $code): array
     {
+        if (! self::couponsEnabled()) {
+            return ['success' => false, 'message' => __('cart.coupon_invalid'), 'discount' => 0.0];
+        }
+
         $code = strtoupper(trim($code));
         $coupons = config('cart.coupons', []);
 
@@ -281,11 +285,19 @@ class CartService
 
     public function couponCode(): ?string
     {
+        if (! self::couponsEnabled()) {
+            return null;
+        }
+
         return Session::get(self::SESSION_COUPON.'.code');
     }
 
     public function couponDiscount(): float
     {
+        if (! self::couponsEnabled()) {
+            return 0.0;
+        }
+
         $stored = Session::get(self::SESSION_COUPON);
 
         if (! $stored) {
@@ -306,6 +318,15 @@ class CartService
         Session::put(self::SESSION_COUPON.'.discount', $discount);
 
         return $discount;
+    }
+
+    /**
+     * Cupones apagados por pedido del cliente (21-nov-2026): sin campo visible y los
+     * códigos fijos de config/cart.php estaban en el repo. Reactivar con CART_COUPONS_ENABLED=true.
+     */
+    public static function couponsEnabled(): bool
+    {
+        return (bool) config('cart.coupons_enabled', false);
     }
 
     public function total(): float

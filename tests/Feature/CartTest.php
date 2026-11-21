@@ -101,8 +101,23 @@ class CartTest extends TestCase
         $this->assertCount(0, $service->items());
     }
 
+    public function test_coupons_are_disabled_by_default(): void
+    {
+        $tour = $this->tour(['price' => 200]);
+        $service = $this->cartService();
+        $service->add($tour, 2, 0, now()->addDays(5)->format('Y-m-d'));
+
+        $this->post(route('cart.coupon', ['locale' => self::LOCALE]), ['code' => 'LIMA10'])
+            ->assertSessionHas('error');
+
+        $this->assertNull($service->couponCode());
+        $this->assertEquals(0.0, $service->couponDiscount());
+        $this->assertEquals(400.00, $service->total());
+    }
+
     public function test_user_can_apply_valid_coupon_percent(): void
     {
+        config(['cart.coupons_enabled' => true]);
         $tour = $this->tour(['price' => 200]);
         $service = $this->cartService();
 
@@ -124,6 +139,7 @@ class CartTest extends TestCase
 
     public function test_user_can_apply_valid_coupon_fixed(): void
     {
+        config(['cart.coupons_enabled' => true]);
         $tour = $this->tour(['price' => 100]);
         $service = $this->cartService();
 
@@ -158,6 +174,7 @@ class CartTest extends TestCase
 
     public function test_clear_cart(): void
     {
+        config(['cart.coupons_enabled' => true]);
         $tour = $this->tour();
         $service = $this->cartService();
 

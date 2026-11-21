@@ -10,6 +10,8 @@ return [
     | type: 'percent' applies value as %, 'fixed' subtracts flat amount.
     |
     */
+    'coupons_enabled' => (bool) env('CART_COUPONS_ENABLED', false),
+
     'coupons' => [
         'LIMA10'    => ['type' => 'percent', 'value' => 10],
         'WELCOME20' => ['type' => 'percent', 'value' => 20],
