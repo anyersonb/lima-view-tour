@@ -614,7 +614,7 @@
                             <h3><a href="{{ $ct['url'] }}">{{ $ct['title'] }}</a></h3>
                             <dl>
                                 <div><dt>{{ $L('Precio', 'Price', 'Preço') }}</dt><dd>{{ __('ui.from') }} US${{ number_format($ct['price'], 0) }}</dd></div>
-                                @if ($ct['duration'])<div><dt>{{ $L('Duración', 'Duration', 'Duração') }}</dt><dd>{{ $ct['duration'] }}</dd></div>@endif
+                                @if ($ct['duration'])<div><dt>{{ $L('Duración', 'Duration', 'Duração') }}</dt><dd>{{ \App\Support\TourListing::durationLabel($ct['duration']) }}</dd></div>@endif
                                 @if ($ct['category'])<div><dt>{{ $L('Tipo', 'Type', 'Tipo') }}</dt><dd>{{ $ct['category'] }}</dd></div>@endif
                                 @if ($ct['region'])<div><dt>{{ $L('Destino', 'Destination', 'Destino') }}</dt><dd>{{ $ct['region'] }}</dd></div>@endif
                                 <div><dt>{{ $L('Recojo', 'Pickup', 'Transporte') }}</dt><dd>{{ $ct['pickup'] ? $L('Incluido', 'Included', 'Incluído') : $L('No incluido', 'Not included', 'Não incluído') }}</dd></div>

@@ -31,7 +31,7 @@ final class TourJsonLd
     {
         $locale = $locale ?: app()->getLocale();
 
-        return self::withFaqPage(self::custom($tour, $locale), $tour, $locale);
+        return self::withFaqPage(self::syncOfferPrice(self::custom($tour, $locale), $tour), $tour, $locale);
     }
 
     /**
@@ -132,6 +132,64 @@ final class TourJsonLd
         $data = self::localise($data, $tour, $locale);
 
         return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * The editor types "offers" by hand, so the price goes stale when tours.price
+     * changes. At render time every Offer node (root, @graph, nested) gets the
+     * tour's current price/currency. Nothing is saved; invalid JSON is left as is.
+     */
+    private static function syncOfferPrice(?string $json, Tour $tour): ?string
+    {
+        if ($json === null) {
+            return null;
+        }
+
+        $data = json_decode($json, true);
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($data)) {
+            return $json;
+        }
+
+        $price = self::formatPrice($tour->price);
+        if ($price === null) {
+            return $json;
+        }
+
+        $currency = strtoupper(trim((string) ($tour->currency ?? ''))) ?: 'USD';
+        $found = false;
+        $data = self::syncOffers($data, $price, $currency, $found);
+
+        return $found ? json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : $json;
+    }
+
+    /** "30.00" -> "30", "30.50" -> "30.5". */
+    public static function formatPrice(mixed $price): ?string
+    {
+        if ($price === null || ! is_numeric($price)) {
+            return null;
+        }
+
+        $out = rtrim(rtrim(number_format((float) $price, 2, '.', ''), '0'), '.');
+
+        return $out === '' ? '0' : $out;
+    }
+
+    /** @return array<mixed> */
+    private static function syncOffers(array $node, string $price, string $currency, bool &$found): array
+    {
+        foreach ($node as $key => $value) {
+            if (is_array($value)) {
+                $node[$key] = self::syncOffers($value, $price, $currency, $found);
+            }
+        }
+
+        if (! array_is_list($node) && in_array('Offer', (array) ($node['@type'] ?? []), true)) {
+            $node['price'] = $price;
+            $node['priceCurrency'] = $currency;
+            $found = true;
+        }
+
+        return $node;
     }
 
     /** Canonical URL of the tour page in the given locale. */

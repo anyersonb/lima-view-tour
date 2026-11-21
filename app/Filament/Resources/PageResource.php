@@ -848,14 +848,16 @@ class PageResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('slug')
+                    ->label('Enlace (slug)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('title_es')
                     ->label('Título ES')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('title_en')
-                    ->label('Title EN')
+                    ->label('Título EN')
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('hero_image')
+                    ->label('Imagen principal')
                     ->getStateUsing(fn ($record) => ImagePath::url($record->hero_image)),
                 Tables\Columns\TextColumn::make('meta_title_es')
                     ->label('Meta título (ES)')
@@ -869,10 +871,12 @@ class PageResource extends Resource
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

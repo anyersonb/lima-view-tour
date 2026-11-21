@@ -77,30 +77,42 @@ class ContactLeadResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Nombre')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('lastname')
+                    ->label('Apellido')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->label('Correo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('phone')
+                    ->label('Teléfono')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('source')
+                    ->label('Origen')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('locale')
+                    ->label('Idioma')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('ip')
+                    ->label('IP')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('user_agent')
+                    ->label('Navegador')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_read')
+                    ->label('Leído')
                     ->boolean(),
                 Tables\Columns\IconColumn::make('is_archived')
+                    ->label('Archivado')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

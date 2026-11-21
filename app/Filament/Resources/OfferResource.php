@@ -50,13 +50,13 @@ class OfferResource extends Resource
                 Forms\Components\Textarea::make('description_pt')
                     ->label('Descrição (Português)')
                     ->columnSpanFull(),
-                Forms\Components\FileUpload::make('image')
+                Forms\Components\FileUpload::make('image')->label('Imagen')
                     ->fetchFileInformation(false)
                     ->image()
                     // Hallazgo de seguridad #5 (2026-09-30): nombre en disco
                     // desde el MIME detectado, nunca la extensión del cliente.
                     ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
-                Forms\Components\TextInput::make('price')
+                Forms\Components\TextInput::make('price')->label('Precio')
                     ->numeric()
                     ->prefix('$'),
                 Forms\Components\TextInput::make('cta_label_es')
@@ -104,36 +104,49 @@ class OfferResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('title_es')
+                    ->label('Título (ES)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('title_en')
+                    ->label('Título (EN)')
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('image')
+                    ->label('Imagen')
                     ->getStateUsing(fn ($record) => ImagePath::url($record->image)),
                 Tables\Columns\TextColumn::make('price')
+                    ->label('Precio')
                     ->money()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('cta_label_es')
+                    ->label('Texto del botón (ES)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('cta_label_en')
+                    ->label('Texto del botón (EN)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('cta_url')
+                    ->label('Enlace del botón')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('tour.id')
+                    ->label('Tour (ID)')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')
+                    ->label('Activo')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('order')
+                    ->label('Orden')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('valid_until')
+                    ->label('Válida hasta')
                     ->dateTime()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

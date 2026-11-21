@@ -1673,7 +1673,7 @@ if (!empty($itinerary)) {
                         $relReviews = $relStats['total'];
                         $relCover   = is_object($rel) && method_exists($rel, 'getCoverUrlAttribute') ? $rel->cover_url : ($rel->cover_url ?? asset('assets/banners/banner-hero.jpg'));
                         $relCard    = \App\Support\ImageVariants::card($rel->cover_image ?? null, '126px');
-                        $relDuration= is_object($rel) ? ($rel->duration ?? 'Full Day') : ($rel->duration ?? 'Full Day');
+                        $relDuration= \App\Support\TourListing::durationLabel($rel->duration ?? null) ?? __('ui.duration_full_day');
                         $relHasOffer= $relBefore && (float)$relBefore > $relPrice;
                         $relPct     = $relHasOffer ? (int) round(((float)$relBefore - $relPrice) / (float)$relBefore * 100) : 0;
                         $relHref    = $relSlug !== '#' ? route('tours.show', ['locale' => $locale, 'slug' => $relSlug]) : '#';
@@ -2409,7 +2409,7 @@ if (!empty($itinerary)) {
                         $relRating  = $relStats['average'] !== null ? number_format($relStats['average'], 1) : null;
                         $relReviews = $relStats['total'];
                         $relCover   = is_object($rel) && method_exists($rel, 'getCoverUrlAttribute') ? $rel->cover_url : ($rel->cover_url ?? asset('assets/banners/banner-hero.jpg'));
-                        $relDuration= is_object($rel) ? ($rel->duration ?? 'Full Day') : ($rel->duration ?? 'Full Day');
+                        $relDuration= \App\Support\TourListing::durationLabel($rel->duration ?? null) ?? __('ui.duration_full_day');
                         $relHasOffer = $relBefore && (float)$relBefore > (float)$relPrice;
                         $relPct = $relHasOffer ? (int) round(((float)$relBefore - (float)$relPrice) / (float)$relBefore * 100) : 0;
                         $relHref = $relSlug !== '#' ? route('tours.show', ['locale' => $locale, 'slug' => $relSlug]) : '#';

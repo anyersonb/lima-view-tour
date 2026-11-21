@@ -216,7 +216,7 @@
                             <h2>{{ $item['title_snapshot'] }}</h2>
                             @if (filled($item['duration'] ?? null) || $guide)
                                 <div class="co-tags">
-                                    @if (filled($item['duration'] ?? null))<span class="co-tag">{{ $item['duration'] }}</span>@endif
+                                    @if (filled($item['duration'] ?? null))<span class="co-tag">{{ \App\Support\TourListing::durationLabel($item['duration']) }}</span>@endif
                                     @if ($guide)<span class="co-tag co-tag--alt">{{ __('checkout_ui.guide', ['lang' => $guide]) }}</span>@endif
                                 </div>
                             @endif
@@ -472,7 +472,13 @@
         'locale' => $locale,
         'checkout' => $checkout,
         'items' => $jsItems,
-        'coupon' => ['code' => $couponCode, 'discount' => (float) $checkout['discount']],
+        // type/value permiten replicar el descuento en el recálculo optimista del JS (el servidor reconcilia).
+        'coupon' => [
+            'code' => $couponCode,
+            'discount' => (float) $checkout['discount'],
+            'type' => $couponCode ? config('cart.coupons.'.$couponCode.'.type') : null,
+            'value' => $couponCode ? config('cart.coupons.'.$couponCode.'.value') : null,
+        ],
         'defaultMode' => $defaultMode,
         'defaultMethod' => $defaultMethod,
         'hasGateway' => $hasGateway,
@@ -531,6 +537,6 @@
 <script src="https://www.paypal.com/sdk/js?client-id={{ $paypalClientId }}&currency=USD&intent=capture&locale={{ $paypalLocale }}&components=buttons&disable-funding=card,credit,paylater" data-namespace="paypal_sdk" defer></script>
 @endif
 <script>window.LVT_CO = {!! json_encode($coConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!};</script>
-<script src="{{ asset('js/checkout.js') }}?v=20261121b" defer></script>
+<script src="{{ asset('js/checkout.js') }}?v=20261121d" defer></script>
 @endpush
 @endif

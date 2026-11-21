@@ -37,6 +37,42 @@ class BookingResource extends Resource
         return 'success';
     }
 
+    /** @return array<string, string> */
+    public static function statusOptions(): array
+    {
+        return [
+            'pending' => 'Pendiente',
+            'confirmed' => 'Confirmada',
+            'cancelled' => 'Cancelada',
+            'completed' => 'Completada',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function paymentStatusOptions(): array
+    {
+        return [
+            'pending' => 'Por pagar',
+            'partial' => 'Adelanto pagado (falta el saldo)',
+            'paid' => 'Pagado',
+            'refunded' => 'Reembolsado',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function paymentMethodOptions(): array
+    {
+        return [
+            'pay_later' => 'Pagar luego',
+            'paypal' => 'PayPal',
+            'card' => 'Pago con tarjeta',
+            'culqi' => 'Culqi (tarjeta)',
+            'payment_link' => 'Link de pago',
+            'cash' => 'Efectivo',
+            'transfer' => 'Transferencia',
+        ];
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -206,23 +242,13 @@ class BookingResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('status')
                             ->label('Estado de la reserva')
-                            ->options([
-                                'pending' => 'Pendiente',
-                                'confirmed' => 'Confirmada',
-                                'cancelled' => 'Cancelada',
-                                'completed' => 'Completada',
-                            ])
+                            ->options(self::statusOptions())
                             ->default('pending')
                             ->required()
                             ->native(false),
                         Forms\Components\Select::make('payment_status')
                             ->label('Estado del pago')
-                            ->options([
-                                'pending' => 'Por pagar',
-                                'partial' => 'Adelanto pagado (falta el saldo)',
-                                'paid' => 'Pagado',
-                                'refunded' => 'Reembolsado',
-                            ])
+                            ->options(self::paymentStatusOptions())
                             ->default('pending')
                             ->required()
                             ->native(false)
@@ -235,15 +261,7 @@ class BookingResource extends Resource
                             }),
                         Forms\Components\Select::make('payment_method')
                             ->label('Método de pago')
-                            ->options([
-                                'pay_later' => 'Pagar luego',
-                                'paypal' => 'PayPal',
-                                'card' => 'Pago con tarjeta',
-                                'culqi' => 'Culqi (tarjeta)',
-                                'payment_link' => 'Link de pago',
-                                'cash' => 'Efectivo',
-                                'transfer' => 'Transferencia',
-                            ])
+                            ->options(self::paymentMethodOptions())
                             ->default('pay_later')
                             ->native(false)
                             ->live(),
@@ -357,18 +375,24 @@ class BookingResource extends Resource
                     ->description(fn ($record) => $record->tour_id ? null : 'Personalizado')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('customer_name')
+                    ->label('Cliente')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('customer_email')
+                    ->label('Correo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('customer_phone')
+                    ->label('Teléfono')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('travel_date')
-                    ->date()
+                    ->label('Fecha del tour')
+                    ->date('d/m/Y')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('adults')
+                    ->label('Adultos')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('children')
+                    ->label('Niños')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('unit_price')
@@ -388,13 +412,7 @@ class BookingResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
-                    ->formatStateUsing(fn (string $state) => match ($state) {
-                        'pending' => 'Pendiente',
-                        'confirmed' => 'Confirmada',
-                        'cancelled' => 'Cancelada',
-                        'completed' => 'Completada',
-                        default => $state,
-                    })
+                    ->formatStateUsing(fn (string $state) => self::statusOptions()[$state] ?? $state)
                     ->color(fn (string $state) => match ($state) {
                         'confirmed', 'completed' => 'success',
                         'cancelled' => 'danger',
@@ -404,11 +422,9 @@ class BookingResource extends Resource
                     ->label('Pago')
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'paid' => 'Pagado',
                         'partial' => 'Adelanto pagado',
-                        'pending' => 'Por pagar',
-                        'refunded' => 'Reembolsado',
-                        default => $state,
+                        'failed' => 'Fallido',
+                        default => self::paymentStatusOptions()[$state] ?? $state,
                     })
                     ->color(fn (string $state) => match ($state) {
                         'paid' => 'success',
@@ -434,16 +450,7 @@ class BookingResource extends Resource
                 ] : []),
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Método')
-                    ->formatStateUsing(fn (?string $state) => match ($state) {
-                        'pay_later' => 'Pagar luego',
-                        'paypal' => 'PayPal',
-                        'card' => 'Pago con tarjeta',
-                        'culqi' => 'Culqi (tarjeta)',
-                        'payment_link' => 'Link de pago',
-                        'cash' => 'Efectivo',
-                        'transfer' => 'Transferencia',
-                        default => $state ?: '—',
-                    })
+                    ->formatStateUsing(fn (?string $state) => self::paymentMethodOptions()[(string) $state] ?? ($state ?: '—'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('payment_reference')
                     ->label('Ref. pago')
@@ -461,6 +468,8 @@ class BookingResource extends Resource
                         ->toggleable(isToggledHiddenByDefault: true),
                 ] : []),
                 Tables\Columns\TextColumn::make('locale')
+                    ->label('Idioma del cliente')
+                    ->formatStateUsing(fn (?string $state): string => ['es' => 'Español', 'en' => 'English', 'pt' => 'Português'][$state] ?? (string) $state)
                     ->searchable(),
                 ...(\App\Support\TourLanguage::hasColumn() ? [
                     Tables\Columns\TextColumn::make('tour_language')
@@ -476,11 +485,13 @@ class BookingResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Creada el')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Actualizada el')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -499,12 +510,7 @@ class BookingResource extends Resource
 
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Estado de la reserva')
-                    ->options([
-                        'pending' => 'Pendiente',
-                        'confirmed' => 'Confirmada',
-                        'cancelled' => 'Cancelada',
-                        'completed' => 'Completada',
-                    ])
+                    ->options(self::statusOptions())
                     ->multiple(),
 
                 // ── Fechas ───────────────────────────────────────────────────

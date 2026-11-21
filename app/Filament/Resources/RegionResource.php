@@ -52,7 +52,7 @@ class RegionResource extends Resource
                 Forms\Components\Textarea::make('description_pt')
                     ->label('Descrição (Português)')
                     ->columnSpanFull(),
-                Forms\Components\FileUpload::make('hero_image')
+                Forms\Components\FileUpload::make('hero_image')->label('Imagen principal')
                     ->fetchFileInformation(false)
                     ->image()
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
@@ -83,7 +83,7 @@ class RegionResource extends Resource
                     ->label('Meta description (los 3 idiomas)')
                     ->maxLength(320)
                     ->helperText('Mismo criterio que el title: la meta por idioma de Configuración → SEO manda sobre esto.'),
-                Forms\Components\FileUpload::make('seo_image')
+                Forms\Components\FileUpload::make('seo_image')->label('Imagen para redes (SEO)')
                     ->fetchFileInformation(false)
                     ->image()
                     ->getUploadedFileNameForStorageUsing(ImageOptimizer::safeImageNamer()),
@@ -95,33 +95,46 @@ class RegionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('slug')
+                    ->label('Enlace (slug)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name_es')
+                    ->label('Nombre (ES)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name_en')
+                    ->label('Nombre (EN)')
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('hero_image')
+                    ->label('Imagen principal')
                     ->getStateUsing(fn ($record) => ImagePath::url($record->hero_image)),
                 Tables\Columns\TextColumn::make('eyebrow_es')
+                    ->label('Antetítulo (ES)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('eyebrow_en')
+                    ->label('Antetítulo (EN)')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_active')
+                    ->label('Activo')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('order')
+                    ->label('Orden')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('seo_title')
+                    ->label('Título SEO')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('seo_description')
+                    ->label('Descripción SEO')
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('seo_image')
+                    ->label('Imagen SEO')
                     ->getStateUsing(fn ($record) => ImagePath::url($record->seo_image)),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

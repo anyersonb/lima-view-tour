@@ -50,7 +50,7 @@ class CategoryResource extends Resource
                 Forms\Components\Textarea::make('description_pt')
                     ->label('Descrição (Português)')
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('icon')
+                Forms\Components\TextInput::make('icon')->label('Ícono')
                     ->maxLength(255),
                 Forms\Components\Toggle::make('is_active')
                     ->required(),
@@ -66,23 +66,31 @@ class CategoryResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('slug')
+                    ->label('Enlace (slug)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name_es')
+                    ->label('Nombre (ES)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name_en')
+                    ->label('Nombre (EN)')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('icon')
+                    ->label('Ícono')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_active')
+                    ->label('Activo')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('order')
+                    ->label('Orden')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

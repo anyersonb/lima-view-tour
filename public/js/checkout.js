@@ -1,9 +1,12 @@
 /*
  * Checkout nuevo (21-nov-2026) — pantalla única.
  * Consume window.LVT_CO (inyectado por resources/views/checkout.blade.php) y los
- * endpoints del back (CheckoutController / CartController). NO calcula dinero:
- * los montos salen de LVT_CO.checkout.modes (servidor) y se refrescan con
- * GET checkout.summary tras editar el carrito. Al servidor solo viaja el MODO.
+ * endpoints del back (CheckoutController / CartController).
+ * Los montos oficiales salen del servidor (LVT_CO.checkout.modes y GET checkout.summary).
+ * Al editar personas se hace un recálculo OPTIMISTA local (mismo redondeo a centavos que
+ * App\Support\PaymentPlan / CartService) para que la UI responda al instante; el request al
+ * servidor va con debounce y su respuesta MANDA (reconcilia). Antes de cobrar/revisar se
+ * espera a que no haya cambios sin confirmar. Al servidor solo viaja el MODO.
  */
 (function () {
     'use strict';
@@ -23,6 +26,12 @@
         checkout: C.checkout,
         items: C.items.slice(),
         busy: false,
+        edits: 0,           // contador de ediciones locales (descarta respuestas viejas)
+        dirty: 0,           // cajas con cambio local aún no enviado
+        inflight: 0,        // PATCH+summary en vuelo
+        calculating: false, // no se pudo replicar el total localmente
+        serverCheckout: C.checkout,
+        waiters: [],
         paypalRendered: false,
         lastFocus: null,
     };
@@ -54,6 +63,41 @@
         if (b && b.items && b.items.length) track('begin_checkout', b, { fb: 'InitiateCheckout' });
     }
 
+    // ── Cálculo local optimista (réplica de PaymentPlan/CartService, en centavos) ──
+    function toCents(x) { return Math.round(Number(x) * 100 + (x >= 0 ? 1e-7 : -1e-7)); }
+    function round2(x) { return toCents(x) / 100; }
+
+    // Devuelve el checkout recalculado o null si no se puede replicar con certeza.
+    function localCheckout() {
+        var sub = 0;
+        state.items.forEach(function (it) { sub += toCents(round2(it.unit_price * (it.adults + it.children))); });
+        var subtotal = sub / 100, discount = 0;
+        var cp = C.coupon || {};
+        if (cp.code) {
+            if (cp.type === 'percent' && cp.value != null) discount = round2(subtotal * Number(cp.value) / 100);
+            else if (cp.type === 'fixed' && cp.value != null) discount = Math.min(Number(cp.value), subtotal);
+            else return null; // cupón desconocido: que decida el servidor
+        }
+        var totalCents = Math.max(0, toCents(round2(subtotal - discount)));
+        function split(mode) {
+            var due = mode === 'full' ? totalCents : (mode === 'deposit' ? Math.round(totalCents * 50 / 100) : 0);
+            return { mode: mode, total: totalCents / 100, due: due / 100, balance: (totalCents - due) / 100,
+                total_cents: totalCents, due_cents: due, balance_cents: totalCents - due };
+        }
+        return { subtotal: subtotal, discount: discount, total: totalCents / 100, total_cents: totalCents,
+            modes: { full: split('full'), deposit: split('deposit'), later: split('later') } };
+    }
+
+    function applyLocal() {
+        var l = localCheckout();
+        if (!l) { state.calculating = true; return; }
+        state.calculating = false;
+        var k = {}, x;
+        for (x in state.checkout) k[x] = state.checkout[x];
+        k.subtotal = l.subtotal; k.discount = l.discount; k.total = l.total; k.total_cents = l.total_cents; k.modes = l.modes;
+        state.checkout = k;
+    }
+
     // ── Pintar importes ─────────────────────────────────────────
     function renderLines() {
         var disc = state.checkout.discount || 0;
@@ -80,9 +124,10 @@
     function render() {
         var p = plan();
         var m = state.mode;
-        $$('[data-co-due]').forEach(function (n) { n.textContent = money(p.due); });
-        $$('[data-co-total]').forEach(function (n) { n.textContent = money(p.total); });
-        $$('[data-co-balance]').forEach(function (n) { n.textContent = money(m === 'later' ? p.total : p.balance); });
+        var calc = state.calculating, dots = '…';
+        $$('[data-co-due]').forEach(function (n) { n.textContent = calc ? dots : money(p.due); });
+        $$('[data-co-total]').forEach(function (n) { n.textContent = calc ? dots : money(p.total); });
+        $$('[data-co-balance]').forEach(function (n) { n.textContent = calc ? dots : money(m === 'later' ? p.total : p.balance); });
         $$('[data-co-balance-label]').forEach(function (n) { n.textContent = m === 'later' ? T.laterBalanceLabel : T.balanceLabel; });
         $$('[data-co-balancerow]').forEach(function (n) { n.hidden = (m === 'later' ? p.total : p.balance) <= 0; });
         $$('[data-co-sticky-note]').forEach(function (n) {
@@ -136,13 +181,35 @@
         });
     }
 
-    function refreshSummary() {
+    // Reconcilia con el servidor (manda el servidor). Si el usuario editó de nuevo mientras
+    // viajaba la respuesta, se descarta: la siguiente sincronización traerá el valor vigente.
+    function refreshSummary(seq) {
         return api(state.checkout.endpoints.summary).then(function (r) {
             if (r.res.ok && r.data && r.data.modes) {
-                state.checkout = r.data;
-                render();
+                state.serverCheckout = r.data;
+                if (seq === state.edits) {
+                    state.checkout = r.data;
+                    state.calculating = false;
+                    render();
+                }
             }
-        }).catch(function () {});
+        }).catch(function () {
+            if (seq === state.edits && state.calculating) { state.calculating = false; render(); }
+        });
+    }
+
+    function isIdle() { return state.dirty === 0 && state.inflight === 0; }
+    function notifyIdle() {
+        if (!isIdle()) return;
+        var w = state.waiters; state.waiters = [];
+        w.forEach(function (fn) { fn(); });
+    }
+    // Ejecuta fn cuando no haya cambios sin confirmar (nunca cobrar sobre un valor local).
+    function whenSettled(fn) {
+        $$('[data-co-box]').forEach(function (b) {
+            if (b._co && b._co.timer) { clearTimeout(b._co.timer); b._co.timer = null; flushPax(b); }
+        });
+        if (isIdle()) fn(); else state.waiters.push(fn);
     }
 
     // ── Editar carrito: fecha y personas ─────────────────────────
@@ -156,14 +223,19 @@
     function patchItem(box, body) {
         var rowId = box.getAttribute('data-row-id');
         var url = C.urls.cartUpdate.replace('__ROW__', encodeURIComponent(rowId));
+        state.inflight++;
+        var seq = state.edits;
         return api(url, { method: 'PATCH', body: body }).then(function (r) {
             if (r.res.ok && r.data && r.data.success) {
                 updateRowIds(rowId, r.data.row_id || rowId);
-                return refreshSummary().then(function () { return { ok: true }; });
+                return refreshSummary(seq).then(function () { return { ok: true }; });
             }
             var msg = r.data && (r.data.message || (r.data.errors && Object.keys(r.data.errors).length && r.data.errors[Object.keys(r.data.errors)[0]][0]));
             return { ok: false, message: msg || T.dateSavedError };
-        }).catch(function () { return { ok: false, message: T.dateSavedError }; });
+        }).catch(function () { return { ok: false, message: T.dateSavedError }; }).then(function (res) {
+            state.inflight--;
+            return res;
+        });
     }
 
     function setDateError(box, msg) {
@@ -180,21 +252,64 @@
 
     function changePax(box, delta) {
         var it = itemByRow(box.getAttribute('data-row-id'));
-        if (!it || box.dataset.busy) return;
+        if (!it) return;
         var n = it.adults + it.children + delta;
-        if (n < 1) return;
-        var prev = { a: it.adults, c: it.children };
+        if (n < 1 || n > C.maxPax) return;
+        var co = box._co || (box._co = { timer: null, running: false, again: false, active: false, prev: null });
+        // Último estado confirmado por el servidor (para revertir si el PATCH falla).
+        if (!co.prev) co.prev = { a: it.adults, c: it.children };
         // Adultos y niños pagan igual: el contador del diseño es solo de personas (adultos).
         it.adults = n; it.children = 0;
+        state.edits++;
+        // Recálculo optimista INSTANTÁNEO; el servidor reconcilia después.
+        applyLocal();
         render();
-        box.dataset.busy = '1';
+        if (!co.active) { co.active = true; state.dirty++; }
+        if (co.timer) clearTimeout(co.timer);
+        co.timer = setTimeout(function () { co.timer = null; flushPax(box); }, 250);
+    }
+
+    // Envía al servidor el valor vigente de la caja (debounce + 1 request a la vez por caja).
+    function flushPax(box) {
+        var co = box._co;
+        if (!co) return;
+        if (co.timer) { clearTimeout(co.timer); co.timer = null; }
+        var it = itemByRow(box.getAttribute('data-row-id'));
+        if (co.running) { co.again = true; return; }   // al terminar el actual se reenvía
+        co.running = true;
+        co.again = false;
+        var n = it ? it.adults + it.children : 1;
         patchItem(box, { adults: n, children: 0 }).then(function (r) {
-            delete box.dataset.busy;
+            co.running = false;
             if (!r.ok) {
-                it.adults = prev.a; it.children = prev.c;
+                // Falló: volver al último valor confirmado y a los montos del servidor.
+                var cur = itemByRow(box.getAttribute('data-row-id'));
+                if (cur && co.prev) { cur.adults = co.prev.a; cur.children = co.prev.c; }
+                state.edits++;
+                state.checkout = state.serverCheckout;
+                state.calculating = false;
+                if (co.timer) { clearTimeout(co.timer); co.timer = null; }
+                co.again = false;
+                co.prev = null;
                 render();
                 setDateError(box, r.message);
+                // Marcado por un fallo de PERSONAS (no de la fecha): se limpia en el próximo PATCH exitoso.
+                box.dataset.paxErr = '1';
+            } else if (box.dataset.paxErr) {
+                delete box.dataset.paxErr;
+                setDateError(box, null);
             }
+            if (r.ok && co.again) {
+                flushPax(box);
+                return;
+            } else if (co.timer) {
+                return; // hubo otro click durante el vuelo: el debounce pendiente lo enviará
+            } else {
+                co.prev = null;
+            }
+            co.active = false;
+            state.dirty--;
+            notifyIdle();
         });
     }
 
@@ -420,6 +535,8 @@
 
     function openCulqi() {
         if (state.busy) return;
+        // El monto a cobrar debe ser el CONFIRMADO por el servidor, no el optimista.
+        if (!isIdle()) { whenSettled(openCulqi); return; }
         hideMsg();
         if (typeof window.Culqi === 'undefined') { showMsg(T.culqiScriptFail); return; }
         var cents = plan().due_cents;
@@ -470,6 +587,10 @@
     // ── PayPal ──────────────────────────────────────────────────
     function ppCreateOrder() {
         if (!validate()) return Promise.reject(new Error('validation_failed'));
+        // Esperar a que el servidor confirme el carrito (PayPal cobra lo que el servidor calcula).
+        return new Promise(function (resolve) { whenSettled(resolve); }).then(ppCreateOrderNow);
+    }
+    function ppCreateOrderNow() {
         var c = customer();
         return api(state.checkout.endpoints.paypal_create, {
             method: 'POST',
@@ -591,9 +712,9 @@
         $('#co-terms-link').addEventListener('click', function (ev) { ev.preventDefault(); openModal('#co-modal-terms'); });
 
         $$('[data-co-cta]').forEach(function (b) {
-            b.addEventListener('click', function () { if (validate()) { syncPhone(); openReview(); } });
+            b.addEventListener('click', function () { if (validate()) { syncPhone(); whenSettled(openReview); } });
         });
-        $('#co-form').addEventListener('submit', function (ev) { ev.preventDefault(); if (validate()) { syncPhone(); openReview(); } });
+        $('#co-form').addEventListener('submit', function (ev) { ev.preventDefault(); if (validate()) { syncPhone(); whenSettled(openReview); } });
 
         if ($('#co-pay-culqi')) $('#co-pay-culqi').addEventListener('click', openCulqi);
         $('#co-confirm-later').addEventListener('click', submitLater);

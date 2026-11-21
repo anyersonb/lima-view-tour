@@ -52,6 +52,8 @@ class TourJsonLdLocaleTest extends TestCase
             'meta_description_en' => 'Full-day trip to Humantay Lake.',
             'schema_jsonld_es' => $this->esSchema(),
             'is_published' => true,
+            'price' => 50,
+            'currency' => 'USD',
         ], $o));
     }
 
