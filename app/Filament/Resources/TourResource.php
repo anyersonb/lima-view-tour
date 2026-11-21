@@ -184,7 +184,8 @@ class TourResource extends Resource
                                                     ->defaultItems(0)
                                                     ->reorderable()
                                                     ->addActionLabel('Añadir etiqueta')
-                                                    ->itemLabel(fn (array $state): ?string => $state['text'] ?? null)
+                                                    // Blindado: un chip con 'text' no-string (dato viejo/importado) tumbaba la edición del tour (500).
+                                                    ->itemLabel(fn (array $state): ?string => is_scalar($state['text'] ?? null) ? (string) $state['text'] : null)
                                                     ->helperText($l === 'es'
                                                         ? 'Palabras cortas bajo el título (4 horas, Recojo, ES / EN, Catacumbas...). Sin etiquetas = se muestran las automáticas (duración, idioma, recojo).'
                                                         : 'Sin etiquetas en este idioma = se usan las de español.'),
