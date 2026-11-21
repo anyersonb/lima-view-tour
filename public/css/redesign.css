@@ -1126,3 +1126,9 @@ html.fh-sh-lock, html.fh-sh-lock body { overflow: hidden; }
   .site-header button[aria-haspopup="listbox"] .lvt-lang-short { display: inline; letter-spacing: .02em; }
   .site-header button[aria-haspopup="listbox"] { min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 10px; }
 }
+
+/* Prod 21-nov: en escritorio (4 columnas) los 4 chips reales se truncaban ("17 hor…") → hasta 2 líneas de chips enteros, sin recortes */
+@media (min-width: 768px) {
+  .fh-card__chips { flex-wrap: wrap; overflow: visible; height: auto; gap: 5px; }
+  .fh-card__chips li { flex: 0 0 auto; max-width: 100%; overflow: visible; text-overflow: clip; padding: 0 8px; }
+}
