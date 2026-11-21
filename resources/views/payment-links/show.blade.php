@@ -284,7 +284,7 @@
             Culqi.publicKey = @json($culqiPublicKey);
             Culqi.settings({ title: @json(__('checkout_culqi.checkout_title')), currency: 'USD', amount: {{ (int) round(((float) $link->amount) * 100) }} });
             Culqi.options({
-                lang: {{ $locale === 'en' ? "'en'" : "'es'" }},
+                lang: @json($locale === 'en' ? 'en' : 'es'),
                 installments: false,
                 paymentMethods: { tarjeta: true, yape: false, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
                 style: { buttonBackground: '#06533e', buttonTextColor: '#FFFFFF' },

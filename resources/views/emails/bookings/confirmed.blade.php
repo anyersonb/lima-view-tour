@@ -31,7 +31,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>{{ $L('Reserva confirmada', 'Booking confirmed', 'Reserva confirmada') }} — Lima View Tours</title>
+<title>{{ $payingNow ? $L('Reserva confirmada', 'Booking confirmed', 'Reserva confirmada') : $L('Reserva recibida', 'Booking received', 'Reserva recebida') }} — Lima View Tours</title>
 </head>
 <body style="margin:0;padding:0;background:#e9edf1;font-family:Arial,Helvetica,sans-serif;color:#0d2f3b;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
@@ -49,7 +49,7 @@
 
     {{-- Hero --}}
     <tr><td style="padding:26px 28px 6px;">
-        <span style="display:inline-block;background:#f6eee3;color:#9a631e;border-radius:999px;padding:6px 12px;font-weight:bold;font-size:11px;letter-spacing:.5px;">{{ $L('RESERVA CONFIRMADA', 'BOOKING CONFIRMED', 'RESERVA CONFIRMADA') }}</span>
+        <span style="display:inline-block;background:#f6eee3;color:#9a631e;border-radius:999px;padding:6px 12px;font-weight:bold;font-size:11px;letter-spacing:.5px;">{{ $payingNow ? $L('RESERVA CONFIRMADA', 'BOOKING CONFIRMED', 'RESERVA CONFIRMADA') : $L('RESERVA RECIBIDA · PAGO PENDIENTE', 'BOOKING RECEIVED · PAYMENT PENDING', 'RESERVA RECEBIDA · PAGAMENTO PENDENTE') }}</span>
         <h1 style="font-family:Georgia,serif;font-size:26px;line-height:1.15;margin:12px 0 6px;color:#092f35;">
             {{ $L('¡Gracias, ', 'Thank you, ', 'Obrigado, ') }}{{ $first?->customer_name }}!
         </h1>
@@ -57,7 +57,7 @@
             @if ($payingNow)
                 {{ $L('Tu pago fue confirmado y tu reserva está lista. Aquí tienes el detalle.', 'Your payment was confirmed and your booking is ready. Here are the details.', 'Seu pagamento foi confirmado e sua reserva está pronta. Aqui estão os detalhes.') }}
             @else
-                {{ $L('Recibimos tu reserva. Nuestro equipo te contactará para coordinar el pago antes de la fecha del tour.', 'We received your booking. Our team will contact you to arrange payment before your tour date.', 'Recebemos sua reserva. Nossa equipe entrará em contato para coordenar o pagamento antes da data do passeio.') }}
+                {{ $L('Recibimos tu reserva. Se confirma cuando completes el pago: te enviaremos el link de pago por correo y WhatsApp antes de la fecha del tour.', 'We received your booking. It is confirmed once you complete payment: we will send you the payment link by email and WhatsApp before your tour date.', 'Recebemos sua reserva. Ela é confirmada quando você concluir o pagamento: enviaremos o link de pagamento por e-mail e WhatsApp antes da data do passeio.') }}
             @endif
         </p>
     </td></tr>

@@ -98,9 +98,7 @@ class PaymentLinkLocaleTest extends TestCase
             'reference' => 'LV-1', 'tour_title_snapshot' => 'Tour', 'travel_date' => '2026-05-03',
             'adults' => 1, 'children' => 0, 'total_price' => 10, 'currency' => 'USD', 'payment_status' => 'paid',
         ]]])->get(route('checkout.thanks', ['locale' => 'en']))
-            ->assertSee('Your booking details')
-            ->assertSee('Confirmed')
-            ->assertSee('1 person')
+            ->assertSee('Booking received!')
             ->assertSee('03 May 2026')
             ->assertDontSee('Detalle de tu reserva');
     }

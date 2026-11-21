@@ -292,7 +292,7 @@
     {{-- Botón flotante WhatsApp — posición inline (funciona sin rebuild de Tailwind).
          Mensaje precargado contextual (?text= urlencoded) por idioma: ficha de tour → nombre + URL; resto → genérico + URL.
          Tamaño/posición vía variables CSS (--wa-*) que cro-fixes.css ajusta en móvil (48px, sobre las barras fijas). --}}
-    @unless ($minimalChrome ?? false)
+    @unless (($minimalChrome ?? false) || request()->is('pagar/*'))
     @php
         $waNumber = \App\Models\Setting::get('whatsapp') ?: '51925886725';
         $waTourName = (isset($tour) && is_object($tour)) ? trim((string) ($tour->title ?? '')) : '';
