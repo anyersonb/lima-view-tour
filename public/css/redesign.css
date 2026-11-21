@@ -1132,3 +1132,7 @@ html.fh-sh-lock, html.fh-sh-lock body { overflow: hidden; }
   .fh-card__chips { flex-wrap: wrap; overflow: visible; height: auto; gap: 5px; }
   .fh-card__chips li { flex: 0 0 auto; max-width: 100%; overflow: visible; text-overflow: clip; padding: 0 8px; }
 }
+
+/* Prod 21-nov: la línea separadora de "Ver opiniones" se estiraba con el área táctil de 44px y cruzaba los chips → separador corto con ::before */
+.fh-card__opin { border-left: 0; position: relative; }
+.fh-card__opin::before { content: ""; position: absolute; left: 0; top: 50%; height: 14px; margin-top: -7px; border-left: 1px solid #d9d2c3; }
