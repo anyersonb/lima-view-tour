@@ -208,7 +208,8 @@ class HomeFinalSections
                 'name' => (string) ($r->{"name_{$locale}"} ?: $r->name_es),
                 'eyebrow' => $text('eyebrow'),
                 'description' => $text('description'),
-                'image' => preg_match('/\.(heic|heif)$/i', (string) $r->hero_image) ? null : ImagePath::url($r->hero_image), // HEIC/HEIF (iPhone) no se ve en navegadores → variante sin foto
+                'image' => (preg_match('/\.(heic|heif)$/i', (string) $r->hero_image) ? null : ImagePath::url($r->hero_image))
+                    ?? $r->tours->map(fn (Tour $t) => ImagePath::url($t->cover_image))->filter()->first(), // HEIC/sin foto → portada real del 1er tour de la región
                 'url' => route('tours.category', ['locale' => $locale, 'categoria' => $r->slug]),
                 'tours_count' => $r->tours->count(),
                 'featured' => $i === 0,
