@@ -24,6 +24,19 @@ class PayPalService
         $this->mode = (string) (\App\Models\Setting::get('paypal_mode') ?: config('services.paypal.mode') ?: 'sandbox');
     }
 
+
+    /**
+     * PayPal se ofrece al cliente solo si hay client_id y, en producción, el modo es "live":
+     * un botón sandbox en prod lleva a clientes reales a un login de pruebas donde no pueden pagar.
+     */
+    public static function availableForCustomers(): bool
+    {
+        $clientId = \App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id');
+        $mode = (string) (\App\Models\Setting::get('paypal_mode') ?: config('services.paypal.mode') ?: 'sandbox');
+
+        return filled($clientId) && ($mode === 'live' || ! app()->isProduction());
+    }
+
     /**
      * Returns the PayPal API base URL based on the configured mode.
      */

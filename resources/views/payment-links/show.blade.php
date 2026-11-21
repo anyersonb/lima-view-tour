@@ -166,7 +166,7 @@
 <link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v=20261121e">
 <script src="https://checkout.culqi.com/js/v4"></script>
 @endif
-@if (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id'))
+@if (\App\Services\PayPalService::availableForCustomers())
 <script
     src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale={{ $paypalLocale }}"
     data-namespace="paypal_sdk">

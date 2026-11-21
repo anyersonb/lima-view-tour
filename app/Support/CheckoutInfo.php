@@ -73,7 +73,7 @@ class CheckoutInfo
      */
     public static function paymentMethods(): array
     {
-        $paypal = (bool) (Setting::get('paypal_client_id') ?: config('services.paypal.client_id'));
+        $paypal = \App\Services\PayPalService::availableForCustomers();
         $culqi = (bool) config('services.culqi.enabled')
             && filled(config('services.culqi.public_key'))
             && filled(config('services.culqi.secret_key'));
