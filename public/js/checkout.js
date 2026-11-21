@@ -429,7 +429,7 @@
             lang: C.locale === 'en' ? 'en' : 'es',
             installments: false,
             paymentMethods: { tarjeta: true, yape: false, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
-            style: { buttonBackground: '#06533e', buttonTextColor: '#FFFFFF' },
+            style: { logo: location.origin + '/assets/logos/logo-culqi.png', bannerColor: '#06533e', buttonBackground: '#06533e', buttonTextColor: '#FFFFFF', priceColor: '#06533e' },
         });
         window.Culqi.open();
     }

@@ -531,6 +531,6 @@
 <script src="https://www.paypal.com/sdk/js?client-id={{ $paypalClientId }}&currency=USD&intent=capture&locale={{ $paypalLocale }}&components=buttons&disable-funding=card,credit,paylater" data-namespace="paypal_sdk" defer></script>
 @endif
 <script>window.LVT_CO = {!! json_encode($coConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!};</script>
-<script src="{{ asset('js/checkout.js') }}?v=20261121a" defer></script>
+<script src="{{ asset('js/checkout.js') }}?v=20261121b" defer></script>
 @endpush
 @endif
