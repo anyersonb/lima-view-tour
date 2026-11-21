@@ -24,6 +24,8 @@ class HomeSections
     /**
      * @return array{
      *   tour: Tour, title: string, lead: ?string, milestones: array<int,string>,
+     *   badge: ?string, headline: ?string, subtitle: ?string, question: ?string,
+     *   chips: array<int,string>, milestone_items: array<int, array{title: string, detail: ?string}>,
      *   url: string, image: string, price: float, price_before: ?float,
      *   discount_percent: ?int, currency: string, duration: ?string,
      *   rating: ?array{rating: float, count: int}
@@ -43,7 +45,14 @@ class HomeSections
             // Titular propio (por idioma, cae a ES); sin él, el título real del tour.
             'title' => Setting::getLocalized('home_star_title', $locale) ?? $tour->title,
             'lead' => Setting::getLocalized('home_star_lead', $locale),
+            // Home TAL CUAL (21-nov): textos del bloque como en el diseño. Todos null/[] si no se cargaron.
+            'badge' => Setting::getLocalized('home_star_badge', $locale),
+            'headline' => Setting::getLocalized('home_star_headline', $locale),
+            'subtitle' => Setting::getLocalized('home_star_subtitle', $locale),
+            'question' => Setting::getLocalized('home_star_question', $locale),
+            'chips' => self::starChips($locale),
             'milestones' => self::milestones($locale),
+            'milestone_items' => self::milestoneItems($locale),
             'url' => self::tourUrl($tour, $locale),
             'image' => $tour->cover_url,
             'price' => (float) $tour->price,
@@ -55,19 +64,56 @@ class HomeSections
         ];
     }
 
-    /** Hitos del idioma (cae a ES si ese idioma no tiene ninguno), máx. 4. */
+    /** Títulos de los hitos (compatibilidad). Ver milestoneItems() para título + detalle. */
     private static function milestones(string $locale): array
     {
+        return array_column(self::milestoneItems($locale), 'title');
+    }
+
+    /**
+     * Hitos del idioma (cae a ES si ese idioma no tiene ninguno), máx. 4, con
+     * título y detalle ("Buggies" / "Adrenalina en dunas"). Formato
+     * compatible hacia atrás: lo que ya estaba cargado como {text} o como
+     * string suelto es el TÍTULO y el detalle queda null; el campo nuevo se
+     * guarda como {text, detail}. Un hito sin título se descarta.
+     *
+     * @return array<int, array{title: string, detail: ?string}>
+     */
+    private static function milestoneItems(string $locale): array
+    {
         foreach (array_unique([$locale, 'es']) as $l) {
-            $texts = [];
+            $items = [];
             foreach (self::decodeList(Setting::get("home_star_milestones_{$l}")) as $item) {
-                $text = is_array($item) ? ($item['text'] ?? null) : $item;
-                if (is_string($text) && trim($text) !== '') {
-                    $texts[] = trim($text);
+                $title = is_array($item) ? ($item['text'] ?? $item['title'] ?? null) : $item;
+                $detail = is_array($item) ? ($item['detail'] ?? null) : null;
+                if (is_string($title) && trim($title) !== '') {
+                    $items[] = [
+                        'title' => trim($title),
+                        'detail' => is_string($detail) && trim($detail) !== '' ? trim($detail) : null,
+                    ];
                 }
             }
-            if ($texts !== []) {
-                return array_slice($texts, 0, self::STAR_MAX_MILESTONES);
+            if ($items !== []) {
+                return array_slice($items, 0, self::STAR_MAX_MILESTONES);
+            }
+        }
+
+        return [];
+    }
+
+    /** Chips sobre la foto (BUGGY · MIRADOR · OASIS · MAR): idioma → ES, máx. 4. */
+    private static function starChips(string $locale): array
+    {
+        foreach (array_unique([$locale, 'es']) as $l) {
+            $chips = [];
+            foreach (self::decodeList(Setting::get("home_star_chips_{$l}")) as $item) {
+                $text = is_array($item) ? ($item['text'] ?? null) : $item;
+                if (is_string($text) && trim($text) !== '') {
+                    $chips[] = mb_substr(trim($text), 0, 30);
+                }
+            }
+            if ($chips !== []) {
+                return array_slice($chips, 0, 4);
             }
         }
 

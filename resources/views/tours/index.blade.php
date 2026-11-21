@@ -567,4 +567,68 @@
     </div>
 </section>
 
+{{-- ───────── CONTENIDO SEO (salió del home TAL CUAL, 21-nov): "Tours de un día desde Lima" + "Cómo elegir tu tour en Perú".
+     Solo en /tours sin filtro ni búsqueda ($seoSections null = no pintar). Estilo .fh- (redesign.css). Mismos id de H2 que tenía el home. ───────── --}}
+@if (! empty($seoSections))
+@php
+    $seoDay = $seoSections['day_trips'] ?? null;
+    $seoChoose = $seoSections['choose'] ?? null;
+@endphp
+<div class="fh-seo">
+    @if (! empty($seoDay['tours']))
+    <section class="fh-sec fh-day" aria-labelledby="lima-ica-cusco-title">
+        <div class="fh-wrap">
+            <h2 id="lima-ica-cusco-title" class="fh-h2">{{ $seoDay['title'] }}</h2>
+            <div class="fh-grid">
+                @foreach ($seoDay['tours'] as $fp)
+                    <x-fh-tour-card :p="$fp" :img="[]" />
+                @endforeach
+            </div>
+        </div>
+    </section>
+    @endif
+
+    @if (! empty($seoChoose))
+    <section class="fh-sec fh-choose" aria-labelledby="choose-title">
+        <div class="fh-wrap">
+            @if (filled($seoChoose['eyebrow'] ?? null))<p class="fh-over">{{ $seoChoose['eyebrow'] }}</p>@endif
+            <h2 id="choose-title" class="fh-h2">{{ $seoChoose['title'] }}</h2>
+            @if (filled($seoChoose['intro'] ?? null))<p class="fh-choose__intro">{{ $seoChoose['intro'] }}</p>@endif
+            @if (! empty($seoChoose['items']))
+            <ol class="fh-steps">
+                @foreach ($seoChoose['items'] as $cIdx => $cItem)
+                    <li class="fh-step">
+                        <span class="fh-step__n" aria-hidden="true">{{ str_pad((string) ($cIdx + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                        <h3>{{ $cItem['title'] }}</h3>
+                        <p>{{ $cItem['desc'] }}</p>
+                    </li>
+                @endforeach
+            </ol>
+            @endif
+
+            @if (! empty($seoChoose['compare']['tours']))
+                @if (filled($seoChoose['compare']['intro'] ?? null))<p class="fh-choose__intro fh-choose__intro--cmp">{{ $seoChoose['compare']['intro'] }}</p>@endif
+                <div class="fh-cmps">
+                    @foreach ($seoChoose['compare']['tours'] as $ct)
+                        <article class="fh-cmp">
+                            <h3><a href="{{ $ct['url'] }}">{{ $ct['title'] }}</a></h3>
+                            <dl>
+                                <div><dt>{{ $L('Precio', 'Price', 'Preço') }}</dt><dd>{{ __('ui.from') }} US${{ number_format($ct['price'], 0) }}</dd></div>
+                                @if ($ct['duration'])<div><dt>{{ $L('Duración', 'Duration', 'Duração') }}</dt><dd>{{ $ct['duration'] }}</dd></div>@endif
+                                @if ($ct['category'])<div><dt>{{ $L('Tipo', 'Type', 'Tipo') }}</dt><dd>{{ $ct['category'] }}</dd></div>@endif
+                                @if ($ct['region'])<div><dt>{{ $L('Destino', 'Destination', 'Destino') }}</dt><dd>{{ $ct['region'] }}</dd></div>@endif
+                                <div><dt>{{ $L('Recojo', 'Pickup', 'Transporte') }}</dt><dd>{{ $ct['pickup'] ? $L('Incluido', 'Included', 'Incluído') : $L('No incluido', 'Not included', 'Não incluído') }}</dd></div>
+                                @if ($ct['rating'])<div><dt>{{ $L('Valoración', 'Rating', 'Avaliação') }}</dt><dd>{{ number_format($ct['rating']['rating'], 1) }} ({{ $ct['rating']['count'] }})</dd></div>@endif
+                            </dl>
+                            <a href="{{ $ct['url'] }}" class="fh-cmp__cta">{{ $L('Ver detalles', 'See details', 'Ver detalhes') }}</a>
+                        </article>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </section>
+    @endif
+</div>
+@endif
+
 @endsection

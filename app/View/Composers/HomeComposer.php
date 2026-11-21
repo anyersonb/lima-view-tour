@@ -18,7 +18,7 @@ use Illuminate\View\View;
  *
  * Variables: $homeSearch, $homeStar, $homeCompare, $homeStats,
  * $homeReviewStats, $homePromo y (home FINAL) $homeChips, $homePick,
- * $homeDestinations, $homeTrust, $homeReviews. Ver contrato-datos.md.
+ * $homeDestinations, $homeTrust, $homeReviews y (home TAL CUAL) $homeApi. Ver contrato-datos.md.
  */
 class HomeComposer
 {
@@ -38,6 +38,8 @@ class HomeComposer
             'homePick' => $this->safe('pick', static fn () => HomeFinalSections::pickTours()),
             'homeDestinations' => $this->safe('destinations', static fn () => HomeFinalSections::destinations()) ?? [],
             'homeTrust' => $this->safe('trust', static fn () => HomeFinalSections::trust()),
+            // Ventanas (sheets) del home TAL CUAL: endpoints JSON, WhatsApp oficial y sugerencias.
+            'homeApi' => $this->safe('api', static fn () => HomeFinalSections::api(null, $search)),
             'homeReviews' => $this->safe('reviews', static fn () => HomeFinalSections::reviews(
                 $view->getData()['testimonials'] ?? Testimonial::published()->featured()->orderBy('order')->limit(8)->get()
             )),

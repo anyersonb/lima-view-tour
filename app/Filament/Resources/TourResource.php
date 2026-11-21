@@ -149,6 +149,50 @@ class TourResource extends Resource
                                         'success' => 'Verde (éxito)',
                                     ]),
                                 ]),
+                                Forms\Components\Section::make('Tarjeta del tour en el Inicio')
+                                    ->description('Opcional. Cómo se ve este tour en la tarjeta de "Elige tu experiencia" del Inicio. Si dejas un campo vacío, la tarjeta usa lo de siempre (el título del tour, sus datos y su región). La página del tour no cambia.')
+                                    ->icon('heroicon-o-rectangle-stack')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->visible(fn () => \App\Support\TourFlags::has('card_title_es'))
+                                    ->schema([
+                                        Tabs::make('card_langs')->tabs(array_map(
+                                            static fn (string $l, string $n): Tabs\Tab => Tabs\Tab::make($n)->schema([
+                                                Forms\Components\TextInput::make("card_title_{$l}")
+                                                    ->label("Título corto de la tarjeta ({$n})")
+                                                    ->maxLength(90)
+                                                    ->placeholder($l === 'es' ? 'City Tour Lima + Catacumbas' : null)
+                                                    ->helperText($l === 'es'
+                                                        ? 'Versión corta del título, solo para la tarjeta. Vacío = se usa el título completo del tour.'
+                                                        : 'Vacío = se usa el de español.'),
+                                                Forms\Components\TextInput::make("card_location_{$l}")
+                                                    ->label("Etiqueta de ubicación ({$n})")
+                                                    ->maxLength(60)
+                                                    ->placeholder($l === 'es' ? 'ICA + PARACAS' : null)
+                                                    ->helperText($l === 'es'
+                                                        ? 'Texto que sale sobre la foto (ej.: PACHACÁMAC). Vacío = se usa el nombre de la región del tour.'
+                                                        : 'Vacío = se usa el de español.'),
+                                                Forms\Components\Repeater::make("card_chips_{$l}")
+                                                    ->label("Etiquetas de la tarjeta ({$n}) — máximo 4")
+                                                    ->schema([
+                                                        Forms\Components\TextInput::make('text')->label('Etiqueta')->required()->maxLength(30)
+                                                            ->placeholder('Ej.: 4 horas'),
+                                                        Forms\Components\Toggle::make('accent')->label('Resaltar en naranja')->default(false),
+                                                    ])
+                                                    ->columns(2)
+                                                    ->maxItems(4)
+                                                    ->defaultItems(0)
+                                                    ->reorderable()
+                                                    ->addActionLabel('Añadir etiqueta')
+                                                    ->itemLabel(fn (array $state): ?string => $state['text'] ?? null)
+                                                    ->helperText($l === 'es'
+                                                        ? 'Palabras cortas bajo el título (4 horas, Recojo, ES / EN, Catacumbas...). Sin etiquetas = se muestran las automáticas (duración, idioma, recojo).'
+                                                        : 'Sin etiquetas en este idioma = se usan las de español.'),
+                                            ]),
+                                            ['es', 'en', 'pt'],
+                                            ['Español', 'English', 'Português'],
+                                        )),
+                                    ]),
                                 Forms\Components\Grid::make(3)->schema([
                                     Forms\Components\TextInput::make('rating')->numeric()->step(0.1)->minValue(0)->maxValue(5)->default(0)
                                         ->dehydrateStateUsing(fn ($state) => ($state === null || $state === '') ? 0 : $state)

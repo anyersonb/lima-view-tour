@@ -43,6 +43,11 @@ class RouteServiceProvider extends ServiceProvider
             ];
         });
 
+        // JSON de las ventanas del home (sheet/finder/reviews): solo lectura, 60/min por IP.
+        RateLimiter::for('home-api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         RateLimiter::for('checkout', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip());
         });

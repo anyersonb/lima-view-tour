@@ -121,6 +121,7 @@ class Settings extends Page implements HasForms
             'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
             'home_choose_items', 'pickup_zones', 'home_search_chips',
             'home_star_milestones_es', 'home_star_milestones_en', 'home_star_milestones_pt',
+            'home_star_chips_es', 'home_star_chips_en', 'home_star_chips_pt',
         ];
         foreach ($repeaterKeys as $rk) {
             if (isset($rows[$rk]) && is_string($rows[$rk])) {
@@ -479,6 +480,49 @@ class Settings extends Page implements HasForms
                                 ], ['es', 'en', 'pt'], ['Español', 'English', 'Português'])
                             )),
 
+                        // ── Banda de confianza: pago flexible ─────────────────
+                        \Filament\Forms\Components\Section::make('Banda de confianza — Pago flexible')
+                            ->description('Quinto indicador de la banda (ej. "Paga el 50% para separar tu cupo"). Sirve para avisar ANTES del pago que se puede pagar el 100%, el 50% para separar el cupo, o reservar y pagar después. Si dejas el título VACÍO, el indicador no se muestra. Activa esto solo si ofreces esas opciones de pago.')
+                            ->collapsible()
+                            ->collapsed()
+                            ->columns(2)
+                            ->schema(array_merge(
+                                ...array_map(static fn (string $l, string $n): array => [
+                                    TextInput::make("home_trust_pay_title_{$l}")
+                                        ->label("Título corto ({$n})")
+                                        ->placeholder($l === 'es' ? 'Paga el 50% para separar tu cupo' : null)
+                                        ->maxLength(60)
+                                        ->helperText($l === 'es' ? 'Vacío = el indicador no aparece en el Inicio.' : 'Vacío = se usa el de español.'),
+                                    Textarea::make("home_trust_pay_detail_{$l}")
+                                        ->label("Detalle de la ventana ({$n})")
+                                        ->rows(3)
+                                        ->maxLength(500)
+                                        ->helperText($l === 'es' ? 'Texto que se abre al tocar el indicador. Vacío = se usa un texto estándar con las 3 opciones (pagar 100%, pagar 50% para separar, reservar y pagar después).' : 'Vacío = se usa el texto en español (o el estándar).'),
+                                ], ['es', 'en', 'pt'], ['Español', 'English', 'Português'])
+                            )),
+
+                        // ── Banda de confianza: ventanas de detalle ───────────
+                        \Filament\Forms\Components\Section::make('Banda de confianza — Ventanas de detalle')
+                            ->description('Al tocar cada tarjeta de la banda de confianza (cancelación, años, viajeros, valoración) se abre una ventana con un texto explicativo. Escribe aquí ese texto. Si dejas un texto VACÍO, esa tarjeta no se puede tocar (no abre ventana). Escribe SOLO información real y verificable.')
+                            ->collapsible()
+                            ->collapsed()
+                            ->schema([
+                                Tabs::make('home_trust_detail_langs')->tabs(array_map(
+                                    static fn (string $l, string $n): Tabs\Tab => Tabs\Tab::make($n)->schema(array_map(
+                                        static fn (string $key, string $label): Textarea => Textarea::make("home_trust_detail_{$key}_{$l}")
+                                            ->label("{$label} ({$n})")
+                                            ->rows(3)
+                                            ->maxLength(500)
+                                            ->helperText($l === 'es'
+                                                ? 'Vacío = la tarjeta de "'.$label.'" no abre ventana.'
+                                                : 'Vacío = se usa el texto en español.'),
+                                        ['cancel', 'years', 'travelers', 'rating'],
+                                        ['Cancelación gratuita', 'Años de experiencia', 'Viajeros', 'Valoración'],
+                                    )),
+                                    ['es', 'en', 'pt'],
+                                    ['Español', 'English', 'Português'],
+                                )),
+                            ]),
                         // ── Chips rápidos del buscador ────────────────────────
                         \Filament\Forms\Components\Section::make('Chips rápidos del buscador (hero)')
                             ->description('Botones bajo la caja de búsqueda del inicio (ej. "Medio día", "Historia"). Si no añades ninguno, el sitio genera solos los de duración y categorías que tengan tours. Un chip cuyo destino no tenga tours publicados no se muestra. Máximo 8.')
@@ -1279,7 +1323,8 @@ class Settings extends Page implements HasForms
             $jsonRepeaterKeys = ['faqs', 'home_destinos', 'home_why_items', 'home_tour_type_tabs',
                 'home_footer_features', 'home_exp_tours', 'home_reco_items', 'home_faqs',
                 'home_choose_items', 'pickup_zones', 'home_search_chips',
-                'home_star_milestones_es', 'home_star_milestones_en', 'home_star_milestones_pt'];
+                'home_star_milestones_es', 'home_star_milestones_en', 'home_star_milestones_pt',
+                'home_star_chips_es', 'home_star_chips_en', 'home_star_chips_pt'];
             if (in_array($key, $jsonRepeaterKeys, true)) {
                 Setting::set($key, json_encode(is_array($value) ? $value : []));
 
@@ -1317,6 +1362,47 @@ class Settings extends Page implements HasForms
         $name = ['es' => 'Español', 'en' => 'English', 'pt' => 'Português'][$l];
 
         return [
+            TextInput::make("home_star_badge_{$l}")
+                ->label("Etiqueta sobre la foto ({$name})")
+                ->maxLength(60)
+                ->placeholder($l === 'es' ? 'EL TOUR MÁS VENDIDO EN LIMA' : null)
+                ->helperText($l === 'es'
+                    ? 'Píldora que aparece encima de la foto. Escribe SOLO lo que sea verdad. Vacío = no se muestra.'
+                    : 'Vacío = se usa la de español.'),
+            TextInput::make("home_star_headline_{$l}")
+                ->label("Frase grande sobre la foto ({$name})")
+                ->maxLength(80)
+                ->placeholder($l === 'es' ? 'Aventura en un solo día.' : null)
+                ->helperText($l === 'es'
+                    ? 'La frase grande que va escrita sobre la foto. Vacío = no se muestra.'
+                    : 'Vacío = se usa la de español.'),
+            TextInput::make("home_star_subtitle_{$l}")
+                ->label("Línea bajo la frase ({$name})")
+                ->maxLength(90)
+                ->placeholder($l === 'es' ? 'Océano · dunas · buggy · oasis' : null)
+                ->helperText($l === 'es'
+                    ? 'Línea corta debajo de la frase grande. Vacío = no se muestra.'
+                    : 'Vacío = se usa la de español.'),
+            Repeater::make("home_star_chips_{$l}")
+                ->label("Etiquetas sobre la foto ({$name}) — máximo 4")
+                ->schema([
+                    TextInput::make('text')->label('Etiqueta')->required()->maxLength(30)
+                        ->placeholder('Ej.: BUGGY'),
+                ])
+                ->maxItems(4)
+                ->defaultItems(0)
+                ->reorderable()
+                ->addActionLabel('Añadir etiqueta')
+                ->helperText($l === 'es'
+                    ? 'Palabras cortas que salen como botones blancos sobre la foto (BUGGY, MIRADOR, OASIS, MAR). Sin etiquetas = no se muestran.'
+                    : 'Si no escribes etiquetas en este idioma se usan las de español.'),
+            TextInput::make("home_star_question_{$l}")
+                ->label("Pregunta del texto ({$name})")
+                ->maxLength(120)
+                ->placeholder($l === 'es' ? '¿Por qué es el tour más vendido en Lima?' : null)
+                ->helperText($l === 'es'
+                    ? 'Título pequeño encima del párrafo (el párrafo es la "Bajada"). Vacío = no se muestra.'
+                    : 'Vacío = se usa la de español.'),
             TextInput::make("home_star_title_{$l}")
                 ->label("Titular corto ({$name})")
                 ->maxLength(90)
@@ -1331,10 +1417,13 @@ class Settings extends Page implements HasForms
                     ? 'Una o dos frases que venden la experiencia. Vacío = no se muestra.'
                     : 'Vacío = se usa la bajada en español.'),
             Repeater::make("home_star_milestones_{$l}")
-                ->label("Hitos ({$name}) — máximo 4")
+                ->label("Hitos con título y detalle ({$name}) — máximo 4")
                 ->schema([
-                    TextInput::make('text')->label('Hito')->required()->maxLength(80)
-                        ->placeholder('Ej.: Paseo en lancha a las Islas Ballestas'),
+                    TextInput::make('text')->label('Título del hito')->required()->maxLength(80)
+                        ->placeholder('Ej.: Buggies'),
+                    TextInput::make('detail')->label('Detalle (opcional)')->maxLength(120)
+                        ->placeholder('Ej.: Adrenalina en dunas')
+                        ->helperText('Frase corta bajo el título. Vacío = el hito muestra solo el título.'),
                 ])
                 ->maxItems(4)
                 ->defaultItems(0)

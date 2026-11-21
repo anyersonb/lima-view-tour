@@ -345,7 +345,11 @@
     <ul class="fh-top__in">
         @if ($fhRating)<li><b>{{ $fhRating }}</b> {{ $L('en nuestra web', 'on our website', 'em nosso site') }}</li>@endif
         <li>{{ $L('Guías locales', 'Local guides', 'Guias locais') }}</li>
-        <li>{{ $L('Atención por WhatsApp', 'WhatsApp support', 'Atendimento por WhatsApp') }}</li>
+        @if (! empty($homeApi['whatsapp_url']))
+            <li><button type="button" class="fh-top__btn" data-sheet="contact">{{ $L('Atención por WhatsApp', 'WhatsApp support', 'Atendimento por WhatsApp') }}</button></li>
+        @else
+            <li>{{ $L('Atención por WhatsApp', 'WhatsApp support', 'Atendimento por WhatsApp') }}</li>
+        @endif
     </ul>
 </div>
 
@@ -367,7 +371,7 @@
 
         @if (! empty($homeSearch))
         <div class="fh-hero__find">
-            <form class="fh-search" role="search" method="GET" action="{{ $homeSearch['action'] }}">
+            <form class="fh-search" role="search" method="GET" action="{{ $homeSearch['action'] }}" data-search-form>
                 <svg class="fh-search__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path stroke-linecap="round" d="M15.5 15.5L21 21"/></svg>
                 <label for="fh-q" class="sr-only">{{ $L('¿Qué te gustaría descubrir en Perú?', 'What would you like to discover in Peru?', 'O que você gostaria de descobrir no Peru?') }}</label>
                 <input id="fh-q" type="search" name="{{ $homeSearch['params']['query'] ?? 'q' }}" autocomplete="off" maxlength="{{ $homeSearch['query_max'] ?? 80 }}"
@@ -380,7 +384,7 @@
                 <p class="fh-quick__lead"><span>{{ $L('Toca una opción y descubre tours recomendados', 'Tap an option and discover recommended tours', 'Toque em uma opção e descubra tours recomendados') }}</span></p>
                 <ul class="fh-quick">
                     @foreach ($fhQuick as $qi => $qc)
-                        <li><a href="{{ $qc['url'] }}" class="fh-chip fh-chip--{{ $qi }}" data-ga-cta="chip_rapido" data-ga-location="home_hero">
+                        <li><a href="{{ $qc['url'] }}" class="fh-chip fh-chip--{{ $qi }}" data-find data-find-title="{{ $qc['label'] }}" data-ga-cta="chip_rapido" data-ga-location="home_hero">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">{!! $fhIcons[$fhQuickIcon($qc, $qi)] !!}</svg>{{ $qc['label'] }}</a></li>
                     @endforeach
                 </ul>
@@ -407,12 +411,12 @@
     }
 @endphp
 @if (count($fhPick))
-<section class="fh-sec fh-exp" aria-labelledby="bestseller-title">
+<section class="fh-sec fh-exp" id="elige" aria-labelledby="bestseller-title">
     <div class="fh-wrap">
         <p class="fh-tag"><i aria-hidden="true"></i>{{ \App\Models\Setting::get('home_sec_featured_eyebrow_' . $locale) ?: $L('Tours para enamorarte de Perú', 'Tours to fall in love with Peru', 'Tours para se apaixonar pelo Peru') }}</p>
         <div class="fh-sec__head">
 <h2 id="bestseller-title" class="fh-h2">{!! e(trim((string) \App\Models\Setting::get('home_sec_featured_title_' . $locale))) ?: $L('Elige tu <span class="fh-u">experiencia</span>.', 'Choose your <span class="fh-u">experience</span>.', 'Escolha sua <span class="fh-u">experiência</span>.') !!}</h2>
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="fh-more">{{ $L('Ver todos', 'See all', 'Ver todos') }} <span aria-hidden="true">›</span></a>
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="fh-more" data-sheet="all">{{ $L('Ver todos', 'See all', 'Ver todos') }} <span aria-hidden="true">›</span></a>
         </div>
         <div class="fh-grid">
             @foreach ($fhPick as $fp)
@@ -442,7 +446,7 @@
                 <h2 id="lvt-finder-title" class="fh-finder__title">{{ $L('Encuentra tu tour', 'Find your tour', 'Encontre seu tour') }}<span>{{ $L('con tres preguntas.', 'with three questions.', 'com três perguntas.') }}</span></h2>
                 <p class="fh-finder__sub">{{ $L('Haz clic en lo que te interesa y descubre automáticamente tu tour ideal.', 'Click on what interests you and automatically find your ideal tour.', 'Clique no que lhe interessa e descubra automaticamente seu tour ideal.') }}</p>
             </div>
-            <form class="fh-finder__form" id="lvt-finder" method="GET" action="{{ $homeSearch['action'] }}" novalidate aria-labelledby="lvt-finder-title">
+            <form class="fh-finder__form" id="lvt-finder" data-finder-form method="GET" action="{{ $homeSearch['action'] }}" novalidate aria-labelledby="lvt-finder-title">
                 <div class="fh-finder__panel">
                     @foreach ($hsQs as $qi => $q)
                         <fieldset class="fh-q">
@@ -467,15 +471,6 @@
         </div>
     </div>
 </section>
-<script>
-    (function () {
-        var f = document.getElementById('lvt-finder'); if (!f) return;
-        f.addEventListener('submit', function (e) {
-            if (!f.querySelector('input[type=radio]:checked')) { e.preventDefault(); document.getElementById('lvt-finder-err').hidden = false; }
-        });
-        f.addEventListener('change', function () { document.getElementById('lvt-finder-err').hidden = true; });
-    })();
-</script>
 @endif
 
 {{-- ── LA EXPERIENCIA ESTRELLA ($homeStar; oculto si es null). H2 id star-title ── --}}
@@ -483,26 +478,34 @@
 @php
     $fhSt = $homeStar;
     $fhStTone = ['teal', 'peach', 'sage', 'sand'];
+    $fhStSheet = null;
+    try { $fhStSheet = route('api.tours.sheet', ['locale' => $locale, 'slug' => $fhSt['tour']->slugFor($locale)]); } catch (\Throwable $e) { $fhStSheet = null; }
+    $fhStItems = (array) ($fhSt['milestone_items'] ?? []);
+    if (! count($fhStItems)) { $fhStItems = array_map(fn ($m) => ['title' => $m, 'detail' => null], (array) ($fhSt['milestones'] ?? [])); }
 @endphp
-<section class="fh-sec fh-star-sec" aria-labelledby="star-title">
+<section class="fh-sec fh-star-sec" id="estrella" aria-labelledby="star-title">
     <div class="fh-wrap">
         <p class="fh-over">{{ $L('La experiencia estrella', 'The star experience', 'A experiência estrela') }}</p>
         <h2 id="star-title" class="fh-star__h">{{ $fhSt['title'] }}</h2>
         <div class="fh-star">
-            <a href="{{ $fhSt['url'] }}" class="fh-star__media" data-ga-select data-ga-item-id="{{ $fhSt['tour']->getKey() }}" data-ga-item-name="{{ $fhSt['title'] }}" data-ga-price="{{ $fhSt['price'] }}" tabindex="-1" aria-hidden="true">
+            <a href="{{ $fhSt['url'] }}" class="fh-star__media"{!! $fhStSheet ? ' data-sheet-url="' . e($fhStSheet) . '"' : '' !!} data-ga-select data-ga-item-id="{{ $fhSt['tour']->getKey() }}" data-ga-item-name="{{ $fhSt['title'] }}" data-ga-price="{{ $fhSt['price'] }}" tabindex="-1" aria-hidden="true">
                 <img src="{{ $fhSt['image'] }}" alt="" loading="lazy" decoding="async" width="1280" height="900">
-                @if (filled($fhSt['lead']) || ! empty($fhSt['rating']))
+                @if (filled($fhSt['badge'] ?? null))<span class="fh-star__badge">{{ $fhSt['badge'] }}</span>@endif
+                @if (filled($fhSt['headline'] ?? null) || filled($fhSt['subtitle'] ?? null) || count($fhSt['chips'] ?? []))
                     <span class="fh-star__over">
-                        @if (filled($fhSt['lead']))<span class="fh-star__lead">{{ $fhSt['lead'] }}</span>@endif
-                        @if (! empty($fhSt['rating']))<span class="fh-star__rate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8L12 2.5z" fill="currentColor"/></svg><b>{{ number_format($fhSt['rating']['rating'], 1) }}</b> ({{ number_format($fhSt['rating']['count']) }})</span>@endif
+                        @if (filled($fhSt['headline'] ?? null))<span class="fh-star__lead">{{ $fhSt['headline'] }}</span>@endif
+                        @if (filled($fhSt['subtitle'] ?? null))<span class="fh-star__sub">{{ $fhSt['subtitle'] }}</span>@endif
+                        @if (count($fhSt['chips'] ?? []))<span class="fh-star__chips">@foreach ($fhSt['chips'] as $sc)<span>{{ $sc }}</span>@endforeach</span>@endif
                     </span>
                 @endif
             </a>
             <div class="fh-star__card">
-                @if (count($fhSt['milestones']))
+                @if (filled($fhSt['question'] ?? null))<h3 class="fh-star__q">{{ $fhSt['question'] }}</h3>@endif
+                @if (filled($fhSt['lead'] ?? null))<p class="fh-star__p">{{ $fhSt['lead'] }}</p>@endif
+                @if (count($fhStItems))
                     <ul class="fh-hitos">
-                        @foreach ($fhSt['milestones'] as $mi => $ms)
-                            <li class="fh-hito fh-hito--{{ $fhStTone[$mi % 4] }}"><b>{{ str_pad((string) ($mi + 1), 2, '0', STR_PAD_LEFT) }}</b><span>{{ $ms }}</span></li>
+                        @foreach ($fhStItems as $mi => $ms)
+                            <li class="fh-hito fh-hito--{{ $fhStTone[$mi % 4] }}"><b>{{ str_pad((string) ($mi + 1), 2, '0', STR_PAD_LEFT) }} · {{ $ms['title'] }}</b>@if (filled($ms['detail'] ?? null))<span>{{ $ms['detail'] }}</span>@endif</li>
                         @endforeach
                     </ul>
                 @endif
@@ -512,7 +515,7 @@
                         <b>US${{ number_format($fhSt['price'], 0) }}</b>
                         @if ($fhSt['price_before'])<s>US${{ number_format($fhSt['price_before'], 0) }}</s>@endif
                     </div>
-                    <a href="{{ $fhSt['url'] }}" class="fh-star__cta" data-ga-cta="estrella_reservar" data-ga-location="home_estrella">{{ $L('Ver fechas y reservar', 'See dates & book', 'Ver datas e reservar') }}
+                    <a href="{{ $fhSt['url'] }}" class="fh-star__cta"{!! $fhStSheet ? ' data-sheet-url="' . e($fhStSheet) . '"' : '' !!} data-ga-cta="estrella_reservar" data-ga-location="home_estrella">{{ $L('Ver fechas y reservar', 'See dates & book', 'Ver datas e reservar') }}
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></a>
                 </div>
                 <p class="fh-star__note">{{ $L('Recorridos y entradas sujetos a la opción reservada.', 'Routes and tickets depend on the option booked.', 'Roteiros e ingressos sujeitos à opção reservada.') }}</p>
@@ -530,7 +533,7 @@
     $fhDest = array_slice($fhDest, 0, 3);
 @endphp
 @if (count($fhDest))
-<section class="fh-sec fh-dest-sec" aria-labelledby="destinos-title">
+<section class="fh-sec fh-dest-sec" id="destinos" aria-labelledby="destinos-title">
     <div class="fh-wrap">
         <div class="fh-dest__head">
             <h2 id="destinos-title" class="fh-h2 fh-h2--c">{!! \App\Models\Setting::get('home_sec_destinos_title_' . $locale) ?: $L('Explora Perú por destinos', 'Explore Peru by destination', 'Explore o Peru por destinos') !!}</h2>
@@ -538,14 +541,15 @@
         </div>
         <div class="fh-dest">
             @foreach ($fhDest as $di => $d)
-                <article class="fh-dcard{{ $di === 0 ? ' fh-dcard--big' : '' }}{{ empty($d['image']) ? ' fh-dcard--noimg' : '' }}">
+                <article class="fh-dcard{{ $di === 0 ? ' fh-dcard--big' : '' }}{{ empty($d['image']) ? ' fh-dcard--noimg' : '' }}" data-dest="{{ $d['slug'] ?? '' }}" data-dest-name="{{ $d['name'] }}">
                     @if (! empty($d['image']))
                         <img src="{{ $d['image'] }}" alt="" class="fh-dcard__img" loading="lazy" decoding="async" width="{{ $di === 0 ? 1280 : 640 }}" height="{{ $di === 0 ? 700 : 640 }}">
                     @endif
                     <div class="fh-dcard__body">
                         @if (filled($d['eyebrow'] ?? null))<span class="fh-dcard__badge">{{ $d['eyebrow'] }}</span>@endif
-                        <h3 class="fh-dcard__title"><a href="{{ $d['url'] }}" class="fh-dcard__link">{{ $d['name'] }}</a></h3>
+                        <h3 class="fh-dcard__title"><a href="{{ $d['url'] }}" class="fh-dcard__link" data-find>{{ $d['name'] }}</a></h3>
                         @if (filled($d['description'] ?? null))<p class="fh-dcard__desc">{{ $d['description'] }}</p>@endif
+                        @if (filled($d['places'] ?? null))<p class="fh-dcard__places">{{ $d['places'] }}</p>@endif
                         @if ($di === 0)
                             <span class="fh-dcard__cta fh-dcard__cta--gold">{{ $L('Explorar', 'Explore', 'Explorar') }} {{ $d['name'] }}
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M9 7h8v8"/></svg></span>
@@ -564,7 +568,7 @@
 {{-- ── VIAJA CON TRANQUILIDAD (banda de confianza; H2 SEO id why-title). Datos: $homeTrust (contrato FINAL HOME §5); solo ítems con dato ── --}}
 @php
     $fhTrust = [];
-    $fhTrustMeta = ['cancellation' => ['cal', 'sand'], 'years' => ['award', 'sage'], 'travelers' => ['people', 'sage'], 'rating' => ['star', 'sand']];
+    $fhTrustMeta = ['cancellation' => ['cal', 'sand'], 'years' => ['award', 'sage'], 'travelers' => ['people', 'sage'], 'rating' => ['star', 'sand'], 'pay' => ['wallet', 'sage']];
     foreach ((array) ($homeTrust['items'] ?? []) as $it) {
         $k = $it['key'] ?? '';
         if (! isset($fhTrustMeta[$k]) || ! filled($it['value'] ?? null)) { continue; }
@@ -572,7 +576,7 @@
         if ($k === 'rating' && preg_match('/^\d+([.,]\d+)?$/', $val)) { $val .= ' / 5'; }
         $lbl = (string) ($it['label'] ?? '');
         if ($k === 'rating' && filled($it['source'] ?? null)) { $lbl = trim($lbl . ' · ' . $it['source'], ' ·'); }
-        $fhTrust[] = ['icon' => $fhTrustMeta[$k][0], 'tone' => $fhTrustMeta[$k][1], 'v' => $val, 'l' => $lbl, 'k' => $k];
+        $fhTrust[] = ['icon' => $fhTrustMeta[$k][0], 'tone' => $fhTrustMeta[$k][1], 'v' => $val, 'l' => $lbl, 'k' => $k, 'detail' => filled($it['detail'] ?? null) ? (string) $it['detail'] : null];
     }
     $fhHasCancel = collect($fhTrust)->contains('k', 'cancellation');
     $fhTrustIcons = [
@@ -580,6 +584,7 @@
         'award'  => '<circle cx="12" cy="9.5" r="5.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.8 14.2L7.5 21l4.5-2.6 4.5 2.6-1.3-6.8"/>',
         'people' => '<circle cx="12" cy="8" r="2.8"/><circle cx="5.8" cy="10" r="2.2"/><circle cx="18.2" cy="10" r="2.2"/><path stroke-linecap="round" d="M7.5 19c0-2.8 2.2-4.8 4.5-4.8s4.5 2 4.5 4.8M2.5 18c0-2 1.5-3.5 3.3-3.5M21.5 18c0-2-1.5-3.5-3.3-3.5"/>',
         'star'   => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8L12 3.5z"/>',
+        'wallet' => '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path stroke-linecap="round" d="M3 10h18M7 15h3"/>',
     ];
 @endphp
 @if (count($fhTrust))
@@ -588,10 +593,14 @@
         {{-- SEO: el H2 why-title conserva el texto SEO cargado en home_sec_why_title_* (18-nov); si está vacío, el título corto de la banda. --}}
         <h2 id="why-title" class="fh-over">{{ trim(strip_tags((string) \App\Models\Setting::get('home_sec_why_title_' . $locale))) ?: (\App\Models\Setting::get('home_trust_title_' . $locale) ?: $L('Viaja con tranquilidad', 'Travel with peace of mind', 'Viaje com tranquilidade')) }}</h2>
         <ul class="fh-trust__grid">
-            @foreach ($fhTrust as $ti)
-                <li class="fh-tcard">
-                    <span class="fh-tcard__ico fh-tcard__ico--{{ $ti['tone'] }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">{!! $fhTrustIcons[$ti['icon']] !!}</svg></span>
-                    <span class="fh-tcard__txt"><b>{{ $ti['v'] }}</b>@if ($ti['l'] !== '')<small>{{ $ti['l'] }}</small>@endif</span>
+            @foreach ($fhTrust as $tIdx => $ti)
+                @php $tInner = '<span class="fh-tcard__ico fh-tcard__ico--' . $ti['tone'] . '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">' . $fhTrustIcons[$ti['icon']] . '</svg></span><span class="fh-tcard__txt"><b>' . e($ti['v']) . '</b>' . ($ti['l'] !== '' ? '<small>' . e($ti['l']) . '</small>' : '') . '</span>'; @endphp
+                <li class="fh-tcard-li{{ $ti['k'] === 'pay' ? ' fh-tcard-li--pay' : '' }}">
+                    @if ($ti['detail'])
+                        <button type="button" class="fh-tcard fh-tcard--btn" data-sheet="benefit" data-benefit="{{ $tIdx }}" aria-haspopup="dialog">{!! $tInner !!}</button>
+                    @else
+                        <div class="fh-tcard">{!! $tInner !!}</div>
+                    @endif
                 </li>
             @endforeach
         </ul>
@@ -633,7 +642,7 @@
                             <span class="fh-stars fh-stars--lg" role="img" aria-label="{{ $fhAvg }} / 5">@for ($i = 1; $i <= 5; $i++)<svg viewBox="0 0 24 24" aria-hidden="true" class="{{ $i <= $fhStarsOn ? 'on' : 'off' }}"><path d="{{ $fhStarPath }}" fill="currentColor"/></svg>@endfor</span>
                             @if ($rs)<small>{{ $L('Calificación promedio de', 'Average rating from', 'Avaliação média de') }} {{ number_format($rs['total']) }} {{ $rs['total'] === 1 ? $L('reseña', 'review', 'avaliação') : $L('reseñas', 'reviews', 'avaliações') }}</small>@endif
                         </div>
-                        <a href="{{ \App\Support\LocalizedPages::url('reviews', $locale) }}" class="fh-rev__all">{{ $L('Ver reseñas', 'See reviews', 'Ver avaliações') }} <span aria-hidden="true">›</span></a>
+                        <a href="{{ \App\Support\LocalizedPages::url('reviews', $locale) }}" class="fh-rev__all" data-sheet="reviews">{{ $L('Ver reseñas', 'See reviews', 'Ver avaliações') }} <span aria-hidden="true">›</span></a>
                     </div>
                     @if ($rs)
                         <ul class="fh-bars" aria-label="{{ $L('Distribución de valoraciones', 'Rating distribution', 'Distribuição das avaliações') }}">
@@ -703,7 +712,7 @@
                                                 @click="review = { name: @js($rvName), meta: @js($rvMeta), quote: @js($rvQuote), rating: {{ $rvRating }}, avatar: @js($rvAvatarUrl), initial: @js($rvInitial) }; reviewModalOpen = true">{{ __('ui.see_more') }}</button>
                                     @endif
                                     @if (count($rvPhotoUrls))
-                                        <div class="fh-rv__photos">@foreach ($rvPhotoUrls as $pu)<img src="{{ $pu }}" alt="" loading="lazy" decoding="async" width="120" height="100">@endforeach</div>
+                                        <div class="fh-rv__photos">@foreach ($rvPhotoUrls as $pu)<button type="button" class="fh-rv__ph" data-lightbox="{{ $pu }}" aria-label="{{ $L('Ampliar foto', 'Enlarge photo', 'Ampliar foto') }}"><img src="{{ $pu }}" alt="" loading="lazy" decoding="async" width="120" height="100"></button>@endforeach</div>
                                     @endif
                                 </div>
                             </figure>
@@ -764,88 +773,6 @@
     </div>
 </section>
 
-{{-- ── TOURS DE UN DÍA DESDE LIMA (H2 SEO id lima-ica-cusco-title) — mismas tarjetas del home FINAL. Datos: $dayTrips; oculto si no hay ── --}}
-@php
-    $fhDay = [];
-    $fhDayImgs = [];
-    foreach ($normalizeTours(($dayTrips ?? collect())->take(4)) as $dt) {
-        $dChips = [];
-        if (filled($dt['duration'])) { $dChips[] = ['type' => 'duration', 'label' => $dt['duration']]; }
-        if (filled($dt['language'])) { $dChips[] = ['type' => 'language', 'label' => $dt['language']]; }
-        if ($dt['pickup']) { $dChips[] = ['type' => 'pickup', 'label' => 'pickup']; }
-        if ($dt['freeCancellation']) { $dChips[] = ['type' => 'cancellation', 'label' => __('ui.free_cancellation')]; }
-        $dKey = $dt['slug'] ?: $dt['title'];
-        $fhDay[] = [
-            'id' => $dKey, 'title' => $dt['title'], 'url' => route('tours.show', ['locale' => $locale, 'slug' => $dt['slug']]),
-            'region' => $dt['eyebrow'], 'badge' => $dt['badge'],
-            'rating' => ($dt['rating'] && (int) $dt['reviews'] > 0) ? ['rating' => (float) $dt['rating'], 'count' => (int) $dt['reviews']] : null,
-            'chips' => $dChips, 'price' => (float) $dt['now'],
-            'price_before' => $dt['discountPct'] ? (float) $dt['before'] : null, 'discount_percent' => $dt['discountPct'],
-            'image' => $dt['img'],
-        ];
-        $cd = \App\Support\ImageVariants::card($dt['imgPath'], '(min-width:1024px) 280px, 190px');
-        $fhDayImgs[$dKey] = ['src' => $cd['src'] ?: null, 'srcset' => $cd['srcset'], 'sizes' => $cd['sizes']];
-    }
-@endphp
-@if (count($fhDay))
-<section class="fh-sec fh-day" aria-labelledby="lima-ica-cusco-title">
-    <div class="fh-wrap">
-        <h2 id="lima-ica-cusco-title" class="fh-h2">{{ \App\Models\Setting::get('home_sec_cities_title_' . $locale) ?: $L('Tours de un día desde Lima', 'Day tours from Lima', 'Tours de um dia saindo de Lima') }}</h2>
-        <div class="fh-grid">
-            @foreach ($fhDay as $fp)
-                <x-fh-tour-card :p="$fp" :img="$fhDayImgs[$fp['id']] ?? []" />
-            @endforeach
-        </div>
-    </div>
-</section>
-@endif
-
-{{-- ── CÓMO ELEGIR TU TOUR EN PERÚ + comparador (H2 SEO id choose-title). Textos editables: home_choose_items / home_sec_choose_* ── --}}
-@php
-    $fhChooseDef = \App\Support\HomeDefaults::chooseItems();
-    $fhChoose = $homeRepeater(\App\Models\Setting::get('home_choose_items'), $fhChooseDef);
-@endphp
-<section class="fh-sec fh-choose" aria-labelledby="choose-title">
-    <div class="fh-wrap">
-        <p class="fh-over">{{ \App\Models\Setting::get('home_sec_choose_eyebrow_' . $locale) ?: $L('Guía rápida', 'Quick guide', 'Guia rápido') }}</p>
-        <h2 id="choose-title" class="fh-h2">{!! \App\Models\Setting::get('home_sec_choose_title_' . $locale) ?: $L('Cómo elegir tu tour en Perú', 'How to choose your tour in Peru', 'Como escolher seu tour no Peru') !!}</h2>
-        <p class="fh-choose__intro">{!! \App\Models\Setting::get('home_sec_choose_intro_' . $locale) ?: $L('Cuatro preguntas para acertar con tu tour según tu tiempo, tu estilo de viaje y lo que quieres vivir.', 'Four questions to find the right tour for your time, your travel style and what you want to experience.', 'Quatro perguntas para acertar no tour de acordo com seu tempo, seu estilo de viagem e o que você quer viver.') !!}</p>
-        <ol class="fh-steps">
-            @foreach ($fhChoose as $cIdx => $cItem)
-                @php
-                    $cTitle = ($cItem['title_' . $locale] ?? '') ?: ($cItem['title_es'] ?? '');
-                    $cDesc  = ($cItem['desc_' . $locale] ?? '') ?: ($cItem['desc_es'] ?? '');
-                @endphp
-                <li class="fh-step">
-                    <span class="fh-step__n" aria-hidden="true">{{ str_pad((string) ($cIdx + 1), 2, '0', STR_PAD_LEFT) }}</span>
-                    <h3>{{ $cTitle }}</h3>
-                    <p>{{ $cDesc }}</p>
-                </li>
-            @endforeach
-        </ol>
-
-        @if (! empty($homeCompare))
-            @if (filled($homeCompare['intro'] ?? null))<p class="fh-choose__intro fh-choose__intro--cmp">{{ $homeCompare['intro'] }}</p>@endif
-            <div class="fh-cmps">
-                @foreach ($homeCompare['tours'] as $ct)
-                    <article class="fh-cmp">
-                        <h3><a href="{{ $ct['url'] }}">{{ $ct['title'] }}</a></h3>
-                        <dl>
-                            <div><dt>{{ $L('Precio', 'Price', 'Preço') }}</dt><dd>{{ __('ui.from') }} US${{ number_format($ct['price'], 0) }}</dd></div>
-                            @if ($ct['duration'])<div><dt>{{ $L('Duración', 'Duration', 'Duração') }}</dt><dd>{{ $ct['duration'] }}</dd></div>@endif
-                            @if ($ct['category'])<div><dt>{{ $L('Tipo', 'Type', 'Tipo') }}</dt><dd>{{ $ct['category'] }}</dd></div>@endif
-                            @if ($ct['region'])<div><dt>{{ $L('Destino', 'Destination', 'Destino') }}</dt><dd>{{ $ct['region'] }}</dd></div>@endif
-                            <div><dt>{{ $L('Recojo', 'Pickup', 'Transporte') }}</dt><dd>{{ $ct['pickup'] ? $L('Incluido', 'Included', 'Incluído') : $L('No incluido', 'Not included', 'Não incluído') }}</dd></div>
-                            @if ($ct['rating'])<div><dt>{{ $L('Valoración', 'Rating', 'Avaliação') }}</dt><dd>{{ number_format($ct['rating']['rating'], 1) }} ({{ $ct['rating']['count'] }})</dd></div>@endif
-                        </dl>
-                        <a href="{{ $ct['url'] }}" class="fh-cmp__cta">{{ $L('Ver detalles', 'See details', 'Ver detalhes') }}</a>
-                    </article>
-                @endforeach
-            </div>
-        @endif
-    </div>
-</section>
-
 {{-- ── PREGUNTAS FRECUENTES (H2 SEO id faq-title). details/summary: el texto está SIEMPRE en el HTML = microdatos FAQPage ── --}}
 @php
     $defaultHomeFaqs = \App\Support\HomeDefaults::faqs();
@@ -865,7 +792,7 @@
         ])->all();
     }
 @endphp
-<section class="fh-sec fh-faq-sec" aria-labelledby="faq-title">
+<section class="fh-sec fh-faq-sec" id="faq" aria-labelledby="faq-title">
     <div class="fh-wrap">
         <p class="fh-over">{{ \App\Models\Setting::get('home_sec_faq_eyebrow_' . $locale) ?: $L('Respuestas sin fricción', 'Answers without friction', 'Respostas sem atrito') }}</p>
         <h2 id="faq-title" class="fh-h2 fh-h2--reg">{{ \App\Models\Setting::get('home_sec_faq_title_' . $locale) ?: $L('Lo que quizá te preguntas', 'What you may be wondering', 'O que você talvez esteja se perguntando') }}</h2>
@@ -899,12 +826,89 @@
                     {!! \App\Models\Setting::get('home_cta_title_' . $locale) ?: $L('El Perú te espera. <span class="lvt-accent">Nosotros te guiamos.</span>', 'Peru is waiting. <span class="lvt-accent">We guide you.</span>', 'O Peru te espera. <span class="lvt-accent">Nós guiamos você.</span>') !!}
                 </h2>
             </div>
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="fh-cta__btn" data-ga-cta="cta_final" data-ga-location="home_final">
+            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="fh-cta__btn" data-sheet="all" data-ga-cta="cta_final" data-ga-location="home_final">
                 {{ $L('Descubrir mis experiencias', 'Discover my experiences', 'Descobrir minhas experiências') }}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
         </div>
     </div>
 </section>
+
+{{-- ── VENTANAS (sheets): configuración + textos para public/js/home-sheets.js. Todo texto va en JSON escapado y se pinta con textContent. ── --}}
+@php
+    $fhTx = [
+        'close' => ['Cerrar', 'Close', 'Fechar'], 'back' => ['Volver', 'Back', 'Voltar'],
+        'loading' => ['Cargando…', 'Loading…', 'Carregando…'],
+        'error' => ['No pudimos cargar la información. Revisa tu conexión e inténtalo de nuevo.', 'We could not load the information. Check your connection and try again.', 'Não foi possível carregar as informações. Verifique sua conexão e tente novamente.'],
+        'retry' => ['Reintentar', 'Try again', 'Tentar novamente'],
+        'contact_title' => ['Habla con Lima View Tours', 'Talk to Lima View Tours', 'Fale com a Lima View Tours'],
+        'contact_eyebrow' => ['Asistencia real', 'Real assistance', 'Assistência real'],
+        'contact_h' => ['¿Te ayudamos a elegir?', 'Can we help you choose?', 'Ajudamos você a escolher?'],
+        'contact_p' => ['Escríbenos por WhatsApp y te recomendamos el tour ideal según tu tiempo, tus intereses y tu destino.', 'Message us on WhatsApp and we will recommend the ideal tour for your time, interests and destination.', 'Escreva para nós no WhatsApp e recomendamos o tour ideal para seu tempo, interesses e destino.'],
+        'contact_btn' => ['Abrir WhatsApp', 'Open WhatsApp', 'Abrir WhatsApp'],
+        'search_title' => ['Buscar tours', 'Search tours', 'Buscar tours'],
+        'search_ph' => ['Ej. Lima, catacumbas, aventura', 'E.g. Lima, catacombs, adventure', 'Ex. Lima, catacumbas, aventura'],
+        'search_btn' => ['Ver tours encontrados', 'See matching tours', 'Ver tours encontrados'],
+        'suggest' => ['Prueba con', 'Try', 'Experimente'],
+        'res_all' => ['Todos los tours', 'All tours', 'Todos os tours'],
+        'res_rec' => ['Tu tour recomendado', 'Your recommended tour', 'Seu tour recomendado'],
+        'res_dest' => ['Tours en {x}', 'Tours in {x}', 'Tours em {x}'],
+        'res_found' => ['Resultados de búsqueda', 'Search results', 'Resultados da busca'],
+        'res_quick' => ['Tours recomendados', 'Recommended tours', 'Tours recomendados'],
+        'adv_eyebrow' => ['Lima View Tours · Tu asesor', 'Lima View Tours · Your advisor', 'Lima View Tours · Seu assessor'],
+        'no_exact' => ['No encontramos una coincidencia exacta. Te mostramos las alternativas más cercanas.', 'We found no exact match. Here are the closest alternatives.', 'Não encontramos uma correspondência exata. Veja as alternativas mais próximas.'],
+        'exact' => ['Coincide con tu elección', 'Matches your choice', 'Corresponde à sua escolha'],
+        'alt' => ['Alternativa cercana', 'Close alternative', 'Alternativa próxima'],
+        'see_all' => ['Ver todos en la página de tours', 'See all on the tours page', 'Ver todos na página de tours'],
+        'details' => ['Ver detalles', 'See details', 'Ver detalhes'], 'book' => ['Reservar', 'Book', 'Reservar'],
+        'from' => ['Desde', 'From', 'A partir de'], 'now' => ['Ahora', 'Now', 'Agora'], 'before' => ['Antes', 'Was', 'Antes'], 'pp' => ['P/P', 'P/P', 'P/P'], 'grp' => ['Grupo', 'Group', 'Grupo'],
+        'off' => ['Descuento', 'Off', 'Desconto'],
+        'wa_consult' => ['Consultar por WhatsApp', 'Ask on WhatsApp', 'Consultar pelo WhatsApp'],
+        'wa_empty' => ['¿No ves lo que buscas? Escríbenos por WhatsApp.', 'Not seeing what you need? Message us on WhatsApp.', 'Não encontrou o que procura? Fale conosco no WhatsApp.'],
+        'tour_title' => ['Detalles del tour', 'Tour details', 'Detalhes do tour'],
+        'duration' => ['Duración', 'Duration', 'Duração'], 'language' => ['Idioma', 'Language', 'Idioma'], 'departure' => ['Salida', 'Departure', 'Saída'], 'type' => ['Tipo', 'Type', 'Tipo'],
+        'region' => ['Destino', 'Destination', 'Destino'],
+        'includes' => ['Incluye', 'Includes', 'Inclui'], 'excludes' => ['No incluye', 'Not included', 'Não inclui'],
+        'pickup' => ['Recojo', 'Pickup', 'Transporte'], 'pickup_zones' => ['Zonas', 'Areas', 'Zonas'],
+        'reviews_word' => ['reseñas', 'reviews', 'avaliações'], 'review_word' => ['reseña', 'review', 'avaliação'],
+        'flex' => [__('ui.tour_flex_pay_line', [], 'es'), __('ui.tour_flex_pay_line', [], 'en'), __('ui.tour_flex_pay_line', [], 'pt')],
+        'reserve_h' => ['Elige tu fecha', 'Choose your date', 'Escolha sua data'],
+        'date' => ['Fecha del tour', 'Tour date', 'Data do tour'], 'adults' => ['Adultos', 'Adults', 'Adultos'],
+        'reserve_btn' => ['Reservar ahora', 'Book now', 'Reservar agora'], 'adding' => ['Agregando…', 'Adding…', 'Adicionando…'],
+        'date_required' => ['Elige una fecha para continuar.', 'Choose a date to continue.', 'Escolha uma data para continuar.'],
+        'date_blocked' => ['Esa fecha no está disponible. Elige otra.', 'That date is not available. Choose another.', 'Essa data não está disponível. Escolha outra.'],
+        'date_range' => ['Elige una fecha dentro del rango disponible.', 'Choose a date within the available range.', 'Escolha uma data dentro do período disponível.'],
+        'reserve_err' => ['No pudimos agregar el tour. Inténtalo de nuevo.', 'We could not add the tour. Please try again.', 'Não foi possível adicionar o tour. Tente novamente.'],
+        'reserve_419' => ['Tu sesión venció. Recarga la página e inténtalo de nuevo.', 'Your session expired. Reload the page and try again.', 'Sua sessão expirou. Recarregue a página e tente novamente.'],
+        'full_page' => ['Ver ficha completa', 'See full tour page', 'Ver página completa'],
+        'rev_title' => ['Opiniones y confianza', 'Reviews and trust', 'Avaliações e confiança'],
+        'rev_eyebrow' => ['Historias de nuestros viajeros', 'Stories from our travelers', 'Histórias dos nossos viajantes'],
+        'rev_all' => ['Todos', 'All', 'Todos'], 'rev_photos' => ['Con fotos', 'With photos', 'Com fotos'],
+        'rev_more' => ['Ver más reseñas', 'See more reviews', 'Ver mais avaliações'],
+        'rev_empty' => ['No hay reseñas con ese filtro.', 'No reviews match this filter.', 'Não há avaliações com esse filtro.'],
+        'rev_avg' => ['Calificación promedio de', 'Average rating from', 'Avaliação média de'],
+        'traveler' => ['Viajero', 'Traveler', 'Viajante'],
+        'photo_title' => ['Foto del viajero', 'Traveler photo', 'Foto do viajante'],
+        'benefit_cta' => ['Ver comentarios de viajeros', 'See traveler reviews', 'Ver comentários de viajantes'],
+        'stars' => ['estrellas', 'stars', 'estrelas'],
+    ];
+    $fhTi = $locale === 'pt' ? 2 : ($locale === 'en' ? 1 : 0);
+    $fhCfg = [
+        'locale' => $locale,
+        'api' => $homeApi,
+        'benefits' => array_map(fn ($t) => ['key' => $t['k'], 'title' => $t['v'], 'label' => $t['l'], 'detail' => $t['detail']], $fhTrust ?? []),
+        'tx' => array_map(fn ($t) => $t[$fhTi], $fhTx),
+    ];
+@endphp
+@if (! empty($homeApi))
+<script type="application/json" id="lvt-home-cfg">{!! json_encode($fhCfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+@endif
+@push('head')
+    <link rel="preload" as="font" type="font/woff2" href="{{ asset('fonts/raleway-var.woff2') }}" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="{{ asset('fonts/roboto-var.woff2') }}" crossorigin>
+@endpush
+@push('scripts')
+    <script src="{{ asset('js/home-sheets.js') }}?v=20261121a" defer></script>
+@endpush
 
 @endsection

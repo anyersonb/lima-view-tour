@@ -11,6 +11,7 @@ use App\Http\Controllers\Customer\LoginController;
 use App\Http\Controllers\Customer\LogoutController;
 use App\Http\Controllers\Customer\RegisterController;
 use App\Http\Controllers\Customer\ResetPasswordController;
+use App\Http\Controllers\HomeApiController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
@@ -91,6 +92,24 @@ Route::prefix('{locale}')
             ->middleware('throttle:6,1')
             ->name('tours.review.store');
         Route::get('/buscar', [TourController::class, 'search'])->name('tours.results');
+
+        // ── JSON público de las ventanas del home TAL CUAL (21-nov) ─────────
+        // Solo lectura, sin sesión ni cookies (respuesta cacheable pública) y
+        // limitado por IP. Contrato: contrato-datos.md, "HOME TAL CUAL".
+        Route::middleware('throttle:home-api')
+            ->withoutMiddleware([
+                \App\Http\Middleware\EncryptCookies::class,
+                \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+                \Illuminate\Session\Middleware\StartSession::class,
+                \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+                \App\Http\Middleware\VerifyCsrfToken::class,
+            ])
+            ->prefix('api')
+            ->group(function () {
+                Route::get('/tours/finder', [HomeApiController::class, 'finder'])->name('api.tours.finder');
+                Route::get('/tours/{slug}/sheet', [HomeApiController::class, 'sheet'])->name('api.tours.sheet');
+                Route::get('/reviews', [HomeApiController::class, 'reviews'])->name('api.reviews');
+            });
 
         // Cart routes (Fase 2)
         Route::get('/carrito', [CartController::class, 'index'])->name('cart.index');

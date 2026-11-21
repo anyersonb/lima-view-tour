@@ -73,28 +73,53 @@ class HomeFinalSections
         $url = HomeSections::tourUrl($t, $locale);
         $badge = trim((string) $t->badge_text);
 
+        // Chips curados del cliente (máx. 4, el marcado "acento" va en naranja);
+        // sin ninguno, los derivados de siempre (duración, idioma, recojo...).
         $chips = [];
-        if ($label = TourListing::durationLabel($t->duration, $locale)) {
-            $chips[] = ['type' => 'duration', 'label' => $label];
+        foreach ($t->cardChips($locale) as $c) {
+            $chips[] = ['type' => 'custom', 'label' => $c['text'], 'accent' => $c['accent']];
         }
-        if ($label = $t->languagesLabel($locale)) {
-            $chips[] = ['type' => 'language', 'label' => $label];
+        $curated = $chips !== [];
+
+        if (! $curated) {
+            if ($label = TourListing::durationLabel($t->duration, $locale)) {
+                $chips[] = ['type' => 'duration', 'label' => $label];
+            }
+            if ($label = $t->languagesLabel($locale)) {
+                $chips[] = ['type' => 'language', 'label' => $label];
+            }
+            if ($t->pickup_included) {
+                $chips[] = ['type' => 'pickup', 'label' => __('ui.chip_pickup', [], $locale)];
+            }
+            if ($t->free_cancellation) {
+                $chips[] = ['type' => 'cancellation', 'label' => __('ui.chip_free_cancellation', [], $locale)];
+            }
         }
-        if ($t->pickup_included) {
-            $chips[] = ['type' => 'pickup', 'label' => __('ui.chip_pickup', [], $locale)];
-        }
-        if ($t->free_cancellation) {
-            $chips[] = ['type' => 'cancellation', 'label' => __('ui.chip_free_cancellation', [], $locale)];
-        }
-        if ($modality = TourListing::modality($t->group_type, $locale)) {
+        $modality = TourListing::modality($t->group_type, $locale);
+        if (! $curated && $modality) {
             $chips[] = ['type' => 'group', 'label' => $modality['label']];
         }
 
+        $regionName = $t->region ? (string) ($t->region->{"name_{$locale}"} ?: $t->region->name_es) : null;
+        $discount = $t->discount_percent;
+        $private = ($modality['slug'] ?? null) === 'private';
+
         return [
             'id' => $t->getKey(),
-            'region' => $t->region ? (string) ($t->region->{"name_{$locale}"} ?: $t->region->name_es) : null,
+            'slug' => $t->slugFor($locale),
+            'region' => $regionName,
             'region_slug' => $t->region ? (string) $t->region->slug : null,
+            // Etiqueta de ubicación propia de la tarjeta ("ICA + PARACAS"); sin ella, la región.
+            'location' => $t->cardLocation($locale) ?? $regionName,
             'title' => $t->title,
+            // Título corto de la tarjeta; sin él, el título normal del tour.
+            'card_title' => $t->cardTitle($locale) ?? $t->title,
+            'modality' => $modality['slug'] ?? null,
+            // Etiqueta de precio del diseño: now = "AHORA · P/P" (hay descuento),
+            // regular = "TARIFA REGULAR / DESDE · P/P", private = "TARIFA PRIVADA / DESDE · GRUPO".
+            'price_kind' => $discount !== null ? 'now' : ($private ? 'private' : 'regular'),
+            'price_unit' => $private ? 'group' : 'pp',
+            'sheet_url' => route('api.tours.sheet', ['locale' => $locale, 'slug' => $t->slugFor($locale)]),
             'url' => $url,
             // En la ficha hay dos selectores de fecha (móvil y escritorio) con id distinto.
             'dates_url' => $url.'#seccion-reserva',
@@ -110,6 +135,45 @@ class HomeFinalSections
         ];
     }
 
+    // ─── Ventanas (sheets): URLs y sugerencias ───────────────────────────
+
+    /** Máximo de sugerencias del buscador en ventana. */
+    public const SUGGESTIONS_MAX = 6;
+
+    /**
+     * Todo lo que el front necesita para abrir las ventanas sin hardcodear
+     * rutas: endpoints JSON, plantilla de la ficha (`__SLUG__`), WhatsApp
+     * oficial con mensaje genérico y sugerencias reales (regiones y
+     * categorías con tours: son buscables por ?q=).
+     *
+     * @param  array<string, mixed>|null  $search  TourSearch::options() ya calculado
+     * @return array{
+     *   finder_url: string, reviews_url: string, sheet_url_template: string, cart_url: string,
+     *   whatsapp_url: ?string, suggestions: array<int, array{label: string, q: string}>
+     * }
+     */
+    public static function api(?string $locale = null, ?array $search = null): array
+    {
+        $locale = self::locale($locale);
+        $search ??= TourSearch::options($locale);
+
+        $suggestions = [];
+        foreach (array_merge($search['destinations'] ?? [], $search['experiences'] ?? []) as $o) {
+            $label = trim((string) ($o['label'] ?? ''));
+            if ($label !== '' && ! in_array($label, array_column($suggestions, 'label'), true)) {
+                $suggestions[] = ['label' => $label, 'q' => $label];
+            }
+        }
+
+        return [
+            'finder_url' => route('api.tours.finder', ['locale' => $locale]),
+            'reviews_url' => route('api.reviews', ['locale' => $locale]),
+            'sheet_url_template' => route('api.tours.sheet', ['locale' => $locale, 'slug' => '__SLUG__']),
+            'cart_url' => route('cart.index', ['locale' => $locale]),
+            'whatsapp_url' => TourSheet::whatsappUrl(__('ui.home_whatsapp_text', [], $locale)),
+            'suggestions' => array_slice($suggestions, 0, self::SUGGESTIONS_MAX),
+        ];
+    }
     // ─── "Explora Perú por destinos" ─────────────────────────────────────
 
     /**
@@ -162,7 +226,10 @@ class HomeFinalSections
      * Hasta 4 ítems en el orden del diseño: cancelación, años, viajeros,
      * valoración. Solo los que el admin cargó. Null si no hay ninguno.
      *
-     * @return array{items: array<int, array{key: string, value: string, label: ?string, source: ?string}>}|null
+     * `detail` = texto de la ventana del ítem (Ajustes → Home → "Banda de confianza — ventanas");
+     * null = el ítem NO es clicable.
+     *
+     * @return array{items: array<int, array{key: string, value: string, label: ?string, source: ?string, detail: ?string}>}|null
      */
     public static function trust(?string $locale = null): ?array
     {
@@ -171,7 +238,7 @@ class HomeFinalSections
         $items = [];
 
         if ($c = self::cancellation($locale)) {
-            $items[] = ['key' => 'cancellation', 'value' => $c['title'], 'label' => $c['text'], 'source' => null];
+            $items[] = ['key' => 'cancellation', 'value' => $c['title'], 'label' => $c['text'], 'source' => null, 'detail' => self::trustDetail('cancel', $locale)];
         }
         foreach (['years', 'travelers', 'rating'] as $key) {
             if ($stats[$key]['value'] !== null) {
@@ -180,11 +247,38 @@ class HomeFinalSections
                     'value' => $stats[$key]['value'],
                     'label' => $stats[$key]['label'],
                     'source' => $stats[$key]['source'] ?? null,
+                    'detail' => self::trustDetail($key, $locale),
                 ];
             }
         }
 
+        // Pago flexible (pedido del cliente): se comunica ANTES del checkout. Título vacío = ítem oculto.
+        $payTitle = Setting::getLocalized('home_trust_pay_title', $locale);
+        if ($payTitle !== null) {
+            $items[] = [
+                'key' => 'pay',
+                'value' => $payTitle,
+                'label' => null,
+                'source' => null,
+                // Detalle vacío = texto traducido por defecto con las 3 opciones (el ítem siempre abre su ventana).
+                'detail' => Setting::getLocalized('home_trust_pay_detail', $locale) ?? __('ui.trust_pay_detail_default', [], $locale),
+            ];
+        }
+
         return $items === [] ? null : ['items' => $items];
+    }
+
+    /** Claves de ítem con ventana de detalle (cancel = cancelación). */
+    public const TRUST_DETAIL_KEYS = ['cancel', 'years', 'travelers', 'rating'];
+
+    /** Texto de la ventana de un ítem de la banda (idioma → ES). Null = sin ventana. */
+    public static function trustDetail(string $key, ?string $locale = null): ?string
+    {
+        if (! in_array($key, self::TRUST_DETAIL_KEYS, true)) {
+            return null;
+        }
+
+        return Setting::getLocalized('home_trust_detail_'.$key, self::locale($locale));
     }
 
     /**
@@ -273,6 +367,16 @@ class HomeFinalSections
             $tour = $tour && $tour->is_published ? $tour : null;
             $region = $tour && $tour->region_id ? $regions->get($tour->region_id) : null;
             $photos = $isModel ? array_slice($r->photo_urls, 0, self::REVIEW_PHOTOS_MAX) : [];
+            // Fotos con tamaños para el lightbox: miniatura (480) y grande (1440); sin variantes, el original.
+            $photoItems = [];
+            if ($isModel) {
+                foreach (array_slice(array_values(array_filter((array) ($r->photos ?? []), 'is_string')), 0, self::REVIEW_PHOTOS_MAX) as $path) {
+                    $full = ImageVariants::responsive($path, 1440);
+                    if ($full) {
+                        $photoItems[] = ['thumb' => ImageVariants::responsive($path, 480) ?: $full, 'full' => $full];
+                    }
+                }
+            }
             $platform = self::platformKey($isModel ? $r->source : data_get($r, 'source'));
             $avatar = data_get($r, 'avatar');
             $country = trim((string) data_get($r, 'country'));
@@ -286,12 +390,15 @@ class HomeFinalSections
                 'title' => $title !== null && trim($title) !== '' ? trim($title) : null,
                 'quote' => (string) ($isModel ? $r->quote : data_get($r, 'quote')),
                 'date' => $isModel ? $r->display_date : null,
+                'date_iso' => $isModel && $r->display_date ? $r->display_date->format('Y-m-d') : null,
                 'traveler_type' => $isModel && $r->traveler_type ? (string) $r->traveler_type : null,
                 'tour' => $tour ? ['title' => $tour->title, 'url' => HomeSections::tourUrl($tour, $locale)] : null,
                 'platform' => $platform,
                 'platform_label' => self::platformLabel($platform, $locale),
                 'destination' => $region ? (string) $region->slug : null,
+                'destination_name' => $region ? (string) ($region->{"name_{$locale}"} ?: $region->name_es) : null,
                 'photos' => $photos,
+                'photo_items' => $photoItems,
                 'has_photos' => $photos !== [],
                 'avatar_url' => is_string($avatar) && trim($avatar) !== '' ? ImagePath::url(trim($avatar)) : null,
             ];

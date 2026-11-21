@@ -8,6 +8,8 @@ use App\Models\Testimonial;
 use App\Models\Tour;
 use App\Support\BookingCalendar;
 use App\Support\TourSearch;
+use App\Support\ToursSeoSections;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,7 +37,23 @@ class TourController extends Controller
             'searchWhatsappUrl' => $searchActive && $tours->isEmpty() ? TourSearch::whatsappUrl() : null,
             'regions' => Region::active()->orderBy('order')->get(),
             'testimonials' => Testimonial::published()->featured()->orderBy('order')->limit(4)->get(),
+            // Contenido SEO que salió del home ("Tours de un día desde Lima" y "Cómo elegir
+            // tu tour en Perú"): la vista lo muestra al FINAL del listado. Null con un filtro
+            // activo (los resultados filtrados no llevan bloque SEO). Ver contrato-datos.md.
+            'seoSections' => $searchActive ? null : $this->seoSections(),
         ]);
+    }
+
+    /** Una falla aquí nunca rompe el listado: el bloque SEO queda en null. */
+    private function seoSections(): ?array
+    {
+        try {
+            return ToursSeoSections::all();
+        } catch (\Throwable $e) {
+            Log::error('TourController: seoSections falló', ['error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     public function category(string $locale, string $categoria): View

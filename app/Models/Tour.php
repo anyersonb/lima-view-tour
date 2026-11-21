@@ -34,6 +34,9 @@ class Tour extends Model
         'excludes_pt' => 'array',
         'gallery' => 'array',
         'comparison' => 'array',
+        'card_chips_es' => 'array',
+        'card_chips_en' => 'array',
+        'card_chips_pt' => 'array',
         'seo_keywords' => 'array',
         'is_featured' => 'boolean',
         'is_published' => 'boolean',
@@ -183,6 +186,55 @@ class Tour extends Model
         $locale = app()->getLocale();
 
         return $this->{"title_{$locale}"} ?: $this->title_es;
+    }
+
+    /**
+     * Título corto de la tarjeta del home (card_title_*). Idioma pedido con
+     * caída a ES; null si el cliente no lo cargó (la tarjeta usa entonces el
+     * título normal). Tolera que la migración aún no esté aplicada.
+     */
+    public function cardTitle(?string $locale = null): ?string
+    {
+        return $this->cardText('card_title', $locale);
+    }
+
+    /** Etiqueta de ubicación de la tarjeta ("ICA + PARACAS"); null = usar la región. */
+    public function cardLocation(?string $locale = null): ?string
+    {
+        return $this->cardText('card_location', $locale);
+    }
+
+    /**
+     * Chips curados de la tarjeta (máx. 4), ya limpios: [['text' => 'Catacumbas', 'accent' => true], ...].
+     * Vacío = la tarjeta usa los chips derivados de siempre. Acepta también
+     * una lista de strings (TagsInput antiguo).
+     *
+     * @return array<int, array{text: string, accent: bool}>
+     */
+    public function cardChips(?string $locale = null): array
+    {
+        $raw = $this->localized('card_chips', $locale);
+        $out = [];
+
+        foreach (is_array($raw) ? $raw : [] as $item) {
+            $text = is_array($item) ? ($item['text'] ?? null) : $item;
+            if (! is_string($text) || trim($text) === '') {
+                continue;
+            }
+            $out[] = [
+                'text' => mb_substr(trim($text), 0, 30),
+                'accent' => is_array($item) && ! empty($item['accent']),
+            ];
+        }
+
+        return array_slice($out, 0, 4);
+    }
+
+    private function cardText(string $field, ?string $locale): ?string
+    {
+        $value = $this->localized($field, $locale);
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
     public function getDescriptionAttribute(): ?string

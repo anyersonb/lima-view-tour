@@ -19,13 +19,18 @@
         $stars = max(1, min(5, (int) round((float) $p['rating']['rating'])));
     }
 
-    // Chips: etiquetas cortas como en el diseño ("Recojo", "ES / EN"); el chip real "especial" (cancelación / grupo) va en naranja.
+    // Chips: etiquetas cortas como en el diseño ("Recojo", "ES / EN"). Chips curados (type 'custom', cargados en el admin): se pintan tal cual
+    // y el marcado accent va en naranja. Sin curados: el chip real "especial" (cancelación / grupo) va en naranja.
     $chips = [];
     $accent = null;
     foreach (($p['chips'] ?? []) as $c) {
         $label = (string) ($c['label'] ?? '');
         if ($label === '') { continue; }
         $type = $c['type'] ?? '';
+        if ($type === 'custom') {
+            if (! empty($c['accent']) && $accent === null) { $accent = $label; } else { $chips[] = $label; }
+            continue;
+        }
         if ($type === 'pickup') { $label = $L('Recojo', 'Pickup', 'Transporte'); }
         if ($type === 'language') {
             $label = str_replace(['Español', 'Spanish', 'Espanhol', 'Inglés', 'English', 'Inglês', 'Portugués', 'Portuguese', 'Português'], ['ES', 'ES', 'ES', 'EN', 'EN', 'EN', 'PT', 'PT', 'PT'], $label);
@@ -34,11 +39,18 @@
         $chips[] = $label;
     }
 
+    // Título corto de tarjeta (si no se cargó, card_title = title) y etiqueta de ubicación (si no, región).
+    $cardTitle = filled($p['card_title'] ?? null) ? $p['card_title'] : ($p['title'] ?? '');
+    $cardLoc = filled($p['location'] ?? null) ? $p['location'] : ($p['region'] ?? null);
+    // Etiqueta de precio por modalidad: now = descuento real; regular = TARIFA REGULAR; private = TARIFA PRIVADA · DESDE · GRUPO.
+    $priceKind = $p['price_kind'] ?? ($hasDiscount ? 'now' : 'regular');
+    $priceUnit = ($p['price_unit'] ?? 'pp') === 'group' ? $L('Grupo', 'Group', 'Grupo') : 'P/P';
+
     $imgSrc = $img['src'] ?? ($p['image'] ?? asset('assets/banners/banner-hero.jpg'));
     $imgFallback = parse_url(asset('assets/banners/banner-hero.jpg'), PHP_URL_PATH);
 @endphp
 
-<article class="fh-card" data-ga-select data-ga-item-id="{{ $p['id'] ?? '' }}" data-ga-item-name="{{ $p['title'] ?? '' }}" data-ga-price="{{ (float) ($p['price'] ?? 0) }}">
+<article class="fh-card"{!! filled($p['sheet_url'] ?? null) ? ' data-sheet-url="' . e($p['sheet_url']) . '"' : '' !!} data-ga-select data-ga-item-id="{{ $p['id'] ?? '' }}" data-ga-item-name="{{ $p['title'] ?? '' }}" data-ga-price="{{ (float) ($p['price'] ?? 0) }}">
     <div class="fh-card__media">
         <a href="{{ $p['url'] ?? '#' }}" tabindex="-1" aria-hidden="true" class="fh-card__img-link">
             <img src="{{ $imgSrc }}" @if (! empty($img['srcset'])) srcset="{{ $img['srcset'] }}" sizes="{{ $img['sizes'] ?? '' }}" @endif
@@ -48,13 +60,13 @@
         @if (filled($p['badge'] ?? null))
             <span class="fh-card__badge"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg>{{ $p['badge'] }}</span>
         @endif
-        @if (filled($p['region'] ?? null))
-            <span class="fh-card__region">{{ $p['region'] }}</span>
+        @if (filled($cardLoc))
+            <span class="fh-card__region">{{ $cardLoc }}</span>
         @endif
     </div>
 
     <div class="fh-card__body">
-        <h3 class="fh-card__title"><a href="{{ $p['url'] ?? '#' }}" class="fh-card__title-link">{{ $p['title'] ?? '' }}</a></h3>
+        <h3 class="fh-card__title"><a href="{{ $p['url'] ?? '#' }}" class="fh-card__title-link" title="{{ $p['title'] ?? '' }}">{{ $cardTitle }}</a></h3>
 
         @if ($stars)
             <p class="fh-card__rate">
@@ -65,20 +77,26 @@
 
         @if (count($chips) || $accent)
             <ul class="fh-card__chips">
-                @foreach ($chips as $c)<li>{{ $c }}</li>@endforeach
+                {{-- Móvil: una sola fila, máx. 2 chips (el acento cuenta como uno); el resto lleva .fh-xm y se oculta en <768px --}}
+                @foreach ($chips as $ci => $c)<li @class(['fh-xm' => $ci >= ($accent ? 1 : 2)])>{{ $c }}</li>@endforeach
                 @if ($accent)<li class="is-accent">{{ $accent }}</li>@endif
             </ul>
         @endif
 
         <div class="fh-card__buy">
+            @if ($priceKind === 'regular')
+                <p class="fh-card__kind">{{ $L('Tarifa regular', 'Regular rate', 'Tarifa regular') }}</p>
+            @elseif ($priceKind === 'private')
+                <p class="fh-card__kind">{{ $L('Tarifa privada', 'Private rate', 'Tarifa privada') }}</p>
+            @endif
             @if ($hasDiscount)
                 <div class="fh-card__was">
                     <span class="fh-card__off"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 12.6V4.5A1.5 1.5 0 014.5 3h8.1a1.5 1.5 0 011.06.44l7.9 7.9a1.5 1.5 0 010 2.12l-7.2 7.2a1.5 1.5 0 01-2.12 0l-7.9-7.9A1.5 1.5 0 013 12.6zM7.5 8.5a1 1 0 100-2 1 1 0 000 2z"/></svg>{{ $pct }}% {{ $L('Descuento', 'Off', 'Desconto') }}</span>
                     <span class="fh-card__before">{{ $L('ANTES', 'WAS', 'ANTES') }} <s>US${{ number_format((float) $p['price_before'], 0) }}</s></span>
                 </div>
-                <p class="fh-card__lbl">{{ $L('Ahora', 'Now', 'Agora') }} · P/P</p>
+                <p class="fh-card__lbl">{{ $L('Ahora', 'Now', 'Agora') }} · {{ $priceUnit }}</p>
             @else
-                <p class="fh-card__lbl">{{ $L('Desde', 'From', 'A partir de') }} · P/P</p>
+                <p class="fh-card__lbl">{{ $L('Desde', 'From', 'A partir de') }} · {{ $priceUnit }}</p>
             @endif
             <div class="fh-card__row">
                 <span class="fh-card__price">US${{ number_format((float) ($p['price'] ?? 0), 0) }}</span>

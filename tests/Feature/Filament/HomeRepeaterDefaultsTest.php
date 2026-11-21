@@ -67,15 +67,17 @@ class HomeRepeaterDefaultsTest extends TestCase
 
         $html = $this->get('/es')->assertOk()->getContent();
 
-        $this->assertSame(4, substr_count($html, self::CHOOSE_LI));
+        // "Cómo elegir tu tour" salió del home (21-nov): ahora vive al final de /tours y NO en el home.
+        $this->assertSame(0, substr_count($html, self::CHOOSE_LI));
+        $tours = $this->get('/es/tours')->assertOk()->getContent();
+        $this->assertSame(4, substr_count($tours, self::CHOOSE_LI));
         foreach (HomeDefaults::chooseItems() as $item) {
-            $this->assertStringContainsString(e($item['title_es']), $html);
+            $this->assertStringContainsString(e($item['title_es']), $tours);
         }
         foreach (HomeDefaults::destinos() as $item) {
             $this->assertStringContainsString(e($item['title_es']), $html);
         }
         // Lo visual heredado por posición sigue ahí.
-        $this->assertStringContainsString(HomeDefaults::chooseItems()[0]['iconPath'], $html);
 
         // Mismo HTML que antes de guardar (normalizando tokens y espacios).
         $norm = static fn (string $h) => preg_replace('/\s+/', ' ', preg_replace(
@@ -101,7 +103,7 @@ class HomeRepeaterDefaultsTest extends TestCase
             ->call('save')
             ->assertHasNoFormErrors();
 
-        $html = $this->get('/es')->assertOk()->getContent();
+        $html = $this->get('/es/tours')->assertOk()->getContent();
 
         $this->assertSame(4, substr_count($html, self::CHOOSE_LI));
         $this->assertStringContainsString('Consejo editado por el cliente', $html);
@@ -117,14 +119,14 @@ class HomeRepeaterDefaultsTest extends TestCase
 
         Livewire::test(Settings::class)->call('save')->assertHasNoFormErrors();
 
-        $html = $this->get('/en')->assertOk()->getContent();
+        $html = $this->get('/en/tours')->assertOk()->getContent(); // "Cómo elegir" vive al final de /tours desde el 21-nov
 
         foreach (HomeDefaults::chooseItems() as $item) {
             $this->assertStringContainsString(e($item['title_en']), $html);
             $this->assertStringContainsString(e($item['desc_en']), $html);
         }
         foreach (HomeDefaults::destinos() as $item) {
-            $this->assertStringContainsString(e($item['title_en']), $html);
+            $this->assertStringContainsString(e($item['title_en']), $this->get('/en')->getContent());
         }
         $this->assertStringNotContainsString(e(HomeDefaults::chooseItems()[0]['title_es']), $html);
     }

@@ -1315,6 +1315,7 @@ if (!empty($itinerary)) {
                             <div class="m-price-unit">{{ mb_strtoupper(__('ui.usd_per_person')) }}</div>
                         </div>
                     </div>
+                    <p class="lvt-flexpay">{{ __('ui.tour_flex_pay_line') }}</p>
                     {{-- Fecha --}}
                     <div class="m-field">
                         <span class="m-label">{{ __('ui.tour_date') }}</span>
@@ -2517,6 +2518,7 @@ if (!empty($itinerary)) {
                         </div>
                     @endif
                 </div>
+                <p class="lvt-flexpay">{{ __('ui.tour_flex_pay_line') }}</p>
 
                 {{-- Campo Fecha --}}
                 <div>

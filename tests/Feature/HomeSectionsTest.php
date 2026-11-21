@@ -141,7 +141,7 @@ class HomeSectionsTest extends TestCase
         $this->assertSame('Tripadvisor (EN)', HomeSections::stats('en')['rating']['source']);
         $this->assertSame('Tripadvisor', HomeSections::stats('pt')['rating']['source'], 'cae a ES');
         $this->assertTrue($es['any']);
-        $this->assertSame('Rating', HomeSections::stats('en')['rating']['label']);
+        $this->assertSame('Rating on our website', HomeSections::stats('en')['rating']['label']);
     }
 
     // ─── Distribución de reseñas ─────────────────────────────────────────
