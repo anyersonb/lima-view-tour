@@ -635,7 +635,7 @@ class PaypalCaptureSecurityTest extends TestCase
         $response = $this->get(route('cart.index', ['locale' => self::LOCALE]));
 
         $response->assertOk();
-        $response->assertSee('showPaymentReviewPanel(', false);
+        $response->assertSee('id="co-review"', false);
         $response->assertSee("CAPTURE-{$orderId}", false);
     }
 

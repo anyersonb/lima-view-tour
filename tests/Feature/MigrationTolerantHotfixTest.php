@@ -67,7 +67,7 @@ class MigrationTolerantHotfixTest extends TestCase
 
         // Cart/checkout form: both promises default to on => pickup is asked.
         $html = $this->get(route('cart.index', ['locale' => 'es']))->assertOk()->getContent();
-        $this->assertStringContainsString('id="pickup_point"', $html);
+        $this->assertStringContainsString('id="co-hotel"', $html);
 
         $this->get(route('tours.index', ['locale' => 'es']))->assertOk();
         $this->get(route('tours.show', ['locale' => 'es', 'slug' => $tour->slug]))->assertOk()

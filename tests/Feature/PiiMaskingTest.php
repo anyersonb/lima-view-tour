@@ -69,22 +69,22 @@ class PiiMaskingTest extends TestCase
 
         $xpath = $this->crawl($response->getContent());
 
-        $emailInputs = $xpath->query("//input[@id='customer_email']");
+        $emailInputs = $xpath->query("//input[@id='co-email']");
         $this->assertSame(
             1,
             $emailInputs->length,
-            'No se encontró (o se encontró más de una vez) el input #customer_email en /carrito.'
+            'No se encontró (o se encontró más de una vez) el input #co-email en /carrito.'
         );
         $this->assertTrue(
             $emailInputs->item(0)->hasAttribute('data-hj-suppress'),
             '#customer_email debe llevar data-hj-suppress.'
         );
 
-        $phoneInputs = $xpath->query("//input[@id='phone_local']");
+        $phoneInputs = $xpath->query("//input[@id='co-phone']");
         $this->assertSame(
             1,
             $phoneInputs->length,
-            'No se encontró (o se encontró más de una vez) el input #phone_local en /carrito.'
+            'No se encontró (o se encontró más de una vez) el input #co-phone en /carrito.'
         );
         $this->assertTrue(
             $phoneInputs->item(0)->hasAttribute('data-hj-suppress'),
@@ -94,8 +94,8 @@ class PiiMaskingTest extends TestCase
         // El contenedor que agrupa todo el panel de datos personales
         // (nombre, teléfono, email, pickup, notas) debe llevar ambos
         // atributos de enmascarado.
-        $nameInputs = $xpath->query("//input[@id='customer_name']");
-        $this->assertSame(1, $nameInputs->length, 'No se encontró el input #customer_name en /carrito.');
+        $nameInputs = $xpath->query("//input[@id='co-name']");
+        $this->assertSame(1, $nameInputs->length, 'No se encontró el input #co-name en /carrito.');
 
         $ancestor = $nameInputs->item(0)->parentNode;
         $maskedAncestor = null;

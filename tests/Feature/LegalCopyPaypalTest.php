@@ -65,8 +65,9 @@ class LegalCopyPaypalTest extends TestCase
         // Guards the copy against the code: if the radios change, the terms must too.
         $view = file_get_contents(resource_path('views/checkout.blade.php'));
 
-        $this->assertStringContainsString('name="payment_timing_ui" value="now"', $view);
-        $this->assertStringContainsString('name="payment_timing_ui" value="later"', $view);
-        $this->assertStringNotContainsString('deposit', strtolower($view));
+        // Checkout nuevo (21-nov-2026): tres modos, tal cual el diseño aprobado.
+        $this->assertStringContainsString('name="payment_mode" value="deposit"', $view);
+        $this->assertStringContainsString('name="payment_mode" value="full"', $view);
+        $this->assertStringContainsString('name="payment_mode" value="later"', $view);
     }
 }

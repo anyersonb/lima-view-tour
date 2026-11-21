@@ -143,6 +143,16 @@
 
                 <p id="payment-link-msg" class="mt-4 text-sm text-red-600" style="display:none;" role="alert"></p>
 
+                @if ($culqiEnabled ?? false)
+                    {{-- Tarjeta (Culqi): mismo estilo que el checkout (public/css/checkout.css). --}}
+                    <div class="co" style="background:transparent;min-height:0" id="pl-culqi-wrap">
+                        <button type="button" class="co-sheet-cta" id="pl-culqi-btn" aria-live="polite">
+                            <span id="pl-culqi-label">{{ __('checkout_culqi.pay_button', ['amount' => number_format((float) $link->amount, 2)]) }}</span>
+                        </button>
+                        <p class="co-sub" style="text-align:center">{{ __('checkout_ui.pl_card_sub') }}</p>
+                        <p class="co-sub" style="text-align:center;margin:10px 0 0">{{ __('checkout_ui.pl_or_paypal') }}</p>
+                    </div>
+                @endif
                 <div id="paypal-buttons" class="mt-6"></div>
                 <p class="mt-4 text-center text-[11px] text-teal-800/70">{{ __('payment_links.secure_payment') }}</p>
             </div>
@@ -152,6 +162,10 @@
 
 @if ($usable)
 @push('scripts')
+@if ($culqiEnabled ?? false)
+<link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v=20261121e">
+<script src="https://checkout.culqi.com/js/v4"></script>
+@endif
 @if (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id'))
 <script
     src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale={{ $paypalLocale }}"
@@ -250,6 +264,56 @@
         showMsg(@json(__('payment_links.js_paypal_error')));
         console.error('PayPal error:', err);
     }
+
+    @if ($culqiEnabled ?? false)
+    // Culqi Checkout v4: token (front) -> cargo (servidor). El monto lo fija el servidor (el del link).
+    (function () {
+        const btn = document.getElementById('pl-culqi-btn');
+        const label = document.getElementById('pl-culqi-label');
+        if (!btn) return;
+        const original = label.textContent;
+        const chargeUrl = @json($culqiChargeUrl);
+        let busy = false;
+        function setBusy(on) { busy = on; btn.disabled = on; label.textContent = on ? @json(__('checkout_culqi.processing')) : original; }
+
+        btn.addEventListener('click', function () {
+            if (busy) return;
+            document.getElementById('payment-link-msg').style.display = 'none';
+            if (!validateCustomer()) return;
+            if (typeof window.Culqi === 'undefined') { showMsg(@json(__('checkout_culqi.script_failed'))); return; }
+            Culqi.publicKey = @json($culqiPublicKey);
+            Culqi.settings({ title: @json(__('checkout_culqi.checkout_title')), currency: 'USD', amount: {{ (int) round(((float) $link->amount) * 100) }} });
+            Culqi.options({
+                lang: {{ $locale === 'en' ? "'en'" : "'es'" }},
+                installments: false,
+                paymentMethods: { tarjeta: true, yape: false, bancaMovil: false, agente: false, billetera: false, cuotealo: false },
+                style: { buttonBackground: '#06533e', buttonTextColor: '#FFFFFF' },
+            });
+            Culqi.open();
+        });
+
+        async function charge(tokenId) {
+            const c = collectCustomer();
+            let res, data;
+            try {
+                res = await fetch(chargeUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    body: JSON.stringify({ culqi_token: tokenId, customer_email: c.customer_email }),
+                });
+                data = await res.json();
+            } catch (e) { setBusy(false); showMsg(@json(__('checkout_culqi.charge_failed'))); return; }
+            if (data.success && data.redirect) { window.location.href = data.redirect; return; }
+            setBusy(false);
+            showMsg(data.message ?? data.error ?? @json(__('checkout_culqi.charge_failed')));
+        }
+
+        window.culqi = function () {
+            if (window.Culqi && Culqi.token) { const id = Culqi.token.id; Culqi.close(); setBusy(true); charge(id); }
+            else if (window.Culqi && Culqi.error) { showMsg(@json(__('checkout_culqi.token_error'))); }
+        };
+    })();
+    @endif
 
     if (typeof paypal_sdk !== 'undefined') {
         paypal_sdk.Buttons({

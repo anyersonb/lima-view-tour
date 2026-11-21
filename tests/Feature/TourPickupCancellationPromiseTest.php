@@ -70,7 +70,7 @@ class TourPickupCancellationPromiseTest extends TestCase
         app(CartService::class)->add($noPickup, 2, 0, now()->addDays(10)->format('Y-m-d'));
 
         $html = $this->get(route('cart.index', ['locale' => 'es']))->assertOk()->getContent();
-        $this->assertStringNotContainsString('id="pickup_point"', $html);
+        $this->assertStringNotContainsString('id="co-hotel"', $html);
         $this->assertStringNotContainsString('id="pickup_detail"', $html);
         $this->assertStringNotContainsString('Cancelación gratuita hasta 24 horas antes de la salida', $html);
 
@@ -78,7 +78,7 @@ class TourPickupCancellationPromiseTest extends TestCase
         app(CartService::class)->add($withPickup, 2, 0, now()->addDays(10)->format('Y-m-d'));
 
         $html = $this->get(route('cart.index', ['locale' => 'es']))->assertOk()->getContent();
-        $this->assertStringContainsString('id="pickup_point"', $html);
+        $this->assertStringContainsString('id="co-hotel"', $html);
     }
 
     public function test_checkout_does_not_require_pickup_point_for_a_tour_without_pickup(): void

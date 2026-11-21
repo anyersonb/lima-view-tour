@@ -269,13 +269,13 @@ class CulqiCheckoutTest extends TestCase
 
         $with = $this->get(route('cart.index', ['locale' => self::LOCALE]));
         $with->assertOk();
-        $with->assertSee('id="culqi-pay-btn"', false);
+        $with->assertSee('id="co-pay-culqi"', false);
         $with->assertSee('https://checkout.culqi.com/js/v4', false);
 
         config(['services.culqi.public_key' => null]);
         $without = $this->get(route('cart.index', ['locale' => self::LOCALE]));
         $without->assertOk();
-        $without->assertDontSee('id="culqi-pay-btn"', false);
+        $without->assertDontSee('id="co-pay-culqi"', false);
         $without->assertDontSee('https://checkout.culqi.com/js/v4', false);
     }
 
@@ -291,7 +291,7 @@ class CulqiCheckoutTest extends TestCase
 
         $page = $this->get(route('cart.index', ['locale' => self::LOCALE]));
         $page->assertOk();
-        $page->assertDontSee('id="culqi-pay-btn"', false);
+        $page->assertDontSee('id="co-pay-culqi"', false);
         $page->assertDontSee('https://checkout.culqi.com/js/v4', false);
 
         $this->postJson($this->url(), $this->payload())->assertStatus(503);
