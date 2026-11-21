@@ -56,6 +56,11 @@ return [
     | batch_size    Máx. de reservas procesadas por corrida del comando.
     |
     */
+    // Recordatorio del SALDO de reservas con adelanto (bookings:send-balance-reminders).
+    'balance_reminder' => [
+        'batch_size' => 100,
+    ],
+
     'payment_reminder' => [
         'enabled'     => true,
         'days_before' => 2,

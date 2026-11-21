@@ -12,6 +12,7 @@ use App\Services\AbandonedCartService;
 use App\Services\CartService;
 use App\Services\PaymentLockService;
 use App\Support\BookingCalendar;
+use App\Support\CheckoutPayment;
 use App\Support\TourFlags;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -143,7 +144,12 @@ class CartController extends Controller
         $cartHasFreeCancellation = ! TourFlags::has('free_cancellation') || $cartTours->isEmpty()
             || $cartTours->contains(fn (Tour $t) => (bool) $t->free_cancellation);
 
+        // Datos de pago para el checkout por modos (100% / 50% / despues): montos,
+        // metodos, endpoints y payloads GA4, todos calculados en servidor.
+        $checkout = CheckoutPayment::build($items, (float) $subtotal, (float) $discount, (float) $total, $locale);
+
         return view('checkout', compact(
+            'checkout',
             'items',
             'subtotal',
             'discount',

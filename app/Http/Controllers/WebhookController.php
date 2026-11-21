@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\PaymentLink;
 use App\Models\Setting;
+use App\Services\BalancePaymentService;
 use App\Services\PaymentService;
 use App\Services\PayPalService;
 use Illuminate\Http\JsonResponse;
@@ -51,17 +52,26 @@ class WebhookController extends Controller
         }
 
         $event = json_decode($payload, true);
-        $eventType = $event['type'] ?? null;
-        $chargeId = $event['data']['id'] ?? null;
+        $eventType = is_array($event) ? ($event['type'] ?? null) : null;
+
+        // Culqi entrega `data` como objeto o como STRING JSON según la versión
+        // del evento; se aceptan ambos.
+        $data = is_array($event) ? ($event['data'] ?? null) : null;
+        if (is_string($data)) {
+            $data = json_decode($data, true);
+        }
+        $chargeId = is_array($data) ? ($data['id'] ?? null) : null;
 
         Log::info('webhook.culqi.received', [
             'type' => $eventType,
             'charge_id' => $chargeId,
         ]);
 
+        // `charge.succeeded|failed` es el nombre histórico de este proyecto; Culqi
+        // nombra sus eventos `charge.creation.succeeded|failed`. Se aceptan ambos.
         match ($eventType) {
-            'charge.succeeded' => $this->handleChargeSucceeded($chargeId),
-            'charge.failed' => $this->handleChargeFailed($chargeId),
+            'charge.succeeded', 'charge.creation.succeeded' => $this->handleChargeSucceeded($chargeId),
+            'charge.failed', 'charge.creation.failed' => $this->handleChargeFailed($chargeId),
             default => Log::info('webhook.culqi.unhandled_event', ['type' => $eventType]),
         };
 
@@ -267,7 +277,11 @@ class WebhookController extends Controller
 
         if ($bookings->isNotEmpty()) {
             foreach ($bookings as $booking) {
-                if ($booking->payment_status === 'paid') {
+                // Con adelanto (deposit) el cobro de la compra original deja la
+                // reserva en 'partial', NUNCA 'paid': el saldo sigue pendiente.
+                $target = $booking->gatewayConfirmedPaymentStatus();
+
+                if ($booking->payment_status === 'paid' || $booking->payment_status === $target) {
                     Log::info('webhook.paypal.capture_completed.skipped_idempotent', [
                         'booking_id' => $booking->id,
                     ]);
@@ -275,7 +289,7 @@ class WebhookController extends Controller
                     continue;
                 }
 
-                $booking->update(['payment_status' => 'paid', 'status' => 'confirmed']);
+                $booking->update(['payment_status' => $target, 'status' => 'confirmed']);
 
                 Log::info('webhook.paypal.capture_completed.booking_updated', [
                     'booking_id' => $booking->id,
@@ -348,6 +362,37 @@ class WebhookController extends Controller
                     'capture_id' => $captureId,
                     'order_id' => $orderId,
                 ]);
+
+                return null;
+            }
+
+            // Link del SALDO: la captura paga el saldo de una reserva que YA
+            // existe; nunca se crea una reserva nueva. Red de seguridad por si el
+            // flujo síncrono cobró y no llegó a marcar la reserva como pagada.
+            if ($link->purpose === 'balance') {
+                $capturedAmount = $resource['amount']['value'] ?? null;
+                $capturedCurrency = $resource['amount']['currency_code'] ?? null;
+
+                $matches = $capturedAmount !== null
+                    && number_format((float) $capturedAmount, 2, '.', '') === number_format((float) $link->amount, 2, '.', '')
+                    && strtoupper((string) $capturedCurrency) === 'USD';
+
+                if (! $matches) {
+                    Log::error('webhook.paypal.capture_completed.balance_amount_mismatch', [
+                        'payment_link_id' => $link->id,
+                        'capture_id' => $captureId,
+                        'expected_amount' => (string) $link->amount,
+                        'received_amount' => $capturedAmount,
+                    ]);
+
+                    return null;
+                }
+
+                $booking = $link->booking_id ? Booking::find($link->booking_id) : null;
+
+                if ($booking && app(BalancePaymentService::class)->settle($booking, 'paypal', $captureId, (float) $link->amount, $link)) {
+                    return ['balance_booking' => $booking];
+                }
 
                 return null;
             }
@@ -470,7 +515,9 @@ class WebhookController extends Controller
             }
         });
 
-        if ($reconciliation) {
+        if ($reconciliation && isset($reconciliation['balance_booking'])) {
+            app(BalancePaymentService::class)->notifyBalancePaid($reconciliation['balance_booking']);
+        } elseif ($reconciliation) {
             app(\App\Services\BookingNotifier::class)->send(
                 $reconciliation['bookings'], true, $reconciliation['customer_email']
             );
@@ -560,6 +607,16 @@ class WebhookController extends Controller
                 continue;
             }
 
+            if ($link->purpose === 'balance') {
+                // Reembolso del SALDO: la reserva no vuelve sola a 'partial'
+                // (hay que decidir si se cancela o se vuelve a cobrar): revisión manual.
+                Log::warning('webhook.paypal.capture_refunded.balance_manual_review', [
+                    'payment_link_id' => $link->id,
+                    'booking_id' => $link->booking_id,
+                    'capture_id' => $captureId,
+                ]);
+            }
+
             $link->update(['status' => 'refunded']);
 
             Log::info('webhook.paypal.capture_refunded.link_updated', ['payment_link_id' => $link->id]);
@@ -585,14 +642,32 @@ class WebhookController extends Controller
         $bookings = Booking::where('payment_reference', $chargeId)->get();
 
         if ($bookings->isEmpty()) {
+            // ¿Es el cobro del SALDO de una reserva (link de pago, tarjeta)?
+            // Red de seguridad: el flujo síncrono ya lo marcó pagado; aquí solo
+            // se completa si falló a medias (settle() es idempotente).
+            $link = PaymentLink::where('culqi_charge_id', $chargeId)->where('purpose', 'balance')->first();
+
+            if ($link && $link->booking_id && ($booking = Booking::find($link->booking_id))) {
+                $balance = app(BalancePaymentService::class);
+
+                if ($balance->settle($booking, 'culqi', $chargeId, (float) $link->amount, $link)) {
+                    $balance->notifyBalancePaid($booking);
+                }
+
+                return;
+            }
+
             Log::warning('webhook.culqi.charge_succeeded.no_bookings', ['charge_id' => $chargeId]);
 
             return;
         }
 
         foreach ($bookings as $booking) {
+            // Con adelanto (deposit): 'partial', nunca 'paid' (el saldo sigue pendiente).
+            $target = $booking->gatewayConfirmedPaymentStatus();
+
             // Idempotent: skip if already processed
-            if ($booking->payment_status === 'paid') {
+            if ($booking->payment_status === 'paid' || $booking->payment_status === $target) {
                 Log::info('webhook.culqi.charge_succeeded.skipped_idempotent', [
                     'booking_id' => $booking->id,
                     'reference' => $booking->reference,
@@ -602,7 +677,7 @@ class WebhookController extends Controller
             }
 
             $booking->update([
-                'payment_status' => 'paid',
+                'payment_status' => $target,
                 'status' => 'confirmed',
             ]);
 

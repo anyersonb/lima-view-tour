@@ -55,6 +55,15 @@ class ListBookings extends ListRecords
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('payment_status', 'paid'))
                 ->badge(fn () => Booking::query()->where('payment_status', 'paid')->count()),
 
+            // Adelanto del 50% cobrado: falta cobrar el saldo (link de pago).
+            // (Solo si la migración de payment_plan ya corrió: no tumba el panel si falta.)
+            ...(\App\Services\BookingCreationService::hasPlanColumns() ? [
+                'balance_pending' => Tab::make('Saldo pendiente')
+                    ->modifyQueryUsing(fn (Builder $query) => $query->withPendingBalance())
+                    ->badge(fn () => Booking::query()->withPendingBalance()->count())
+                    ->badgeColor('warning'),
+            ] : []),
+
             'pending_payment' => Tab::make('Pago pendiente')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('payment_status', 'pending'))
                 ->badge(fn () => Booking::query()->where('payment_status', 'pending')->count()),

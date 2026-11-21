@@ -73,6 +73,10 @@ Route::post('/pagar/{code}/paypal/create', [PaymentLinkController::class, 'creat
 Route::post('/pagar/{code}/paypal/capture', [PaymentLinkController::class, 'captureOrder'])
     ->middleware('throttle:checkout')
     ->name('payment-links.paypal.capture');
+// Saldo con tarjeta (Culqi): solo para links purpose=balance.
+Route::post('/pagar/{code}/culqi/charge', [PaymentLinkController::class, 'culqiCharge'])
+    ->middleware('throttle:checkout')
+    ->name('payment-links.culqi.charge');
 
 Route::prefix('{locale}')
     ->where(['locale' => 'es|en|pt'])
@@ -149,6 +153,8 @@ Route::prefix('{locale}')
             ->middleware('throttle:checkout')
             ->name('checkout.process');
         Route::get('/checkout/gracias', [CheckoutController::class, 'thanks'])->name('checkout.thanks');
+        // Resumen de pago en JSON (montos por modo 100%/50%/despues, metodos, GA4).
+        Route::get('/checkout/resumen', [CheckoutController::class, 'summary'])->middleware('throttle:60,1')->name('checkout.summary');
         Route::post('/checkout/paypal/create', [CheckoutController::class, 'paypalCreateOrder'])
             ->middleware('throttle:checkout')
             ->name('checkout.paypal.create');

@@ -15,6 +15,8 @@ use App\Services\PaymentLockService;
 use App\Services\PaymentService;
 use App\Services\PayPalService;
 use App\Support\BookingCalendar;
+use App\Support\CheckoutPayment;
+use App\Support\PaymentPlan;
 use App\Support\TourLanguage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -106,15 +108,18 @@ class CheckoutController extends Controller
             }
 
             $validated = $request->validated();
-            $payingNow = ($validated['payment_timing'] === 'now');
 
-            // "Pay now" via the old form submission is no longer supported.
-            // The PayPal JS flow handles "now"; only "later" should reach here.
+            // Modo de pago: el checkout nuevo manda payment_mode (full|deposit|
+            // later); el formulario viejo manda payment_timing (now|later).
+            // Esta ruta SOLO reserva sin cobrar ("later"): cualquier modo que
+            // cobre dinero (full/deposit) va por Culqi o PayPal.
+            $payingNow = ($request->paymentMode() !== PaymentPlan::LATER);
+
             if ($payingNow) {
                 return redirect()
                     ->back()
                     ->withInput()
-                    ->with('error', 'El pago inmediato debe realizarse a través del botón de PayPal.');
+                    ->with('error', __('checkout_payment.pay_now_via_gateway'));
             }
 
             $customer = [
@@ -152,8 +157,13 @@ class CheckoutController extends Controller
                 }
             }
 
-            $bookings = $this->finalizeBookings($items, $customer, 'pay_later', null, false);
+            // Modo later: sin cobro. El pedido queda pending/pending con el
+            // total completo como saldo (payment_plan = later).
+            $plan = PaymentPlan::split($this->cart->total(), PaymentPlan::LATER);
 
+            $bookings = $this->finalizeBookings($items, $customer, 'pay_later', null, false, plan: $plan);
+
+            $request->session()->put('last_payment', $this->lastPayment('later', $plan, null));
             $request->session()->put('last_bookings', $bookings->toArray());
             // Consumed once by thanks() via session()->pull(): a refresh of
             // /checkout/gracias must not re-fire the conversion event.
@@ -239,9 +249,13 @@ class CheckoutController extends Controller
                 'customer_email' => ['nullable', 'email', 'max:255'],
                 'customer_phone' => ['nullable', 'string', 'max:50'],
                 'accept_terms' => ['required', 'accepted'],
+                // Modo de cobro ahora: full (100%) o deposit (50%). 'later' no
+                // cobra y no pasa por PayPal. Ausente = full (front anterior).
+                'payment_mode' => ['nullable', 'string', Rule::in(PaymentPlan::PAYING_MODES)],
             ], [
                 'accept_terms.required' => __('checkout_paypal.accept_terms_required'),
                 'accept_terms.accepted' => __('checkout_paypal.accept_terms_required'),
+                'payment_mode.in' => __('checkout_payment.mode_invalid'),
             ]);
 
             $items = $this->cart->items();
@@ -272,8 +286,15 @@ class CheckoutController extends Controller
                 ], 422);
             }
 
-            // Amount always calculated server-side — never trust the client
+            // Amount always calculated server-side — never trust the client.
+            // El cliente solo elige el MODO; lo que se cobra ahora (due) sale
+            // del total del carrito: 100% (full) o la mitad (deposit).
             $total = $this->cart->total();
+            $plan = PaymentPlan::split($total, $validated['payment_mode'] ?? PaymentPlan::FULL);
+
+            if ($plan['due_cents'] <= 0) {
+                return response()->json(['error' => __('checkout_payment.nothing_to_charge')], 422);
+            }
 
             // B2: enriquece el formulario de invitado de PayPal con lo que
             // el cliente ya escribió (nombre, correo, teléfono) y marca la
@@ -281,7 +302,7 @@ class CheckoutController extends Controller
             // createOrder() y buildPayer() más abajo. El monto y la moneda
             // siguen saliendo SIEMPRE de $total (carrito en servidor), igual
             // que antes de este cambio.
-            $order = $this->paypal->createOrder($total, 'USD', [
+            $order = $this->paypal->createOrder($plan['due'], 'USD', [
                 'locale' => $locale,
             ], $this->buildPayer($validated));
 
@@ -292,8 +313,13 @@ class CheckoutController extends Controller
             // el importe viejo (aprobado) y se reservaba el carrito vivo (más
             // caro). Ver paypalCaptureOrder(), que es la única fuente de
             // verdad para lo que se cobra y lo que se reserva.
+            // `due` es lo que PayPal cobra (y lo que paypalCaptureOrder compara);
+            // `total`/`balance`/`mode` dejan constancia de qué se pagó y qué falta.
             $this->storePaypalSnapshot($order['id'], [
-                'total' => $total,
+                'total' => $plan['total'],
+                'due' => $plan['due'],
+                'balance' => $plan['balance'],
+                'mode' => $plan['mode'],
                 'currency' => 'USD',
                 'items' => $items->values()->all(),
             ]);
@@ -385,6 +411,8 @@ class CheckoutController extends Controller
         if ($request->has('tour_language')) {
             $request->merge(['tour_language' => is_string($request->input('tour_language')) ? TourLanguage::normalize($request->input('tour_language')) : $request->input('tour_language')]);
         }
+
+        $this->fillTravelDateFromCart($request);
 
         $validated = $request->validate([
             'orderID' => ['required', 'string', 'max:100'],
@@ -498,8 +526,12 @@ class CheckoutController extends Controller
             $remoteAmount = $remoteOrder['purchase_units'][0]['amount']['value'] ?? null;
             $remoteCurrency = $remoteOrder['purchase_units'][0]['amount']['currency_code'] ?? null;
 
+            // Se compara contra lo que se DEBE cobrar ahora (`due`: 100% o 50%).
+            // Snapshots anteriores a los modos de pago solo traen `total`.
+            $expectedAmount = $snapshot['due'] ?? $snapshot['total'];
+
             $amountMatches = $remoteAmount !== null
-                && $this->normalizedAmount($remoteAmount) === $this->normalizedAmount($snapshot['total']);
+                && $this->normalizedAmount($remoteAmount) === $this->normalizedAmount($expectedAmount);
             $currencyMatches = $remoteCurrency !== null
                 && strtoupper($remoteCurrency) === strtoupper($snapshot['currency']);
 
@@ -511,7 +543,7 @@ class CheckoutController extends Controller
                 // crear la orden, no se captura nada.
                 Log::error('checkout.paypal_capture: amount mismatch, capture aborted', [
                     'order_id' => $orderId,
-                    'expected_amount' => $snapshot['total'],
+                    'expected_amount' => $expectedAmount,
                     'expected_currency' => $snapshot['currency'],
                     'received_amount' => $remoteAmount,
                     'received_currency' => $remoteCurrency,
@@ -538,8 +570,11 @@ class CheckoutController extends Controller
             // mismos ítems — repetirlo en finalizeBookings() es el chequeo
             // que, tras capturar, podía fallar por el cruce de medianoche y
             // dejar el dinero cobrado sin reserva.
-            $bookings = $this->finalizeBookings($snapshotItems, $customer, 'paypal', $captureId, true, datesAlreadyChecked: true);
+            $plan = PaymentPlan::split($snapshot['total'], $snapshot['mode'] ?? PaymentPlan::FULL);
 
+            $bookings = $this->finalizeBookings($snapshotItems, $customer, 'paypal', $captureId, true, datesAlreadyChecked: true, plan: $plan);
+
+            $request->session()->put('last_payment', $this->lastPayment('paypal', $plan, $captureId));
             $request->session()->put('last_bookings', $bookings->toArray());
             // Consumed once by thanks() via session()->pull(): a refresh of
             // /checkout/gracias must not re-fire the conversion event.
@@ -594,7 +629,8 @@ class CheckoutController extends Controller
                 'message' => $e->getMessage(),
                 'order_id' => $orderId,
                 'capture_id' => $captureId,
-                'amount' => $snapshot['total'] ?? null,
+                'amount' => $snapshot['due'] ?? ($snapshot['total'] ?? null),
+                'payment_mode' => $snapshot['mode'] ?? null,
                 'currency' => $snapshot['currency'] ?? null,
                 'email' => $validated['customer_email'] ?? null,
                 'snapshot' => $snapshot ?? null,
@@ -666,7 +702,10 @@ class CheckoutController extends Controller
             $request->merge(['tour_language' => is_string($request->input('tour_language')) ? TourLanguage::normalize($request->input('tour_language')) : $request->input('tour_language')]);
         }
 
+        $this->fillTravelDateFromCart($request);
+
         $validated = $request->validate([
+            'payment_mode' => ['nullable', 'string', Rule::in(PaymentPlan::PAYING_MODES)],
             'culqi_token' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9_]+$/'],
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
@@ -684,6 +723,7 @@ class CheckoutController extends Controller
             'accept_terms.accepted' => __('checkout_paypal.accept_terms_required'),
             'culqi_token.required' => __('checkout_culqi.token_missing'),
             'culqi_token.regex' => __('checkout_culqi.token_missing'),
+            'payment_mode.in' => __('checkout_payment.mode_invalid'),
         ]));
 
         // Anti doble cobro por doble clic / dos pestañas de la misma sesión:
@@ -697,6 +737,7 @@ class CheckoutController extends Controller
         $chargeId = null;
         $snapshotItems = collect();
         $total = 0.0;
+        $plan = null;
 
         try {
             if ($lock = $this->paymentLock->current()) {
@@ -750,9 +791,11 @@ class CheckoutController extends Controller
                 ], 422);
             }
 
-            // Monto y moneda: SIEMPRE del servidor.
+            // Monto y moneda: SIEMPRE del servidor. Se cobra `due`: el total
+            // (full) o su mitad (deposit); el cliente solo elige el modo.
             $total = $this->cart->total();
-            $amountCents = (int) round($total * 100);
+            $plan = PaymentPlan::split($total, $validated['payment_mode'] ?? PaymentPlan::FULL);
+            $amountCents = $plan['due_cents'];
 
             if ($amountCents <= 0) {
                 return response()->json(['success' => false, 'message' => __('checkout_culqi.charge_failed')], 422);
@@ -772,6 +815,11 @@ class CheckoutController extends Controller
                     'travel_date' => (string) $customer['travel_date'],
                     'tour_ids' => mb_substr($items->pluck('tour_id')->filter()->implode(','), 0, 190),
                     'customer_name' => mb_substr($customer['customer_name'], 0, 100),
+                    // Culqi exige metadata string => string.
+                    'payment_mode' => $plan['mode'],
+                    'order_total' => number_format($plan['total'], 2, '.', ''),
+                    'charged_now' => number_format($plan['due'], 2, '.', ''),
+                    'balance' => number_format($plan['balance'], 2, '.', ''),
                 ],
             ]);
 
@@ -795,8 +843,9 @@ class CheckoutController extends Controller
                 ], 402);
             }
 
-            $bookings = $this->finalizeBookings($snapshotItems, $customer, 'culqi', $chargeId, true, datesAlreadyChecked: true);
+            $bookings = $this->finalizeBookings($snapshotItems, $customer, 'culqi', $chargeId, true, datesAlreadyChecked: true, plan: $plan);
 
+            $request->session()->put('last_payment', $this->lastPayment('culqi', $plan, $chargeId));
             $request->session()->put('last_bookings', $bookings->toArray());
             $request->session()->put('conversion_pending', true);
 
@@ -820,7 +869,8 @@ class CheckoutController extends Controller
             Log::error('checkout.culqi_charge.error', [
                 'message' => $e->getMessage(),
                 'charge_id' => $chargeId,
-                'amount' => $total,
+                'amount' => $plan['due'] ?? $total,
+                'payment_mode' => $plan['mode'] ?? null,
                 'currency' => 'USD',
                 'email' => $validated['customer_email'] ?? null,
                 'items' => $snapshotItems->values()->all(),
@@ -829,7 +879,14 @@ class CheckoutController extends Controller
             if ($chargeId !== null) {
                 // Dinero cobrado sin reserva: bloqueo y revisión manual (igual
                 // que PayPal). No invita a reintentar: cobraría dos veces.
-                $this->paymentLock->store($chargeId, $chargeId, ['total' => $total, 'currency' => 'USD', 'items' => $snapshotItems->values()->all()], $validated);
+                $this->paymentLock->store($chargeId, $chargeId, [
+                    'total' => $plan['total'] ?? $total,
+                    'due' => $plan['due'] ?? $total,
+                    'balance' => $plan['balance'] ?? 0.0,
+                    'mode' => $plan['mode'] ?? PaymentPlan::FULL,
+                    'currency' => 'USD',
+                    'items' => $snapshotItems->values()->all(),
+                ], $validated);
 
                 return response()->json([
                     'success' => false,
@@ -862,10 +919,35 @@ class CheckoutController extends Controller
         $bookings = collect($request->session()->get('last_bookings', []));
         $conversionPending = $request->session()->pull('conversion_pending', false);
 
+        // Lo realmente cobrado en ESTA compra (tipo, modo, monto, saldo). Se
+        // conserva en sesión como last_bookings (la página sobrevive a un F5);
+        // el evento de conversión sí es de un solo disparo (conversion_pending).
+        $payment = $request->session()->get('last_payment');
+
         return view('checkout.thanks', [
             'bookings' => $bookings,
-            'conversionPayload' => $conversionPending ? $this->buildConversionPayload($bookings) : null,
+            'payment' => $payment,
+            'conversionPayload' => $conversionPending ? $this->buildConversionPayload($bookings, $payment) : null,
         ]);
+    }
+
+    /**
+     * Resumen de pago en JSON: montos por modo (full/deposit/later), métodos
+     * disponibles, endpoints y payloads GA4. Sirve para que el front refresque
+     * los importes tras editar el carrito (cantidad de pasajeros, quitar tour,
+     * cupón previo en sesión) sin recargar la página.
+     */
+    public function summary(string $locale): JsonResponse
+    {
+        $items = $this->cart->items();
+
+        return response()->json(CheckoutPayment::build(
+            $items,
+            $this->cart->subtotal(),
+            $this->cart->couponDiscount(),
+            $this->cart->total(),
+            $locale,
+        ) + ['items_count' => $items->count()]);
     }
 
     /**
@@ -876,14 +958,41 @@ class CheckoutController extends Controller
      *
      * @return array{event: string, fb: string, data: array}|null
      */
-    private function buildConversionPayload(Collection $bookings): ?array
+    private function buildConversionPayload(Collection $bookings, ?array $payment = null): ?array
     {
         if ($bookings->isEmpty()) {
             return null;
         }
 
         $first = $bookings->first();
-        $isPaid = ($first['payment_status'] ?? 'pending') === 'paid';
+        // Hay compra si se cobró dinero: pagado (full) o adelanto (partial).
+        $isPaid = in_array($first['payment_status'] ?? 'pending', ['paid', 'partial'], true);
+
+        // purchase.value = lo REALMENTE cobrado, no el total de la reserva:
+        // con 50% de adelanto el ingreso del día es la mitad. Sin dato de
+        // cobro (sesiones anteriores a este cambio) se cae al total histórico.
+        $value = $isPaid && $payment && isset($payment['amount'])
+            ? (float) $payment['amount']
+            : (float) $bookings->sum('total_price');
+
+        // Pago del SALDO (link de pago): la compra ya se midió con el adelanto.
+        // Un segundo `purchase` con el mismo transaction_id lo descarta GA4 (y
+        // con otro id duplicaría la conversión), así que es un evento propio con
+        // el importe cobrado: el ingreso total (adelanto + saldo) queda correcto.
+        if (($payment['kind'] ?? null) === 'balance') {
+            return [
+                'event' => 'balance_payment',
+                'fb' => null,
+                'data' => [
+                    'transaction_id' => ($first['reference'] ?? '').'-saldo',
+                    'booking_reference' => $first['reference'] ?? '',
+                    'currency' => $first['currency'] ?? 'USD',
+                    'value' => (float) ($payment['amount'] ?? 0),
+                    'payment_type' => $payment['type'] ?? null,
+                    'payment_mode' => 'balance',
+                ],
+            ];
+        }
 
         return [
             'event' => $isPaid ? 'purchase' : 'reserva_pagar_despues',
@@ -891,7 +1000,10 @@ class CheckoutController extends Controller
             'data' => [
                 'transaction_id' => $first['reference'] ?? '',
                 'currency' => $first['currency'] ?? 'USD',
-                'value' => (float) $bookings->sum('total_price'),
+                'value' => $value,
+                'payment_type' => $payment['type'] ?? null,
+                'payment_mode' => $payment['mode'] ?? ($first['payment_plan'] ?? null),
+                'balance_pending' => (float) ($payment['balance'] ?? 0),
                 'items' => $bookings->map(fn (array $b) => [
                     'item_id' => (string) ($b['tour_id'] ?? ''),
                     'item_name' => $b['tour_title_snapshot'] ?? '',
@@ -931,6 +1043,8 @@ class CheckoutController extends Controller
      *                                     PayPal). 'pay_later' no toca este
      *                                     flag: sigue siendo su última línea
      *                                     de defensa.
+     * @param  array|null  $plan  PaymentPlan::split(): modo (full|deposit|later),
+     *                            total, due (cobrado ahora) y balance (saldo).
      * @return Collection<Booking>
      */
     private function finalizeBookings(
@@ -940,6 +1054,7 @@ class CheckoutController extends Controller
         ?string $paymentReference,
         bool $paid,
         bool $datesAlreadyChecked = false,
+        ?array $plan = null,
     ): Collection {
         $locale = app()->getLocale();
 
@@ -960,12 +1075,14 @@ class CheckoutController extends Controller
         // de credenciales de invitado se dispara ahí mismo, DESPUÉS del
         // commit (un rollback no puede des-enviar un correo).
         $bookings = $this->bookingCreator->createBookings(
-            $items, $customer, $method, $paymentReference, $paid, $locale
+            $items, $customer, $method, $paymentReference, $paid, $locale, $plan
         );
 
         Log::info('checkout.finalize_bookings', [
             'method' => $method,
             'paid' => $paid,
+            'payment_mode' => $plan['mode'] ?? null,
+            'charged_now' => $plan['due'] ?? null,
             'reference' => $paymentReference,
             'email' => $customer['customer_email'],
             'customer_id' => $bookings->first()?->customer_id,
@@ -982,6 +1099,45 @@ class CheckoutController extends Controller
         $this->cart->clear();
 
         return $bookings;
+    }
+
+    /**
+     * Qué se cobró en esta compra, para la página de gracias y GA4.
+     *
+     * @param  string  $type  culqi | paypal | later
+     * @param  array  $plan  PaymentPlan::split()
+     * @return array{type: string, mode: string, amount: float, balance: float, total: float, currency: string, reference: ?string}
+     */
+    private function lastPayment(string $type, array $plan, ?string $reference): array
+    {
+        return [
+            'type' => $type,
+            'mode' => $plan['mode'],
+            'amount' => $plan['due'],
+            'balance' => $plan['balance'],
+            'total' => $plan['total'],
+            'currency' => 'USD',
+            'reference' => $reference,
+        ];
+    }
+
+    /**
+     * El checkout nuevo no tiene un campo de fecha único: cada tour trae SU
+     * fecha (y se edita en el carrito). `travel_date` del formulario pasa a
+     * ser opcional: si no llega, se usa la más temprana de las del carrito.
+     * Cada ítem se revalida contra su propia fecha de todos modos.
+     */
+    private function fillTravelDateFromCart(Request $request): void
+    {
+        if ($request->filled('travel_date')) {
+            return;
+        }
+
+        $earliest = $this->cart->items()->pluck('travel_date')->filter()->sort()->first();
+
+        if ($earliest) {
+            $request->merge(['travel_date' => $earliest]);
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
+use App\Support\PaymentPlan;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +30,12 @@ class PaymentLink extends Model
     public const MIN_AMOUNT = 1;
 
     public const MAX_AMOUNT = 99999999.99;
+
+    /** Link suelto: al pagarse crea una reserva nueva. */
+    public const PURPOSE_STANDALONE = 'standalone';
+
+    /** Link del saldo: al pagarse marca como pagada la reserva ligada (booking_id); NUNCA crea reserva. */
+    public const PURPOSE_BALANCE = 'balance';
 
     protected $guarded = ['id'];
 
@@ -99,7 +106,7 @@ class PaymentLink extends Model
         // paypal_capture_id no nulo — sin importar en qué status quedó
         // después.
         static::deleting(function (self $link) {
-            if ($link->paypal_capture_id !== null) {
+            if ($link->paypal_capture_id !== null || $link->culqi_charge_id !== null) {
                 Log::warning('payment_link.delete_blocked_captured', [
                     'id' => $link->id,
                     'code' => $link->maskedCode(),
@@ -139,6 +146,31 @@ class PaymentLink extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** ¿Cobra el saldo de una reserva existente (en vez de crear una reserva nueva)? */
+    public function isBalance(): bool
+    {
+        return $this->purpose === self::PURPOSE_BALANCE;
+    }
+
+    /**
+     * Para links de saldo: ¿la reserva ligada sigue con ESE saldo pendiente?
+     * Si ya se pagó por otra vía (efectivo, otro link) o el monto de la reserva
+     * cambió, el link deja de poder cobrar (nunca se cobra un monto viejo).
+     * Los links sueltos siempre devuelven true.
+     */
+    public function balanceIsPayable(): bool
+    {
+        if (! $this->isBalance()) {
+            return true;
+        }
+
+        $booking = $this->booking;
+
+        return $booking !== null
+            && $booking->hasPendingBalance()
+            && PaymentPlan::toCents($booking->balance_due) === PaymentPlan::toCents($this->amount);
     }
 
     public function scopeStatus(Builder $query, string $status): Builder

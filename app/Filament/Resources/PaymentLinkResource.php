@@ -327,6 +327,11 @@ class PaymentLinkResource extends Resource
                         'expired', 'refunded' => 'gray',
                         default => 'warning',
                     }),
+                Tables\Columns\TextColumn::make('purpose')
+                    ->label('Tipo')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => $state === 'balance' ? 'Saldo de reserva' : 'Cobro suelto')
+                    ->color(fn (?string $state) => $state === 'balance' ? 'info' : 'gray'),
                 Tables\Columns\TextColumn::make('booking.reference')
                     ->label('Reserva')
                     ->placeholder('—')
@@ -395,12 +400,14 @@ class PaymentLinkResource extends Resource
                         // dirigido el original ni de quién pagó.
                         $copy = $record->replicate([
                             'code', 'status', 'paid_at', 'paypal_order_id',
-                            'paypal_capture_id', 'booking_id', 'created_at', 'updated_at',
+                            'paypal_capture_id', 'culqi_charge_id', 'booking_id', 'created_at', 'updated_at',
                             'customer_name', 'customer_email', 'customer_phone',
                             'buyer_name', 'buyer_email', 'buyer_phone',
                         ]);
                         $copy->code = PaymentLink::generateUniqueCode();
                         $copy->status = 'pending';
+                        // Un duplicado nunca es un link de saldo (sin reserva ligada no podría cobrar).
+                        $copy->purpose = PaymentLink::PURPOSE_STANDALONE;
                         $copy->save();
 
                         Notification::make()

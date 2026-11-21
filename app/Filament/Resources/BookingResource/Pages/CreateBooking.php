@@ -25,7 +25,7 @@ class CreateBooking extends CreateRecord
         }
 
         try {
-            $paid = ($this->record->payment_status === 'paid')
+            $paid = in_array($this->record->payment_status, ['paid', 'partial'], true)
                 || ($this->record->status === 'confirmed');
 
             app(BookingNotifier::class)->send(

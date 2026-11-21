@@ -7,7 +7,14 @@
     };
     $first      = $bookings->first();
     $anyPickup  = $bookings->contains(fn ($b) => $b->tour?->pickup_included ?? true);
-    $payingNow  = ($first?->payment_status === 'paid');
+    // Adelanto cobrado (partial) tambien es reserva CONFIRMADA: solo falta el saldo.
+    $payingNow  = in_array($first?->payment_status, ['paid', 'partial'], true);
+    $isDeposit  = ($first?->payment_status === 'partial');
+    $amountPaid = (float) $bookings->sum('amount_paid');
+    $balanceDue = (float) $bookings->sum('balance_due');
+    $balanceBy  = $first?->balance_due_at
+        ? \Carbon\Carbon::parse($first->balance_due_at)->setTimezone(\App\Support\BookingCalendar::timezone())->locale(in_array($locale, ['en', 'pt'], true) ? $locale : 'es')->isoFormat('D MMM YYYY, HH:mm')
+        : null;
     $grandTotal = (float) $bookings->sum('total_price');
     $currency   = $first?->currency ?? 'USD';
     $cur        = $currency === 'USD' ? 'US$' : $currency . ' ';
@@ -64,12 +71,29 @@
                 </td>
                 <td align="right" style="padding:15px 18px;">
                     <span style="display:inline-block;background:{{ $payingNow ? '#e9922a' : '#557' }};background-color:#e9922a;color:#fff;border-radius:999px;padding:8px 13px;font-weight:bold;font-size:12px;white-space:nowrap;">
-                        {{ $payingNow ? $L('Pagado', 'Paid', 'Pago') : $L('Pendiente', 'Pending', 'Pendente') }} · {{ $cur }}{{ number_format($grandTotal, 2) }}
+                        {{ $isDeposit ? $L('Adelanto 50%', '50% deposit', 'Sinal 50%') : ($payingNow ? $L('Pagado', 'Paid', 'Pago') : $L('Pendiente', 'Pending', 'Pendente')) }} · {{ $cur }}{{ number_format($isDeposit ? $amountPaid : $grandTotal, 2) }}
                     </span>
                 </td>
             </tr>
         </table>
     </td></tr>
+
+    {{-- Adelanto: lo pagado, el saldo y como pagarlo --}}
+    @if ($isDeposit && $balanceDue > 0)
+    <tr><td style="padding:14px 28px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ea;border:1px solid #f1dfbf;border-left:4px solid #e9922a;border-radius:12px;font-size:14px;color:#5a3d12;">
+            <tr><td style="padding:14px 16px 4px;"><b>{{ $L('Pagado ahora', 'Paid now', 'Pago agora') }}:</b> {{ $cur }}{{ number_format($amountPaid, 2) }}</td></tr>
+            <tr><td style="padding:0 16px 4px;"><b>{{ $L('Saldo pendiente', 'Remaining balance', 'Saldo pendente') }}:</b> {{ $cur }}{{ number_format($balanceDue, 2) }}</td></tr>
+            <tr><td style="padding:6px 16px 14px;line-height:1.55;">
+                {{ $L('Te enviaremos por correo un enlace de pago seguro para el saldo y te lo recordaremos 3 días antes del tour.', 'We will email you a secure payment link for the balance and remind you 3 days before the tour.', 'Enviaremos por e-mail um link de pagamento seguro para o saldo e lembraremos você 3 dias antes do passeio.') }}
+                @if ($balanceBy)
+                    {{ $L('El enlace vence el', 'The link expires on', 'O link expira em') }} <b>{{ $balanceBy }}</b>.
+                @endif
+                {{ __('checkout_payment.cancellation_deposit') }}
+            </td></tr>
+        </table>
+    </td></tr>
+    @endif
 
     {{-- Una tarjeta por reserva --}}
     @foreach ($bookings as $booking)

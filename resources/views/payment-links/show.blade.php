@@ -12,6 +12,9 @@
             $reason = 'cancelled';
         } elseif ($link->status === 'expired' || $link->isPastExpiry()) {
             $reason = 'expired';
+        } elseif (! $link->balanceIsPayable()) {
+            // Link de saldo cuya reserva ya se pagó por otra vía (o cambió el saldo): no se ofrece el pago.
+            $reason = $link->booking?->payment_status === 'paid' ? 'already_paid' : 'not_available';
         }
     }
     $usable = $link && $reason === null;

@@ -56,6 +56,11 @@ class PaymentLockService
             'order_id' => $orderId,
             'capture_id' => $captureId,
             'snapshot' => $snapshot,
+            // Lo que de verdad se cobró y bajo qué modo (full|deposit): el
+            // equipo que revisa el pago a mano necesita el monto cobrado, no
+            // el total del carrito (con 50% son distintos).
+            'payment_mode' => $snapshot['mode'] ?? null,
+            'amount_charged' => $snapshot['due'] ?? ($snapshot['total'] ?? null),
             'customer' => [
                 'customer_name' => $customer['customer_name'] ?? null,
                 'customer_email' => $customer['customer_email'] ?? null,
@@ -66,7 +71,7 @@ class PaymentLockService
     }
 
     /**
-     * @return array{order_id: string, capture_id: string, snapshot: array, customer: array, locked_at: string}|null
+     * @return array{order_id: string, capture_id: string, snapshot: array, payment_mode: ?string, amount_charged: float|string|null, customer: array, locked_at: string}|null
      */
     public function current(): ?array
     {

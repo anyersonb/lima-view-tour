@@ -219,6 +219,7 @@ class BookingResource extends Resource
                             ->label('Estado del pago')
                             ->options([
                                 'pending' => 'Por pagar',
+                                'partial' => 'Adelanto pagado (falta el saldo)',
                                 'paid' => 'Pagado',
                                 'refunded' => 'Reembolsado',
                             ])
@@ -254,6 +255,20 @@ class BookingResource extends Resource
                             ->helperText('Pega aquí el enlace de pago para enviárselo al cliente. Opcional.')
                             ->visible(fn (Forms\Get $get) => $get('payment_method') === 'payment_link')
                             ->columnSpanFull(),
+                        ...(\App\Services\BookingCreationService::hasPlanColumns() ? [
+                            Forms\Components\TextInput::make('amount_paid')
+                                ->label('Pagado hasta hoy (US$)')
+                                ->helperText('Lo cobrado por la web (adelanto y/o saldo). Lo calcula el sistema.')
+                                ->disabled()
+                                ->dehydrated(false)
+                                ->visibleOn('edit'),
+                            Forms\Components\TextInput::make('balance_due')
+                                ->label('Saldo pendiente (US$)')
+                                ->helperText('Se paga con el link de saldo (botón "Generar link de saldo" en la lista de reservas).')
+                                ->disabled()
+                                ->dehydrated(false)
+                                ->visibleOn('edit'),
+                        ] : []),
                         Forms\Components\TextInput::make('payment_reference')
                             ->label('Referencia de pago (automática)')
                             ->helperText('Se genera automáticamente (ej. ID de captura de PayPal). No se edita a mano.')
@@ -390,15 +405,33 @@ class BookingResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
                         'paid' => 'Pagado',
+                        'partial' => 'Adelanto pagado',
                         'pending' => 'Por pagar',
                         'refunded' => 'Reembolsado',
                         default => $state,
                     })
                     ->color(fn (string $state) => match ($state) {
                         'paid' => 'success',
+                        'partial' => 'info',
                         'refunded' => 'gray',
                         default => 'warning',
                     }),
+                ...(\App\Services\BookingCreationService::hasPlanColumns() ? [
+                    Tables\Columns\TextColumn::make('amount_paid')
+                        ->label('Pagado')
+                        ->money('USD')
+                        ->sortable(),
+                    Tables\Columns\TextColumn::make('balance_due')
+                        ->label('Saldo')
+                        ->money('USD')
+                        ->color(fn ($state) => (float) $state > 0 ? 'warning' : 'gray')
+                        ->sortable(),
+                    Tables\Columns\TextColumn::make('balance_due_at')
+                        ->label('Pagar saldo antes de')
+                        ->dateTime('d/m/Y H:i', \App\Support\BookingCalendar::timezone())
+                        ->placeholder('—')
+                        ->toggleable(isToggledHiddenByDefault: true),
+                ] : []),
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Método')
                     ->formatStateUsing(fn (?string $state) => match ($state) {
@@ -457,6 +490,7 @@ class BookingResource extends Resource
                     ->label('Estado del pago')
                     ->options([
                         'paid' => 'Pagado',
+                        'partial' => 'Adelanto pagado (falta saldo)',
                         'pending' => 'Por pagar',
                         'failed' => 'Fallido',
                         'refunded' => 'Reembolsado',
@@ -665,6 +699,84 @@ class BookingResource extends Resource
                                 ->title('No se pudo enviar el correo')
                                 ->body($e->getMessage())
                                 ->send();
+                        }
+                    }),
+                Tables\Actions\Action::make('balanceLink')
+                    ->label('Generar link de saldo')
+                    ->icon('heroicon-o-link')
+                    ->color('success')
+                    ->visible(fn (Booking $record): bool => $record->hasPendingBalance())
+                    ->modalHeading('Link de pago del saldo')
+                    ->modalDescription(fn (Booking $record): string => 'Saldo pendiente: US$'.number_format((float) $record->balance_due, 2)
+                        .'. El link vence 48 horas antes del tour'
+                        .($record->balanceDeadline() ? ' ('.$record->balanceDeadline()->format('d/m/Y H:i').' hora de Lima)' : '').'.')
+                    ->modalSubmitActionLabel('Generar')
+                    ->form([
+                        Forms\Components\Toggle::make('send_email')
+                            ->label('Enviar el link por correo al cliente')
+                            ->default(true),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        // Defensa en servidor: la visibilidad no basta si la acción se monta a mano.
+                        abort_unless(auth()->check(), 403);
+
+                        try {
+                            $service = app(\App\Services\BalancePaymentService::class);
+                            $link = $service->createLink($record, auth()->id(), false);
+
+                            if ($data['send_email'] ?? true) {
+                                $service->sendLink($record->fresh(), $link);
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title(($data['send_email'] ?? true) ? 'Link de saldo enviado' : 'Link de saldo generado')
+                                ->body($link->url)
+                                ->persistent()
+                                ->send();
+                        } catch (\App\Exceptions\BalanceLinkException $e) {
+                            \Filament\Notifications\Notification::make()->danger()->title('No se pudo generar el link')->body($e->getMessage())->send();
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning('booking.balance_link.admin_failed', [
+                                'by' => auth()->id(),
+                                'booking' => $record->reference,
+                                'message' => $e->getMessage(),
+                            ]);
+                            \Filament\Notifications\Notification::make()->danger()->title('No se pudo enviar el correo')->body('El link se generó; revisa la dirección del cliente o reinténtalo. El detalle quedó en el registro.')->send();
+                        }
+                    }),
+                Tables\Actions\Action::make('markBalancePaid')
+                    ->label('Marcar saldo pagado')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('gray')
+                    ->visible(fn (Booking $record): bool => $record->hasPendingBalance())
+                    ->requiresConfirmation()
+                    ->modalHeading('Registrar el cobro del saldo')
+                    ->modalDescription(fn (Booking $record): string => 'Úsalo si cobraste US$'.number_format((float) $record->balance_due, 2).' fuera de la web (efectivo, transferencia, Yape). La reserva pasará a Pagado y se anulan los links de saldo abiertos.')
+                    ->form([
+                        Forms\Components\Select::make('method')
+                            ->label('Cómo se cobró')
+                            ->options(['cash' => 'Efectivo', 'transfer' => 'Transferencia / Yape / Plin', 'card' => 'Tarjeta (POS)'])
+                            ->required()
+                            ->native(false),
+                        Forms\Components\TextInput::make('reference')
+                            ->label('Referencia (n.º de operación, recibo)')
+                            ->maxLength(120),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        abort_unless(auth()->check(), 403);
+
+                        try {
+                            $service = app(\App\Services\BalancePaymentService::class);
+                            $reference = trim((string) ($data['reference'] ?? '')) ?: 'manual-'.now()->format('YmdHis');
+
+                            if ($service->markPaidManually($record, $data['method'], $reference)) {
+                                $service->notifyBalancePaid($record);
+                            }
+
+                            \Filament\Notifications\Notification::make()->success()->title('Saldo registrado: reserva pagada')->send();
+                        } catch (\Throwable $e) {
+                            \Filament\Notifications\Notification::make()->danger()->title('No se pudo registrar el saldo')->body($e->getMessage())->send();
                         }
                     }),
                 Tables\Actions\Action::make('resendPaymentReminder')

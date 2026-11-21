@@ -1,7 +1,10 @@
 @php
     $first      = $bookings->first();
     $anyPickup  = $bookings->contains(fn ($b) => $b->tour?->pickup_included ?? true);
-    $payingNow  = ($paymentTiming === 'now') || ($first?->payment_status === 'paid');
+    $isDeposit  = ($first?->payment_status === 'partial');
+    $amountPaid = (float) $bookings->sum('amount_paid');
+    $balanceDue = (float) $bookings->sum('balance_due');
+    $payingNow  = ($paymentTiming === 'now') || in_array($first?->payment_status, ['paid', 'partial'], true);
     $grandTotal = (float) $bookings->sum('total_price');
     $currency   = $first?->currency ?? 'USD';
     $cur        = $currency === 'USD' ? 'US$' : $currency . ' ';
@@ -39,7 +42,7 @@
                 <td style="padding:15px 18px;color:#fff;font-size:17px;font-weight:bold;">Nueva reserva recibida</td>
                 <td align="right" style="padding:15px 18px;">
                     <span style="display:inline-block;background:#e9922a;color:#fff;border-radius:999px;padding:8px 13px;font-weight:bold;font-size:12px;white-space:nowrap;">
-                        {{ $payingNow ? 'Pagado · ' . $cur . number_format($grandTotal, 2) : 'Acción requerida' }}
+                        {{ $isDeposit ? 'Adelanto 50% · ' . $cur . number_format($amountPaid, 2) . ' (saldo ' . $cur . number_format($balanceDue, 2) . ')' : ($payingNow ? 'Pagado · ' . $cur . number_format($grandTotal, 2) : 'Acción requerida') }}
                     </span>
                 </td>
             </tr>

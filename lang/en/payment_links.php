@@ -36,4 +36,13 @@ return [
     'js_create_failed' => 'We could not start the payment.',
     'js_capture_failed' => 'We could not complete the payment.',
     'js_paypal_error' => 'There was an error with PayPal. Please reload the page and try again.',
+
+    // Link de pago del SALDO (2026-11-21)
+    'balance_page_heading' => 'Pay the balance of your booking',
+    'balance_booking_label' => 'Booking',
+    'balance_paid_label' => 'Already paid',
+    'balance_due_label' => 'Balance to pay',
+    'balance_deadline_label' => 'Pay before',
+    'balance_changed' => 'The balance of this booking changed or was already paid. If you need a new payment link, contact us.',
+    'balance_card_unavailable' => 'Card payment is not available right now. Use PayPal.',
 ];

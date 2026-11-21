@@ -36,4 +36,13 @@ return [
     'js_create_failed' => 'No se pudo iniciar el pago.',
     'js_capture_failed' => 'No pudimos completar el pago.',
     'js_paypal_error' => 'Ocurrió un error con PayPal. Por favor recarga la página e inténtalo de nuevo.',
+
+    // Link de pago del SALDO (2026-11-21)
+    'balance_page_heading' => 'Paga el saldo de tu reserva',
+    'balance_booking_label' => 'Reserva',
+    'balance_paid_label' => 'Ya pagado',
+    'balance_due_label' => 'Saldo a pagar',
+    'balance_deadline_label' => 'Pagar antes del',
+    'balance_changed' => 'El saldo de esta reserva cambió o ya fue pagado. Si necesitas un nuevo enlace de pago, contáctanos.',
+    'balance_card_unavailable' => 'El pago con tarjeta no está disponible por ahora. Usa PayPal.',
 ];

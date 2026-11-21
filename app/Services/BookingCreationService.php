@@ -6,6 +6,8 @@ use App\Mail\AccountCredentials;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Tour;
+use App\Support\BookingCalendar;
+use App\Support\PaymentPlan;
 use App\Support\TourFlags;
 use App\Support\TourLanguage;
 use Illuminate\Support\Collection;
@@ -39,7 +41,12 @@ class BookingCreationService
      * @param  array  $customer  Keys: customer_name, customer_email,
      *                           customer_phone, travel_date (fallback),
      *                           pickup_point, pickup_detail, notes.
-     * @param  string  $method  'paypal' | 'pay_later' | ...
+     * @param  string  $method  'paypal' | 'culqi' | 'pay_later' | ...
+     * @param  array|null  $plan  Resultado de PaymentPlan::split() (mode, total_cents,
+     *                            due_cents, ...). null = comportamiento histórico:
+     *                            $paid ? full : later. Con modo deposit el estado queda
+     *                            confirmed/partial y cada reserva guarda su parte
+     *                            cobrada y su saldo (reparto proporcional exacto).
      * @return Collection<Booking>
      */
     public function createBookings(
@@ -49,6 +56,7 @@ class BookingCreationService
         ?string $paymentReference,
         bool $paid,
         string $locale,
+        ?array $plan = null,
     ): Collection {
         $hasPickupColumns = Schema::hasColumn('bookings', 'pickup_point');
         // Tours without pickup never store a pickup point, even if the
@@ -68,13 +76,26 @@ class BookingCreationService
             : null;
         $pendingGuestMail = null;
 
+        // Plan de pago: modo + reparto por reserva (solo si las columnas existen).
+        $planColumns = self::hasPlanColumns();
+        $mode = $plan['mode'] ?? ($paid ? PaymentPlan::FULL : PaymentPlan::LATER);
+        $itemsList = $items->values();
+        $totalCents = (int) ($plan['total_cents'] ?? $itemsList->sum(fn (array $i) => PaymentPlan::toCents($i['subtotal'] ?? 0)));
+        $dueCents = (int) ($plan['due_cents'] ?? ($paid ? $totalCents : 0));
+        $allocation = PaymentPlan::allocate($itemsList, $totalCents, $dueCents);
+        $tours = $planColumns
+            ? Tour::query()->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())->get(['id', 'departure_time'])->keyBy('id')
+            : collect();
+
         $bookings = DB::transaction(function () use (
-            $items, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, &$pendingGuestMail
+            $itemsList, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, &$pendingGuestMail,
+            $planColumns, $mode, $allocation, $tours
         ): Collection {
             $customerId = $this->resolveCustomerId($customer, $locale, $pendingGuestMail);
 
-            return $items->map(function (array $item) use (
-                $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, $customerId
+            return $itemsList->map(function (array $item, int $idx) use (
+                $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, $customerId,
+                $planColumns, $mode, $allocation, $tours
             ): Booking {
                 $attrs = [
                     'customer_id' => $customerId,
@@ -90,7 +111,7 @@ class BookingCreationService
                     'total_price' => $item['subtotal'],
                     'currency' => 'USD',
                     'status' => $paid ? 'confirmed' : 'pending',
-                    'payment_status' => $paid ? 'paid' : 'pending',
+                    'payment_status' => ! $paid ? 'pending' : ($mode === PaymentPlan::DEPOSIT ? 'partial' : 'paid'),
                     'payment_method' => $method,
                     'payment_reference' => $paymentReference,
                     'locale' => $locale,
@@ -103,6 +124,23 @@ class BookingCreationService
 
                 if ($tourLanguage !== null) {
                     $attrs['tour_language'] = $tourLanguage;
+                }
+
+                if ($planColumns) {
+                    $row = $allocation[$idx] ?? ['paid_cents' => 0, 'balance_cents' => 0];
+                    $attrs['payment_plan'] = $mode;
+                    $attrs['amount_paid'] = PaymentPlan::fromCents($row['paid_cents']);
+                    $attrs['balance_due'] = PaymentPlan::fromCents($row['balance_cents']);
+
+                    // Límite del saldo: el mismo instante en que vence su link (tour - 48 h).
+                    if ($mode === PaymentPlan::DEPOSIT && $row['balance_cents'] > 0) {
+                        $travelDate = $attrs['travel_date'] ?? null;
+                        $attrs['balance_due_at'] = $travelDate
+                            ? BookingCalendar::departureAt((string) $travelDate, $tours->get($item['tour_id'] ?? null))
+                                ->subHours(PaymentPlan::BALANCE_LINK_EXPIRES_HOURS_BEFORE)
+                                ->utc() // las columnas timestamp se guardan en UTC (app.timezone)
+                            : null;
+                    }
                 }
 
                 if ($hasPickupColumns) {
@@ -139,6 +177,23 @@ class BookingCreationService
         }
 
         return $bookings;
+    }
+
+    /**
+     * ¿Ya corrió la migración de payment_plan? Un despliegue de código antes
+     * que la migración no debe romper el checkout (mismo criterio que
+     * pickup_point / tour_language).
+     */
+    public static function hasPlanColumns(): bool
+    {
+        static $has = null;
+
+        // Solo `true` es estable: un `false` se reevalúa (tests / migración en caliente).
+        if ($has !== true) {
+            $has = Schema::hasColumn('bookings', 'payment_plan');
+        }
+
+        return $has;
     }
 
     /**

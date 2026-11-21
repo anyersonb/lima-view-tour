@@ -26,6 +26,15 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Saldo de reservas con adelanto (50%): link de pago + recordatorio 3 días
+        // antes del tour; el link vence 48 h antes de la salida. Marca como
+        // 'expired' los links de saldo vencidos.
+        $schedule->command('bookings:send-balance-reminders')
+            ->dailyAt('13:30')
+            ->timezone(BookingCalendar::timezone())
+            ->withoutOverlapping()
+            ->runInBackground();
+
         // Red de seguridad de medición: avisa si falta el ID de GA4/GTM (correo máx. 1 vez/24 h)
         $schedule->command('analytics:health')
             ->dailyAt('09:00')

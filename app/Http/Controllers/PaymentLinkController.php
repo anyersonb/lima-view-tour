@@ -8,14 +8,21 @@ use App\Exceptions\UnbookableDateException;
 use App\Models\BlockedDate;
 use App\Models\Booking;
 use App\Models\PaymentLink;
+use App\Exceptions\CulqiChargeDeclinedException;
+use App\Services\BalancePaymentService;
 use App\Services\BookingCreationService;
 use App\Services\BookingNotifier;
+use App\Services\PaymentService;
 use App\Services\PayPalService;
 use App\Support\BookingCalendar;
+use App\Support\CheckoutInfo;
+use App\Support\PaymentPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -50,6 +57,8 @@ class PaymentLinkController extends Controller
         private readonly PayPalService $paypal,
         private readonly BookingCreationService $bookingCreator,
         private readonly BookingNotifier $notifier,
+        private readonly BalancePaymentService $balance,
+        private readonly PaymentService $culqi,
     ) {}
 
     /**
@@ -62,7 +71,7 @@ class PaymentLinkController extends Controller
      */
     public function show(Request $request, string $code): Response
     {
-        $link = PaymentLink::with('tour')->where('code', $code)->first();
+        $link = PaymentLink::with(['tour', 'booking'])->where('code', $code)->first();
 
         $this->resolveLocale($request, $link);
 
@@ -76,6 +85,14 @@ class PaymentLinkController extends Controller
                 'link' => $link,
                 'tour' => $link?->tour,
                 'locale' => app()->getLocale(),
+                // Link de SALDO: la reserva ligada y si todavía se puede cobrar.
+                'isBalance' => (bool) $link?->isBalance(),
+                'booking' => $link?->isBalance() ? $link->booking : null,
+                'balancePayable' => $link ? $link->balanceIsPayable() : false,
+                // Tarjeta (Culqi) en el link de saldo: el front la pinta si está activa.
+                'culqiEnabled' => (bool) $link?->isBalance() && CheckoutInfo::paymentMethods()['culqi'],
+                'culqiPublicKey' => config('services.culqi.public_key'),
+                'culqiChargeUrl' => $link ? route('payment-links.culqi.charge', ['code' => $link->code, 'lang' => app()->getLocale()]) : null,
             ], $link ? 200 : 404)
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
@@ -99,6 +116,11 @@ class PaymentLinkController extends Controller
 
         if (! $link->isUsable()) {
             return response()->json(['error' => $this->unavailableMessage($link)], 422);
+        }
+
+        // Link de saldo: la reserva ya no debe tener ESE saldo pendiente => no se crea la orden.
+        if (! $link->balanceIsPayable()) {
+            return response()->json(['error' => $this->unavailableMessage($link, 'balance_changed')], 422);
         }
 
         // B-6: si ya hay una orden PayPal VIVA (CREATED/APPROVED) para este
@@ -217,10 +239,15 @@ class PaymentLinkController extends Controller
     {
         $locale = $this->resolveLocale($request);
 
+        // En un link de SALDO el pagador es el cliente de la reserva: sus datos
+        // vienen de la reserva y el formulario no es obligatorio.
+        $isBalanceLink = PaymentLink::where('code', $code)->where('purpose', PaymentLink::PURPOSE_BALANCE)->exists();
+        $personRule = $isBalanceLink ? 'nullable' : 'required';
+
         $validated = $request->validate([
             'orderID' => ['required', 'string', 'max:100'],
-            'customer_name' => ['required', 'string', 'max:255'],
-            'customer_email' => ['required', 'email', 'max:255'],
+            'customer_name' => [$personRule, 'string', 'max:255'],
+            'customer_email' => [$personRule, 'email', 'max:255'],
             'customer_phone' => ['nullable', 'string', 'regex:/^\+?\d{7,15}$/'],
         ]);
 
@@ -252,6 +279,12 @@ class PaymentLinkController extends Controller
 
                 if ($link->paypal_order_id !== $orderId) {
                     throw new PaymentLinkUnavailableException('order_mismatch');
+                }
+
+                // Link de saldo: antes de mover dinero, la reserva debe seguir
+                // con ESE saldo pendiente (si se pagó por otra vía, no se cobra de nuevo).
+                if (! $link->balanceIsPayable()) {
+                    throw new PaymentLinkUnavailableException('balance_changed');
                 }
 
                 // Revalida la fecha (si el link tiene una fija) ANTES de
@@ -318,9 +351,9 @@ class PaymentLinkController extends Controller
                     // N-1: siempre 'paid' — ya no existe el link multiuso
                     // que se quedaba 'pending' después de cobrar.
                     'status' => 'paid',
-                    'buyer_name' => $validated['customer_name'],
-                    'buyer_email' => $validated['customer_email'],
-                    'buyer_phone' => $validated['customer_phone'] ?? null,
+                    'buyer_name' => $validated['customer_name'] ?? $link->booking?->customer_name,
+                    'buyer_email' => $validated['customer_email'] ?? $link->booking?->customer_email,
+                    'buyer_phone' => $validated['customer_phone'] ?? $link->booking?->customer_phone,
                 ])->save();
 
                 return ['already_paid' => false, 'link' => $link, 'capture_id' => $captureId];
@@ -405,6 +438,15 @@ class PaymentLinkController extends Controller
         /** @var PaymentLink $link */
         $link = $step1['link'];
         $captureId = $step1['capture_id'];
+
+        // BUG CORREGIDO (2026-11-21): un link LIGADO a una reserva (booking_id)
+        // se trataba como "reserva ya creada" (más abajo: `$link->booking_id`
+        // => success sin hacer nada). Con links de saldo eso devolvía éxito
+        // SIN marcar la reserva como pagada. Un link de saldo tiene su propia
+        // rama: nunca crea reserva, liquida la existente.
+        if ($link->isBalance()) {
+            return $this->finishBalancePayment($link, 'paypal', $captureId, (string) ($validated['customer_email'] ?? ''), $locale, $step1['already_paid']);
+        }
 
         if ($step1['already_paid']) {
             $booking = $link->booking_id ? Booking::find($link->booking_id) : null;
@@ -557,6 +599,247 @@ class PaymentLinkController extends Controller
     }
 
     /**
+     * Paga el SALDO con tarjeta (Culqi): token de un solo uso -> cargo -> reserva
+     * pagada. Solo para links purpose=balance. El monto sale SIEMPRE del link
+     * (que a su vez debe coincidir con el saldo de la reserva), nunca del request.
+     */
+    public function culqiCharge(Request $request, string $code): JsonResponse
+    {
+        $locale = $this->resolveLocale($request);
+
+        if (! CheckoutInfo::paymentMethods()['culqi']) {
+            return response()->json(['success' => false, 'message' => __('checkout_culqi.unavailable')], 503);
+        }
+
+        $validated = $request->validate([
+            'culqi_token' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9_]+$/'],
+            'customer_email' => ['nullable', 'email', 'max:255'],
+        ], [
+            'culqi_token.required' => __('checkout_culqi.token_missing'),
+            'culqi_token.regex' => __('checkout_culqi.token_missing'),
+        ]);
+
+        $link = PaymentLink::with('booking')->where('code', $code)->first();
+
+        if (! $link || ! $link->isBalance()) {
+            return response()->json(['success' => false, 'message' => __('payment_links.not_found')], 404);
+        }
+
+        $link->checkAndExpire();
+        $link->refresh();
+
+        if (! $link->isUsable()) {
+            return response()->json(['success' => false, 'message' => $this->unavailableMessage($link)], 422);
+        }
+
+        if (! $link->balanceIsPayable()) {
+            return response()->json(['success' => false, 'message' => $this->unavailableMessage($link, 'balance_changed')], 422);
+        }
+
+        // Un solo cargo en vuelo por link (doble clic / dos pestañas).
+        $mutex = Cache::lock('culqi-link:'.$link->id, 90);
+        if (! $mutex->get()) {
+            return response()->json(['success' => false, 'message' => __('checkout_culqi.in_progress')], 409);
+        }
+
+        $chargeId = null;
+        $booking = $link->booking;
+
+        try {
+            // Re-lectura bajo el mutex: otra request pudo pagarlo mientras esperaba.
+            $link->refresh();
+            $link->load('booking');
+
+            if (! $link->isUsable() || ! $link->balanceIsPayable()) {
+                return response()->json(['success' => false, 'message' => $this->unavailableMessage($link, 'balance_changed')], 422);
+            }
+
+            $amountCents = PaymentPlan::toCents($link->amount);
+            $email = $booking->customer_email ?: ($validated['customer_email'] ?? null);
+
+            if ($amountCents <= 0 || ! $email) {
+                return response()->json(['success' => false, 'message' => __('checkout_culqi.charge_failed')], 422);
+            }
+
+            $charge = $this->culqi->createCharge([
+                'amount' => $amountCents,
+                'currency_code' => 'USD',
+                'email' => $email,
+                'source_id' => $validated['culqi_token'],
+                'capture' => true,
+                'description' => mb_substr('Lima View Tours - saldo '.$booking->reference, 0, 80),
+                'metadata' => [
+                    'locale' => $locale,
+                    'kind' => 'balance',
+                    'booking' => $booking->reference,
+                    'payment_link' => $this->maskCode($link->code),
+                    'charged_now' => number_format(PaymentPlan::fromCents($amountCents), 2, '.', ''),
+                ],
+            ]);
+
+            $chargeId = (string) ($charge['id'] ?? '');
+            $outcome = $charge['outcome']['type'] ?? null;
+
+            if ($chargeId === '' || $outcome !== 'venta_exitosa' || ($charge['action_code'] ?? null) === 'REVIEW') {
+                Log::warning('payment_link.culqi_charge.not_approved', [
+                    'code' => $this->maskCode($code),
+                    'charge_id' => $chargeId,
+                    'outcome' => $outcome,
+                ]);
+                $chargeId = null;
+
+                return response()->json([
+                    'success' => false,
+                    'code' => 'card_declined',
+                    'message' => __('checkout_culqi.declined.generic'),
+                ], 402);
+            }
+
+            // Dinero cobrado: constancia durable AHORA (mismo patrón M-3 que PayPal).
+            DB::transaction(function () use ($link, $chargeId, $booking) {
+                $fresh = PaymentLink::where('id', $link->id)->lockForUpdate()->first();
+                $fresh->forceFill([
+                    'culqi_charge_id' => $chargeId,
+                    'paid_at' => now(),
+                    'status' => 'paid',
+                    'buyer_name' => $booking->customer_name,
+                    'buyer_email' => $booking->customer_email,
+                    'buyer_phone' => $booking->customer_phone,
+                ])->save();
+            });
+
+            return $this->finishBalancePayment($link->refresh(), 'culqi', $chargeId, (string) $booking->customer_email, $locale, false);
+
+        } catch (CulqiChargeDeclinedException $e) {
+            Log::info('payment_link.culqi_charge.declined', [
+                'code' => $this->maskCode($code),
+                'decline_code' => $e->declineCode,
+            ]);
+
+            $key = 'checkout_culqi.declined.'.($e->declineCode ?? '');
+            $message = ($e->declineCode && Lang::has($key)) ? __($key) : __('checkout_culqi.declined.generic');
+
+            return response()->json(['success' => false, 'code' => 'card_declined', 'message' => $message], 402);
+
+        } catch (\Throwable $e) {
+            Log::error('payment_link.culqi_charge.error', [
+                'code' => $this->maskCode($code),
+                'charge_id' => $chargeId,
+                'message' => $e->getMessage(),
+            ]);
+
+            if ($chargeId !== null) {
+                // Cobrado pero no registrado: rastro aislado + aviso al admin. NO invita a reintentar.
+                PaymentLink::where('id', $link->id)->update([
+                    'culqi_charge_id' => $chargeId,
+                    'paid_at' => $link->paid_at ?? now(),
+                    'status' => 'paid',
+                ]);
+                $this->notifyAdminOfCaptureWriteFailure($link->code, null, $chargeId, $e);
+
+                return response()->json([
+                    'success' => false,
+                    'code' => 'payment_captured_booking_pending',
+                    'message' => __('payment_links.captured_booking_pending', ['reference' => $chargeId]),
+                    'reference' => $chargeId,
+                ], 200);
+            }
+
+            return response()->json(['success' => false, 'message' => __('checkout_culqi.charge_failed')], 500);
+
+        } finally {
+            $mutex->release();
+        }
+    }
+
+    /**
+     * Cierre común (PayPal y Culqi) del pago de un link de SALDO: liquida la
+     * reserva LIGADA — nunca crea una reserva nueva. Idempotente: un replay
+     * (doble clic, reintento de red) no vuelve a registrar ni a notificar.
+     *
+     * @param  string  $type  paypal | culqi
+     */
+    private function finishBalancePayment(PaymentLink $link, string $type, string $reference, string $payerEmail, string $locale, bool $alreadyPaid): JsonResponse
+    {
+        $booking = $link->booking_id ? Booking::find($link->booking_id) : null;
+
+        if (! $booking) {
+            // El link dice pagado pero no hay reserva a la que aplicarlo: revisión manual.
+            Log::error('payment_link.balance.booking_missing', ['code' => $this->maskCode($link->code), 'reference' => $reference]);
+            $this->notifyAdminOfCaptureWriteFailure($link->code, $link->paypal_order_id, $reference, new \RuntimeException('El link de saldo no tiene reserva asociada.'));
+
+            return response()->json([
+                'success' => false,
+                'code' => 'payment_captured_booking_pending',
+                'message' => __('payment_links.captured_booking_pending', ['reference' => $reference]),
+                'reference' => $reference,
+            ], 200);
+        }
+
+        try {
+            $settledNow = $this->balance->settle($booking, $type, $reference, (float) $link->amount, $link);
+        } catch (\Throwable $e) {
+            // El dinero YA se cobró y no se pudo registrar: sin reintento seguro.
+            Log::error('payment_link.balance.settle_failed_after_charge', [
+                'code' => $this->maskCode($link->code),
+                'booking' => $booking->reference,
+                'reference' => $reference,
+                'message' => $e->getMessage(),
+            ]);
+            $this->notifyAdminOfCaptureWriteFailure($link->code, $link->paypal_order_id, $reference, $e);
+
+            return response()->json([
+                'success' => false,
+                'code' => 'payment_captured_booking_pending',
+                'message' => __('payment_links.captured_booking_pending', ['reference' => $reference]),
+                'reference' => $reference,
+            ], 200);
+        }
+
+        if ($settledNow) {
+            Log::info('payment_link.balance_paid', [
+                'code' => $this->maskCode($link->code),
+                'booking' => $booking->reference,
+                'reference' => $reference,
+                'type' => $type,
+            ]);
+
+            $this->balance->notifyBalancePaid($booking);
+        }
+
+        // B-7: un replay con el code de OTRA persona no debe cargar la reserva
+        // ajena en la sesión de quien pregunta (la página de gracias muestra PII).
+        // Quien acaba de pagar (settledNow) es el dueño de la sesión; en un replay se exige el correo de la reserva.
+        $sameOwner = $settledNow || ($payerEmail !== '' && strcasecmp(trim($payerEmail), (string) $booking->customer_email) === 0);
+
+        if ($sameOwner) {
+            session()->put('last_bookings', collect([$booking->fresh()])->toArray());
+            session()->put('last_payment', [
+                'kind' => 'balance',
+                'type' => $type,
+                'mode' => 'balance',
+                'amount' => (float) $link->amount,
+                'balance' => 0.0,
+                'total' => (float) $booking->total_price,
+                'currency' => 'USD',
+                'reference' => $reference,
+            ]);
+            // Un replay no re-dispara el evento de conversión.
+            session()->put('conversion_pending', $settledNow);
+        } else {
+            Log::warning('payment_link.capture.replay_email_mismatch', [
+                'code' => $this->maskCode($link->code),
+                'booking_id' => $booking->id,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'redirect' => route('checkout.thanks', ['locale' => $locale]),
+        ]);
+    }
+
+    /**
      * Texto claro para cada motivo de "no disponible", compartido por
      * show() (render) y create/captureOrder() (JSON). $link puede ser null
      * (código inexistente).
@@ -569,6 +852,9 @@ class PaymentLinkController extends Controller
 
         return match (true) {
             $reason === 'order_mismatch', $reason === 'amount_mismatch' => __('booking.payment_failed'),
+            // Link de saldo cuya reserva ya está pagada => "ya pagado"; si solo cambió el monto => aviso de saldo cambiado.
+            $reason === 'balance_changed' && $link->booking?->payment_status === 'paid' => __('payment_links.already_paid'),
+            $reason === 'balance_changed' => __('payment_links.balance_changed'),
             $link->status === 'paid' => __('payment_links.already_paid'),
             $link->status === 'cancelled' => __('payment_links.cancelled'),
             $link->status === 'expired' || $link->isPastExpiry() => __('payment_links.expired'),
