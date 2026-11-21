@@ -65,7 +65,12 @@
     {{-- Items del carrito --}}
     @foreach ($items as $item)
         @php
-            $img   = $item['cover_image'] ?? $fallbackImg;
+            // cover_image del carrito es la ruta cruda (tours/x.jpg): en el correo hace falta URL absoluta.
+            // HEIC/HEIF no se ven en clientes de correo → foto de respaldo.
+            $rawImg = (string) ($item['cover_image'] ?? '');
+            $img   = ($rawImg !== '' && ! preg_match('/\.(heic|heif)$/i', $rawImg))
+                ? (\App\Support\ImagePath::url($rawImg) ?? $fallbackImg)
+                : $fallbackImg;
             $title = $item['title_snapshot'] ?? ($item['title'] ?? 'Tour');
             $qty   = (int) ($item['quantity'] ?? (($item['adults'] ?? 1) + ($item['children'] ?? 0)));
             $sub   = (float) ($item['subtotal'] ?? 0);
