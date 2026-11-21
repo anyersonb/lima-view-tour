@@ -1139,3 +1139,98 @@ html.fh-sh-lock, html.fh-sh-lock body { overflow: hidden; }
 
 /* 21-nov: badge de destino sin recorte en móvil (2 líneas máx.) */
 .fh-dcard__badge { white-space: normal; overflow: hidden; text-overflow: clip; line-height: 1.2; padding: 5px 10px; font-size: 11px; letter-spacing: .02em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; border-radius: 12px; }
+
+/* ==========================================================================
+   21-nov g — Tarjeta "Elige tu experiencia" TAL CUAL la propuesta (FINAL HOME):
+   foto 7:6 con insignia crema + pill verde de ubicación, título corto en 2 líneas (Raleway bold, sentence case),
+   estrellas + "Ver opiniones ›", chips en grilla 2x2 (4º naranja), descuento + "ANTES" en la MISMA línea,
+   "AHORA · P/P + precio" a la izquierda y botón "Ver fechas ↗" a la derecha en la misma fila.
+   Base móvil (>=320, 2 columnas); <360 el botón baja bajo el precio; compacto hasta 1023; escritorio >=1024.
+   ========================================================================== */
+.fh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-inline: 6px; gap: 10px; }
+.fh-card { border-radius: 14px; box-shadow: 0 4px 14px rgba(40, 60, 50, .12); }
+.fh-card__media { aspect-ratio: 20 / 17; }
+.fh-card__badge { left: 8px; top: 8px; min-height: 22px; padding: 0 9px 0 7px; gap: 4px; border-radius: 11px; font-size: 11px; font-weight: 700; }
+.fh-card__badge svg { width: 9px; height: 9px; }
+.fh-card__region { left: 8px; bottom: 8px; min-height: 20px; padding: 0 10px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.fh-card__body { padding: 9px 8px 10px; gap: 6px; }
+.fh-card__title { font-size: 14px; line-height: 1.16; font-weight: 700; text-wrap: balance; }
+.fh-card__title-link { -webkit-line-clamp: 3; text-transform: none; }
+/* Chips: grilla 2x2 de igual ancho */
+.fh-card__chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; height: auto; overflow: visible; flex-wrap: nowrap; margin-top: 0; }
+.fh-card__chips li { display: block; flex: none; width: auto; max-width: none; min-width: 0; min-height: 22px; line-height: 22px; padding: 0 4px; border-radius: 11px; font-size: 11px; font-weight: 600; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fh-card__chips li.is-accent { background: #fbe8d2; color: #6a4210; }
+/* Bloque de compra */
+.fh-card__buy { padding-top: 7px; border-top: 1px solid #eee7da; }
+.fh-card__kind { margin: 0 0 4px; font-size: 9.5px; letter-spacing: .06em; color: #2f6a58; }
+.fh-card__was { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 4px; margin-bottom: 4px; }
+.fh-card__off { min-height: 20px; padding: 0 6px 0 5px; gap: 3px; border-radius: 10px; font-size: 10px; }
+.fh-card__off svg { width: 10px; height: 10px; }
+.fh-card__before { font-size: 9.5px; font-weight: 500; white-space: nowrap; }
+.fh-card__row { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: flex-end; justify-content: space-between; gap: 4px; margin-top: 0; }
+.fh-card__amt { min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; }
+.fh-card__lbl { margin: 0 0 1px; font-size: 9.5px; font-weight: 700; letter-spacing: .05em; color: #2f6a58; white-space: nowrap; }
+.fh-card__price { font-size: clamp(17px, 4.6vw, 20px); font-weight: 900; line-height: 1.05; }
+.fh-card__cta { flex: 0 0 auto; width: auto; min-height: 44px; padding: 0 8px; gap: 3px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.fh-card__cta svg { width: 10px; height: 10px; }
+.fh-card__cta:focus-visible { outline: 3px solid #e0a94d; outline-offset: 2px; }
+.fh-card__rate { font-size: 10px; gap: 4px; flex-wrap: nowrap; }
+.fh-card__rate .fh-stars { flex: 0 0 auto; white-space: nowrap; }
+.fh-card__rate .fh-stars svg { width: 12px; height: 12px; }
+.fh-card__opin { color: #5b6a64; font-size: 10px; }
+@media (max-width: 359.98px) {
+  .fh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-inline: 4px; gap: 8px; }
+  .fh-card__body { padding-inline: 6px; }
+  .fh-card__row { flex-direction: column; align-items: stretch; gap: 4px; }
+  .fh-card__cta { width: 100%; }
+  .fh-card__chips li { font-size: 10.5px; padding: 0 2px; }
+  .fh-card__rate .fh-stars svg { width: 10px; height: 10px; }
+  .fh-card__rate { gap: 2px; }
+  .fh-card__opin { font-size: 9.5px; padding-left: 5px; }
+}
+/* Tablet (4 columnas estrechas): mismo tamaño compacto que móvil */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .fh-grid { gap: 12px; padding-inline: 0; }
+  .fh-card__title { font-size: 14px; }
+  .fh-card__body { padding: 9px 8px 10px; gap: 6px; row-gap: 6px; }
+  .fh-card__chips { gap: 4px; }
+  .fh-card__chips li { font-size: 11px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; }
+  .fh-card__rate { font-size: 10px; }
+  .fh-card__rate .fh-stars svg { width: 12px; height: 12px; }
+}
+/* Escritorio (4 columnas de ~285 px): misma tarjeta ensanchada */
+@media (min-width: 1024px) {
+  .fh-grid { gap: 20px; }
+  .fh-card { border-radius: 18px; }
+  .fh-card__badge { left: 12px; top: 12px; min-height: 28px; padding: 0 12px 0 10px; gap: 6px; border-radius: 14px; font-size: 13px; }
+  .fh-card__badge svg { width: 11px; height: 11px; }
+  .fh-card__region { left: 12px; bottom: 12px; min-height: 26px; padding: 0 13px; border-radius: 13px; font-size: 12px; }
+  .fh-card__body { padding: 14px 14px 16px; gap: 10px; row-gap: 10px; }
+  .fh-card__title { font-size: 18px; line-height: 1.18; }
+  .fh-card__rate { font-size: 12.5px; }
+  .fh-card__rate .fh-stars svg { width: 14px; height: 14px; }
+  .fh-card__opin { font-size: 12.5px; }
+  .fh-card__chips { gap: 6px; }
+  .fh-card__chips li { min-height: 28px; line-height: 28px; border-radius: 14px; font-size: 12.5px; padding: 0 8px; }
+  .fh-card__buy { padding-top: 10px; }
+  .fh-card__kind { font-size: 11px; margin-bottom: 6px; }
+  .fh-card__was { margin-bottom: 6px; gap: 4px 8px; }
+  .fh-card__off { min-height: 24px; padding: 0 9px 0 7px; gap: 5px; border-radius: 12px; font-size: 12px; }
+  .fh-card__off svg { width: 12px; height: 12px; }
+  .fh-card__before { font-size: 12px; }
+  .fh-card__lbl { font-size: 11px; margin-bottom: 2px; }
+  .fh-card__price { font-size: 26px; }
+  .fh-card__cta { padding: 0 16px; gap: 6px; border-radius: 12px; font-size: 14px; }
+  .fh-card__cta svg { width: 13px; height: 13px; }
+}
+/* 21-nov g (ajuste): "20% Descuento" + "ANTES US$125" en la misma línea también con precios de 3 cifras */
+@media (max-width: 767.98px) {
+  .fh-card__body { padding-inline: 6px; }
+  .fh-card__off { padding: 0 5px 0 4px; gap: 2px; font-size: 9.5px; }
+  .fh-card__off svg { width: 9px; height: 9px; }
+  .fh-card__was { flex-wrap: nowrap; gap: 3px; }
+  .fh-card__before { font-size: 9px; letter-spacing: -.01em; }
+}
+@media (max-width: 359.98px) { .fh-card__was { flex-wrap: wrap; } }
+/* 21-nov g (ajuste): 4 columnas desde 768 (mi base móvil de 2 columnas va después de la regla de escritorio y la pisaba) */
+@media (min-width: 768px) { .fh-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

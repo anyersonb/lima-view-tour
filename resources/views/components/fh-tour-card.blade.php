@@ -31,16 +31,33 @@
             if (! empty($c['accent']) && $accent === null) { $accent = $label; } else { $chips[] = $label; }
             continue;
         }
-        if ($type === 'pickup') { $label = $L('Recojo', 'Pickup', 'Transporte'); }
+        if ($type === 'pickup') { $label = $L('Recojo', 'Pickup', 'Pickup'); }
         if ($type === 'language') {
             $label = str_replace(['Español', 'Spanish', 'Espanhol', 'Inglés', 'English', 'Inglês', 'Portugués', 'Portuguese', 'Português'], ['ES', 'ES', 'ES', 'EN', 'EN', 'EN', 'PT', 'PT', 'PT'], $label);
         }
         if (in_array($type, ['cancellation', 'group'], true)) { $accent = $label; continue; }
-        $chips[] = $label;
+        $chips[] = ['type' => $type, 'label' => $label];
     }
+    // Orden del diseño: duración, recojo, idiomas, resto; el destacado (naranja) siempre al final. Máx. 4 en total (grilla 2x2).
+    $rank = ['duration' => 0, 'pickup' => 1, 'language' => 2];
+    $curatedChips = array_values(array_filter($chips, fn ($c) => is_string($c)));
+    $derived = array_values(array_filter($chips, fn ($c) => is_array($c)));
+    usort($derived, fn ($a, $b) => ($rank[$a['type']] ?? 9) <=> ($rank[$b['type']] ?? 9));
+    $chips = array_slice(array_merge($curatedChips, array_column($derived, 'label')), 0, $accent !== null ? 3 : 4);
 
     // Título corto de tarjeta (si no se cargó, card_title = title) y etiqueta de ubicación (si no, región).
-    $cardTitle = filled($p['card_title'] ?? null) ? $p['card_title'] : ($p['title'] ?? '');
+    $cardTitle = trim((string) (filled($p['card_title'] ?? null) ? $p['card_title'] : ($p['title'] ?? '')));
+    // Si el texto viene TODO EN MAYÚSCULAS (título largo del tour o escrito así en el admin) se normaliza solo en la tarjeta:
+    // "TOUR DE DIA COMPLETO AL OASIS" -> "Tour de Dia Completo al Oasis" (conectores en minúscula, nombres propios con inicial).
+    $letters = preg_replace('/[^\p{L}]/u', '', $cardTitle);
+    if ($letters !== '' && mb_strlen($letters) > 3 && mb_strtoupper($letters) === $letters) {
+        $small = ['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'o', 'a', 'al', 'en', 'con', 'por', 'para', 'the', 'of', 'and', 'in', 'to', 'at', 'with', 'for', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'um', 'uma', 'ao'];
+        $cardTitle = preg_replace_callback('/\p{L}[\p{L}\']*/u', function ($m) use ($small) {
+            $w = mb_strtolower($m[0]);
+            return in_array($w, $small, true) ? $w : mb_strtoupper(mb_substr($w, 0, 1)) . mb_substr($w, 1);
+        }, $cardTitle);
+        $cardTitle = mb_strtoupper(mb_substr($cardTitle, 0, 1)) . mb_substr($cardTitle, 1);
+    }
     $cardLoc = filled($p['location'] ?? null) ? $p['location'] : ($p['region'] ?? null);
     // Etiqueta de precio por modalidad: now = descuento real; regular = TARIFA REGULAR; private = TARIFA PRIVADA · DESDE · GRUPO.
     $priceKind = $p['price_kind'] ?? ($hasDiscount ? 'now' : 'regular');
@@ -77,8 +94,8 @@
 
         @if (count($chips) || $accent)
             <ul class="fh-card__chips">
-                {{-- Móvil: una sola fila, máx. 2 chips (el acento cuenta como uno); el resto lleva .fh-xm y se oculta en <768px --}}
-                @foreach ($chips as $ci => $c)<li @class(['fh-xm' => $ci >= ($accent ? 1 : 2)])>{{ $c }}</li>@endforeach
+                {{-- Grilla 2x2 como el diseño: máx. 4 chips, el destacado (is-accent) en naranja al final --}}
+                @foreach ($chips as $c)<li>{{ $c }}</li>@endforeach
                 @if ($accent)<li class="is-accent">{{ $accent }}</li>@endif
             </ul>
         @endif
@@ -94,12 +111,12 @@
                     <span class="fh-card__off"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 12.6V4.5A1.5 1.5 0 014.5 3h8.1a1.5 1.5 0 011.06.44l7.9 7.9a1.5 1.5 0 010 2.12l-7.2 7.2a1.5 1.5 0 01-2.12 0l-7.9-7.9A1.5 1.5 0 013 12.6zM7.5 8.5a1 1 0 100-2 1 1 0 000 2z"/></svg>{{ $pct }}% {{ $L('Descuento', 'Off', 'Desconto') }}</span>
                     <span class="fh-card__before">{{ $L('ANTES', 'WAS', 'ANTES') }} <s>US${{ number_format((float) $p['price_before'], 0) }}</s></span>
                 </div>
-                <p class="fh-card__lbl">{{ $L('Ahora', 'Now', 'Agora') }} · {{ $priceUnit }}</p>
-            @else
-                <p class="fh-card__lbl">{{ $L('Desde', 'From', 'A partir de') }} · {{ $priceUnit }}</p>
             @endif
             <div class="fh-card__row">
-                <span class="fh-card__price">US${{ number_format((float) ($p['price'] ?? 0), 0) }}</span>
+                <div class="fh-card__amt">
+                    <p class="fh-card__lbl">{{ $hasDiscount ? $L('Ahora', 'Now', 'Agora') : $L('Desde', 'From', 'A partir de') }} · {{ $priceUnit }}</p>
+                    <span class="fh-card__price">US${{ number_format((float) ($p['price'] ?? 0), 0) }}</span>
+                </div>
                 {{-- En la ficha el selector de fecha tiene un ancla distinta en móvil y en escritorio: dos enlaces, se muestra uno según el ancho. --}}
                 <a href="{{ $p['dates_url'] ?? ($p['url'] ?? '#') }}" class="fh-card__cta fh-card__cta--m" data-ga-cta="ver_fechas" data-ga-location="home_experiencia">{{ $L('Ver fechas', 'See dates', 'Ver datas') }}
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M9 7h8v8"/></svg></a>
