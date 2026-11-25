@@ -31,10 +31,44 @@ class PayPalService
      */
     public static function availableForCustomers(): bool
     {
+        // Interruptor del admin (Ajustes > Pagos > "Mostrar PayPal en el checkout"):
+        // apagado por defecto. Oculta/rechaza PayPal SIN borrar credenciales.
+        if (! static::visibleToCustomers()) {
+            return false;
+        }
+
+        return static::configured();
+    }
+
+    /**
+     * Credenciales/modo válidos para cobrar con PayPal (sin mirar el interruptor del admin).
+     */
+    public static function configured(): bool
+    {
         $clientId = \App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id');
         $mode = (string) (\App\Models\Setting::get('paypal_mode') ?: config('services.paypal.mode') ?: 'sandbox');
 
         return filled($clientId) && ($mode === 'live' || ! app()->isProduction());
+    }
+
+    /**
+     * ¿Se ofrece PayPal en el link de pago /pagar? Con el interruptor encendido, sí. Apagado: no,
+     * salvo en links sueltos creados por el operador (no son de saldo), que solo se pagan con
+     * PayPal porque Culqi atiende únicamente saldos: ocultarlo los dejaría sin forma de pago.
+     */
+    public static function offeredForLink(?\App\Models\PaymentLink $link): bool
+    {
+        if (static::availableForCustomers()) {
+            return true;
+        }
+
+        return $link !== null && ! $link->isBalance() && static::configured();
+    }
+
+    /** ¿El admin dejó PayPal visible para los clientes? (default: no). */
+    public static function visibleToCustomers(): bool
+    {
+        return filter_var(\App\Models\Setting::get('paypal_visible', config('services.paypal.visible_default', false)), FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

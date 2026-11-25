@@ -118,6 +118,14 @@ class PaymentLinkController extends Controller
             return response()->json(['error' => $this->unavailableMessage($link)], 422);
         }
 
+        // PayPal oculto por el admin: no se crea ninguna orden nueva desde /pagar (el servidor
+        // rechaza, no solo se esconde el botón). La captura de órdenes ya creadas NO se toca.
+        if (! PayPalService::offeredForLink($link)) {
+            Log::info('payment_link.create_order: rejected, PayPal hidden for customers', ['link' => $link->id]);
+
+            return response()->json(['code' => 'paypal_disabled', 'error' => __('checkout_payment.paypal_disabled')], 403);
+        }
+
         // Link de saldo: la reserva ya no debe tener ESE saldo pendiente => no se crea la orden.
         if (! $link->balanceIsPayable()) {
             return response()->json(['error' => $this->unavailableMessage($link, 'balance_changed')], 422);

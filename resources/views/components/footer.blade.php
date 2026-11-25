@@ -128,13 +128,15 @@
                             <text x="0" y="16" font-family="Arial" font-size="14" font-weight="bold" fill="#1A1F71">VISA</text>
                         </svg>
                     </li>
-                    {{-- PayPal --}}
+                    {{-- PayPal (solo si el admin lo dejó visible) --}}
+                    @if (\App\Services\PayPalService::visibleToCustomers())
                     <li class="bg-white rounded px-2 py-1">
                         <svg class="h-4 w-auto" aria-label="PayPal" role="img" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <text x="0" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#003087">Pay</text>
                             <text x="22" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#009cde">Pal</text>
                         </svg>
                     </li>
+                    @endif
                     {{-- Mastercard --}}
                     <li class="bg-white rounded px-2 py-1 flex items-center gap-0.5">
                         <span class="w-4 h-4 rounded-full bg-[#EB001B] inline-block" aria-hidden="true"></span>

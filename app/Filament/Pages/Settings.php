@@ -80,6 +80,8 @@ class Settings extends Page implements HasForms
         $rows['paypal_secret'] = $rows['paypal_secret'] ?? config('services.paypal.secret');
         $rows['paypal_mode'] = $rows['paypal_mode'] ?? config('services.paypal.mode', 'sandbox');
         $rows['paypal_webhook_id'] = $rows['paypal_webhook_id'] ?? config('services.paypal.webhook_id');
+        // Mostrar PayPal al cliente: APAGADO por defecto (solo Culqi). No toca credenciales.
+        $rows['paypal_visible'] = filter_var($rows['paypal_visible'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         // Pre-rellenar keys de Google y Tripadvisor desde .env si aún no están en la BD
         $rows['google_maps_api_key'] = $rows['google_maps_api_key'] ?? config('services.google.maps_api_key');
@@ -268,6 +270,11 @@ class Settings extends Page implements HasForms
                             ->helperText('Enlace al perfil de Tripadvisor. Usado en las tarjetas de rating de cada tour.'),
                     ]),
                     Tabs\Tab::make('Pagos')->icon('heroicon-o-credit-card')->schema([
+                        Toggle::make('paypal_visible')
+                            ->label('Mostrar PayPal en el checkout')
+                            ->default(false)
+                            ->columnSpanFull()
+                            ->helperText('Apagado: los clientes pagan solo con tarjeta (Culqi) y PayPal no aparece en el checkout, ni en los links de pago, ni en los correos. Las credenciales de abajo se conservan. Las reservas ya pagadas con PayPal no se ven afectadas.'),
                         Select::make('paypal_mode')
                             ->label('Modo de PayPal')
                             ->options(['sandbox' => 'Sandbox (pruebas)', 'live' => 'Live (producción)'])
@@ -1308,6 +1315,7 @@ class Settings extends Page implements HasForms
         'tripadvisor_reviews_enabled',
         'recaptcha_enabled',
         'pickup_enabled',
+        'paypal_visible',
     ];
 
     public function save(): void

@@ -30,6 +30,8 @@
     $forceNoindex = true;
     // Locale del SDK de PayPal según el idioma resuelto del link.
     $paypalLocale = ['es' => 'es_PE', 'en' => 'en_US', 'pt' => 'pt_BR'][$locale] ?? 'en_US';
+    // PayPal oculto por el admin (Ajustes > Pagos): ver PayPalService::offeredForLink().
+    $paypalOffered = \App\Services\PayPalService::offeredForLink($link ?? null);
 @endphp
 
 @section('title', __('payment_links.page_title', ['tour' => $pageTitle]) . ' — ' . __('seo.site_name'))
@@ -150,10 +152,16 @@
                             <span id="pl-culqi-label">{{ __('checkout_culqi.pay_button', ['amount' => number_format((float) $link->amount, 2)]) }}</span>
                         </button>
                         <p class="co-sub" style="text-align:center">{{ __('checkout_ui.pl_card_sub') }}</p>
+                        @if ($paypalOffered)
                         <p class="co-sub" style="text-align:center;margin:10px 0 0">{{ __('checkout_ui.pl_or_paypal') }}</p>
+                        @endif
                     </div>
                 @endif
+                @if ($paypalOffered)
                 <div id="paypal-buttons" class="mt-6"></div>
+                @elseif (! ($culqiEnabled ?? false))
+                <p class="mt-4 text-sm text-teal-800" data-no-method>{{ __('checkout_payment.no_method_available') }}</p>
+                @endif
                 <p class="mt-4 text-center text-[11px] text-teal-800/70">{{ __('payment_links.secure_payment') }}</p>
             </div>
         @endif
@@ -166,7 +174,7 @@
 <link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v=20261121e">
 <script src="https://checkout.culqi.com/js/v4"></script>
 @endif
-@if (\App\Services\PayPalService::availableForCustomers())
+@if ($paypalOffered)
 <script
     src="https://www.paypal.com/sdk/js?client-id={{ (\App\Models\Setting::get('paypal_client_id') ?: config('services.paypal.client_id')) }}&currency=USD&intent=capture&locale={{ $paypalLocale }}"
     data-namespace="paypal_sdk">

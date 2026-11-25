@@ -47,6 +47,9 @@ return [
         'secret'     => env('PAYPAL_SECRET'),
         'mode'       => env('PAYPAL_MODE', 'sandbox'), // sandbox|live
         'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
+        // Valor por defecto de "Mostrar PayPal en el checkout" cuando el admin aún no lo guardó. En
+        // producción NO se define (=> apagado); solo phpunit.xml lo enciende para las pruebas de PayPal.
+        'visible_default' => (bool) env('PAYPAL_VISIBLE_DEFAULT', false),
     ],
 
     'google' => [

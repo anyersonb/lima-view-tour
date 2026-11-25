@@ -3,7 +3,7 @@
 return [
     'page_title' => 'Pay :tour',
     'page_heading' => 'Complete your payment',
-    'meta_description' => 'Complete your payment securely with PayPal.',
+    'meta_description' => 'Complete your payment securely by card.',
     'generic_tour_name' => 'Custom tour',
     'date_to_be_arranged' => 'Date to be arranged',
 
@@ -31,7 +31,7 @@ return [
     // i18n fix 2026-10-08
     'adults_count' => '{1} :count Adult|[2,*] :count Adults',
     'children_count' => '{1} :count Child|[2,*] :count Children',
-    'secure_payment' => '100% secure payment with PayPal',
+    'secure_payment' => '100% secure payment',
     'phone_label' => 'Phone',
     'js_create_failed' => 'We could not start the payment.',
     'js_capture_failed' => 'We could not complete the payment.',
@@ -44,5 +44,5 @@ return [
     'balance_due_label' => 'Balance to pay',
     'balance_deadline_label' => 'Pay before',
     'balance_changed' => 'The balance of this booking changed or was already paid. If you need a new payment link, contact us.',
-    'balance_card_unavailable' => 'Card payment is not available right now. Use PayPal.',
+    'balance_card_unavailable' => 'Card payment is not available right now. Message us on WhatsApp.',
 ];
