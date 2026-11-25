@@ -5,7 +5,7 @@ return [
     // Per-item message at cart/checkout: names the tour and its first bookable date.
     'date_item_unavailable' => 'The date for “:tour” is no longer available. The earliest available date is :date. Bookings for the next day close at :cutoff (Lima time).',
     'date_outdated' => 'The date for one of your tours is no longer available (it changed while your cart was open). Please review the dates and try again.',
-    'card_declined' => 'Your bank declined the card. Please try a different card or use your PayPal balance.',
+    'card_declined' => 'Your bank declined the card. Please try a different card or contact us on WhatsApp.',
     'payment_failed' => 'We couldn\'t complete the payment. Please try again or contact us.',
 
     // Time slots and same-day booking (2026-11-24)

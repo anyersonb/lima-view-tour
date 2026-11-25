@@ -10,7 +10,7 @@ return [
     // PayPal capture 422 con details[0].issue = INSTRUMENT_DECLINED: el
     // banco/emisor rechazó la tarjeta, no cobramos nada. El comprador sigue
     // en la pantalla de pago y puede reintentar con otro instrumento.
-    'card_declined' => 'Tu banco rechazó la tarjeta. Por favor intenta con otra tarjeta o usa tu saldo de PayPal.',
+    'card_declined' => 'Tu banco rechazó la tarjeta. Por favor intenta con otra tarjeta o escríbenos por WhatsApp.',
     // Mensaje genérico de fallo de captura de pago: se usa en tres puntos
     // distintos de paypalCaptureOrder() (snapshot desconocido/expirado,
     // importe/moneda no coinciden, y catch genérico sin captureId). Los tres
