@@ -88,6 +88,7 @@ return [
     'cart_empty' => 'Seu carrinho está vazio.',
     'cart_close' => 'Fechar carrinho',
     'cart_slot_change' => 'Alterar horário',
+    'cart_slot_label' => 'Horário',
     'cart_travelers' => ':count viajante(s)',
     'cart_open' => 'Ver carrinho',
     'cart_error' => 'Não foi possível atualizar o carrinho. Tente novamente.',

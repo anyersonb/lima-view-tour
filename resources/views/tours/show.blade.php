@@ -246,9 +246,9 @@
     $noticeParts = [];
     if (count($slotsAll) <= 1) {
         $only = $slotsAll[0] ?? $bookingDepartureTime;
-        $noticeParts[] = __('ficha.notice_single_slot', ['time' => rtrim(\App\Support\BookingCalendar::timeLabel($only), '.')]);
+        $noticeParts[] = __('ficha.notice_single_slot', ['time' => str_replace(' ', "\u{00A0}", rtrim(\App\Support\BookingCalendar::timeLabel($only), '.'))]);
     }
-    $noticeParts[] = __('ficha.notice_cutoff', ['cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]);
+    $noticeParts[] = __('ficha.notice_cutoff', ['cutoff' => str_replace(' ', "\u{00A0}", \App\Support\BookingCalendar::nextDayCutoffLabel())]);
     if (! empty($av['same_day'])) {
         $noticeParts[] = __('ficha.notice_same_day', ['hours' => $av['min_hours'] ?? 4]);
     }
@@ -328,7 +328,7 @@
 
 @push('head')
 {{-- Ficha rediseñada: CSS plano propio (no depende del build de Vite). Subir ?v= en cada cambio. --}}
-<link rel="stylesheet" href="{{ asset('css/ficha.css') }}?v=20261124b">
+<link rel="stylesheet" href="{{ asset('css/ficha.css') }}?v=20261124c">
 <style>
 /* ── Flatpickr brand overrides ── */
 .flatpickr-day.selected,
@@ -504,6 +504,7 @@
             onChange: function (selectedDates, dateStr) {
                 syncTravelDate(dateStr);
             },
+            onValueUpdate: function (selectedDates, dateStr, fp) { lowerAlt(fp); },
             onReady: function (selectedDates, dateStr, fp) {
                 // El campo visible pasa a ser el altInput: hereda id (label for), ayuda y marca de reserva.
                 var orig = fp.input, alt = fp.altInput;
@@ -515,6 +516,7 @@
                     alt.setAttribute('autocomplete', 'off');
                     alt._flatpickr = fp;
                 }
+                lowerAlt(fp);
                 buildCalendarFooter(fp);
             }
         };
@@ -522,6 +524,13 @@
         function isBlocked(date) {
             var y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0');
             return blockedDates.includes(y + '-' + m + '-' + d) || blockedWeekdays.includes(date.getDay());
+        }
+
+        // es/pt: el mes va en minúscula ("26 de noviembre de 2026"); el locale de flatpickr lo trae capitalizado.
+        function lowerAlt(fp) {
+            if (fp && fp.altInput && /^(es|pt)/.test(document.documentElement.lang || '')) {
+                fp.altInput.value = fp.altInput.value.toLocaleLowerCase(document.documentElement.lang);
+            }
         }
 
         function parseYmd(str) {
@@ -1371,13 +1380,18 @@
                     <strong x-text="row.title"></strong>
                     <small>
                         <span x-text="row.date_label || i18n.no_date"></span>
-                        <template x-if="row.departure_label"><span> · <span x-text="row.departure_label"></span></span></template>
+                        <template x-if="row.departure_label && !(row.available_slots && row.available_slots.length > 1)"><span> · <span x-text="row.departure_label"></span></span></template>
                         · <span x-text="i18n.travelers.replace(':count', row.quantity)"></span>
                     </small>
                     <template x-if="row.available_slots && row.available_slots.length > 1">
-                        <select :aria-label="i18n.change_slot" @change="changeSlot(row, $event.target.value)">
-                            <template x-for="o in row.available_slots" :key="o.value"><option :value="o.value" :selected="o.value === row.departure_time" x-text="o.label"></option></template>
-                        </select>
+                        <label class="fi-crow__slot">
+                            <span class="fi-crow__slot-label"><svg class="fi-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> {{ __('ficha.cart_slot_label') }}</span>
+                            <span class="fi-crow__select">
+                                <select :aria-label="i18n.change_slot" @change="changeSlot(row, $event.target.value)">
+                                    <template x-for="o in row.available_slots" :key="o.value"><option :value="o.value" :selected="o.value === row.departure_time" x-text="o.label"></option></template>
+                                </select>
+                            </span>
+                        </label>
                     </template>
                 </div>
                 <b x-text="money(row.subtotal)"></b>

@@ -88,6 +88,7 @@ return [
     'cart_empty' => 'Your cart is empty.',
     'cart_close' => 'Close cart',
     'cart_slot_change' => 'Change start time',
+    'cart_slot_label' => 'Start time',
     'cart_travelers' => ':count traveler(s)',
     'cart_open' => 'View cart',
     'cart_error' => 'We could not update your cart. Please try again.',

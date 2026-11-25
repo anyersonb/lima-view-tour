@@ -90,6 +90,7 @@ return [
     'cart_empty' => 'Tu carrito está vacío.',
     'cart_close' => 'Cerrar carrito',
     'cart_slot_change' => 'Cambiar horario',
+    'cart_slot_label' => 'Horario',
     'cart_travelers' => ':count viajero(s)',
     'cart_open' => 'Ver carrito',
     'cart_error' => 'No pudimos actualizar el carrito. Inténtalo de nuevo.',

@@ -9,13 +9,18 @@
     El campo que viaja al servidor es <input name="departure_slot"> de #form-reservar.
 --}}
 @if (! empty($slotsAll))
+@php
+    // Espacio no separable: "7:00 p. m." no se parte en dos líneas.
+    $nb = fn (string $t) => str_replace(' ', "\u{00A0}", $t);
+@endphp
 <div class="fi-field" data-slot-picker x-data x-effect="$store.booking.ensureSlot()">
     <span class="fi-field__label" id="fi-slot-label">{{ __('ficha.slot_label') }}</span>
     @if (count($slotsAll) === 1)
         @php $only = $slotsAll[0]; @endphp
         <div class="fi-slots fi-slots--fixed" role="group" aria-labelledby="fi-slot-label">
-            <div class="fi-slot fi-slot--fixed" style="display:flex;align-items:center;justify-content:center;background:#e3f0e5;border:2px solid #247a55;color:#0c583d">
-                {{ $slotLabels[$only] ?? $only }} · {{ $slotPart($only) }}
+            <div class="fi-slot fi-slot--fixed" style="background:#e3f0e5;border:2px solid #247a55;color:#0c583d">
+                <span class="fi-slot__time">{{ $nb($slotLabels[$only] ?? $only) }}</span>
+                <small>{{ $slotPart($only) }}</small>
             </div>
         </div>
     @else
@@ -25,7 +30,8 @@
                         :aria-pressed="$store.booking.slot === '{{ $s }}' ? 'true' : 'false'"
                         :disabled="! $store.booking.slotEnabled('{{ $s }}')"
                         @click="$store.booking.slot = '{{ $s }}'">
-                    {{ $slotLabels[$s] ?? $s }} · {{ $slotPart($s) }}
+                    <span class="fi-slot__time">{{ $nb($slotLabels[$s] ?? $s) }}</span>
+                    <small>{{ $slotPart($s) }}</small>
                 </button>
             @endforeach
         </div>
