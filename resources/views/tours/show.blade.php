@@ -246,7 +246,7 @@
     $noticeParts = [];
     if (count($slotsAll) <= 1) {
         $only = $slotsAll[0] ?? $bookingDepartureTime;
-        $noticeParts[] = __('ficha.notice_single_slot', ['time' => \App\Support\BookingCalendar::timeLabel($only)]);
+        $noticeParts[] = __('ficha.notice_single_slot', ['time' => rtrim(\App\Support\BookingCalendar::timeLabel($only), '.')]);
     }
     $noticeParts[] = __('ficha.notice_cutoff', ['cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]);
     if (! empty($av['same_day'])) {
@@ -328,7 +328,7 @@
 
 @push('head')
 {{-- Ficha rediseñada: CSS plano propio (no depende del build de Vite). Subir ?v= en cada cambio. --}}
-<link rel="stylesheet" href="{{ asset('css/ficha.css') }}?v=20261124a">
+<link rel="stylesheet" href="{{ asset('css/ficha.css') }}?v=20261124b">
 <style>
 /* ── Flatpickr brand overrides ── */
 .flatpickr-day.selected,
@@ -371,7 +371,11 @@
     // en UTC). Ahora los tres miran el mismo calendario.
     window.LVT_MIN_DATE = @json($bookingMinDate);
     // Horarios por fecha, mismo día y margen: calculados en servidor (hora de Lima).
-    window.LVT_BOOKING = @json($bookingAvailability ?? []);
+    window.LVT_BOOKING = @json(($bookingAvailability ?? []) + [
+        // Reloj de Lima del servidor: el navegador NO calcula la salida con su propio huso.
+        'lima_offset_min' => \Carbon\Carbon::now(\App\Support\BookingCalendar::timezone())->utcOffset(),
+        'server_now_ms' => (int) round(microtime(true) * 1000),
+    ]);
 </script>
 
 <script>
@@ -388,6 +392,23 @@
             // Horario elegido ("HH:MM"); vacío si el tour tiene uno solo o ninguno propio.
             slot: '',
             cfg: window.LVT_BOOKING || {},
+            loadedAt: Date.now(),
+            // ¿La salida elegida es en menos de N h (48)? Todo sale del servidor:
+            // offset de Lima + "ahora" del servidor (se corrige el desfase del reloj local).
+            fullPay() {
+                var c = this.cfg;
+                if (!this.date || c.lima_offset_min === undefined || c.server_now_ms === undefined) return false;
+                var t = String(this.slot || c.default_time || (c.slots && c.slots[0]) || '09:00').split(':');
+                var p = this.date.split('-');
+                var dep = Date.UTC(+p[0], +p[1] - 1, +p[2], +t[0] || 0, +t[1] || 0) - c.lima_offset_min * 60000;
+                var now = Date.now() + (c.server_now_ms - this.loadedAt);
+                return dep < now + (c.full_payment_hours || 48) * 3600000;
+            },
+            payLine() {
+                var f = window.LVT_FICHA || {}, c = this.cfg;
+                if (c.lima_offset_min === undefined) return f.pay_neutral || '';
+                return this.fullPay() ? (f.pay_full || '').replace(':hours', c.full_payment_hours || 48) : f.pay_flex;
+            },
             // Horarios de la fecha elegida: HOY solo los que cumplen el margen (cfg.today_slots).
             slotList() {
                 var c = this.cfg;
@@ -462,7 +483,10 @@
 
         var config = {
             minDate:    minDate,
-            dateFormat: 'Y-m-d',
+            dateFormat: 'Y-m-d',          // valor ISO que viaja al servidor
+            altInput:   true,             // lo que ve la persona: fecha legible y localizada
+            altFormat:  @json(__('ficha.date_alt_format')),
+            altInputClass: 'fi-date lvt-date-input',
             locale:     locale,
             // Forzar el calendario propio de flatpickr también en móvil. El
             // input nativo de iOS/Android (mobileInput) desincronizaba la fecha
@@ -481,6 +505,16 @@
                 syncTravelDate(dateStr);
             },
             onReady: function (selectedDates, dateStr, fp) {
+                // El campo visible pasa a ser el altInput: hereda id (label for), ayuda y marca de reserva.
+                var orig = fp.input, alt = fp.altInput;
+                if (alt) {
+                    alt.id = orig.id; orig.removeAttribute('id');
+                    var desc = orig.getAttribute('aria-describedby');
+                    if (desc) alt.setAttribute('aria-describedby', desc);
+                    alt.setAttribute('data-booking-date-alt', '');
+                    alt.setAttribute('autocomplete', 'off');
+                    alt._flatpickr = fp;
+                }
                 buildCalendarFooter(fp);
             }
         };
@@ -597,7 +631,7 @@
             // 1) fecha
             if (!chosen) {
                 e.preventDefault();
-                var visible = [...document.querySelectorAll('[data-booking-date]')]
+                var visible = [...document.querySelectorAll('[data-booking-date], [data-booking-date-alt]')]
                     .find(function (el) { return el.offsetParent !== null; });
                 if (!visible) return;
                 visible.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -625,6 +659,8 @@
             if (!window.fetch || !window.FormData) return; // envío normal
             e.preventDefault();
             showBookError('');
+            // Para devolver el foco al cerrar el cajón (el botón se deshabilita mientras envía y el foco se pierde).
+            window.__lvtCartOpener = e.submitter || btn || document.activeElement;
             var label = btn ? btn.querySelector('.fi-cta__label') : null;
             var labelText = label ? label.textContent : '';
             if (btn) { btn.disabled = true; if (label) { label.textContent = I18N.adding || labelText; } }
@@ -778,7 +814,10 @@
         other: @json(__('ficha.traveler_other')),
         slot_required: @json(__('ficha.slot_required')),
         add_error: @json(__('ficha.add_error')),
-        adding: @json(__('ficha.adding'))
+        adding: @json(__('ficha.adding')),
+        pay_flex: @json(__('ui.tour_flex_pay_line')),
+        pay_full: @json(__('ficha.pay_full_line')),
+        pay_neutral: @json(__('ficha.pay_neutral_line'))
     };
     window.__lvtTourItem = {
         item_id: @json((string) $tour->id),
@@ -805,6 +844,7 @@
 
             return {
                 open: false,
+                confirming: false,
                 err: '',
                 opener: null,
                 cart: { items: [], total: 0, count: 0, cart_url: URLS.cart },
@@ -834,8 +874,11 @@
                 money: function (n) { return 'US$' + (Number(n) || 0).toFixed(2); },
                 show: function (cart) {
                     if (cart) this.cart = cart;
-                    if (!this.opener) this.opener = document.activeElement;
-                    this.err = '';
+                    var ae = document.activeElement;
+                    var pick = this.opener || window.__lvtCartOpener || ((ae && ae !== document.body) ? ae : null) || document.getElementById('fi-add');
+                    window.__lvtCartOpener = null;
+                    this.opener = pick;
+                    this.err = ''; this.confirming = false;
                     this.open = true; document.documentElement.classList.add('fi-modal');
                     document.body.style.overflow = 'hidden';
                     var self = this;
@@ -844,8 +887,10 @@
                 close: function () {
                     this.open = false; document.documentElement.classList.remove('fi-modal');
                     document.body.style.overflow = '';
-                    if (this.opener && this.opener.focus) { this.opener.focus(); }
-                    this.opener = null;
+                    var op = this.opener;
+                    if (!op || !op.isConnected || op.offsetParent === null) { op = document.getElementById('fi-add') || document.querySelector('.site-header__cart-btn'); }
+                    if (op && op.focus) { op.focus(); }
+                    this.opener = null; this.confirming = false;
                 },
                 load: function () {
                     var self = this;
@@ -880,13 +925,25 @@
                         else { self.cart = Object.assign({}, self.cart, { items: self.cart.items.slice() }); } // revierte el <select> al valor real
                     });
                 },
+                askClear: function () {
+                    var self = this;
+                    this.confirming = true;
+                    setTimeout(function () { var b = self.$root.querySelector('[data-cancel-clear]'); if (b) b.focus(); }, 30);
+                },
+                cancelClear: function () {
+                    var self = this;
+                    this.confirming = false;
+                    this.$nextTick(function () { var b = self.$root.querySelector('[data-clear-btn]'); if (b) b.focus(); });
+                },
                 clearCart: function () {
                     var self = this;
+                    this.confirming = false;
                     this.send('DELETE', URLS.clear).then(function (d) {
                         if (d) {
                             self.cart = { items: [], total: 0, count: 0, cart_url: URLS.cart };
                             var counter = document.querySelector('.site-header__badge');
                             if (counter) counter.textContent = '0';
+                            self.$nextTick(function () { if (self.$refs.closeBtn) self.$refs.closeBtn.focus(); });
                         }
                     });
                 }
@@ -1025,7 +1082,7 @@
                     <span class="fi-price__sale">−{{ $discountPct }}%</span>
                 @endif
             </div>
-            <p class="fi-flexpay">{{ __('ui.tour_flex_pay_line') }}</p>
+            <p class="fi-flexpay" x-data x-text="$store.booking.payLine()" aria-live="polite">{{ __('ui.tour_flex_pay_line') }}</p>
 
             <div class="fi-book__title" role="heading" aria-level="2">{{ __('ficha.book_title') }}</div>
 
@@ -1298,7 +1355,7 @@
      :class="{ 'is-open': open }"
      role="dialog" aria-modal="true" aria-label="{{ __('ficha.cart_title') }}"
      @click.self="close()"
-     @keydown.escape.window="open && close()"
+     @keydown.escape.window="open && (confirming ? cancelClear() : close())"
      @lvt-cart-open.window="show($event.detail)"
      x-cloak>
     <div class="fi-drawer" x-ref="panel">
@@ -1326,13 +1383,32 @@
                 <b x-text="money(row.subtotal)"></b>
             </div>
         </template>
-        <div class="fi-drawer__total"><span>{{ __('ficha.cart_total') }}</span><strong x-text="money(cart.total)">US$0.00</strong></div>
-        <p class="fi-drawer__err" role="alert" x-show="err" x-text="err" x-cloak></p>
-        <a class="fi-cta" :href="cart.cart_url || '{{ route('cart.index', ['locale' => $locale]) }}'" :style="cart.items.length === 0 ? 'opacity:.45;pointer-events:none' : ''">{{ __('ficha.cart_checkout') }} <span aria-hidden="true">→</span></a>
-        <div class="fi-drawer__links">
-            <button type="button" @click="close()">{{ __('ficha.cart_continue') }}</button>
-            <button type="button" @click="clearCart()" :disabled="cart.items.length === 0">{{ __('ficha.cart_clear') }}</button>
-        </div>
+        <template x-if="cart.items.length > 0">
+            <div class="fi-drawer__foot">
+                <div class="fi-drawer__total"><span>{{ __('ficha.cart_total') }}</span><strong x-text="money(cart.total)">US$0.00</strong></div>
+                <p class="fi-drawer__err" role="alert" x-show="err" x-text="err" x-cloak></p>
+                <a class="fi-cta" :href="cart.cart_url || '{{ route('cart.index', ['locale' => $locale]) }}'">{{ __('ficha.cart_checkout') }} <span aria-hidden="true">→</span></a>
+                <div class="fi-drawer__links" x-show="!confirming">
+                    <button type="button" @click="close()">{{ __('ficha.cart_continue') }}</button>
+                    <button type="button" data-clear-btn @click="askClear()">{{ __('ficha.cart_clear') }}</button>
+                </div>
+                <div class="fi-drawer__confirm" role="alertdialog" aria-labelledby="fi-clear-q" x-show="confirming" x-cloak>
+                    <p id="fi-clear-q">{{ __('ficha.cart_clear_confirm') }}</p>
+                    <div class="fi-drawer__links">
+                        <button type="button" data-cancel-clear @click="cancelClear()">{{ __('ficha.cart_clear_cancel') }}</button>
+                        <button type="button" class="is-danger" @click="clearCart()">{{ __('ficha.cart_clear_yes') }}</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <template x-if="cart.items.length === 0">
+            <div class="fi-drawer__foot">
+                <p class="fi-drawer__err" role="alert" x-show="err" x-text="err" x-cloak></p>
+                <div class="fi-drawer__links fi-drawer__links--solo">
+                    <button type="button" @click="close()">{{ __('ficha.cart_continue') }}</button>
+                </div>
+            </div>
+        </template>
     </div>
 </div>
 </div>{{-- /fi-page --}}
@@ -1380,7 +1456,7 @@
              const hh = header && getComputedStyle(header).position !== 'static' ? header.offsetHeight : 0;
              const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
              window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - hh - 8, behavior: reduce ? 'auto' : 'smooth' });
-             setTimeout(() => { const d = target.querySelector('[data-booking-date]'); if (d) d.focus({ preventScroll: true }); }, reduce ? 0 : 600);
+             setTimeout(() => { const d = target.querySelector('[data-booking-date-alt], [data-booking-date]:not([type=hidden])'); if (d) d.focus({ preventScroll: true }); }, reduce ? 0 : 600);
          }
      }"
      :class="shown ? 'is-on' : ''"
