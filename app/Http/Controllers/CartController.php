@@ -210,6 +210,7 @@ class CartController extends Controller
                     'success' => true,
                     'message' => __('cart.added'),
                     'count' => $this->cart->count(),
+                    'cart' => $this->summaryPayload(),
                 ]);
             }
 
@@ -300,6 +301,7 @@ class CartController extends Controller
                     'row_id' => $newRowId,
                     'subtotal' => $this->cart->subtotal(),
                     'total' => $this->cart->total(),
+                    'cart' => $this->summaryPayload(),
                 ]);
             }
 
@@ -414,6 +416,81 @@ class CartController extends Controller
             }
 
             return redirect()->back()->withErrors(['general' => __('cart.error')]);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  summary — resumen JSON del carrito para el cajón de la ficha de tour
+    // ─────────────────────────────────────────────────────────────
+
+    public function summary(string $locale): JsonResponse
+    {
+        return response()->json(['success' => true, 'cart' => $this->summaryPayload()]);
+    }
+
+    /**
+     * Filas del carrito listas para pintar en el cajón (título, fecha, horario,
+     * viajeros, importe) y, si el tour ofrece varios horarios, la lista para
+     * cambiarlo. Todo sale del servidor (hora de Lima); el navegador no calcula fechas.
+     *
+     * @return array<string, mixed>
+     */
+    private function summaryPayload(): array
+    {
+        try {
+            $items = $this->cart->items();
+            $tours = $items->isNotEmpty()
+                ? Tour::whereIn('id', $items->pluck('tour_id')->filter()->all())->get()->keyBy('id')
+                : collect();
+            $today = BookingCalendar::today()->toDateString();
+
+            $rows = $items->map(function (array $it) use ($tours, $today) {
+                $t = $tours->get($it['tour_id'] ?? null);
+                $date = $it['travel_date'] ?? null;
+                $slot = $it['departure_slot'] ?? null;
+                $hasSlots = $t && BookingCalendar::hasOwnDepartureTime($t);
+                $time = $hasSlots ? BookingCalendar::departureTime($t, $slot) : null;
+
+                $options = [];
+                if ($t && BookingCalendar::hasMultipleSlots($t)) {
+                    $list = $date === $today ? BookingCalendar::todaySlots($t) : BookingCalendar::slots($t);
+                    if ($time && ! in_array($time, $list, true)) {
+                        $list[] = $time;
+                        sort($list);
+                    }
+                    foreach ($list as $s) {
+                        $options[] = ['value' => $s, 'label' => BookingCalendar::timeLabel($s)];
+                    }
+                }
+
+                return [
+                    'row_id' => $it['row_id'] ?? null,
+                    'title' => $it['title_snapshot'] ?? ($t?->title ?? ''),
+                    'travel_date' => $date,
+                    'date_label' => $date
+                        ? \Illuminate\Support\Carbon::parse($date)->locale(app()->getLocale())->translatedFormat('D j M Y')
+                        : null,
+                    'departure_slot' => $slot,
+                    'departure_time' => $time,
+                    'departure_label' => $time ? BookingCalendar::timeLabel($time) : null,
+                    'available_slots' => count($options) > 1 ? $options : [],
+                    'adults' => (int) ($it['adults'] ?? 1),
+                    'children' => (int) ($it['children'] ?? 0),
+                    'quantity' => (int) ($it['quantity'] ?? 1),
+                    'subtotal' => (float) ($it['subtotal'] ?? 0),
+                ];
+            })->values()->all();
+
+            return [
+                'count' => $this->cart->count(),
+                'items' => $rows,
+                'total' => (float) $this->cart->total(),
+                'cart_url' => route('cart.index', ['locale' => app()->getLocale()]),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('CartController@summaryPayload: failed', ['error' => $e->getMessage()]);
+
+            return ['count' => 0, 'items' => [], 'total' => 0.0, 'cart_url' => route('cart.index', ['locale' => app()->getLocale()])];
         }
     }
 

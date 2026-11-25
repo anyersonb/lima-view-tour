@@ -109,7 +109,7 @@
 @section('body_class', 'lvt-page-checkout')
 
 @push('head')
-<link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v=20261121a">
+<link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v=20261124a">
 @endpush
 
 @section('content')
@@ -254,7 +254,24 @@
                         </div>
 
                         <div>
-                            @if ($depLabel)
+                            @php
+                                // Varios horarios: se puede cambiar desde aquí (PATCH con departure_slot). Un solo horario: chip fijo.
+                                $slotAv = is_array($item['available_slots'] ?? null) ? $item['available_slots'] : [];
+                                $slotOptions = ! empty($slotAv['multiple_slots']) ? array_values($slotAv['slots'] ?? []) : [];
+                                $slotToday = ($item['travel_date'] ?? null) === ($slotAv['today'] ?? null);
+                                $slotAllowed = $slotToday ? ($slotAv['today_slots'] ?? []) : $slotOptions;
+                                $slotCurrent = $item['departure_slot'] ?? ($dep['time'] ?? null);
+                            @endphp
+                            @if (count($slotOptions) > 1)
+                                <div class="co-label" id="co-slot-label-{{ $i }}">{{ __('checkout_ui.time_label') }}</div>
+                                <div class="co-chips" role="group" aria-labelledby="co-slot-label-{{ $i }}" data-co-slots>
+                                    @foreach ($slotOptions as $s)
+                                        <button type="button" class="co-chip @if ($s === $slotCurrent) is-on @endif" data-co-slot="{{ $s }}" data-co-slot-label="{{ $timeLabel($s) }}" aria-pressed="{{ $s === $slotCurrent ? 'true' : 'false' }}" @disabled(! in_array($s, $slotAllowed, true))>
+                                            <svg class="co-svg" aria-hidden="true"><use href="#co-i-clock"/></svg> {{ $timeLabel($s) }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @elseif ($depLabel)
                                 <div class="co-label">{{ __('checkout_ui.time_label') }}</div>
                                 <div class="co-chips">
                                     <span class="co-chip is-on"><svg class="co-svg" aria-hidden="true"><use href="#co-i-clock"/></svg> {{ $depLabel }}</span>
@@ -552,6 +569,6 @@
 <script src="https://www.paypal.com/sdk/js?client-id={{ $paypalClientId }}&currency=USD&intent=capture&locale={{ $paypalLocale }}&components=buttons&disable-funding=card,credit,paylater" data-namespace="paypal_sdk" defer></script>
 @endif
 <script>window.LVT_CO = {!! json_encode($coConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!};</script>
-<script src="{{ asset('js/checkout.js') }}?v=20261121d" defer></script>
+<script src="{{ asset('js/checkout.js') }}?v=20261124a" defer></script>
 @endpush
 @endif

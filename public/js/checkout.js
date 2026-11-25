@@ -335,6 +335,24 @@
         });
     }
 
+    // Cambiar de horario desde el carrito (solo tours con varios horarios). PATCH con departure_slot; el servidor valida.
+    function changeSlot(box, btn) {
+        if (btn.disabled || btn.getAttribute('aria-pressed') === 'true') return;
+        var it = itemByRow(box.getAttribute('data-row-id'));
+        if (!it) return;
+        var slot = btn.getAttribute('data-co-slot');
+        patchItem(box, { adults: it.adults + it.children, children: 0, departure_slot: slot }).then(function (r) {
+            if (!r.ok) { setDateError(box, r.message); return; }
+            setDateError(box, null);
+            $$('[data-co-slot]', box).forEach(function (b) {
+                var on = b === btn;
+                b.classList.toggle('is-on', on);
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            it.time = btn.getAttribute('data-co-slot-label') || it.time;
+        });
+    }
+
     function removeItem(article) {
         if (!window.confirm(T.removeConfirm)) return;
         var rowId = article.getAttribute('data-row-id');
@@ -686,6 +704,7 @@
             var t = ev.target.closest('button');
             if (!t) return;
             var box = t.closest('[data-co-box]');
+            if (t.hasAttribute('data-co-slot')) { changeSlot(box, t); return; }
             if (t.hasAttribute('data-co-inc')) changePax(box, 1);
             else if (t.hasAttribute('data-co-dec')) changePax(box, -1);
             else if (t.hasAttribute('data-co-remove')) removeItem(t.closest('[data-co-item]'));

@@ -175,15 +175,84 @@
         }, $itinerary);
     }
 
-    // Tours relacionados (excluye el actual, máx 3). Sin fallback ficticio: si
-    // no hay más tours publicados, "Otros viajeros también reservaron" no se
-    // pinta (ver guards @if($sidebarTours->isNotEmpty()) más abajo). Antes esto
-    // caía en 3 tours inventados con slug '#' y rating/reviews_count fijos.
-    $sidebarTours = \App\Models\Tour::published()
-        ->where('id', '!=', $tour->id)
-        ->ordered()
-        ->take(3)
-        ->get();
+    // ═══════ Ficha rediseñada (24-nov-2026): variables de la plantilla única ═══════
+    // Tours relacionados REALES (el controlador ya prioriza misma región y completa con el resto). Sin fallback inventado.
+    $relatedTours = collect($related ?? [])->where('id', '!=', $tour->id)->take(3)->values();
+
+    $decimalComma = in_array($locale, ['es', 'pt'], true);
+    $fmtRating    = fn ($n) => number_format((float) $n, 1, $decimalComma ? ',' : '.', '');
+    $money        = fn ($n) => 'US$' . number_format((float) $n, ((float) $n == floor((float) $n)) ? 0 : 2, '.', ',');
+    $ratingText   = $reviewStats['average'] !== null ? $fmtRating($reviewStats['average']) : null;
+    $starsFilled  = $reviewStats['average'] !== null ? max(0, min(5, (int) round($reviewStats['average']))) : 0;
+    $starsGlyph   = fn (int $n) => str_repeat('★', $n) . str_repeat('☆', 5 - $n);
+    $reviewsLabel = $reviewsCount === 1 ? __('ficha.review_one') : __('ficha.review_other', ['count' => $reviewsCount]);
+
+    // Listas del tour tal cual vienen del admin (string o ['label' => …]).
+    $cleanList = fn ($list) => array_values(array_filter(array_map(
+        fn ($i) => trim((string) (is_array($i) ? ($i['label'] ?? $i[0] ?? '') : $i)),
+        is_array($list) ? $list : []
+    ), fn ($t) => $t !== ''));
+    $includesList = $cleanList($includes);
+    $excludesList = $cleanList($excludes);
+    $hasIncludes  = $includesList !== [] || $excludesList !== [];
+    $recsReal     = $recommendations ? array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $recommendations)))) : [];
+    $notesReal    = trim((string) $notes);
+
+    // Resumen "¿Por qué reservar?": subtítulo del tour; si no hay, el arranque de la descripción. La descripción completa
+    // queda en el HTML dentro de un <details> (no se pierde texto indexable respecto a la ficha anterior).
+    $subtitleText = trim((string) $tour->localized('subtitle'));
+    $descPlain    = trim(strip_tags((string) $tour->description));
+    $summaryLead  = $subtitleText !== '' ? $subtitleText : \Illuminate\Support\Str::limit($descPlain, 260);
+    $summaryFull  = ($descPlain !== '' && $descPlain !== $summaryLead) ? $descPlain : '';
+
+    // Datos rápidos (chips): duración, recojo, idioma y los chips destacados del admin (card_chips con acento).
+    $facts = [];
+    $durationLabel = \App\Support\TourListing::durationLabel($tour->duration);
+    if ($durationLabel) { $facts[] = ['icon' => '◷', 'text' => $durationLabel, 'href' => null]; }
+    if ($pickupIncluded) { $facts[] = ['icon' => '', 'text' => __('ficha.fact_pickup'), 'href' => $hasIncludes ? '#incluye' : null]; }
+    if (trim($tourLanguage) !== '') { $facts[] = ['icon' => '', 'text' => $tourLanguage, 'href' => null]; }
+    $seenFacts = array_map(fn ($f) => mb_strtolower($f['text']), $facts);
+    foreach ($tour->cardChips() as $chip) {
+        if (! empty($chip['accent']) && ! in_array(mb_strtolower($chip['text']), $seenFacts, true)) {
+            $facts[] = ['icon' => '', 'text' => $chip['text'], 'href' => null];
+            $seenFacts[] = mb_strtolower($chip['text']);
+        }
+    }
+
+    // Galería: principal + 2 miniaturas (como la maqueta); el visor abre todas.
+    $photoAlt = function (int $i) use ($tour) {
+        return $i === 0 ? $tour->title : ($tour->title . ' – ' . __('ficha.photo_n', ['n' => $i + 1]));
+    };
+    $galleryAlts = [];
+    foreach ($galleryUrls as $gi => $gu) { $galleryAlts[] = $photoAlt($gi); }
+    $minis = [];
+    foreach ([1, 2] as $mi) {
+        if (isset($galleryUrls[$mi])) {
+            $raw  = (is_array($gallery) && isset($gallery[$mi]) && is_string($gallery[$mi])) ? $gallery[$mi] : null;
+            $card = $raw ? \App\Support\ImageVariants::card($raw, '(min-width: 841px) 22vw, 30vw') : ['src' => null, 'srcset' => null, 'sizes' => null];
+            $minis[$mi] = ['src' => $card['src'] ?: $galleryUrls[$mi], 'srcset' => $card['srcset'], 'sizes' => $card['sizes']];
+        }
+    }
+    $galleryClass = count($minis) === 0 ? 'fi-gallery--solo' : (count($minis) === 1 ? 'fi-gallery--duo' : '');
+
+    // Aviso de fecha/horario coherente con 1 o varios horarios y con mismo día. Todo viene del servidor (hora de Lima).
+    $av          = $bookingAvailability ?? [];
+    $slotsAll    = array_values($av['slots'] ?? []);
+    $slotLabels  = $av['labels'] ?? [];
+    $slotPart    = function (string $t) {
+        $h = (int) substr($t, 0, 2);
+        return $h < 12 ? __('ficha.slot_morning') : ($h < 18 ? __('ficha.slot_afternoon') : __('ficha.slot_evening'));
+    };
+    $noticeParts = [];
+    if (count($slotsAll) <= 1) {
+        $only = $slotsAll[0] ?? $bookingDepartureTime;
+        $noticeParts[] = __('ficha.notice_single_slot', ['time' => \App\Support\BookingCalendar::timeLabel($only)]);
+    }
+    $noticeParts[] = __('ficha.notice_cutoff', ['cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]);
+    if (! empty($av['same_day'])) {
+        $noticeParts[] = __('ficha.notice_same_day', ['hours' => $av['min_hours'] ?? 4]);
+    }
+    $bookingNotice = implode(' ', $noticeParts);
 @endphp
 
 @php
@@ -258,532 +327,9 @@
 @endpush
 
 @push('head')
+{{-- Ficha rediseñada: CSS plano propio (no depende del build de Vite). Subir ?v= en cada cambio. --}}
+<link rel="stylesheet" href="{{ asset('css/ficha.css') }}?v=20261124a">
 <style>
-/* ── Acordeón nativo ── */
-details summary::-webkit-details-marker { display: none; }
-details summary::marker               { display: none; }
-details[open] .acc-chevron            { transform: rotate(180deg); }
-.acc-chevron                          { transition: transform .25s ease; }
-
-/* ── Carrusel highlights ── */
-.highlights-track {
-    display: flex;
-    gap: .75rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: .25rem;
-}
-.highlights-track::-webkit-scrollbar { display: none; }
-.highlights-track > * {
-    flex: 0 0 calc(50% - .375rem);
-    scroll-snap-align: start;
-}
-@media (min-width: 640px) {
-    .highlights-track > * { flex: 0 0 calc(33.333% - .5rem); }
-}
-@media (min-width: 1024px) {
-    .highlights-track > * { flex: 0 0 calc(25% - .5625rem); }
-}
-
-/* ── Barra de reserva fija móvil ── */
-.lvt-resbar { display: none; }
-@media (max-width: 767px) {
-    body { padding-bottom: var(--sticky-bar-h, 0px); }
-    .lvt-resbar {
-        display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-        padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-        background: #fff; box-shadow: 0 -4px 16px rgba(21,71,75,.14);
-        transform: translateY(100%); visibility: hidden;
-        transition: transform .22s ease, visibility 0s linear .22s;
-    }
-    .lvt-resbar.is-on { transform: none; visibility: visible; transition: transform .22s ease, visibility 0s; }
-    .lvt-resbar__price { min-width: 0; line-height: 1.1; }
-    .lvt-resbar__price p { margin: 0; }
-    .lvt-resbar__label, .lvt-resbar__old { font-size: 11px; color: #4a6366; }
-    .lvt-resbar__label { text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
-    .lvt-resbar__old { text-decoration: line-through; }
-    .lvt-resbar__now { color: #15474B; font-weight: 700; }
-    .lvt-resbar__now .font-price { font-size: 22px; }
-    .lvt-resbar__now small { font-size: 11px; font-weight: 400; color: #4a6366; }
-    .lvt-resbar__cta {
-        flex-shrink: 0; min-height: 48px; padding: 0 20px; border: 0; border-radius: 9999px;
-        background: #b94f14; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
-    }
-    .lvt-resbar__cta:active { background: #9f430f; }
-    .lvt-resbar__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    .lvt-resbar__wa {
-        flex-shrink: 0; width: 48px; height: 48px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center;
-        background: #fff; color: #128C4A; border: 2px solid #25D366;
-    }
-    .lvt-resbar__wa:focus-visible { outline: 2px solid #15474B; outline-offset: 2px; }
-    /* Ficha móvil: la WhatsApp flotante tapaba el input de fecha; su acceso pasa a la barra. */
-    html.has-resbar .lvt-wa { display: none !important; }
-    @media (max-width: 400px) {
-        .lvt-resbar { gap: 8px; padding-left: 12px; padding-right: 12px; }
-        .lvt-resbar__cta { padding: 0 14px; }
-        .lvt-resbar__now small { display: block; margin-top: 2px; }
-    }
-    .lvt-resbar__cta:focus-visible { outline: 2px solid #15474B; outline-offset: 2px; }
-}
-@media (prefers-reduced-motion: reduce) { .lvt-resbar, .lvt-resbar.is-on { transition: none; } }
-
-
-/* ── Tarjeta reserva compacta (desktop) ── */
-.booking-compact-card { background: #fff; border-radius: 1.25rem; box-shadow: 0 2px 16px rgba(21,71,75,.10); overflow: hidden; }
-.booking-compact-head { background: #15474B; padding: .625rem 1rem; display: flex; align-items: center; justify-content: space-between; }
-.booking-compact-body { padding: 1rem; }
-
-
-/* El header global del sitio se mantiene como en el resto del sitio (no se oculta) */
-
-/* ════════════════════════════════════════
-   MOBILE SHOW — estilos exclusivos <768px
-   ════════════════════════════════════════ */
-@media (max-width: 767px) {
-
-/* Variables */
-:root {
-  --m-green: #083b31;
-  --m-green2: #0e5a47;
-  --m-cream: #fbfaf6;
-  --m-line: #ece7de;
-  --m-text: #131313;
-  --m-muted: #6e7278;
-  --m-gold: #f0aa1b;
-  --m-orange: #d96b33;
-}
-
-/* Hero mobile */
-.m-hero { height: 356px; position: relative; color: #fff; }
-.m-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.04) 42%, rgba(0,0,0,.25));
-  pointer-events: none;
-}
-.m-topbar {
-  position: relative;
-  z-index: 1;
-  height: 74px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px;
-}
-.m-logo {
-  font-family: Georgia, "Times New Roman", serif;
-  text-align: center;
-  font-size: 18px;
-  letter-spacing: 3px;
-  line-height: 1;
-  color: #fff;
-}
-.m-logo span { display: block; font-size: 11px; letter-spacing: 4px; margin-top: 2px; }
-.m-hero-badges {
-  position: absolute;
-  left: 18px;
-  bottom: 22px;
-  z-index: 2;
-  max-width: 300px;
-}
-.m-main-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,.94);
-  color: #083b31;
-  border-radius: 14px;
-  padding: 9px 14px;
-  box-shadow: 0 10px 20px rgba(0,0,0,.14);
-  font-size: 12.5px;
-  font-weight: 900;
-  letter-spacing: .12px;
-}
-.m-main-badge .m-ico { color: #e0a21f; font-size: 13px; line-height: 1; }
-.m-subline {
-  margin-top: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(7,29,25,.36);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 999px;
-  padding: 8px 11px;
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
-  box-shadow: 0 8px 18px rgba(0,0,0,.12);
-}
-.m-subitem { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.m-subitem .m-ico { font-size: 11.5px; line-height: 1; }
-.m-subitem.safe .m-ico { color: #79d39e; }
-.m-subitem.urgent .m-ico { color: #ff9d5c; }
-.m-divider { width: 1px; height: 14px; background: rgba(255,255,255,.22); }
-.m-hero-nav {
-  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
-  width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
-  background: rgba(0,0,0,.38); color: #fff; font-size: 22px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-}
-.m-hero-nav.prev { left: 12px; }
-.m-hero-nav.next { right: 12px; }
-.m-counter {
-  position: absolute;
-  z-index: 2;
-  right: 18px;
-  bottom: 14px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  border-radius: 16px;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-/* Título + rating mobile */
-.m-title {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 27px;
-  line-height: 1.08;
-  margin: 0 0 14px;
-  color: #111;
-  text-wrap: balance;
-}
-/* Títulos de sección mobile (antes con style="" inline) */
-.m-sec-title {
-  font-family: Georgia, serif;
-  font-size: 22px;
-  margin: 0 0 12px;
-  color: #111;
-}
-.m-sec-title--tight { margin-bottom: 4px; }
-.m-confidence-title {
-  font-family: Georgia, serif;
-  font-size: 20px;
-  margin: 0 0 12px;
-  color: #1a0d75;
-}
-.m-rating {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.m-stars { color: #ffb000; letter-spacing: 1px; }
-.m-verified {
-  display: inline-flex;
-  background: #0a8b4d;
-  color: white;
-  border-radius: 50%;
-  width: 14px;
-  height: 14px;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-}
-
-/* Compact booking card mobile */
-.m-compact { background: #f6f5f2; border: 1px solid #e5dfd6; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.035); margin-top: 10px; }
-.m-compact-head { display: flex; justify-content: space-between; align-items: center; background: #dc9343; color: #fff; padding: 7px 10px; font-size: 9.5px; font-weight: 900; letter-spacing: .55px; text-transform: uppercase; }
-.m-compact-body { padding: 9px 10px 10px; }
-.m-price-row { display: grid; grid-template-columns: .9fr 1.1fr; gap: 8px; align-items: stretch; margin-bottom: 10px; }
-.m-price-box { min-width: 0; border-radius: 12px; padding: 8px 9px; background: #fff; border: 1px solid #e6dfd4; }
-.m-price-box.old-box { background: #fbfaf8; }
-.m-price-box.new-box { background: linear-gradient(180deg, #fffef9 0%, #f3f7ef 100%); border-color: #dde6d9; box-shadow: 0 4px 10px rgba(0,0,0,.03); }
-.m-price-label { display: inline-block; font-size: 8px; font-weight: 900; letter-spacing: .7px; color: #5b6770; text-transform: uppercase; padding-bottom: 4px; margin-bottom: 6px; border-bottom: 1px solid #e1dbd0; line-height: 1; }
-.m-price-label.current { color: #2d9555; border-bottom-color: #d8e5d5; }
-.m-price-value { line-height: 1; }
-.m-price-value.old { font-size: 15px; color: #5b6770; text-decoration: line-through; text-decoration-color: #cc5b4e; text-decoration-thickness: 1.8px; }
-.m-price-value.new { font-family: Georgia, serif; font-size: 24px; color: #0a3240; }
-.m-price-unit { font-size: 8.5px; font-weight: 700; color: #6f7981; margin-top: 4px; line-height: 1.05; letter-spacing: .25px; }
-.m-field { margin-bottom: 7px; }
-.m-label { display: block; font-size: 9px; font-weight: 800; color: #465e68; letter-spacing: .22px; text-transform: uppercase; margin-bottom: 4px; }
-.m-input-row {
-  height: 36px;
-  border: 1px solid #d7dad9;
-  border-radius: 18px;
-  background: #fff;
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #29404a;
-  width: 100%;
-  box-sizing: border-box;
-}
-.m-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.m-total { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 11px 13px; background: linear-gradient(180deg,#f3f7ef 0%,#e9f3e4 100%); border: 1px solid #d4e3cf; border-radius: 12px; color: #2d5a3d; font-size: 13px; font-weight: 800; }
-.m-total strong { font-family: Georgia, serif; font-size: 23px; line-height: 1; color: #0a3240; font-weight: 800; }
-.m-total .m-total-sub { display: block; font-size: 10px; font-weight: 600; color: #5f7466; letter-spacing: .2px; margin-top: 2px; }
-.m-cta { margin-top: 8px; background: #dc9343; color: #fff; border-radius: 20px; text-align: center; padding: 10px 8px; font-size: 12px; font-weight: 900; letter-spacing: .12px; cursor: pointer; border: none; width: 100%; display: block; }
-.m-date-notice { margin: 5px 0 0; font-size: 10.5px; line-height: 1.35; color: #465e68; }
-.m-date-error { margin: 6px 0 0; padding: 7px 9px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 11.5px; font-weight: 600; line-height: 1.35; }
-.m-foot { margin-top: 7px; text-align: center; color: #5b6770; font-size: 9.5px; }
-
-/* Trust row mobile */
-.m-trust-row { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--m-line); border-bottom: 1px solid var(--m-line); margin: 8px 0 14px; }
-.m-trust { padding: 12px 4px; text-align: center; font-size: 13px; font-weight: 800; color: #131313; }
-.m-trust small { display: block; color: #555; font-weight: 600; margin-top: 2px; font-size: 12px; }
-.m-notice { background: #f0f7ee; border-radius: 8px; color: #0c5a3d; text-align: center; padding: 10px; font-size: 13px; font-weight: 900; }
-.m-features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; text-align: center; }
-.m-feature .m-ico { font-size: 27px; margin-bottom: 6px; }
-.m-feature b { display: block; font-size: 12px; line-height: 1.15; }
-.m-feature small { display: block; color: #555; font-size: 11px; margin-top: 3px; line-height: 1.2; }
-
-/* Section heading mobile */
-.m-h2 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.m-h2 h2 { font-family: Georgia, serif; font-size: 20px; margin: 0; color: #111; }
-.m-h2 a { font-size: 12px; color: var(--m-green); font-weight: 900; text-decoration: none; }
-
-/* Experience row mobile */
-.m-exp-row { display: flex; gap: 10px; overflow: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-.m-exp-row::-webkit-scrollbar { display: none; }
-.m-exp { flex: 0 0 46%; max-width: 46%; scroll-snap-align: start; }
-.m-exp img { width: 100%; height: 120px; border-radius: 10px; object-fit: cover; }
-.m-exp b { font-size: 12px; display: block; margin-top: 6px; }
-.m-exp small { font-size: 11px; color: #555; line-height: 1.15; display: block; }
-.m-dots { text-align: center; color: #c8c8c8; letter-spacing: 7px; margin-top: 8px; }
-.m-dots .active { color: #111; }
-
-/* Timeline mobile */
-.m-timeline { border-top: 1px solid var(--m-line); padding-top: 4px; }
-.m-stop {
-  display: grid;
-  grid-template-columns: 48px 38px 1fr;
-  gap: 8px;
-  align-items: start;
-  position: relative;
-  margin: 16px 0;
-}
-.m-stop::before {
-  content: "";
-  position: absolute;
-  left: 17px;
-  top: 28px;
-  bottom: -22px;
-  width: 2px;
-  background: var(--m-green);
-}
-.m-stop:last-child::before { display: none; }
-.m-time {
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.25;
-  font-weight: 800; font-size: 12px; color: var(--m-green);
-  background: #eef3ef; border: 1px solid #d8e5d5; border-radius: 8px;
-  padding: 3px 0; margin-top: 1px; letter-spacing: .3px;
-  font-variant-numeric: tabular-nums;
-}
-.m-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--m-green);
-  margin: 4px 0 0 12px;
-  box-shadow: 0 0 0 4px #e7f0eb;
-}
-.m-stop b { font-size: 13px; }
-.m-stop p { margin: 2px 0 0; color: #4c4f54; font-size: 12px; line-height: 1.25; }
-
-/* Info list accordion mobile */
-.m-info-list { display: flex; flex-direction: column; border: 1px solid var(--m-line); border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
-.m-info-list details { border-bottom: 1px solid var(--m-line); }
-.m-info-list details:last-child { border-bottom: 0; }
-.m-info-item { display: grid; grid-template-columns: 44px 1fr 18px; gap: 12px; align-items: center; padding: 15px 15px; cursor: pointer; transition: background .2s ease; list-style: none; }
-.m-info-item:hover { background: #fafbfa; }
-.m-info-list details[open] > .m-info-item { background: #f1f7f1; }
-.m-info-list details[open] > .m-info-item b { color: var(--m-green); }
-.m-info-ico { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--m-green); color: #fff; font-size: 20px; }
-.m-info-ico svg { width: 20px; height: 20px; }
-.m-info-item b { font-size: 14px; color: #14201c; font-weight: 800; }
-.m-info-item p { font-size: 12px; color: #6b7077; margin: 2px 0 0; line-height: 1.3; }
-.m-info-list details > div { font-size: 13px !important; color: #444 !important; line-height: 1.6 !important; }
-.m-info-list details > div > div { padding: 3px 0; border-bottom: 1px dashed #eee; }
-.m-info-list details > div > div:last-child { border-bottom: 0; }
-
-.m-outline-btn { display: block; border: 1px solid #222; border-radius: 20px; text-align: center; padding: 10px; margin: 12px 40px 4px; text-decoration: none; color: #111; font-weight: 900; font-size: 13px; }
-
-/* Rec cards mobile */
-.m-rec-list { display: flex; flex-direction: column; gap: 14px; }
-.m-rec-card {
-  display: grid;
-  grid-template-columns: minmax(96px,126px) minmax(0,1fr) minmax(86px,98px);
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #dedede;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 6px 24px rgba(0,0,0,.07);
-}
-.m-rec-image-wrap { position: relative; }
-.m-rec-card img { width: 100%; max-width: 126px; height: 142px; object-fit: cover; border-radius: 14px; }
-.m-rec-badge {
-  position: absolute;
-  top: 10px;
-  left: 0;
-  background: #083b31;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  padding: 6px 10px 6px 10px;
-  border-radius: 0 10px 10px 0;
-  box-shadow: 0 4px 10px rgba(0,0,0,.15);
-}
-.m-rec-main { padding-right: 4px; min-width: 0; border-right: 1px solid #e7e2d9; }
-.m-rec-main h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: 18px; line-height: 1.05; color: #12323a; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.m-rec-duration { font-size: 12px; color: #9f5a26; font-weight: 700; margin: 0 0 6px; }
-.m-rec-bullets { display: grid; gap: 5px; }
-.m-rec-bullets div { font-size: 11px; color: #23424a; display: flex; align-items: center; gap: 6px; }
-.m-rec-rating { margin-top: 8px; font-size: 11px; color: #6a6f75; font-weight: 600; }
-.m-rec-rating .s { color: #f0aa1b; margin-right: 4px; }
-.m-rec-side { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.m-rec-side .offer { font-size: 11px; color: #9f5a26; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 5px; }
-.m-rec-side .price { line-height: 1; }
-.m-rec-side .price strong { font-family: Georgia, serif; font-size: 19px; color: #06312c; }
-.m-rec-side .price small { display: block; color: #666; font-size: 10px; margin-top: 2px; }
-.m-rec-side .disc { display: inline-block; background: #eef0ef; border-radius: 17px; padding: 6px 10px; font-size: 13px; font-weight: 900; color: #0a2031; margin: 10px 0 6px; }
-.m-rec-side .before { font-size: 11px; color: #73777b; margin-bottom: 8px; }
-.m-rec-btn { background: #083b31; color: #fff; font-weight: 900; border-radius: 14px; padding: 10px 12px; text-align: center; box-shadow: 0 8px 20px rgba(8,59,49,.18); font-size: 11px; text-decoration: none; display: block; }
-
-/* Confidence grid mobile */
-.m-confidence { background: #fbfaf6; padding: 18px 20px 24px; }
-.m-confidence-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; text-align: center; }
-.m-confidence-grid div { font-size: 10.5px; font-weight: 800; }
-.m-confidence-grid .m-ico { font-size: 25px; color: var(--m-green); display: block; margin-bottom: 5px; }
-.m-confidence-grid small { display: block; color: #555; font-weight: 500; margin-top: 3px; }
-
-/* Floating bottom bar mobile */
-.m-floating-bar {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 8px;
-  width: min(390px, calc(100vw - 16px));
-  z-index: 9999;
-}
-.m-bar-inner {
-  background: rgba(255,255,255,.99);
-  border: 1px solid #e8e0d4;
-  border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(0,0,0,.10);
-  padding: 9px 12px;
-}
-.m-booking-strip { display: flex; align-items: center; }
-.m-bs-col { min-width: 0; }
-.m-bs-col.left { width: 34%; padding-right: 10px; border-right: 1px solid #e7dfd3; }
-.m-bs-col.center { width: 28%; padding: 0 10px; }
-.m-bs-col.right { width: 38%; padding-left: 10px; }
-.m-bs-discount {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: #fff3f1;
-  color: #d84c43;
-  border: 1px solid #f0d9d4;
-  border-radius: 8px;
-  padding: 4px 6px;
-  font-size: 8.5px;
-  font-weight: 900;
-  line-height: 1;
-  white-space: nowrap;
-}
-.m-bs-before { margin-top: 6px; color: #7d8187; line-height: 1.05; }
-.m-bs-before .lbl { display: block; font-size: 9px; letter-spacing: .2px; margin-bottom: 2px; }
-.m-bs-before .old { font-size: 12px; color: #8a8e93; text-decoration: line-through; text-decoration-color: #d0594e; text-decoration-thickness: 1.6px; }
-.m-bs-now { font-size: 9px; font-weight: 900; color: #2e9a57; letter-spacing: .3px; margin-bottom: 2px; }
-.m-bs-price { font-family: Georgia, "Times New Roman", serif; font-size: 23px; line-height: 1; color: #082f2e; font-weight: 700; white-space: nowrap; margin-bottom: 4px; }
-.m-bs-person { display: inline-flex; align-items: center; gap: 4px; background: #eef2e8; border-radius: 5px; padding: 3px 6px; color: #1f252a; font-size: 9.5px; font-weight: 700; white-space: nowrap; }
-.m-bs-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  background: linear-gradient(135deg, #0a4338, #072c2b);
-  color: #fff;
-  border-radius: 13px;
-  min-height: 48px;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 900;
-  box-shadow: 0 6px 14px rgba(7,44,43,.16);
-  text-decoration: none;
-}
-.m-bs-arrow {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #f5a623;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 900;
-  flex: 0 0 24px;
-}
-
-/* Padding inferior del contenido mobile para la barra flotante */
-.m-content-wrap { padding-bottom: 16px; }
-
-} /* end @media max-width: 767px */
-
-/* ═══════════════════════════════════════
-   DESKTOP TWO-COLUMN LAYOUT (md+)
-   ═══════════════════════════════════════ */
-@media (min-width: 768px) {
-    .d-two-col {
-        display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-        gap: 2rem;
-        align-items: start;
-    }
-}
-@media (min-width: 1024px) {
-    .d-two-col { gap: 2.5rem; }
-    .d-sidebar-sticky { position: sticky; top: 6rem; }
-}
-
-/* ── Slider "Otros viajeros también reservaron" (desktop): 2 cards por vista ── */
-.d-related { position: relative; }
-.d-related-track {
-    display: flex;
-    gap: 1rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    padding-bottom: .25rem;
-    scrollbar-width: none;
-}
-.d-related-track::-webkit-scrollbar { display: none; }
-.d-related-track > * { flex: 0 0 calc(50% - .5rem); scroll-snap-align: start; min-width: 0; }
-.d-related-nav {
-    position: absolute; top: 38%; transform: translateY(-50%);
-    width: 40px; height: 40px; border-radius: 9999px;
-    background: #fff; color: #15474B;
-    box-shadow: 0 4px 14px rgba(20,62,64,.18);
-    display: grid; place-items: center; cursor: pointer; z-index: 5;
-    border: 1px solid rgba(20,71,75,.1);
-}
-.d-related-nav:hover { background: #15474B; color: #fff; }
-.d-related-nav.prev { left: -14px; }
-.d-related-nav.next { right: -14px; }
-
-/* ── Modo nocturno DESACTIVADO (tema claro forzado; reactivar quitando "and (min-width:99999px)") ── */
-@media (prefers-color-scheme: dark) and (min-width: 99999px) {
-    .booking-compact-card,
-    .booking-compact-body { background: #14302f !important; }
-    .booking-compact-card { box-shadow: 0 2px 16px rgba(0,0,0,.5); }
-}
-
 /* ── Flatpickr brand overrides ── */
 .flatpickr-day.selected,
 .flatpickr-day.selected:hover {
@@ -809,7 +355,6 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 }
 </style>
 @endpush
-
 @push('head')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 @endpush
@@ -849,6 +394,9 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
                 if (!c.slots || !c.slots.length) return [];
                 return (this.date && this.date === c.today) ? (c.today_slots || []) : c.slots;
             },
+            // Todos los horarios del tour (para pintar los botones) y cuáles se pueden elegir la fecha actual.
+            slotsAll() { return (this.cfg.slots || []); },
+            slotEnabled(s) { return this.slotList().indexOf(s) !== -1; },
             label(s) { return (this.cfg.labels || {})[s] || s; },
             ensureSlot() {
                 var l = this.slotList();
@@ -878,7 +426,7 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
         }
 
         var MSG = {
-            notice:  @json(__('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()])),
+            notice:  @json($bookingNotice),
             early:   @json(__('ui.date_unavailable_early')),
             blocked: @json(__('ui.date_unavailable_blocked')),
             first:   @json(__('ui.date_first_available'))
@@ -1003,54 +551,131 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
             flatpickr(el, config);
         });
     }
+    // Envío del formulario de reserva (botón "Añadir al carrito"):
+    //  1) sin fecha  -> no se envía; se lleva al calendario con un aviso.
+    //  2) sin horario (el tour tiene varios) -> no se envía; aviso junto a los horarios.
+    //  3) todo listo -> POST por fetch (JSON) y se abre el cajón del carrito sin salir de la ficha.
+    //     Si el fetch falla por red/servidor, cae al envío normal del formulario (va a /carrito).
+    function lvtMsg(box, flag, text, afterEl) {
+        if (!box) return;
+        var old = box.querySelector('[' + flag + ']');
+        if (old) { old.textContent = text; return; }
+        var msg = document.createElement('p');
+        msg.setAttribute(flag, '');
+        msg.setAttribute('role', 'alert');
+        msg.className = 'fi-error';
+        msg.textContent = text;
+        if (afterEl && afterEl.parentNode === box) {
+            afterEl.insertAdjacentElement('afterend', msg);
+        } else {
+            box.appendChild(msg);
+        }
+    }
 
-    // Sin fecha no se reserva. Antes venía pre-rellenada y esto no hacía falta;
-    // ahora el campo arranca vacío, así que hay que impedir el submit y llevar
-    // al cliente al calendario en vez de mandarlo al carrito con un error de
-    // validación del servidor, que se ve como que "algo falló".
+    function lvtCsrf() {
+        var m = document.querySelector('meta[name="csrf-token"]');
+        return m ? m.getAttribute('content') : '';
+    }
+
     function guardEmptyDate() {
         var form = document.getElementById('form-reservar');
         if (!form) return;
+        var I18N = window.LVT_FICHA || {};
+        var btn = document.getElementById('fi-add');
+        var errBox = document.getElementById('fi-book-error');
+
+        function showBookError(text) {
+            if (!errBox) return;
+            errBox.textContent = text;
+            errBox.hidden = !text;
+        }
 
         form.addEventListener('submit', function (e) {
-            var chosen = (typeof Alpine !== 'undefined' && Alpine.store('booking'))
-                ? Alpine.store('booking').date
-                : '';
+            var store = (typeof Alpine !== 'undefined' && Alpine.store) ? Alpine.store('booking') : null;
+            var chosen = store ? store.date : '';
 
-            if (chosen) return;
+            // 1) fecha
+            if (!chosen) {
+                e.preventDefault();
+                var visible = [...document.querySelectorAll('[data-booking-date]')]
+                    .find(function (el) { return el.offsetParent !== null; });
+                if (!visible) return;
+                visible.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                var box = visible.closest('[data-date-field]') || visible.parentElement;
+                lvtMsg(box, 'data-date-required', @json(__('cart.validation.date_required')), box.querySelector('label'));
+                if (visible._flatpickr) { visible._flatpickr.open(); }
+                return;
+            }
 
-            e.preventDefault();
-
-            var visible = [...document.querySelectorAll('[data-booking-date]')]
-                .find(function (el) { return el.offsetParent !== null; });
-
-            if (!visible) return;
-
-            visible.scrollIntoView({ block: 'center', behavior: 'smooth' });
-
-            var box = visible.closest('.m-field') || visible.parentElement;
-            if (box && !box.querySelector('[data-date-required]')) {
-                var msg = document.createElement('p');
-                msg.setAttribute('data-date-required', '');
-                msg.textContent = @json(__('cart.validation.date_required'));
-                msg.style.cssText = 'color:#b91c1c;font-size:12px;font-weight:600;line-height:1.35;margin:2px 0 8px';
-                var lead = box.querySelector('.m-label, label');
-                if (lead && lead.parentNode === box) {
-                    lead.insertAdjacentElement('afterend', msg);
-                } else {
-                    box.insertBefore(msg, box.firstChild);
+            // 2) horario
+            var needSlot = store && store.slotsAll().length > 1 && !store.slot;
+            if (needSlot) {
+                e.preventDefault();
+                var picker = document.querySelector('[data-slot-picker]');
+                if (picker) {
+                    picker.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    lvtMsg(picker, 'data-slot-required', I18N.slot_required || '', picker.querySelector('[role="group"]'));
+                    var first = picker.querySelector('button:not(:disabled)');
+                    if (first) { first.focus({ preventScroll: true }); }
                 }
+                return;
             }
 
-            if (visible._flatpickr) {
-                visible._flatpickr.open();
-            }
+            // 3) enviar por fetch (sin recargar); el servidor valida igual que siempre.
+            if (!window.fetch || !window.FormData) return; // envío normal
+            e.preventDefault();
+            showBookError('');
+            var label = btn ? btn.querySelector('.fi-cta__label') : null;
+            var labelText = label ? label.textContent : '';
+            if (btn) { btn.disabled = true; if (label) { label.textContent = I18N.adding || labelText; } }
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': lvtCsrf() },
+                body: new FormData(form),
+                credentials: 'same-origin'
+            }).then(function (res) {
+                return res.json().catch(function () { return null; }).then(function (data) { return { res: res, data: data }; });
+            }).then(function (r) {
+                if (btn) { btn.disabled = false; if (label) { label.textContent = labelText; } }
+                if (r.res.ok && r.data && r.data.success) {
+                    if (typeof window.lvtTrack === 'function' && window.__lvtTourItem) {
+                        var qty = store ? (parseInt(store.adults, 10) || 1) + (parseInt(store.children, 10) || 0) : 1;
+                        window.lvtTrack('add_to_cart', {
+                            currency: 'USD',
+                            value: window.__lvtTourItem.price * qty,
+                            items: [Object.assign({}, window.__lvtTourItem, { quantity: qty })]
+                        }, { fb: 'AddToCart' });
+                    }
+                    window.dispatchEvent(new CustomEvent('lvt-cart-open', { detail: r.data.cart }));
+                    var counter = document.querySelector('.site-header__badge');
+                    if (counter && r.data.cart) { counter.textContent = r.data.cart.count; }
+                    return;
+                }
+                if (r.res.status === 422) {
+                    var msgs = [];
+                    if (r.data && r.data.errors) { Object.keys(r.data.errors).forEach(function (k) { msgs = msgs.concat(r.data.errors[k]); }); }
+                    else if (r.data && r.data.message) { msgs.push(r.data.message); }
+                    showBookError(msgs.join(' ') || I18N.add_error);
+                    return;
+                }
+                form.submit(); // fallo inesperado: envío clásico
+            }).catch(function () {
+                if (btn) { btn.disabled = false; if (label) { label.textContent = labelText; } }
+                form.submit();
+            });
         });
 
-        // Al elegir fecha se limpia el aviso.
+        // Al elegir fecha u horario se limpian los avisos.
         document.addEventListener('change', function (e) {
             if (e.target.hasAttribute && e.target.hasAttribute('data-booking-date')) {
                 document.querySelectorAll('[data-date-required]').forEach(function (n) { n.remove(); });
+                showBookError('');
+            }
+        });
+        document.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('[data-slot-picker] button')) {
+                document.querySelectorAll('[data-slot-required]').forEach(function (n) { n.remove(); });
             }
         });
     }
@@ -1088,11 +713,10 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 </script>
 <script>
 (function () {
-    // Dibuja los círculos de cobertura en los mapas mobile (#m-pickup-map) y desktop (#d-pickup-map).
-    // Ambos contenedores pueden existir a la vez en el DOM (uno se oculta por CSS según el breakpoint).
+    // Dibuja los círculos de cobertura en el mapa de la ficha (#fi-pickup-map).
     function renderPickupMaps() {
         var zones = window.LVT_PICKUP_ZONES || [];
-        var ids = ['m-pickup-map', 'd-pickup-map'];
+        var ids = ['fi-pickup-map'];
 
         ids.forEach(function (id) {
             var el = document.getElementById(id);
@@ -1146,1573 +770,590 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
 @endpush
 @endif
 
+@push('scripts')
+{{-- Textos para JS, cajón del carrito y eventos de analítica (view_item; add_to_cart se dispara al añadir por fetch). --}}
+<script>
+    window.LVT_FICHA = {
+        one: @json(__('ficha.traveler_one')),
+        other: @json(__('ficha.traveler_other')),
+        slot_required: @json(__('ficha.slot_required')),
+        add_error: @json(__('ficha.add_error')),
+        adding: @json(__('ficha.adding'))
+    };
+    window.__lvtTourItem = {
+        item_id: @json((string) $tour->id),
+        item_name: @json($titleDisplay),
+        price: {{ (float) $tour->price }},
+        quantity: 1
+    };
+
+    document.addEventListener('alpine:init', function () {
+        Alpine.data('lvtCartDrawer', function () {
+            var URLS = {
+                summary: @json(route('cart.summary', ['locale' => $locale])),
+                update: @json(route('cart.update', ['locale' => $locale, 'rowId' => '__ROW__'])),
+                clear: @json(route('cart.clear', ['locale' => $locale])),
+                cart: @json(route('cart.index', ['locale' => $locale]))
+            };
+            var TXT = {
+                travelers: @json(__('ficha.cart_travelers')),
+                no_date: @json(__('ficha.cart_no_date')),
+                change_slot: @json(__('ficha.cart_slot_change')),
+                error: @json(__('ficha.cart_error'))
+            };
+            function csrf() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+
+            return {
+                open: false,
+                err: '',
+                opener: null,
+                cart: { items: [], total: 0, count: 0, cart_url: URLS.cart },
+                i18n: TXT,
+                init: function () {
+                    var self = this;
+                    // El botón del carrito del encabezado abre este cajón (sigue siendo un enlace a /carrito sin JS).
+                    var hb = document.querySelector('.site-header__cart-btn');
+                    if (hb) {
+                        hb.addEventListener('click', function (e) {
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                            e.preventDefault();
+                            self.opener = hb;
+                            self.load();
+                        });
+                    }
+                    // Trampa de foco mientras está abierto.
+                    document.addEventListener('keydown', function (e) {
+                        if (!self.open || e.key !== 'Tab') return;
+                        var f = self.$refs.panel.querySelectorAll('button:not(:disabled), a[href], select');
+                        if (!f.length) return;
+                        var first = f[0], last = f[f.length - 1];
+                        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                    });
+                },
+                money: function (n) { return 'US$' + (Number(n) || 0).toFixed(2); },
+                show: function (cart) {
+                    if (cart) this.cart = cart;
+                    if (!this.opener) this.opener = document.activeElement;
+                    this.err = '';
+                    this.open = true; document.documentElement.classList.add('fi-modal');
+                    document.body.style.overflow = 'hidden';
+                    var self = this;
+                    this.$nextTick(function () { if (self.$refs.closeBtn) self.$refs.closeBtn.focus(); });
+                },
+                close: function () {
+                    this.open = false; document.documentElement.classList.remove('fi-modal');
+                    document.body.style.overflow = '';
+                    if (this.opener && this.opener.focus) { this.opener.focus(); }
+                    this.opener = null;
+                },
+                load: function () {
+                    var self = this;
+                    fetch(URLS.summary, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) { self.show(d.cart); })
+                        .catch(function () { window.location.href = URLS.cart; });
+                },
+                send: function (method, url, body) {
+                    var self = this;
+                    self.err = '';
+                    var headers = { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' };
+                    if (body) headers['Content-Type'] = 'application/json';
+                    return fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin' })
+                        .then(function (r) { return r.json().catch(function () { return null; }).then(function (d) { return { ok: r.ok, data: d }; }); })
+                        .then(function (r) {
+                            if (!r.ok || !r.data || r.data.success === false) {
+                                var m = r.data && r.data.errors ? [].concat.apply([], Object.keys(r.data.errors).map(function (k) { return r.data.errors[k]; })).join(' ') : (r.data && r.data.message);
+                                self.err = m || TXT.error;
+                                return null;
+                            }
+                            return r.data;
+                        })
+                        .catch(function () { self.err = TXT.error; return null; });
+                },
+                changeSlot: function (row, value) {
+                    var self = this;
+                    this.send('PATCH', URLS.update.replace('__ROW__', encodeURIComponent(row.row_id)), {
+                        adults: row.adults, children: row.children, departure_slot: value
+                    }).then(function (d) {
+                        if (d && d.cart) { self.cart = d.cart; }
+                        else { self.cart = Object.assign({}, self.cart, { items: self.cart.items.slice() }); } // revierte el <select> al valor real
+                    });
+                },
+                clearCart: function () {
+                    var self = this;
+                    this.send('DELETE', URLS.clear).then(function (d) {
+                        if (d) {
+                            self.cart = { items: [], total: 0, count: 0, cart_url: URLS.cart };
+                            var counter = document.querySelector('.site-header__badge');
+                            if (counter) counter.textContent = '0';
+                        }
+                    });
+                }
+            };
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof window.lvtTrack === 'function') {
+            window.lvtTrack('view_item', {
+                currency: 'USD',
+                value: window.__lvtTourItem.price,
+                items: [window.__lvtTourItem]
+            }, { fb: 'ViewContent' });
+        }
+    });
+</script>
+@endpush
+
 @section('content')
-
-{{-- ─────────── BREADCRUMB (solo md+) ─────────── --}}
-<section class="hidden md:block bg-white pt-5 pb-2">
-    <div class="container mx-auto max-w-7xl px-5 lg:px-10">
-        <nav aria-label="Breadcrumb" class="text-xs text-teal-800/70">
-            <a href="{{ route('home', ['locale' => $locale]) }}" class="hover:text-orange-700 transition-colors">{{ __('ui.home') }}</a>
-            <span class="mx-1" aria-hidden="true">/</span>
-            <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="hover:text-orange-700 transition-colors">Tours</a>
-            <span class="mx-1" aria-hidden="true">/</span>
-            <span class="text-teal-800">{{ \Illuminate\Support\Str::limit($titleDisplay, 55) }}</span>
-        </nav>
-    </div>
-</section>
-
-{{-- ─────────── CONTENIDO PRINCIPAL — single column ─────────── --}}
-@php
-// Highlights para el carrusel "¿Qué vivirás?" — compartido entre mobile y desktop
-// Alt descriptivo (generado por la vista, no de BD): "<tour> – <parada>"; si el título de la parada es solo una hora
-// ("5:00 am") o está vacío, "<tour> – foto N". Evita alts como "5:00 am" o "CITY TOUR CUSCO" repetido.
-$hlAlt = function (array $hl, int $k) use ($tour) {
-    $t = trim((string) ($hl['title'] ?? ''));
-    $timeLike = $t === '' || preg_match('/^\d{1,2}([:.]\d{2})?\s*(a\.?\s?m\.?|p\.?\s?m\.?|h|hrs)?$/iu', $t);
-    return $tour->title . ' – ' . ($timeLike ? ('foto ' . ($k + 1)) : $t);
-};
-$highlightsFromItinerary = [];
-if (!empty($itinerary)) {
-    foreach (array_slice($itinerary, 0, 4) as $k => $step) {
-        $highlightsFromItinerary[] = [
-            'img'   => $galleryUrls[$k] ?? ($galleryUrls[0] ?? $tour->cover_url),
-            'title' => $step['title'] ?? '',
-            'desc'  => $step['description'] ?? '',
-            'icon'  => $step['icon'] ?? 'van',
-        ];
-    }
-} elseif (count($galleryUrls) > 0) {
-    foreach (array_slice($galleryUrls, 0, 4) as $k => $url) {
-        $highlightsFromItinerary[] = [
-            'img'   => $url,
-            'title' => '',
-            'desc'  => '',
-            'icon'  => 'van',
-        ];
-    }
-}
-@endphp
 <script>
     window.__lvtGallery = {!! json_encode($galleryUrls, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!};
-    window.__lvtPrice   = {{ (float)$tour->price }};
+    window.__lvtAlts    = {!! json_encode($galleryAlts, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!};
+    window.__lvtPrice   = {{ (float) $tour->price }};
 </script>
-<section class="bg-cream-100 pb-6 md:pb-28"
-         x-data="{
-             gallery: window.__lvtGallery || [],
-             active: 0,
-             heroTouchX: 0,
-             expActive: 0,
-             lightbox: false,
-             showAll: false,
-             adults: 1,
-             children: 0,
-             price: window.__lvtPrice || 0,
-             get total() { return ((this.adults + this.children) * this.price).toFixed(0); },
-             open(i) { this.active = (i !== undefined) ? i : this.active; this.lightbox = true; document.body.style.overflow = 'hidden'; },
-             close() { this.lightbox = false; this.showAll = false; document.body.style.overflow = ''; },
-             prev() { this.active = (this.active - 1 + this.gallery.length) % this.gallery.length; },
-             next() { this.active = (this.active + 1) % this.gallery.length; }
-         }"
-         @keydown.escape.window="lightbox && close()"
-         @keydown.arrow-left.window="lightbox && prev()"
-         @keydown.arrow-right.window="lightbox && next()">
 
-    {{-- ══════════════════════════════════════
-         HERO MOBILE (< md) — diseño mockup exacto
-    ══════════════════════════════════════ --}}
-    <div class="md:hidden">
-        <div class="m-hero"
-             @touchstart="heroTouchX = $event.changedTouches[0].clientX"
-             @touchend="(() => { const dx = $event.changedTouches[0].clientX - heroTouchX; if (gallery.length > 1 && Math.abs(dx) > 40) { dx < 0 ? next() : prev(); } })()">
-            {{-- Imagen principal: <img> real (antes background-image) → candidata LCP con fetchpriority, srcset y dimensiones. --}}
-            <img class="m-hero__img"
-                 src="{{ $heroSrc }}"
-                 @if ($heroSrcset) srcset="{{ $heroSrcset }}" @endif
-                 sizes="{{ $heroSizes }}"
-                 :src="active === 0 ? '{{ addslashes($heroSrc) }}' : gallery[active]"
-                 :srcset="active === 0 ? '{{ addslashes((string) $heroSrcset) }}' : ''"
-                 alt="{{ $tour->title }}"
-                 width="900" height="821"
-                 loading="eager" fetchpriority="high" decoding="async"
-                 onerror="this.onerror=null;this.removeAttribute('srcset');this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
-            {{-- Flechas de navegación del slider (solo si hay más de 1 imagen) --}}
-            <template x-if="gallery.length > 1">
-                <div>
-                    <button type="button" class="m-hero-nav prev" @click.stop="prev()" aria-label="{{ __('ui.prev_photo') }}">‹</button>
-                    <button type="button" class="m-hero-nav next" @click.stop="next()" aria-label="{{ __('ui.next_photo') }}">›</button>
-                </div>
-            </template>
-            {{-- Badges abajo izquierda --}}
-            <div class="m-hero-badges">
-                <div class="m-main-badge">
-                    <span class="m-ico">★</span>
-                    <span>{{ $tour->badge_text ?: __('ui.most_booked') }}</span>
-                </div>
-                <div class="m-subline">
-                    @if ($freeCancellation)
-                    <span class="m-subitem safe"><span class="m-ico">🛡</span><span>{{ __('ui.free_cancellation') }}</span></span>
-                    @endif
-                </div>
-            </div>
-            {{-- Contador galería abajo derecha --}}
-            <button type="button" class="m-counter" @click="open(active)" aria-label="{{ __('ui.view_gallery') }}">
-                ▣ <span x-text="active + 1">1</span>/{{ $totalImgs }}
-            </button>
-        </div>
+<div class="fi-page"
+     x-data="{
+         gallery: window.__lvtGallery || [],
+         alts: window.__lvtAlts || [],
+         active: 0,
+         lb: false,
+         opener: null,
+         openLb(i, el) { if (i !== undefined) this.active = i; this.opener = el || null; this.lb = true; document.body.style.overflow = 'hidden'; document.documentElement.classList.add('fi-modal'); this.$nextTick(() => this.$refs.lbClose && this.$refs.lbClose.focus()); },
+         closeLb() { this.lb = false; document.body.style.overflow = ''; document.documentElement.classList.remove('fi-modal'); if (this.opener) { this.opener.focus(); } },
+         prev() { this.active = (this.active - 1 + this.gallery.length) % this.gallery.length; },
+         next() { this.active = (this.active + 1) % this.gallery.length; }
+     }"
+     @keydown.escape.window="lb && closeLb()"
+     @keydown.arrow-left.window="lb && prev()"
+     @keydown.arrow-right.window="lb && next()">
+<div class="fi">
+
+    {{-- Migas --}}
+    <nav class="fi-crumb" aria-label="Breadcrumb">
+        <a href="{{ route('home', ['locale' => $locale]) }}">{{ __('ui.home') }}</a>
+        <span aria-hidden="true">›</span>
+        <a href="{{ route('tours.index', ['locale' => $locale]) }}">Tours</a>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">{{ \Illuminate\Support\Str::limit($titleDisplay, 55) }}</span>
+    </nav>
+
+    {{-- Título + rating --}}
+    <div class="fi-top">
+        <h1 class="fi-title">{{ $titleDisplay }}</h1>
+        @if ($tourRating !== null)
+        <a class="fi-rating" href="#resenas">
+            <span class="fi-stars" role="img" aria-label="{{ __('ficha.rating_stars', ['rating' => $ratingText]) }}">{{ $starsGlyph($starsFilled) }}</span>
+            <b>{{ $ratingText }}</b>
+            <span class="fi-rating__count">{{ $reviewsLabel }}</span>
+        </a>
+        @endif
     </div>
 
-    {{-- Hero desktop: ahora se renderiza dentro del grid (columna izquierda). Este div queda vacío intencionalmente. --}}
+    <div class="fi-hero">
+        <div class="fi-visual">
 
-    {{-- ══════════════════════════════════════
-         BLOQUE MOBILE (< md) — título, reserva, trust, features, experience, timeline, info, reviews, related, confidence
-    ══════════════════════════════════════ --}}
-    <div class="md:hidden m-content-wrap">
-
-        {{-- LIGHTBOX mobile --}}
-        <div x-show="lightbox" x-cloak
-             x-transition.opacity.duration.200ms
-             class="fixed inset-0 z-[60] bg-teal-900/95 flex flex-col"
-             @click.self="close()">
-            <div class="flex items-center justify-between px-5 py-4 text-white shrink-0">
-                <span class="text-sm font-semibold"><span x-text="active + 1"></span> / {{ $totalImgs }}</span>
-                <button type="button" @click="close()" class="p-2 rounded-full hover:bg-white/10 transition" aria-label="{{ __('ui.close_gallery') }}">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="relative flex-1 grid place-items-center px-4 overflow-hidden">
-                @if ($totalImgs > 1)
-                    <button type="button" @click="prev()" class="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.prev_photo') }}">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" @click="next()" class="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.next_photo') }}">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                @endif
-                <img :src="gallery[active]" alt="{{ $tour->title }}"
-                     class="w-auto h-auto max-w-full max-h-full object-contain rounded-xl shadow-2xl">
-            </div>
-        </div>
-
-        {{-- 2. TÍTULO + RATING --}}
-        <div style="padding:18px 20px 0;">
-            <h1 class="m-title">{{ $titleDisplay }}</h1>
-            @if ($tourRating !== null)
-            <div class="m-rating">
-                <span class="m-stars" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">★★★★★</span>
-                <span>{{ $tourRating }}</span>
-                <span>({{ $reviewsCount }} {{ __('ui.verified_reviews') }})</span>
-                <span class="m-verified" aria-label="{{ __('ui.verified') }}">✓</span>
-            </div>
-            @endif
-
-            {{-- 3. COMPACT BOOKING --}}
-            <div id="seccion-reserva" class="m-compact"
-                 x-data="{
-                     price: window.__lvtPrice || 0,
-                     get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); }
-                 }">
-                <div class="m-compact-head">
-                    <span>{{ __('ui.book_online') }}</span>
-                    @if ($freeCancellation)
-                    <span>{{ __('ui.free_cancellation') }}</span>
+            {{-- Galería --}}
+            <div class="fi-gallery {{ $galleryClass }}" role="group" aria-label="{{ __('ficha.photos_aria') }}">
+                <button type="button" class="fi-photo" @click="openLb(active, $el)" aria-label="{{ __('ficha.open_photo') }}">
+                    {{-- Imagen principal = candidata LCP (preload en <head>, mismas srcset/sizes). --}}
+                    <img src="{{ $heroSrc }}"
+                         @if ($heroSrcset) srcset="{{ $heroSrcset }}" @endif
+                         sizes="{{ $heroSizes }}"
+                         :src="active === 0 ? @js($heroSrc) : gallery[active]"
+                         :srcset="active === 0 ? @js((string) $heroSrcset) : ''"
+                         :alt="alts[active] || @js($tour->title)"
+                         alt="{{ $tour->title }}"
+                         width="900" height="600"
+                         loading="eager" fetchpriority="high" decoding="async"
+                         onerror="this.onerror=null;this.removeAttribute('srcset');this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
+                    @if ($totalImgs > 1)
+                    <span class="fi-photo__count" aria-hidden="true"><span x-text="active + 1">1</span> / {{ $totalImgs }}</span>
                     @endif
-                </div>
-                <div class="m-compact-body">
-                    {{-- Fila precio --}}
-                    <div class="m-price-row">
-                        @if ($hasOffer)
-                        <div class="m-price-box old-box">
-                            <div class="m-price-label">{{ mb_strtoupper(__('ui.price_before')) }}</div>
-                            <div class="m-price-value old">US${{ number_format((float)$tour->price_before, 0) }}</div>
-                        </div>
-                        @endif
-                        <div class="m-price-box new-box {{ $hasOffer ? '' : '' }}" style="{{ !$hasOffer ? 'grid-column:1/-1' : '' }}">
-                            <div class="m-price-label current">{{ mb_strtoupper(__('ui.price_now')) }}</div>
-                            <div class="m-price-value new">US${{ number_format((float)$tour->price, 0) }}</div>
-                            <div class="m-price-unit">{{ mb_strtoupper(__('ui.usd_per_person')) }}</div>
-                        </div>
-                    </div>
-                    <p class="lvt-flexpay">{{ __('ui.tour_flex_pay_line') }}</p>
-                    {{-- Fecha --}}
-                    <div class="m-field">
-                        <span class="m-label">{{ __('ui.tour_date') }}</span>
-                        <div class="m-input-row">
-                            <input type="date"
-                                   data-booking-date
-                                   placeholder="{{ __('ui.select_tour_date') }}"
-                                   x-model="$store.booking.date"
-                                   min="{{ $bookingMinDate }}"
-                                   aria-label="{{ __('ui.tour_date') }}"
-                                   class="lvt-date-input" style="border:none;background:transparent;color:#29404a;width:100%;outline:none;">
-                            <span aria-hidden="true">📅</span>
-                        </div>
-                        <p class="m-date-notice">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]) }}</p>
-                        @include('tours.partials.slot-picker', ['idSuffix' => 'm'])
-                        @error('travel_date')
-                            <p class="m-date-error" role="alert" data-date-server-error>{{ $message }}</p>
-                        @enderror
-                    </div>
-                    {{-- Adultos / Niños --}}
-                    <div class="m-mini-grid">
-                        <div class="m-field">
-                            <span class="m-label">{{ __('ui.adults') }}</span>
-                            <div class="m-input-row">
-                                <button type="button" @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)" aria-label="{{ __('ui.less_adults') }}" class="lvt-qty-btn">−</button>
-                                <span x-text="$store.booking.adults">1</span>
-                                <button type="button" @click="$store.booking.adults++" aria-label="{{ __('ui.more_adults') }}" class="lvt-qty-btn">+</button>
-                            </div>
-                        </div>
-                        <div class="m-field">
-                            <span class="m-label">{{ __('ui.children') }}</span>
-                            <div class="m-input-row">
-                                <button type="button" @click="$store.booking.children = Math.max(0, $store.booking.children - 1)" aria-label="{{ __('ui.less_children') }}" class="lvt-qty-btn">−</button>
-                                <span x-text="$store.booking.children">0</span>
-                                <button type="button" @click="$store.booking.children++" aria-label="{{ __('ui.more_children') }}" class="lvt-qty-btn">+</button>
-                            </div>
-                        </div>
-                    </div>
-                    {{-- Total --}}
-                    <div class="m-total">
-                        <span>{{ __('ui.estimated_total') }}
-                            <span class="m-total-sub"
-                                  x-text="`${$store.booking.adults} adulto${$store.booking.adults>1?'s':''}` + ($store.booking.children>0 ? ` + ${$store.booking.children} niño${$store.booking.children>1?'s':''}` : '') + ` × US$${price}`">
-                            </span>
-                        </span>
-                        <strong>US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
-                    </div>
-                    {{-- CTA --}}
-                    <button type="submit" form="form-reservar" class="m-cta" data-ga-cta="reservar" data-ga-location="ficha">{{ mb_strtoupper(__('ui.book')) }} &nbsp; ›</button>
-                    <div class="m-foot">{{ __('ui.secure_payment_no_fees') }}</div>
-                </div>
-            </div>
-        </div>
-
-        {{-- 4. TRUST ROW + NOTICE + FEATURES --}}
-        <div style="padding:0 20px 18px;">
-            <div class="m-trust-row">
-                @if ($freeCancellation)
-                <div class="m-trust">🛡️ {{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
-                @endif
-                <div class="m-trust">🔒 {{ __('ui.secure_payment') }}<small>{{ __('ui.and_protected') }}</small></div>
-            </div>
-            @if ($socialProof !== null)
-            <div class="m-notice" style="background:#eaf5ec;color:#145212;" data-ga-view="social_proof_view" data-ga-count="{{ $socialProof }}"><span aria-hidden="true">✔</span> {{ $socialProof }} {{ __('ui.travelers_booked_week') }}</div>
-            @endif
-            <div class="m-features">
-                @if ($pickupIncluded)
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">🚌</div><b>{{ __('ui.pickup_included') }}</b><small>{{ __('ui.from_your_hotel') }}</small></div>
-                @endif
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">🌐</div><b>{{ __('ui.bilingual_guide') }}</b><small>{{ $tourLanguage }}</small></div>
-                @if ($freeCancellation)
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">🛡️</div><b>{{ __('ui.free_cancellation') }}</b><small>{{ __('ui.until_24h_before') }}</small></div>
-                @endif
-                <div class="m-feature"><div class="m-ico" aria-hidden="true">👥</div><b>{{ __('ui.small_groups') }}</b><small>{{ __('ui.personalized_experience') }}</small></div>
-            </div>
-        </div>
-
-        {{-- 4.5 COMPARATIVA (convencional VS premium) --}}
-        @if ($comparison)
-        <div style="padding:4px 20px 8px;">
-            <x-tour-comparison :data="$comparison" variant="m" />
-        </div>
-        @endif
-
-        {{-- 5. ¿QUÉ VIVIRÁS? — experience row --}}
-        @if (count($highlightsFromItinerary) > 0)
-        <div style="padding:18px 20px;">
-            <div class="m-h2">
-                <div class="m-h2-title" role="heading" aria-level="2">{{ __('ui.what_will_you_experience') }}</div>
-                <a href="#m-itinerary">{{ __('ui.see_more') }}</a>
-            </div>
-            @php $expCount = count($highlightsFromItinerary); @endphp
-            <div class="m-exp-row" x-ref="expRow"
-                 @scroll.debounce.40ms="expActive = Math.round($el.scrollLeft / ($el.scrollWidth / {{ $expCount }}))">
-                @foreach ($highlightsFromItinerary as $k => $hl)
-                <div class="m-exp">
-                    <img src="{{ $hl['img'] }}" alt="{{ $hlAlt($hl, $k) }}" loading="lazy" width="86" height="94">
-                    @if (!empty($hl['title']))<b>{{ \Illuminate\Support\Str::limit($hl['title'], 20) }}</b>@endif
-                    @if (!empty($hl['desc']))<small>{{ \Illuminate\Support\Str::limit($hl['desc'], 30) }}</small>@endif
-                </div>
-                @endforeach
-            </div>
-            <div class="m-dots">
-                @for ($d = 0; $d < $expCount; $d++)
-                    <span :class="{ 'active': expActive === {{ $d }} }"
-                          @click="$refs.expRow.scrollTo({ left: {{ $d }} * ($refs.expRow.scrollWidth / {{ $expCount }}), behavior: 'smooth' })"
-                          style="cursor:pointer;">●</span>
-                @endfor
-            </div>
-        </div>
-        @endif
-
-        {{-- 6. ITINERARIO --}}
-        @if (count($itinerary) > 0)
-        <div id="m-itinerary" style="padding:18px 20px;">
-            <div class="m-h2">
-                <div class="m-h2-title" role="heading" aria-level="2">{{ __('ui.tour_itinerary') }}</div>
-                <a href="#m-info-desc">{{ __('ui.full_itinerary') }}</a>
-            </div>
-            <div class="m-timeline">
-                @foreach ($itinerary as $step)
-                <div class="m-stop">
-                    {{-- Rango "04:00 - 11:30": una hora por línea para caber en la columna de 48px. --}}
-                    <div class="m-time">@foreach (preg_split('/\s+[-–]\s+/u', (string) ($step['time'] ?? '')) as $tPart)<span>{{ $tPart }}</span>@endforeach</div>
-                    <div class="m-dot" aria-hidden="true"></div>
-                    <div>
-                        @if (!empty($step['title']))<b>{{ $step['title'] }}</b>@endif
-                        @if (!empty($step['description']))<p>{{ $step['description'] }}</p>@endif
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        {{-- 7. INFORMACIÓN IMPORTANTE — acordeón --}}
-        <div style="padding:18px 20px;">
-            <div class="m-sec-title" role="heading" aria-level="2">{{ __('ui.important_info') }}</div>
-            <div class="m-info-list">
-                <details id="m-info-desc" class="group">
-                    <summary class="m-info-item">
-                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg></div>
-                        <div>
-                            <b>{{ __('ui.description') }}</b>
-                            <p>{{ \Illuminate\Support\Str::limit(strip_tags($tour->{"description_$locale"} ?? $tour->description_es ?? ''), 60) }}</p>
-                        </div>
-                        <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div style="padding:0 14px 14px 66px;font-size:12px;color:#555;line-height:1.5;">
-                        {!! nl2br(e($tour->description ?? $notesText)) !!}
-                    </div>
-                </details>
-                <details class="group">
-                    <summary class="m-info-item">
-                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg></div>
-                        <div>
-                            <b>{{ __('ui.full_itinerary') }}</b>
-                            <p>{{ __('ui.itinerary_subtitle') }}</p>
-                        </div>
-                        <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div style="padding:0 14px 14px 66px;font-size:12px;color:#555;line-height:1.5;">
-                        @foreach ($itinerary as $step)
-                            <div style="margin-bottom:4px;">@if(!empty($step['time']))<strong>{{ $step['time'] }}</strong> — @endif{{ $step['title'] }}{{ !empty($step['description']) ? ': '.$step['description'] : '' }}</div>
-                        @endforeach
-                    </div>
-                </details>
-                <details class="group">
-                    <summary class="m-info-item">
-                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-                        <div>
-                            <b>{{ __('ui.included_services') }}</b>
-                            <p>{{ __('ui.included_services_subtitle') }}</p>
-                        </div>
-                        <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div style="padding:0 14px 14px 66px;font-size:12px;color:#555;line-height:1.5;">
-                        @foreach ($includes as $item)
-                            <div style="margin-bottom:4px;">✓ {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}</div>
-                        @endforeach
-                        @if (count($excludes) > 0)
-                            <div style="margin-top:8px;font-weight:700;">{{ __('ui.not_included') }}:</div>
-                            @foreach ($excludes as $item)
-                                <div style="margin-bottom:4px;">✗ {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}</div>
-                            @endforeach
-                        @endif
-                    </div>
-                </details>
-                <details class="group">
-                    <summary class="m-info-item">
-                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg></div>
-                        <div>
-                            <b>{{ __('ui.recommendations') }}</b>
-                            <p>{{ __('ui.recommendations_subtitle') }}</p>
-                        </div>
-                        <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div style="padding:0 14px 14px 66px;font-size:12px;color:#555;line-height:1.5;">
-                        @foreach ($recommendationLines as $rec)
-                            <div style="margin-bottom:4px;">&#9679; {{ $rec }}</div>
-                        @endforeach
-                    </div>
-                </details>
-                <details class="group">
-                    <summary class="m-info-item">
-                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg></div>
-                        <div>
-                            <b>{{ __('ui.important_notes') }}</b>
-                            <p>{{ __('ui.important_notes_subtitle') }}</p>
-                        </div>
-                        <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div style="padding:0 14px 14px 66px;font-size:12px;color:#555;line-height:1.5;">
-                        {!! nl2br(e($notesText)) !!}
-                    </div>
-                </details>
-                @if ($tourFaqs)
-                <details class="group" data-ga-faq="ficha">
-                    <summary class="m-info-item">
-                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg></div>
-                        <div>
-                            <b>{{ __('ui.tour_faqs') }}</b>
-                            <p>{{ __('ui.tour_faqs_subtitle') }}</p>
-                        </div>
-                        <svg class="acc-chevron" style="width:16px;height:16px;color:#083b31;flex-shrink:0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div style="padding:0 14px 14px 66px;font-size:12px;color:#555;line-height:1.5;">
-                        @foreach ($tourFaqs as $faq)
-                            <div style="margin-bottom:10px;">
-                                <div style="font-weight:700;color:#083b31;margin-bottom:2px;">{{ $faq['question'] }}</div>
-                                <div>{!! nl2br(e($faq['answer'])) !!}</div>
-                            </div>
-                        @endforeach
-                    </div>
-                </details>
-                @endif
-            </div>
-        </div>
-
-        {{-- 7B. ¿DÓNDE TE RECOGEMOS? — zonas de recogida (mobile) --}}
-        @if ($showPickup)
-        <div style="padding:18px 20px;">
-            <div class="m-sec-title m-sec-title--tight" role="heading" aria-level="2">{{ __('ui.pickup_zones_title') }}</div>
-            <p style="font-size:12px;color:#5f6469;line-height:1.5;margin:0 0 12px;">{{ __('ui.pickup_zones_subtitle') }}</p>
-            <div id="m-pickup-map" style="width:100%;height:220px;border-radius:14px;overflow:hidden;background:#f1f0ec;margin-bottom:12px;"></div>
-            <div class="m-info-list">
-                @foreach ($pickupZones as $zone)
-                    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;">
-                        <div class="m-info-ico" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg></div>
-                        <div style="flex:1;min-width:0;">
-                            <b>{{ $zone['label'] }}</b>
-                            <p>{{ __('ui.pickup_zones_radius', ['km' => rtrim(rtrim(number_format($zone['radius_km'], 1), '0'), '.')]) }} · {{ $zone['type'] === 'hotels' ? __('ui.pickup_zones_hotels_only') : __('ui.pickup_zones_type_all') }}</p>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        {{-- 8. OPINIONES DE NUESTROS VIAJEROS --}}
-        <div id="reviews" style="padding:18px 20px;">
-            <div class="m-sec-title m-sec-title--tight" role="heading" aria-level="2">{{ __('ui.traveler_reviews') }}</div>
-            <p style="font-size:12px;color:#5f6469;line-height:1.5;margin:0 0 14px;">{{ __('ui.traveler_reviews_subtitle') }}</p>
-
-            @if ($reviewStats['total'] > 0)
-                <x-review-summary :stats="$reviewStats" variant="m" />
-            @endif
-
-            @if ($stamp = \App\Models\Setting::tripadvisorStamp())
-                <x-tripadvisor-stamp :stamp="$stamp" variant="m" />
-            @endif
-
-            @if (session('review_status'))
-                <div class="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-3">{{ session('review_status') }}</div>
-            @endif
-
-            {{-- Listado vertical de reseñas del tour --}}
-            <div class="mt-5 space-y-3">
-                @forelse ($tourReviews as $idx => $rev)
-                    <x-review-card :review="$rev" :color-index="$idx" variant="m" />
-                @empty
-                    <p class="text-xs text-teal-800/70">{{ __('ui.be_first_review') }}</p>
-                @endforelse
-            </div>
-
-            {{-- Formulario "Añade una valoración" (crea reseña pendiente de aprobación) --}}
-            <div class="mt-5 pt-5 border-t border-teal-800/10"
-                 x-data="{ open: {{ ($errors->hasAny(['rating','comment','name','email']) || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
-                <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-teal-800">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    {{ __('ui.add_review') }}
-                    <svg class="w-4 h-4 transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    <span class="fi-photo__zoom">{{ __('ficha.view_photos') }} ⤢</span>
                 </button>
-                <form x-show="open" x-cloak method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="mt-4 space-y-3">
-                    @csrf
-                    @if ($errors->hasAny(['rating','comment','name','email']))
-                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first('rating') ?: $errors->first('comment') ?: $errors->first('name') ?: $errors->first('email') }}</div>
-                    @endif
-                    <div>
-                        <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_rating') }} *</label>
-                        <div class="flex gap-1 text-2xl leading-none cursor-pointer" role="radiogroup" aria-label="{{ __('ui.rating') }}">
-                            <template x-for="n in 5" :key="n">
-                                <span @click="rating = n" :class="n <= rating ? 'text-orange-400' : 'text-teal-800/20'" role="radio" :aria-checked="n === rating" :aria-label="`${n} estrellas`">★</span>
-                            </template>
-                        </div>
-                        <input type="hidden" name="rating" :value="rating">
-                    </div>
-                    <div>
-                        <label for="rev-comment" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_review') }} *</label>
-                        <textarea id="rev-comment" name="comment" required minlength="10" maxlength="2000" rows="4" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">{{ old('comment') }}</textarea>
-                    </div>
-                    <div>
-                        <label for="rev-name" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.name') }} *</label>
-                        <input id="rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                    </div>
-                    <div>
-                        <label for="rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.email') }} *</label>
-                        <input id="rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                        <p class="text-[10px] text-teal-800/70 mt-1">{{ __('ui.email_not_published') }}</p>
-                    </div>
-                    {{-- Honeypot anti-spam --}}
-                    <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
-                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-bold text-sm rounded-full py-3 transition-colors">{{ __('ui.submit_review') }}</button>
-                </form>
-            </div>
-
-        </div>
-
-        {{-- 9. OTROS VIAJEROS TAMBIÉN RESERVARON — rec-cards --}}
-        @if ($sidebarTours->isNotEmpty())
-        <div style="padding:12px 20px 18px;">
-            <div class="m-h2">
-                <div class="m-h2-title" role="heading" aria-level="2">{{ __('ui.others_also_booked') }}</div>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}">{{ __('ui.see_all') }}</a>
-            </div>
-            <div class="m-rec-list">
-                @foreach ($sidebarTours as $rel)
-                    @php
-                        $relSlug    = is_object($rel) ? ($rel instanceof \App\Models\Tour ? $rel->slugFor($locale) : ($rel->slug ?? '#')) : '#';
-                        $relTitleRaw = is_object($rel) ? ($rel->title_es ?? $rel->title ?? 'Tour') : ($rel->title ?? 'Tour');
-                        $relTitle   = (function ($raw) {
-                            $stop = ['de','del','la','las','el','los','y','o','a','en','con','por','un','una'];
-                            $words = preg_split('/\s+/u', mb_strtolower(trim($raw), 'UTF-8'));
-                            $out = [];
-                            foreach ($words as $i => $w) {
-                                if ($w === '') continue;
-                                $out[] = ($i > 0 && in_array($w, $stop, true)) ? $w : mb_convert_case($w, MB_CASE_TITLE, 'UTF-8');
-                            }
-                            return implode(' ', $out);
-                        })($relTitleRaw);
-                        $relPrice   = (float)(is_object($rel) ? ($rel->price ?? 0) : ($rel->price ?? 0));
-                        $relBefore  = is_object($rel) ? ($rel->price_before ?? null) : ($rel->price_before ?? null);
-                        // Única fuente de verdad: reseñas publicadas reales del tour relacionado.
-                        $relStats   = $rel->reviewStats();
-                        $relRating  = $relStats['average'] !== null ? number_format($relStats['average'], 1) : null;
-                        $relReviews = $relStats['total'];
-                        $relCover   = is_object($rel) && method_exists($rel, 'getCoverUrlAttribute') ? $rel->cover_url : ($rel->cover_url ?? asset('assets/banners/banner-hero.jpg'));
-                        $relCard    = \App\Support\ImageVariants::card($rel->cover_image ?? null, '126px');
-                        $relDuration= \App\Support\TourListing::durationLabel($rel->duration ?? null) ?? __('ui.duration_full_day');
-                        $relHasOffer= $relBefore && (float)$relBefore > $relPrice;
-                        $relPct     = $relHasOffer ? (int) round(((float)$relBefore - $relPrice) / (float)$relBefore * 100) : 0;
-                        $relHref    = $relSlug !== '#' ? route('tours.show', ['locale' => $locale, 'slug' => $relSlug]) : '#';
-                        $relIncludes = is_object($rel) ? ($rel->{"includes_$locale"} ?? $rel->includes_es ?? []) : [];
-                        // Limpia checks (✅ ✔ ☑ ✓) y trunca cada ítem para que la card no se desborde aunque el dato venga en un bloque
-                        $relBullets  = array_slice(array_filter(array_map(function ($i) {
-                            $t = is_array($i) ? ($i['label'] ?? $i[0] ?? '') : (string) $i;
-                            $t = trim(preg_replace('/[\x{2705}\x{2714}\x{2611}\x{2713}\x{FE0F}]/u', '', $t));
-                            return \Illuminate\Support\Str::limit($t, 46);
-                        }, $relIncludes ?: [])), 0, 2);
-                    @endphp
-                    <div class="m-rec-card">
-                        <div class="m-rec-image-wrap">
-                            <img src="{{ $relCard['src'] ?: \App\Support\ImageVariants::relative($relCover) }}" @if ($relCard['srcset']) srcset="{{ $relCard['srcset'] }}" sizes="{{ $relCard['sizes'] }}" @endif alt="{{ $relTitle }}" loading="lazy" width="126" height="142">
-                            @if ($relHasOffer)
-                                <div class="m-rec-badge">-{{ $relPct }}%</div>
-                            @endif
-                        </div>
-                        <div class="m-rec-main">
-                            <h3>{{ $relTitle }}</h3>
-                            <div class="m-rec-duration">{{ $relDuration }}</div>
-                            @if (count($relBullets) > 0)
-                            <div class="m-rec-bullets">
-                                @foreach ($relBullets as $bullet)
-                                    <div><span aria-hidden="true" style="color:#0a7a43;">✓</span> {{ $bullet }}</div>
-                                @endforeach
-                            </div>
-                            @endif
-                            @if ($relRating !== null)
-                            <div class="m-rec-rating"><span class="s">★★★★★</span>{{ $relRating }}@if($relReviews > 0) <span>({{ $relReviews }})</span>@endif</div>
-                            @endif
-                        </div>
-                        <div class="m-rec-side">
-                            @if ($relHasOffer)
-                                <div class="offer">{{ mb_strtoupper(__('ui.offer')) }}</div>
-                                <div class="price">
-                                    <strong>US${{ number_format($relPrice, 0) }}</strong>
-                                    <small>{{ __('ui.per_person') }}</small>
-                                </div>
-                                <div class="disc">-{{ $relPct }}%</div>
-                                <div class="before">{{ __('ui.before') }} US${{ number_format((float)$relBefore, 0) }}</div>
-                            @else
-                                <div class="price">
-                                    <strong>US${{ number_format($relPrice, 0) }}</strong>
-                                    <small>{{ __('ui.per_person') }}</small>
-                                </div>
-                            @endif
-                            <a href="{{ $relHref }}" class="m-rec-btn">{{ __('ui.see_tour') }}</a>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        {{-- 10. RESERVA CON CONFIANZA --}}
-        <div class="m-confidence">
-            <div class="m-confidence-title" role="heading" aria-level="2">{{ __('ui.book_with_confidence') }}</div>
-            <div class="m-confidence-grid">
-                @if ($freeCancellation)
-                <div><span class="m-ico" aria-hidden="true">🛡️</span>{{ __('ui.free_cancellation') }}<small>{{ __('ui.until_24h_before') }}</small></div>
-                @endif
-                <div><span class="m-ico" aria-hidden="true">🔒</span>{{ __('ui.secure_payment_protected') }}</div>
-                <div><span class="m-ico" aria-hidden="true">🎧</span>{{ __('ui.customer_support_247') }}</div>
-                <div><span class="m-ico" style="color:#c76b33;" aria-hidden="true">🏛️</span>{{ __('ui.over_10_years') }}</div>
-            </div>
-        </div>
-
-    </div>{{-- /md:hidden --}}
-
-    {{-- ══════════════════════════════════════
-         BLOQUE DESKTOP (md+) — grid 2 columnas
-    ══════════════════════════════════════ --}}
-    <div class="hidden md:block">
-    {{-- Grid principal: columna izquierda (contenido) + columna derecha (reserva sticky) --}}
-    <div class="container mx-auto max-w-7xl px-5 lg:px-10 pt-4 pb-20">
-    <div class="d-two-col">
-
-    {{-- ─── COLUMNA IZQUIERDA ─── --}}
-    <div class="space-y-5 lg:space-y-6 min-w-0">
-
-        {{-- ── HERO GALERÍA DESKTOP ── --}}
-        <div class="tour-gallery__hero relative rounded-2xl overflow-hidden h-[380px] lg:h-[500px] bg-teal-800/10">
-            <img :src="active === 0 ? '{{ addslashes($heroSrc) }}' : (gallery[active] || '{{ addslashes($heroSrc) }}')"
-                 :srcset="active === 0 ? '{{ addslashes((string) $heroSrcset) }}' : ''"
-                 src="{{ $heroSrc }}"
-                 @if ($heroSrcset) srcset="{{ $heroSrcset }}" @endif
-                 sizes="{{ $heroSizes }}"
-                 alt="{{ $tour->title }}"
-                 class="w-full h-full object-cover"
-                 loading="eager" fetchpriority="high"
-                 width="900" height="500"
-                 onerror="this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
-
-            {{-- Badges hero desktop --}}
-            <div class="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                @if ($isMostBooked)
-                    <span class="inline-flex items-center gap-1.5 bg-white/95 text-teal-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
-                        <svg class="w-4 h-4 text-orange-400 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        {{ __('ui.most_booked') }}
-                    </span>
-                @endif
-@if ($freeCancellation)
-                <span class="inline-flex items-center gap-1.5 bg-teal-800/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    {{ __('ui.free_cancellation') }}
-                </span>
-@endif
-            </div>
-
-            {{-- Miniaturas abajo (si hay más de 1 imagen) --}}
-            @if ($totalImgs > 1)
-            <div class="absolute bottom-0 inset-x-0 px-4 pb-3 flex gap-2 z-10">
-                @foreach (array_slice($galleryUrls, 0, 5) as $tIdx => $tUrl)
-                    <button type="button"
-                            @click="active = {{ $tIdx }}"
-                            class="w-14 h-10 lg:w-16 lg:h-12 rounded-lg overflow-hidden ring-2 transition shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
-                            :class="active === {{ $tIdx }} ? 'ring-orange-400 opacity-100' : 'ring-transparent opacity-60 hover:opacity-90'"
-                            aria-label="{{ __('ui.photo') }} {{ $tIdx + 1 }}">
-                        <img src="{{ $tUrl }}"
-                             alt=""
-                             class="w-full h-full object-cover"
-                             loading="lazy"
-                             onerror="this.src='{{ asset('assets/banners/banner-hero.jpg') }}'">
-                    </button>
-                @endforeach
-                @if ($totalImgs > 5)
-                    <button type="button"
-                            @click="open(active)"
-                            class="w-14 h-10 lg:w-16 lg:h-12 rounded-lg overflow-hidden bg-black/60 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-transparent hover:ring-orange-400 transition shrink-0"
-                            aria-label="{{ __('ui.view_all_photos') }}">
-                        +{{ $totalImgs - 5 }}
-                    </button>
-                @endif
-            </div>
-            @endif
-
-            {{-- Botón galería completa --}}
-            <button type="button"
-                    @click="open(active)"
-                    class="absolute bottom-3 right-3 z-20 inline-flex items-center gap-1.5 bg-black/55 hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-                    :class="{'hidden': {{ $totalImgs }} > 1}"
-                    aria-label="{{ __('ui.view_gallery') }}">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
-                </svg>
-                <span aria-live="polite"><span x-text="active + 1">1</span> / {{ $totalImgs }}</span>
-            </button>
-        </div>
-
-        {{-- ── LIGHTBOX ── --}}
-        <div x-show="lightbox" x-cloak
-             x-transition.opacity.duration.200ms
-             class="fixed inset-0 z-[60] bg-teal-900/95 flex flex-col"
-             @click.self="close()">
-            <div class="flex items-center justify-between px-5 py-4 text-white shrink-0">
-                <span class="text-sm font-semibold"><span x-text="active + 1"></span> / {{ $totalImgs }}</span>
-                <button type="button" @click="close()" class="p-2 rounded-full hover:bg-white/10 transition" aria-label="{{ __('ui.close_gallery') }}">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                @foreach ($minis as $mi => $m)
+                <button type="button" class="fi-mini" :class="{ 'is-active': active === {{ $mi }} }" @click="active = {{ $mi }}" aria-label="{{ __('ficha.view_photo_n', ['n' => $mi + 1]) }}">
+                    <img src="{{ $m['src'] }}" @if ($m['srcset']) srcset="{{ $m['srcset'] }}" sizes="{{ $m['sizes'] }}" @endif alt="{{ $photoAlt($mi) }}" width="320" height="300" loading="lazy" decoding="async">
                 </button>
+                @endforeach
             </div>
-            <div class="relative flex-1 grid place-items-center px-4 md:px-12 overflow-hidden">
-                @if ($totalImgs > 1)
-                    <button type="button" @click="prev()" class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.prev_photo') }}">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" @click="next()" class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 transition grid place-items-center text-white z-10" aria-label="{{ __('ui.next_photo') }}">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
+
+            {{-- ¿Por qué reservar este tour? --}}
+            @if ($summaryLead !== '' || count($facts) > 0)
+            <section class="fi-summary" aria-labelledby="fi-why">
+                <h2 id="fi-why">{{ __('ficha.why_title') }}</h2>
+                @if ($summaryLead !== '')<p class="fi-summary__lead">{{ $summaryLead }}</p>@endif
+                @if ($summaryFull !== '')
+                <details class="fi-summary__more">
+                    <summary>{{ __('ficha.read_full') }}</summary>
+                    <div>{!! nl2br(e($summaryFull)) !!}</div>
+                </details>
                 @endif
-                <img :src="gallery[active]" alt="{{ $tour->title }}"
-                     class="w-auto h-auto max-w-full max-h-full object-contain rounded-xl shadow-2xl">
-            </div>
-            <div class="px-5 pb-5 pt-3 shrink-0">
-                <div class="flex flex-wrap justify-center gap-2 max-w-5xl mx-auto">
-                    <template x-for="(img, i) in (showAll ? gallery : gallery.slice(0, 8))" :key="i">
-                        <button type="button" @click="active = i"
-                                class="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden ring-2 transition flex-shrink-0"
-                                :class="active === i ? 'ring-orange-400 opacity-100' : 'ring-transparent opacity-60 hover:opacity-100'">
-                            <img :src="img" alt="" class="w-full h-full object-cover" loading="lazy">
-                        </button>
-                    </template>
-                    @if ($totalImgs > 8)
-                        <button type="button" x-show="!showAll" @click="showAll = true"
-                                class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wide transition">
-                            {{ __('ui.see_more') }} ({{ $totalImgs - 8 }})
-                        </button>
-                        <button type="button" x-show="showAll" @click="showAll = false"
-                                class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wide transition">
-                            {{ __('ui.see_less') }}
-                        </button>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- ══════════════════════════════════════
-             2. TÍTULO + RATING (columna izquierda)
-        ══════════════════════════════════════ --}}
-        <section aria-labelledby="tour-title">
-            {{-- El único <h1> real vive en el bloque móvil (indexación mobile-first); aquí, rol equivalente para ≥ md. --}}
-            <p id="tour-title" role="heading" aria-level="1" class="font-display text-2xl md:text-3xl lg:text-4xl text-teal-800 leading-tight">
-                {{ $titleDisplay }}
-            </p>
-            @if ($tourRating !== null)
-            <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                <span class="inline-flex gap-0.5" aria-label="{{ $tourRating }} {{ __('ui.of_5_stars') }}">
-                    @for ($s = 0; $s < 5; $s++)
-                        <svg class="w-4 h-4 text-orange-400 fill-current" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                    @endfor
-                </span>
-                <span class="font-bold text-teal-800 text-sm">{{ $tourRating }}</span>
-                <span class="text-teal-800/70 text-sm">({{ $reviewsCount }} {{ __('ui.verified_reviews') }})</span>
-                <span class="inline-flex items-center gap-1 bg-state-success/10 text-state-success text-[11px] font-semibold px-2 py-0.5 rounded-full">
-                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                    {{ __('ui.verified') }}
-                </span>
-            </div>
-            @endif
-        </section>
-
-        {{-- ══════════════════════════════════════
-             3. CONFIANZA / URGENCIA
-             trust-row + notice + 4 features
-        ══════════════════════════════════════ --}}
-        <section aria-label="{{ __('ui.trust_guarantees') }}">
-            {{-- Trust row --}}
-            <div class="grid grid-cols-2 gap-3 mb-3">
-@if ($freeCancellation)
-                <div class="flex items-center gap-2.5 bg-white ring-1 ring-teal-800/10 rounded-2xl px-3 py-3">
-                    <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                    <div>
-                        <p class="text-xs font-bold text-teal-800">{{ __('ui.free_cancellation') }}</p>
-                        <p class="text-[11px] text-teal-800/70">{{ __('ui.until_24h_before') }}</p>
-                    </div>
-                </div>
-@endif
-                <div class="flex items-center gap-2.5 bg-white ring-1 ring-teal-800/10 rounded-2xl px-3 py-3">
-                    <svg class="w-5 h-5 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                    <div>
-                        <p class="text-xs font-bold text-teal-800">{{ __('ui.secure_payment') }}</p>
-                        <p class="text-[11px] text-teal-800/70">{{ __('ui.and_protected') }}</p>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Notice urgencia --}}
-            @if ($socialProof !== null)
-            <div class="inline-flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-full w-full justify-center mt-1" style="background:#eaf5ec;color:#145212;" data-ga-view="social_proof_view" data-ga-count="{{ $socialProof }}">
-                <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>
-                <span><strong>{{ $socialProof }}</strong> {{ __('ui.travelers_booked_week') }}</span>
-            </div>
-            @endif
-
-            {{-- Grid 4 features --}}
-            <div class="grid grid-cols-4 gap-2 sm:gap-4 mt-4">
-            @foreach (array_values(array_filter([
-                $pickupIncluded ? ['icon' => 'van',    'label' => __('ui.pickup_included'),      'caption' => __('ui.from_your_hotel')] : null,
-                ['icon' => 'globe',  'label' => __('ui.bilingual_guide'),        'caption' => __('ui.spanish_english')],
-                $freeCancellation ? ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')] : null,
-                ['icon' => 'group',  'label' => __('ui.small_groups'),      'caption' => __('ui.personalized_experience')],
-            ])) as $feature)
-                <div class="flex flex-col items-center text-center gap-1.5">
-                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white ring-1 ring-teal-800/15 grid place-items-center text-teal-700 shadow-sm">
-                        @if ($feature['icon'] === 'van')
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
-                        @elseif ($feature['icon'] === 'globe')
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg>
-                        @elseif ($feature['icon'] === 'shield')
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                @if (count($facts) > 0)
+                <ul class="fi-facts">
+                    @foreach ($facts as $f)
+                        <li>
+                        @if ($f['href'])
+                            <a class="fi-fact" href="{{ $f['href'] }}">@if ($f['icon'])<span aria-hidden="true">{{ $f['icon'] }}</span>@endif{{ $f['text'] }}</a>
                         @else
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+                            <span class="fi-fact">@if ($f['icon'])<span aria-hidden="true">{{ $f['icon'] }}</span>@endif{{ $f['text'] }}</span>
                         @endif
-                    </div>
-                    <p class="text-[11px] sm:text-xs font-bold text-teal-800 leading-tight">{{ $feature['label'] }}</p>
-                    <p class="text-[9px] sm:text-[11px] text-teal-800/70 leading-tight">{{ $feature['caption'] }}</p>
-                </div>
-            @endforeach
-        </div>
-        </section>
-
-        {{-- ══════════════════════════════════════
-             3.5 COMPARATIVA (convencional VS premium)
-        ══════════════════════════════════════ --}}
-        @if ($comparison)
-            <x-tour-comparison :data="$comparison" variant="d" />
-        @endif
-
-        {{-- ══════════════════════════════════════
-             4. ¿QUÉ VIVIRÁS? — CARRUSEL HIGHLIGHTS
-             Deriva de $itinerary real + $galleryUrls.
-             Si no hay datos reales → ocultar sección.
-        ══════════════════════════════════════ --}}
-        @if (count($highlightsFromItinerary) > 0)
-        <section aria-labelledby="highlights-heading">
-        @php $totalHighlights = count($highlightsFromItinerary); @endphp
-        <div x-data="{
-                activeSlide: 0,
-                totalSlides: {{ $totalHighlights }},
-                updateDot(el) {
-                    const firstChild = el.children[0];
-                    if (!firstChild) return;
-                    const itemW = firstChild.offsetWidth + 12; // 12 = gap (.75rem)
-                    this.activeSlide = Math.round(el.scrollLeft / itemW);
-                }
-             }">
-            <div class="flex items-center justify-between mb-4">
-                <h2 id="highlights-heading" class="font-display text-xl lg:text-2xl text-teal-800">{{ __('ui.what_will_you_experience') }}</h2>
-            </div>
-            <div class="highlights-track"
-                 x-ref="track"
-                 @scroll.passive="updateDot($el)">
-                @foreach ($highlightsFromItinerary as $k => $hl)
-                    <div class="bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-teal-800/5">
-                        <div class="h-32 lg:h-40 overflow-hidden relative bg-teal-800/10">
-                            <img src="{{ $hl['img'] }}"
-                                 alt="{{ $hlAlt($hl, $k) }}"
-                                 class="w-full h-full object-cover"
-                                 loading="lazy"
-                                 width="240" height="160">
-                        </div>
-                        @if (!empty($hl['title']))
-                        <div class="p-3 pt-4">
-                            <div class="w-8 h-8 rounded-full bg-white ring-1 ring-teal-800/15 grid place-items-center text-teal-700 mb-2 shadow-sm">
-                                @if (($hl['icon'] ?? '') === 'boat')
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
-                                @elseif (($hl['icon'] ?? '') === 'utensils')
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.87c1.355 0 2.697.056 4.025.166C17.155 8.51 18 9.473 18 10.608v2.513m-3-4.87v-1.5m-3 10.125v2.25m0-2.25a.375.375 0 100-.75.375.375 0 000 .75z"/></svg>
-                                @elseif (($hl['icon'] ?? '') === 'palm')
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c0 0-4 3-4 8h8c0-5-4-8-4-8zm0 8v10"/></svg>
-                                @elseif (($hl['icon'] ?? '') === 'buggy')
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909"/></svg>
-                                @else
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg>
-                                @endif
-                            </div>
-                            <p class="text-xs font-bold text-teal-800 leading-tight">{{ $hl['title'] }}</p>
-                            @if (!empty($hl['desc']))
-                                <p class="text-[11px] text-teal-800/70 mt-0.5 leading-tight line-clamp-2">{{ $hl['desc'] }}</p>
-                            @endif
-                        </div>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-            {{-- Dots --}}
-            @if ($totalHighlights > 1)
-            <div class="flex justify-center gap-2 mt-3" aria-hidden="true">
-                @for ($d = 0; $d < $totalHighlights; $d++)
-                    <button type="button"
-                            @click="activeSlide = {{ $d }}; (function(el, idx){ const itemW = (el.children[0]?.offsetWidth ?? 0) + 12; el.scrollTo({ left: idx * itemW, behavior: 'smooth' }); })($refs.track, {{ $d }})"
-                            class="h-2 rounded-full transition-all duration-200"
-                            :class="activeSlide === {{ $d }} ? 'bg-orange-500 w-4' : 'bg-teal-800/25 w-2'"
-                            aria-label="Slide {{ $d + 1 }}">
-                    </button>
-                @endfor
-            </div>
+                        </li>
+                    @endforeach
+                </ul>
+                @endif
+            </section>
             @endif
         </div>
-        </section>
-        @endif
 
-        {{-- ══════════════════════════════════════
-             5. ITINERARIO DEL TOUR
-             Solo se muestra si hay pasos reales.
-        ══════════════════════════════════════ --}}
-        @if (count($itinerary) > 0)
-        <section aria-labelledby="itinerary-heading" class="pb-2">
-            <div class="flex items-center justify-between mb-4">
-                <h2 id="itinerary-heading" class="font-display text-xl lg:text-2xl text-teal-800">{{ __('ui.tour_itinerary') }}</h2>
+        {{-- Elige tu salida --}}
+        <aside class="fi-book" id="seccion-reserva" aria-label="{{ __('ficha.book_title') }}"
+               x-data="{
+                   price: window.__lvtPrice || 0,
+                   maxPax: 15,
+                   get pax() { return this.$store.booking.adults + this.$store.booking.children; },
+                   get total() { return (this.pax * this.price).toFixed(2); },
+                   paxLabel() { var f = window.LVT_FICHA || {}; return ((this.pax === 1 ? f.one : f.other) || '').replace(':count', this.pax); }
+               }">
+            <div class="fi-book__label">{{ __('ficha.price_label') }}</div>
+            <div class="fi-price">
+                <strong>{{ $money($tour->price) }}</strong>
+                @if ($hasOffer)
+                    <s><span class="fi-sr">{{ __('ui.price_before') }}: </span>{{ $money($tour->price_before) }}</s>
+                    <span class="fi-price__sale">−{{ $discountPct }}%</span>
+                @endif
             </div>
-            <ol class="space-y-0" aria-label="{{ __('ui.tour_itinerary') }}">
-                @foreach ($itinerary as $idx => $step)
-                    <li class="relative flex gap-4 {{ !$loop->last ? 'pb-6' : '' }}">
-                        @if (!$loop->last)
-                            <div class="absolute left-[11px] top-6 bottom-0 w-0.5 bg-teal-800/18" aria-hidden="true"></div>
-                        @endif
-                        <div class="shrink-0 w-6 h-6 rounded-full bg-orange-500 ring-4 ring-orange-500/15 mt-0.5 grid place-items-center" aria-hidden="true">
-                            <span class="w-2 h-2 rounded-full bg-white"></span>
-                        </div>
-                        <div class="flex-1 min-w-0 -mt-0.5">
-                            <div class="flex items-center gap-2 mb-0.5">
-                                @if (!empty($step['time']))
-                                    <span class="font-price text-sm font-bold text-teal-800 tabular-nums">{{ $step['time'] }}</span>
-                                @endif
-                                <span class="text-teal-700/60" aria-hidden="true">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
-                                        @if (($step['icon'] ?? '') === 'boat')
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
-                                        @elseif (($step['icon'] ?? '') === 'utensils')
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.87c1.355 0 2.697.056 4.025.166C17.155 8.51 18 9.473 18 10.608v2.513m-3-4.87v-1.5m-3 10.125v2.25m0-2.25a.375.375 0 100-.75.375.375 0 000 .75z"/>
-                                        @elseif (($step['icon'] ?? '') === 'palm')
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c0 0-4 3-4 8h8c0-5-4-8-4-8zm0 8v10"/>
-                                        @elseif (($step['icon'] ?? '') === 'buggy')
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
-                                        @else
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
-                                        @endif
-                                    </svg>
-                                </span>
-                            </div>
-                            @if (!empty($step['title']) && $step['title'] !== $step['time'])
-                                <p class="text-sm font-bold text-teal-800 clamp-2">{{ $step['title'] }}</p>
+            <p class="fi-flexpay">{{ __('ui.tour_flex_pay_line') }}</p>
+
+            <div class="fi-book__title" role="heading" aria-level="2">{{ __('ficha.book_title') }}</div>
+
+            <div class="fi-field" data-date-field>
+                <label class="fi-field__label" for="fi-date">{{ __('ficha.date_label') }}</label>
+                <input type="date" id="fi-date" class="fi-date lvt-date-input"
+                       data-booking-date
+                       placeholder="{{ __('ui.select_tour_date') }}"
+                       x-model="$store.booking.date"
+                       min="{{ $bookingMinDate }}"
+                       required
+                       aria-describedby="fi-date-notice">
+                <p class="fi-notice" id="fi-date-notice">{{ $bookingNotice }}</p>
+                @error('travel_date')
+                    <p class="fi-error" role="alert" data-date-server-error>{{ $message }}</p>
+                @enderror
+            </div>
+
+            @include('tours.partials.slot-picker', ['idSuffix' => 'd'])
+
+            <div class="fi-field">
+                <span class="fi-field__label" id="fi-pax-label">{{ __('ficha.travelers_label') }}</span>
+                <div class="fi-qty" role="group" aria-labelledby="fi-pax-label">
+                    <button type="button" @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)" :disabled="$store.booking.adults <= 1" aria-label="{{ __('ficha.traveler_less') }}">−</button>
+                    <output aria-live="polite" x-text="paxLabel()">{{ __('ficha.traveler_one', ['count' => 1]) }}</output>
+                    <button type="button" @click="$store.booking.adults = Math.min(maxPax, $store.booking.adults + 1)" :disabled="$store.booking.adults >= maxPax" aria-label="{{ __('ficha.traveler_more') }}">+</button>
+                </div>
+            </div>
+
+            <div class="fi-total">
+                <span>{{ __('ficha.total_label') }}</span>
+                <strong>US$<span x-text="total">{{ number_format((float) $tour->price, 2, '.', '') }}</span></strong>
+            </div>
+
+            <p class="fi-error" role="alert" id="fi-book-error" hidden></p>
+            <button type="submit" form="form-reservar" class="fi-cta" id="fi-add" data-ga-cta="reservar" data-ga-location="ficha">
+                <span class="fi-cta__label">{{ __('ficha.add_to_cart') }}</span> <span aria-hidden="true">→</span>
+            </button>
+            <p class="fi-foot">{{ __('ficha.foot_pay') }}@if ($pickupIncluded) · {{ __('ficha.foot_pickup') }}@endif</p>
+            @if ($socialProof !== null)
+            <p class="fi-proof" data-ga-view="social_proof_view" data-ga-count="{{ $socialProof }}"><span aria-hidden="true">✔</span> {{ $socialProof }} {{ __('ui.travelers_booked_week') }}</p>
+            @endif
+        </aside>
+    </div>
+
+    {{-- Itinerario | Qué incluye --}}
+    @if (count($itinerary) > 0 || $hasIncludes || $notesReal !== '' || count($recsReal) > 0 || $showPickup)
+    <div class="fi-grid">
+        @if (count($itinerary) > 0)
+        @php $stepCount = count($itinerary); @endphp
+        <section class="fi-sec" id="itinerario" aria-labelledby="fi-itin" x-data="{ open: false }">
+            <h2 id="fi-itin">{{ __('ficha.itinerary_title') }}</h2>
+            <p class="fi-sec__sub">{{ __('ficha.itinerary_sub') }}</p>
+            <ol class="fi-timeline" id="fi-timeline" :class="{ 'is-open': open }">
+                @foreach ($itinerary as $i => $step)
+                    <li class="fi-stop @if ($i >= 5) fi-stop--extra @endif @if ($i === 4 && $stepCount > 5) fi-stop--lastvisible @endif">
+                        <span class="fi-stop__num" aria-hidden="true">{{ $i + 1 }}</span>
+                        <div>
+                            @if (! empty($step['title']) || ! empty($step['time']))
+                            <h3>@if (! empty($step['time']))<span class="fi-stop__time">{{ $step['time'] }}</span>@endif{{ $step['title'] ?? '' }}</h3>
                             @endif
-                            @if (!empty($step['description']))
-                                <p class="text-sm text-teal-800/70 leading-relaxed mt-0.5 clamp-3">{{ $step['description'] }}</p>
-                            @endif
+                            @if (! empty($step['description']))<p>{{ $step['description'] }}</p>@endif
                         </div>
                     </li>
                 @endforeach
             </ol>
+            @if ($stepCount > 5)
+            <button type="button" class="fi-toggle" aria-controls="fi-timeline" :aria-expanded="open ? 'true' : 'false'" @click="open = !open">
+                <span x-show="!open">{{ __('ficha.itinerary_more') }} ↓</span>
+                <span x-show="open" x-cloak>{{ __('ficha.itinerary_less') }} ↑</span>
+            </button>
+            @endif
         </section>
         @endif
 
-        {{-- ══════════════════════════════════════
-             6. INFORMACIÓN IMPORTANTE — ACORDEÓN
-             Normal: 4 ítems | Oferta: 5 ítems
-        ══════════════════════════════════════ --}}
-        <section aria-labelledby="info-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm overflow-hidden">
-            <h2 id="info-heading" class="font-display text-base text-teal-800 px-5 pt-5 pb-3">{{ __('ui.important_info') }}</h2>
-            <div class="divide-y divide-teal-800/8">
-
-                {{-- Descripción --}}
-                <details class="group">
-                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
-                        <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
-                            <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">{{ __('ui.description') }}</p>
-                            <p class="text-xs text-teal-800/70 truncate">{{ \Illuminate\Support\Str::limit(strip_tags($tour->{"description_$locale"} ?? $tour->description_es ?? ''), 60) }}</p>
-                        </div>
-                        <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div class="px-5 pb-5 pt-1 text-sm text-teal-800/80 leading-relaxed">
-                        {!! nl2br(e($tour->description ?? $notesText)) !!}
-                    </div>
-                </details>
-
-                @if ($hasOffer)
-                {{-- Itinerario completo (solo variante oferta) --}}
-                <details class="group">
-                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
-                        <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
-                            <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">{{ __('ui.full_itinerary') }}</p>
-                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.itinerary_subtitle') }}</p>
-                        </div>
-                        <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div class="px-5 pb-5 pt-1 text-sm text-teal-800/80 leading-relaxed">
-                        <ol class="space-y-2">
-                            @foreach ($itinerary as $step)
-                                <li class="flex gap-2">
-                                    @if (!empty($step['time']))
-                                        <span class="font-price font-bold text-teal-800 shrink-0 tabular-nums min-w-[48px]">{{ $step['time'] }}</span>
-                                    @endif
-                                    <span>{{ $step['title'] }}{{ !empty($step['description']) ? ' — ' . $step['description'] : '' }}</span>
-                                </li>
-                            @endforeach
-                        </ol>
-                    </div>
-                </details>
+        @if ($hasIncludes || $notesReal !== '' || count($recsReal) > 0)
+        <section class="fi-sec" id="incluye" aria-labelledby="fi-inc">
+            <h2 id="fi-inc">{{ __('ficha.includes_title') }}</h2>
+            @if ($hasIncludes)
+            <div class="fi-cols {{ ($includesList !== [] && $excludesList !== []) ? '' : 'fi-cols--one' }}">
+                @if ($includesList !== [])
+                <div class="fi-included">
+                    <h3>{{ __('ficha.includes_yes') }}</h3>
+                    <ul class="fi-checks">
+                        @foreach ($includesList as $it)<li><span class="fi-check" aria-hidden="true">✓</span>{{ $it }}</li>@endforeach
+                    </ul>
+                </div>
                 @endif
-
-                {{-- Servicios incluidos --}}
-                <details class="group">
-                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
-                        <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
-                            <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">{{ __('ui.included_services') }}</p>
-                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.included_services_subtitle') }}</p>
-                        </div>
-                        <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div class="px-5 pb-5 pt-1 text-sm text-teal-800/80 space-y-4">
-                        @if (count($includes) > 0)
-                            <div>
-                                <p class="text-xs font-semibold text-state-success uppercase tracking-wide mb-2">{{ mb_strtoupper(__('ui.includes')) }}</p>
-                                <ul class="space-y-1.5">
-                                    @foreach ($includes as $item)
-                                        <li class="flex gap-2 items-start">
-                                            <svg class="w-4 h-4 text-state-success shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                            {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                        @if (count($excludes) > 0)
-                            <div>
-                                <p class="text-xs font-semibold text-state-error uppercase tracking-wide mb-2">{{ mb_strtoupper(__('ui.not_included')) }}</p>
-                                <ul class="space-y-1.5">
-                                    @foreach ($excludes as $item)
-                                        <li class="flex gap-2 items-start">
-                                            <svg class="w-4 h-4 text-state-error shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                            {{ is_array($item) ? ($item['label'] ?? $item[0] ?? '') : $item }}
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                        @if (count($includes) === 0 && count($excludes) === 0)
-                            <p class="text-teal-800/70 text-xs">{{ __('ui.check_services_team') }}</p>
-                        @endif
-                    </div>
-                </details>
-
-                {{-- Recomendaciones --}}
-                <details class="group">
-                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
-                        <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
-                            <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">{{ __('ui.recommendations') }}</p>
-                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.recommendations_subtitle') }}</p>
-                        </div>
-                        <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div class="px-5 pb-5 pt-1 text-sm text-teal-800/80">
-                        <ul class="space-y-1.5">
-                            @foreach ($recommendationLines as $rec)
-                                <li class="flex gap-2 items-start">
-                                    <span class="text-orange-700 shrink-0 mt-0.5" aria-hidden="true">&#9679;</span>
-                                    {{ $rec }}
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </details>
-
-                {{-- Notas importantes --}}
-                <details class="group">
-                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
-                        <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
-                            <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">{{ __('ui.important_notes') }}</p>
-                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.important_notes_subtitle') }}</p>
-                        </div>
-                        <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div class="px-5 pb-5 pt-1 text-sm text-teal-800/80 leading-relaxed">
-                        {!! nl2br(e($notesText)) !!}
-                    </div>
-                </details>
-
-                {{-- Preguntas frecuentes del tour (administrables por idioma) --}}
-                @if ($tourFaqs)
-                <details class="group" data-ga-faq="ficha">
-                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none">
-                        <span class="w-10 h-10 rounded-xl bg-teal-800 grid place-items-center shrink-0" aria-hidden="true">
-                            <svg class="w-5 h-5 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold text-teal-800">{{ __('ui.tour_faqs') }}</p>
-                            <p class="text-xs text-teal-800/70 truncate">{{ __('ui.tour_faqs_subtitle') }}</p>
-                        </div>
-                        <svg class="w-5 h-5 text-orange-500 shrink-0 acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                    </summary>
-                    <div class="px-5 pb-5 pt-1 space-y-4">
-                        @foreach ($tourFaqs as $faq)
-                            <div>
-                                <p class="text-sm font-bold text-teal-800 mb-1">{{ $faq['question'] }}</p>
-                                <p class="text-sm text-teal-800/80 leading-relaxed">{!! nl2br(e($faq['answer'])) !!}</p>
-                            </div>
-                        @endforeach
-                    </div>
-                </details>
+                @if ($excludesList !== [])
+                <div class="fi-excluded">
+                    <h3>{{ __('ficha.includes_no') }}</h3>
+                    <ul class="fi-checks">
+                        @foreach ($excludesList as $it)<li><span class="fi-cross" aria-hidden="true">×</span>{{ $it }}</li>@endforeach
+                    </ul>
+                </div>
                 @endif
-
             </div>
+            @endif
+            @if ($notesReal !== '')
+            <div class="fi-notes">{!! nl2br(e($notesReal)) !!}</div>
+            @endif
+            @if (count($recsReal) > 0)
+            <details class="fi-recs">
+                <summary>{{ __('ficha.recommendations_title') }}</summary>
+                <ul>@foreach ($recsReal as $rec)<li>{{ $rec }}</li>@endforeach</ul>
+            </details>
+            @endif
         </section>
+        @endif
 
-        {{-- ══════════════════════════════════════
-             6B. ¿DÓNDE TE RECOGEMOS? — zonas de recogida (global, todos los tours)
-        ══════════════════════════════════════ --}}
+        {{-- ¿Dónde te recogemos? (opcional: zonas + clave de Maps en Ajustes) --}}
         @if ($showPickup)
-        <section aria-labelledby="pickup-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
-            <h2 id="pickup-heading" class="font-display text-base lg:text-lg text-teal-800 mb-1">{{ __('ui.pickup_zones_title') }}</h2>
-            <p class="text-sm text-teal-800/70 mb-4 max-w-2xl">{{ __('ui.pickup_zones_subtitle') }}</p>
-
-            <div class="grid lg:grid-cols-5 gap-5">
-                <div id="d-pickup-map" class="lg:col-span-3 w-full h-72 lg:h-80 rounded-xl overflow-hidden bg-teal-800/5 ring-1 ring-teal-800/10"></div>
-
-                <ul class="lg:col-span-2 space-y-2.5" aria-label="{{ __('ui.pickup_zones_title') }}">
-                    @foreach ($pickupZones as $zone)
-                        <li class="flex items-start gap-3 bg-cream-100 rounded-xl px-4 py-3">
-                            <span class="w-8 h-8 rounded-full bg-teal-800 grid place-items-center shrink-0 mt-0.5" aria-hidden="true">
-                                <svg class="w-4 h-4 text-orange-300" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-                            </span>
-                            <div class="min-w-0">
-                                <p class="text-sm font-bold text-teal-800">{{ $zone['label'] }}</p>
-                                <p class="text-xs text-teal-800/70">
-                                    {{ __('ui.pickup_zones_radius', ['km' => rtrim(rtrim(number_format($zone['radius_km'], 1), '0'), '.')]) }}
-                                    &middot;
-                                    {{ $zone['type'] === 'hotels' ? __('ui.pickup_zones_hotels_only') : __('ui.pickup_zones_type_all') }}
-                                </p>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
+        <section class="fi-sec fi-sec--wide" aria-labelledby="fi-pickup">
+            <h2 id="fi-pickup">{{ __('ui.pickup_zones_title') }}</h2>
+            <p class="fi-sec__sub">{{ __('ui.pickup_zones_subtitle') }}</p>
+            <div id="fi-pickup-map" class="fi-map"></div>
+            <ul class="fi-zones">
+                @foreach ($pickupZones as $zone)
+                    <li><b>{{ $zone['label'] }}</b> — {{ __('ui.pickup_zones_radius', ['km' => rtrim(rtrim(number_format($zone['radius_km'], 1), '0'), '.')]) }} · {{ $zone['type'] === 'hotels' ? __('ui.pickup_zones_hotels_only') : __('ui.pickup_zones_type_all') }}</li>
+                @endforeach
+            </ul>
         </section>
         @endif
+    </div>
+    @endif
 
-        {{-- ══════════════════════════════════════
-             7. OPINIONES DE NUESTROS VIAJEROS
-        ══════════════════════════════════════ --}}
-        <section aria-labelledby="reviews-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
-            <div class="mb-5">
-                <h2 id="reviews-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.traveler_reviews') }}</h2>
-                <p class="text-xs text-teal-800/70 mt-1">{{ __('ui.traveler_reviews_subtitle') }}</p>
+    {{-- Comparativa (opcional, administrable) --}}
+    @if ($comparison)
+    <div class="fi-related"><x-tour-comparison :data="$comparison" variant="d" /></div>
+    @endif
+
+    {{-- Opiniones de viajeros --}}
+    <section class="fi-sec fi-related" id="resenas" aria-labelledby="fi-rev">
+        <h2 id="fi-rev">{{ __('ficha.reviews_title') }}</h2>
+
+        @if ($reviewStats['total'] > 0)
+        <div class="fi-rsum">
+            <div class="fi-rsum__avg">
+                <strong>{{ $ratingText }}</strong>
+                <span class="fi-stars" aria-hidden="true">{{ $starsGlyph($starsFilled) }}</span>
+                <small>{{ $reviewStats['total'] }} {{ $reviewStats['total'] === 1 ? __('ficha.review_of_tour') : __('ficha.reviews_of_tour') }}</small>
             </div>
-
-            {{-- Flash de envío --}}
-            @if (session('review_status'))
-                <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold px-4 py-3">{{ session('review_status') }}</div>
-            @endif
-
-            @php
-                $dStamp = \App\Models\Setting::tripadvisorStamp();
-                $dHasSummary = $reviewStats['total'] > 0;
-            @endphp
-            {{-- REVISIÓN 2026-09-21 (pedido del cliente tras ver la maqueta en 1440):
-                 la columna lateral fija de 300px dejaba un vacío enorme bajo una
-                 tarjeta de ~150px de alto en una columna de miles de píxeles de
-                 largo, y comprimía las tarjetas de reseña a ~360px de ancho en
-                 pantallas de 1440. Se cambia a banda horizontal de ancho completo
-                 (resumen + sello) y el listado pasa a ocupar todo el ancho de la
-                 sección debajo, en 2 columnas desde lg para no alargar demasiado
-                 la línea de lectura del texto. --}}
-            @if ($dHasSummary || $dStamp)
-                <div class="mb-6 lg:flex lg:items-center lg:gap-4">
-                    @if ($dHasSummary)
-                        <div class="lg:flex-1 min-w-0">
-                            <x-review-summary :stats="$reviewStats" variant="d" />
-                        </div>
-                    @endif
-                    @if ($dStamp)
-                        <div class="{{ $dHasSummary ? 'mt-4 lg:mt-0' : '' }} lg:shrink-0 lg:self-center">
-                            <x-tripadvisor-stamp :stamp="$dStamp" variant="d" spacing-class="" />
-                        </div>
-                    @endif
-                </div>
-            @endif
-
-            {{-- Listado de reseñas: ancho completo de la sección, 2 columnas desde
-                 lg para no dejar líneas de texto demasiado anchas. min-w-0 en el
-                 item de grid: sin él el texto largo de una reseña puede forzar la
-                 pista más ancha que su contenedor (mismo defecto que el de la
-                 columna lateral, ver review_1024 de la vuelta anterior). --}}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                @forelse ($tourReviews as $idx => $rev)
-                    <div class="min-w-0">
-                        <x-review-card :review="$rev" :color-index="$idx" variant="d" />
-                    </div>
-                @empty
-                    <p class="text-sm text-teal-800/70">{{ __('ui.be_first_review') }}</p>
-                @endforelse
-            </div>
-
-            {{-- Formulario "Añade una valoración" (desktop) — crea reseña pendiente de aprobación --}}
-            <div class="mt-5 pt-5 border-t border-teal-800/10" x-data="{ open: {{ ($errors->hasAny(['rating','comment','name','email']) || session('review_status')) ? 'true' : 'false' }}, rating: {{ (int) old('rating', 0) }} }">
-                <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-teal-800">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    {{ __('ui.add_review') }}
-                    <svg class="w-4 h-4 transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-                <form x-show="open" x-cloak method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}" class="mt-4 space-y-3">
-                    @csrf
-                    @if ($errors->hasAny(['rating','comment','name','email']))
-                        <div class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2">{{ $errors->first('rating') ?: $errors->first('comment') ?: $errors->first('name') ?: $errors->first('email') }}</div>
-                    @endif
+            <div class="fi-bars" role="group" aria-label="{{ __('ficha.reviews_bars') }}">
+                @foreach ([5, 4, 3, 2, 1] as $star)
+                    @php $pct = (int) ($reviewStats['distribution'][$star]['percent'] ?? 0); @endphp
                     <div>
-                        <label class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_rating') }} *</label>
-                        <div class="flex gap-1 text-2xl leading-none cursor-pointer">
-                            <template x-for="n in 5" :key="n">
-                                <span @click="rating = n" :class="n <= rating ? 'text-orange-400' : 'text-teal-800/20'">★</span>
-                            </template>
-                        </div>
-                        <input type="hidden" name="rating" :value="rating">
-                    </div>
-                    <div>
-                        <label for="d-rev-comment" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.your_review') }} *</label>
-                        <textarea id="d-rev-comment" name="comment" required minlength="10" maxlength="2000" rows="4" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">{{ old('comment') }}</textarea>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label for="d-rev-name" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.name') }} *</label>
-                            <input id="d-rev-name" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                        </div>
-                        <div>
-                            <label for="d-rev-email" class="block text-[11px] font-bold uppercase tracking-wide text-teal-800 mb-1.5">{{ __('ui.email') }} *</label>
-                            <input id="d-rev-email" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email" class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700">
-                            <p class="text-[10px] text-teal-800/70 mt-1">{{ __('ui.email_not_published') }}</p>
-                        </div>
-                    </div>
-                    <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] w-px h-px opacity-0">
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-700 text-white font-bold text-sm rounded-full py-2.5 px-6 transition-colors">{{ __('ui.submit_review') }}</button>
-                </form>
-            </div>
-
-        </section>
-
-        {{-- ══════════════════════════════════════
-             8. OTROS VIAJEROS TAMBIÉN RESERVARON
-        ══════════════════════════════════════ --}}
-        @if ($sidebarTours->isNotEmpty())
-        <section aria-labelledby="related-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h2 id="related-heading" class="font-display text-base lg:text-lg text-teal-800">{{ __('ui.others_also_booked') }}</h2>
-                <a href="{{ route('tours.index', ['locale' => $locale]) }}" class="text-xs font-semibold text-orange-700 hover:text-orange-800 transition-colors">{{ __('ui.see_all') }}</a>
-            </div>
-            {{-- Slider tipo home: 2 cards por vista en desktop --}}
-            <div class="d-related" x-data>
-                <div class="d-related-track" x-ref="relTrack">
-                @foreach ($sidebarTours as $idx => $rel)
-                    @php
-                        $relSlug    = is_object($rel) ? ($rel instanceof \App\Models\Tour ? $rel->slugFor($locale) : ($rel->slug ?? '#')) : '#';
-                        $relTitle   = is_object($rel) ? ($rel->title_es ?? $rel->title ?? 'Tour') : ($rel->title ?? 'Tour');
-                        $relPrice   = is_object($rel) ? ($rel->price ?? 0) : ($rel->price ?? 0);
-                        $relBefore  = is_object($rel) ? ($rel->price_before ?? null) : ($rel->price_before ?? null);
-                        // Única fuente de verdad: reseñas publicadas reales del tour relacionado.
-                        $relStats   = $rel->reviewStats();
-                        $relRating  = $relStats['average'] !== null ? number_format($relStats['average'], 1) : null;
-                        $relReviews = $relStats['total'];
-                        $relCover   = is_object($rel) && method_exists($rel, 'getCoverUrlAttribute') ? $rel->cover_url : ($rel->cover_url ?? asset('assets/banners/banner-hero.jpg'));
-                        $relDuration= \App\Support\TourListing::durationLabel($rel->duration ?? null) ?? __('ui.duration_full_day');
-                        $relHasOffer = $relBefore && (float)$relBefore > (float)$relPrice;
-                        $relPct = $relHasOffer ? (int) round(((float)$relBefore - (float)$relPrice) / (float)$relBefore * 100) : 0;
-                        $relHref = $relSlug !== '#' ? route('tours.show', ['locale' => $locale, 'slug' => $relSlug]) : '#';
-                    @endphp
-                    <div class="px-1">
-                        <x-tour-card
-                            :title="$relTitle"
-                            :slug="$relSlug"
-                            :img="$relCover"
-                            :imgPath="$rel->cover_image ?? null"
-                            :imgAlt="$relTitle"
-                            :before="$relHasOffer ? $relBefore : null"
-                            :now="$relPrice"
-                            :rating="$relRating"
-                            :reviews="$relReviews"
-                            :duration="$relDuration"
-                        />
+                        <span>{{ $star }} ★</span>
+                        <span class="fi-bars__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $pct }}" aria-label="{{ $star }} ★"><span class="fi-bars__fill" style="width:{{ $pct }}%"></span></span>
+                        <small>{{ $pct }}%</small>
                     </div>
                 @endforeach
-                </div>
-                @if ($sidebarTours->count() > 2)
-                    <button type="button" class="d-related-nav prev" aria-label="{{ __('ui.previous') }}"
-                            @click="$refs.relTrack.scrollBy({ left: -$refs.relTrack.clientWidth * 0.9, behavior: 'smooth' })">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" class="d-related-nav next" aria-label="{{ __('ui.next') }}"
-                            @click="$refs.relTrack.scrollBy({ left: $refs.relTrack.clientWidth * 0.9, behavior: 'smooth' })">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                @endif
-            </div>
-        </section>
-        @endif
-
-        {{-- ══════════════════════════════════════
-             9. RESERVA CON CONFIANZA
-        ══════════════════════════════════════ --}}
-        <section aria-labelledby="confidence-heading" class="bg-white rounded-2xl ring-1 ring-teal-800/10 shadow-sm p-5">
-            <h2 id="confidence-heading" class="font-display text-base font-bold text-teal-800 mb-4">{{ __('ui.book_with_confidence') }}</h2>
-            <div class="grid grid-cols-4 gap-2">
-                @foreach (array_values(array_filter([
-                    $freeCancellation ? ['icon' => 'shield', 'label' => __('ui.free_cancellation'), 'caption' => __('ui.until_24h_before')] : null,
-                    ['icon' => 'lock',   'label' => __('ui.secure_payment_protected'), 'caption' => ''],
-                    ['icon' => 'phone',  'label' => __('ui.customer_support_247'), 'caption' => ''],
-                    ['icon' => 'medal',  'label' => __('ui.over_10_years'), 'caption' => ''],
-                ])) as $trust)
-                    <div class="flex flex-col items-center text-center gap-1.5">
-                        <div class="w-10 h-10 rounded-full bg-orange-50 ring-1 ring-orange-200 grid place-items-center text-orange-500 shrink-0">
-                            @if ($trust['icon'] === 'shield')
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                            @elseif ($trust['icon'] === 'lock')
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                            @elseif ($trust['icon'] === 'phone')
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 3.75v4.5m0-4.5h-4.5m4.5 0l-6 6m3 12c-8.284 0-15-6.716-15-15V4.5A2.25 2.25 0 014.5 2.25h1.372c.516 0 .966.351 1.091.852l1.106 4.423c.11.44-.054.902-.417 1.173l-1.293.97a1.062 1.062 0 00-.38 1.21 12.035 12.035 0 007.143 7.143c.441.162.928-.004 1.21-.38l.97-1.293a1.125 1.125 0 011.173-.417l4.423 1.106c.5.125.852.575.852 1.091V19.5a2.25 2.25 0 01-2.25 2.25h-2.25z"/></svg>
-                            @else
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
-                            @endif
-                        </div>
-                        <p class="text-[10px] font-semibold text-teal-800 leading-tight">{{ $trust['label'] }}</p>
-                        @if ($trust['caption'])
-                            <p class="text-[9px] text-teal-800/70 leading-tight">{{ $trust['caption'] }}</p>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-        </section>
-
-    </div>{{-- /columna izquierda --}}
-
-    {{-- ─── COLUMNA DERECHA — tarjeta de reserva sticky ─── --}}
-    <aside class="hidden md:block d-sidebar-sticky" aria-label="{{ __('ui.book_online') }}">
-        <div id="seccion-reserva-desktop" class="booking-compact-card"
-             x-data="{ price: window.__lvtPrice || 0, get total() { return ((this.$store.booking.adults + this.$store.booking.children) * this.price).toFixed(0); } }">
-            {{-- Cabecera --}}
-            <div class="booking-compact-head">
-                <span class="text-white text-xs font-semibold tracking-wide">{{ __('ui.book_online') }}</span>
-@if ($freeCancellation)
-                <span class="inline-flex items-center gap-1 text-white/80 text-[11px]">
-                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    {{ __('ui.free_cancellation') }}
-                </span>
-@endif
-            </div>
-            {{-- Cuerpo --}}
-            <div class="booking-compact-body space-y-3">
-                {{-- Precio --}}
-                <div class="flex items-end gap-4 flex-wrap">
-                    @if ($hasOffer)
-                        <div>
-                            <p class="text-[10px] uppercase tracking-widest text-teal-800/70 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_before')) }}</p>
-                            <p class="font-price text-base text-teal-800/70 line-through leading-none">US${{ number_format((float)$tour->price_before, 0) }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] uppercase tracking-widest text-orange-700 font-semibold leading-none">{{ mb_strtoupper(__('ui.price_now')) }}</p>
-                            <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                            <p class="text-[11px] text-teal-800/70 mt-0.5">/ {{ __('ui.per_person') }}</p>
-                        </div>
-                        <span class="ml-auto inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 text-[11px] font-bold px-2 py-1 rounded-lg">
-                            -{{ $discountPct }}%
-                        </span>
-                    @else
-                        <div>
-                            <p class="text-[10px] uppercase tracking-widest text-teal-800/70 font-semibold leading-none">{{ mb_strtoupper(__('ui.from')) }}</p>
-                            <p class="font-price text-3xl font-bold text-teal-800 leading-none">US${{ number_format((float)$tour->price, 0) }}</p>
-                            <p class="text-[11px] text-teal-800/70 mt-0.5">/ {{ __('ui.per_person') }}</p>
-                        </div>
-                    @endif
-                </div>
-                <p class="lvt-flexpay">{{ __('ui.tour_flex_pay_line') }}</p>
-
-                {{-- Campo Fecha --}}
-                <div>
-                    <label for="sb-date" class="block text-[11px] font-semibold text-teal-800 mb-1">{{ __('ui.tour_date') }}</label>
-                    <input type="date" id="sb-date"
-                           data-booking-date
-                           placeholder="{{ __('ui.select_tour_date') }}"
-                           x-model="$store.booking.date"
-                           class="w-full rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2.5 text-sm text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-transparent"
-                           min="{{ $bookingMinDate }}"
-                           aria-label="{{ __('ui.select_tour_date') }}"
-                           aria-describedby="sb-date-notice">
-                    <p id="sb-date-notice" class="mt-1.5 text-[11px] leading-snug text-teal-800/75">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]) }}</p>
-                    @include('tours.partials.slot-picker', ['idSuffix' => 'd'])
-                    @error('travel_date')
-                        <p class="mt-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2" role="alert" data-date-server-error>{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Adultos --}}
-                <div>
-                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">{{ __('ui.adults') }}</label>
-                    <div class="flex items-center gap-3 rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2">
-                        <button type="button"
-                                @click="$store.booking.adults = Math.max(1, $store.booking.adults - 1)"
-                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="{{ __('ui.less_adults') }}">−</button>
-                        <span class="flex-1 text-center text-sm font-bold text-teal-800 tabular-nums" x-text="$store.booking.adults">1</span>
-                        <button type="button"
-                                @click="$store.booking.adults++"
-                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="{{ __('ui.more_adults') }}">+</button>
-                    </div>
-                </div>
-
-                {{-- Niños --}}
-                <div>
-                    <label class="block text-[11px] font-semibold text-teal-800 mb-1">{{ __('ui.children') }}</label>
-                    <div class="flex items-center gap-3 rounded-xl border border-teal-800/20 bg-cream-100 px-3 py-2">
-                        <button type="button"
-                                @click="$store.booking.children = Math.max(0, $store.booking.children - 1)"
-                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="{{ __('ui.less_children') }}">−</button>
-                        <span class="flex-1 text-center text-sm font-bold text-teal-800 tabular-nums" x-text="$store.booking.children">0</span>
-                        <button type="button"
-                                @click="$store.booking.children++"
-                                class="w-7 h-7 rounded-full bg-teal-800/10 hover:bg-teal-800/20 text-teal-800 font-bold text-base grid place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
-                                aria-label="{{ __('ui.more_children') }}">+</button>
-                    </div>
-                </div>
-
-                {{-- Total estimado --}}
-                <div class="flex items-center justify-between bg-cream-100 ring-1 ring-teal-800/10 rounded-xl px-4 py-3">
-                    <div>
-                        <p class="text-xs font-semibold text-teal-800">{{ __('ui.estimated_total') }}</p>
-                        <p class="text-[10px] text-teal-800/70 mt-0.5"
-                           x-text="`${$store.booking.adults} adulto${$store.booking.adults>1?'s':''}` + ($store.booking.children>0 ? ` + ${$store.booking.children} niño${$store.booking.children>1?'s':''}` : '') + ` × US$${price}`">
-                        </p>
-                    </div>
-                    <strong class="font-price text-2xl font-bold text-teal-800">US$<span x-text="total">{{ number_format((float)$tour->price, 0) }}</span></strong>
-                </div>
-
-                {{-- CTA Reservar --}}
-                <button type="submit"
-                        form="form-reservar"
-                        data-ga-cta="reservar" data-ga-location="ficha"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-sm rounded-full py-3.5 px-6 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800 uppercase tracking-wide">
-                    {{ __('ui.book_now') }}
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                </button>
-
-                {{-- Badges de confianza --}}
-                <div class="grid grid-cols-2 gap-2 pt-1 border-t border-teal-800/10">
-@if ($freeCancellation)
-                    <div class="flex items-center gap-1.5 text-teal-800/70">
-                        <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                        <span class="text-[10px] font-semibold">{{ __('ui.free_cancellation') }}</span>
-                    </div>
-@endif
-                    <div class="flex items-center gap-1.5 text-teal-800/70">
-                        <svg class="w-4 h-4 text-teal-700 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                        <span class="text-[10px] font-semibold">{{ __('ui.secure_payment') }}</span>
-                    </div>
-                </div>
-
-                {{-- Pie --}}
-                <p class="text-center text-[11px] text-teal-800/70">{{ __('ui.no_extra_fees_instant_confirmation') }}</p>
             </div>
         </div>
-    </aside>{{-- /columna derecha --}}
+        @endif
 
-    </div>{{-- /md:grid --}}
-    </div>{{-- /container --}}
-    </div>{{-- /hidden md:block wrapper --}}
-</section>
+        @if ($stamp = \App\Models\Setting::tripadvisorStamp())
+            <x-tripadvisor-stamp :stamp="$stamp" variant="d" />
+        @endif
 
-{{-- Form de reserva — compartido por mobile y desktop --}}
-<form id="form-reservar"
-      method="POST"
-      action="{{ route('cart.store', ['locale' => $locale]) }}"
-      class="hidden" x-data>
+        @if (session('review_status'))
+            <div class="fi-rform__flash fi-rform__flash--ok" role="status">{{ session('review_status') }}</div>
+        @endif
+
+        @if ($tourReviews->isNotEmpty())
+        <div class="fi-rlist">
+            @foreach ($tourReviews->take(3) as $rev)
+                @include('tours.partials.review-item', ['rev' => $rev])
+            @endforeach
+        </div>
+        @if ($tourReviews->count() > 3)
+        <details class="fi-rmore">
+            <summary class="fi-rlink" style="cursor:pointer;list-style:none">{{ __('ui.see_more') }} ({{ $tourReviews->count() - 3 }})</summary>
+            <div class="fi-rlist" style="margin-top:12px">
+                @foreach ($tourReviews->slice(3) as $rev)
+                    @include('tours.partials.review-item', ['rev' => $rev])
+                @endforeach
+            </div>
+        </details>
+        @endif
+        <a class="fi-rlink" href="{{ \App\Support\LocalizedPages::url('reviews', $locale) }}">{{ __('ficha.reviews_all') }} ↗</a>
+        @else
+            <p class="fi-sec__sub" style="margin-top:8px">{{ __('ui.be_first_review') }}</p>
+        @endif
+
+        {{-- Añadir una valoración (queda pendiente de aprobación) --}}
+        <details class="fi-rform" x-data="{ rating: {{ (int) old('rating', 0) }} }" @if ($errors->hasAny(['rating','comment','name','email'])) open @endif>
+            <summary>✎ {{ __('ui.add_review') }}</summary>
+            <form method="POST" action="{{ route('tours.review.store', ['locale' => $locale, 'slug' => $tour->slug]) }}">
+                @csrf
+                @if ($errors->hasAny(['rating','comment','name','email']))
+                    <div class="fi-rform__flash fi-rform__flash--err" role="alert">{{ $errors->first('rating') ?: $errors->first('comment') ?: $errors->first('name') ?: $errors->first('email') }}</div>
+                @endif
+                <div>
+                    <span class="fi-field__label" id="fi-rv-r">{{ __('ui.your_rating') }} *</span>
+                    <div class="fi-rform__stars" role="radiogroup" aria-labelledby="fi-rv-r">
+                        <template x-for="n in 5" :key="n">
+                            <button type="button" :class="n <= rating && 'is-on'" role="radio" :aria-checked="n === rating ? 'true' : 'false'" :aria-label="n + ' / 5'" @click="rating = n">★</button>
+                        </template>
+                    </div>
+                    <input type="hidden" name="rating" :value="rating">
+                </div>
+                <div><label for="fi-rv-c">{{ __('ui.your_review') }} *</label><textarea id="fi-rv-c" name="comment" required minlength="10" maxlength="2000" rows="4">{{ old('comment') }}</textarea></div>
+                <div><label for="fi-rv-n">{{ __('ui.name') }} *</label><input id="fi-rv-n" type="text" name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name"></div>
+                <div><label for="fi-rv-e">{{ __('ui.email') }} *</label><input id="fi-rv-e" type="email" name="email" value="{{ old('email') }}" required maxlength="160" autocomplete="email"><p class="fi-notice">{{ __('ui.email_not_published') }}</p></div>
+                <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="fi-hp">
+                <button type="submit" class="fi-rform__submit">{{ __('ui.submit_review') }}</button>
+            </form>
+        </details>
+    </section>
+
+    {{-- Tours relacionados --}}
+    @if ($relatedTours->isNotEmpty())
+    <section class="fi-sec fi-related" id="cruzada" aria-labelledby="fi-rel">
+        <h2 id="fi-rel">{{ __('ficha.related_title') }}</h2>
+        <div class="fi-related-grid">
+            @foreach ($relatedTours as $rel)
+                @php
+                    $relTitle = $rel->title;
+                    $relHref  = route('tours.show', ['locale' => $locale, 'slug' => $rel->slugFor($locale)]);
+                    $relImg   = \App\Support\ImageVariants::card($rel->cover_image ?? null, '(min-width: 841px) 30vw, (min-width: 561px) 45vw, 100vw');
+                    $relDur   = \App\Support\TourListing::durationLabel($rel->duration ?? null);
+                    $relMeta  = implode(' · ', array_filter([$relDur, $rel->category?->name]));
+                    $relOffer = $rel->price_before && (float) $rel->price_before > (float) $rel->price;
+                @endphp
+                <article class="fi-rcard">
+                    <img class="fi-rcard__img" src="{{ $relImg['src'] ?: $rel->cover_url }}" @if ($relImg['srcset']) srcset="{{ $relImg['srcset'] }}" sizes="{{ $relImg['sizes'] }}" @endif alt="{{ $relTitle }}" width="400" height="160" loading="lazy" decoding="async">
+                    <div class="fi-rcard__body">
+                        <h3><a href="{{ $relHref }}">{{ $relTitle }}</a></h3>
+                        @if ($relMeta !== '')<p>{{ $relMeta }}</p>@endif
+                        <p class="fi-rcard__price"><strong>{{ $money($rel->price) }}</strong>@if ($relOffer) <s>{{ $money($rel->price_before) }}</s>@endif <small>{{ __('ficha.per_person') }}</small></p>
+                        <a class="fi-rcard__link" href="{{ $relHref }}" aria-label="{{ __('ficha.see_tour') }}: {{ $relTitle }}">{{ __('ficha.see_tour') }} →</a>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+    </section>
+    @endif
+
+    {{-- Preguntas frecuentes (visibles en el HTML; <details> nativo) --}}
+    @if (count($tourFaqs) > 0)
+    <section class="fi-sec fi-faq" id="faq" aria-labelledby="fi-faq">
+        <h2 id="fi-faq">{{ __('ficha.faq_title') }}</h2>
+        <div style="margin-top:8px">
+        @foreach ($tourFaqs as $faq)
+            <details data-ga-faq="ficha">
+                <summary>{{ $faq['question'] }}</summary>
+                <div>{!! nl2br(e($faq['answer'])) !!}</div>
+            </details>
+        @endforeach
+        </div>
+    </section>
+    @endif
+
+</div>{{-- /fi --}}
+
+{{-- Visor de fotos --}}
+<div class="fi-lb" :class="{ 'is-open': lb }" role="dialog" aria-modal="true" aria-label="{{ __('ficha.photo_modal') }}" @click.self="closeLb()" x-cloak>
+    <div class="fi-lb__nav" x-show="gallery.length > 1">
+        <button type="button" @click="prev()" aria-label="{{ __('ficha.photo_prev') }}">‹</button>
+        <button type="button" @click="next()" aria-label="{{ __('ficha.photo_next') }}">›</button>
+    </div>
+    <button type="button" class="fi-lb__close" x-ref="lbClose" @click="closeLb()" aria-label="{{ __('ficha.photo_close') }}">×</button>
+    <div class="fi-lb__stage" @click.self="closeLb()"><img :src="gallery[active]" :alt="alts[active] || ''"></div>
+    <div class="fi-lb__cap"><span x-text="active + 1"></span> / <span x-text="gallery.length"></span> · <span x-text="alts[active]"></span></div>
+</div>
+
+{{-- Cajón del carrito --}}
+<div class="fi-ov" id="fi-cart"
+     x-data="lvtCartDrawer()"
+     :class="{ 'is-open': open }"
+     role="dialog" aria-modal="true" aria-label="{{ __('ficha.cart_title') }}"
+     @click.self="close()"
+     @keydown.escape.window="open && close()"
+     @lvt-cart-open.window="show($event.detail)"
+     x-cloak>
+    <div class="fi-drawer" x-ref="panel">
+        <div class="fi-drawer__head">
+            <div class="fi-drawer__title" role="heading" aria-level="2">{{ __('ficha.cart_title') }}</div>
+            <button type="button" class="fi-close" x-ref="closeBtn" @click="close()" aria-label="{{ __('ficha.cart_close') }}">×</button>
+        </div>
+        <p class="fi-drawer__sub">{{ __('ficha.cart_sub') }}</p>
+        <template x-if="cart.items.length === 0"><div class="fi-drawer__empty">{{ __('ficha.cart_empty') }}</div></template>
+        <template x-for="row in cart.items" :key="row.row_id">
+            <div class="fi-crow">
+                <div>
+                    <strong x-text="row.title"></strong>
+                    <small>
+                        <span x-text="row.date_label || i18n.no_date"></span>
+                        <template x-if="row.departure_label"><span> · <span x-text="row.departure_label"></span></span></template>
+                        · <span x-text="i18n.travelers.replace(':count', row.quantity)"></span>
+                    </small>
+                    <template x-if="row.available_slots && row.available_slots.length > 1">
+                        <select :aria-label="i18n.change_slot" @change="changeSlot(row, $event.target.value)">
+                            <template x-for="o in row.available_slots" :key="o.value"><option :value="o.value" :selected="o.value === row.departure_time" x-text="o.label"></option></template>
+                        </select>
+                    </template>
+                </div>
+                <b x-text="money(row.subtotal)"></b>
+            </div>
+        </template>
+        <div class="fi-drawer__total"><span>{{ __('ficha.cart_total') }}</span><strong x-text="money(cart.total)">US$0.00</strong></div>
+        <p class="fi-drawer__err" role="alert" x-show="err" x-text="err" x-cloak></p>
+        <a class="fi-cta" :href="cart.cart_url || '{{ route('cart.index', ['locale' => $locale]) }}'" :style="cart.items.length === 0 ? 'opacity:.45;pointer-events:none' : ''">{{ __('ficha.cart_checkout') }} <span aria-hidden="true">→</span></a>
+        <div class="fi-drawer__links">
+            <button type="button" @click="close()">{{ __('ficha.cart_continue') }}</button>
+            <button type="button" @click="clearCart()" :disabled="cart.items.length === 0">{{ __('ficha.cart_clear') }}</button>
+        </div>
+    </div>
+</div>
+</div>{{-- /fi-page --}}
+
+{{-- Formulario real de reserva (POST al carrito); la vista lo envía por fetch y, si falla, por envío normal --}}
+<form id="form-reservar" method="POST" action="{{ route('cart.store', ['locale' => $locale]) }}" hidden x-data>
     @csrf
     <input type="hidden" name="tour_id" value="{{ $tour->id }}">
-    {{-- Campos canónicos: única fuente de verdad = $store.booking (sincronizado por mobile y desktop) --}}
     <input type="hidden" name="travel_date" :value="$store.booking.date">
     <input type="hidden" name="departure_slot" :value="$store.booking.slot">
     <input type="hidden" name="adults" :value="$store.booking.adults">
     <input type="hidden" name="children" :value="$store.booking.children">
 </form>
 
-@push('scripts')
-{{--
-    view_item — fires once on page load. Data comes straight from the
-    server ($tour), never assembled by hand in JS.
-    add_to_cart — fires on submit of #form-reservar, BEFORE the classic
-    (non-AJAX) POST navigates away to /carrito. guardEmptyDate() (pushed
-    earlier in this same file) already listens for 'submit' and calls
-    e.preventDefault() when no date was chosen; this listener runs AFTER
-    it (scripts render/attach in @push order) and checks e.defaultPrevented
-    so a blocked submission never gets counted as an add_to_cart.
---}}
-<script>
-(function () {
-    var lvtTourItem = {
-        item_id: @json((string) $tour->id),
-        item_name: @json($titleDisplay),
-        price: {{ (float) $tour->price }},
-        quantity: 1,
-    };
-
-    document.addEventListener('DOMContentLoaded', function () {
-        if (typeof window.lvtTrack === 'function') {
-            window.lvtTrack('view_item', {
-                currency: 'USD',
-                value: lvtTourItem.price,
-                items: [lvtTourItem],
-            }, { fb: 'ViewContent' });
-        }
-    });
-
-    var form = document.getElementById('form-reservar');
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            if (e.defaultPrevented || typeof window.lvtTrack !== 'function') return;
-
-            var adults = (typeof Alpine !== 'undefined' && Alpine.store('booking'))
-                ? parseInt(Alpine.store('booking').adults, 10) || 1
-                : 1;
-            var children = (typeof Alpine !== 'undefined' && Alpine.store('booking'))
-                ? parseInt(Alpine.store('booking').children, 10) || 0
-                : 0;
-            var quantity = adults + children;
-
-            window.lvtTrack('add_to_cart', {
-                currency: 'USD',
-                value: lvtTourItem.price * quantity,
-                items: [Object.assign({}, lvtTourItem, { quantity: quantity })],
-            }, { fb: 'AddToCart' });
-        });
-    }
-})();
-</script>
-@endpush
-
-{{-- ─────────── BARRA DE RESERVA FIJA (solo móvil, < md) ─────────── --}}
-{{-- Aparece cuando la card #seccion-reserva sale de la vista hacia arriba y se oculta al volver a verse.
-     Publica --sticky-bar-h en <html> para que el botón de WhatsApp suba sobre ella. --}}
+{{-- Barra fija móvil: "Desde US$X / persona · Ver fechas" + WhatsApp --}}
 @if ((float) $tour->price > 0)
-<div class="lvt-resbar"
+<div class="fi-bar"
      x-data="{
          shown: false,
          init() {
-             // Móvil: visible desde la carga (precio + CTA en el primer pantallazo); solo se oculta cuando la tarjeta
-             // de reserva ocupa la pantalla (ahí ya está el CTA propio).
              this.shown = !window.matchMedia('(min-width: 768px)').matches;
-             // En móvil el WhatsApp vive dentro de esta barra (el flotante tapaba el input de fecha y textos).
              document.documentElement.classList.add('has-resbar');
              const fw = document.querySelector('.lvt-wa');
              if (fw && this.$refs.wa) this.$refs.wa.href = fw.href;
@@ -2744,20 +1385,13 @@ if (!empty($itinerary)) {
      }"
      :class="shown ? 'is-on' : ''"
      :aria-hidden="shown ? 'false' : 'true'">
-    <div class="lvt-resbar__price">
-        @if ($hasOffer)
-            <p class="lvt-resbar__old">US${{ number_format((float)$tour->price_before, 0) }}</p>
-        @else
-            <p class="lvt-resbar__label">{{ __('ui.from') }}</p>
-        @endif
-        <p class="lvt-resbar__now"><span class="font-price">US${{ number_format((float)$tour->price, 0) }}</span> <small>{{ __('ui.per_person') }}</small></p>
-    </div>
-    <div class="lvt-resbar__actions">
-        <a x-ref="wa" href="#" target="_blank" rel="noopener noreferrer" class="lvt-resbar__wa" aria-label="WhatsApp"
+    <div class="fi-bar__price"><small>{{ __('ficha.bar_from') }} {{ __('ficha.bar_per_person') }}</small>{{ $money($tour->price) }}</div>
+    <div class="fi-bar__actions">
+        <a x-ref="wa" href="#" target="_blank" rel="noopener noreferrer" class="fi-bar__wa" aria-label="{{ __('ficha.bar_whatsapp') }}"
            data-wa-location="sticky" data-ga-cta="whatsapp" data-ga-location="sticky_whatsapp">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.978-1.045zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.148-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.017-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413z"/></svg>
         </a>
-        <button type="button" class="lvt-resbar__cta" @click="go()" data-ga-cta="comprobar_disponibilidad" data-ga-location="sticky">{{ __('ui.check_availability') }}</button>
+        <button type="button" class="fi-bar__cta" @click="go()" data-ga-cta="comprobar_disponibilidad" data-ga-location="sticky">{{ __('ficha.bar_see_dates') }} →</button>
     </div>
 </div>
 @endif

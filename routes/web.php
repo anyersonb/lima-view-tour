@@ -129,6 +129,8 @@ Route::prefix('{locale}')
             ->middleware('throttle:30,1')
             ->name('cart.coupon');
         Route::delete('/carrito/vaciar', [CartController::class, 'clear'])->name('cart.clear');
+        // Resumen JSON del carrito (cajón de la ficha de tour).
+        Route::get('/carrito/resumen', [CartController::class, 'summary'])->name('cart.summary');
         // Carrito abandonado: captura de contacto (AJAX) + link de recuperación
         Route::post('/carrito/guardar-contacto', [CartController::class, 'saveContact'])
             ->middleware('throttle:30,1')
