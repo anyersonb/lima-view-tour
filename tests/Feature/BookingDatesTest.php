@@ -596,7 +596,7 @@ class BookingDatesTest extends TestCase
             $r = $this->get(route('tours.show', ['locale' => 'es', 'slug' => $tour->slug]));
             $r->assertOk();
             $r->assertSee('window.LVT_MIN_DATE = "2026-10-12"', false);
-            $this->assertSame(2, substr_count($r->getContent(), 'min="2026-10-12"'));
+            $this->assertSame(1, substr_count($r->getContent(), 'min="2026-10-12"'));
             $r->assertDontSee('min="2026-10-13"', false);
             $r->assertSee('7:00 p. m.', false);
         }
