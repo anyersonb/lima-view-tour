@@ -69,6 +69,9 @@
                             <h3>{{ $booking['tour_title_snapshot'] }}</h3>
                             <ul>
                                 <li>{{ __('checkout_ui.thanks_date') }}: <strong>{{ $date }}</strong></li>
+                                @if (! empty($booking['departure_time_label']))
+                                    <li>{{ __('checkout_ui.time_label') }}: <strong>{{ $booking['departure_time_label'] }}</strong></li>
+                                @endif
                                 <li>{{ __('checkout_ui.thanks_people') }}: <strong>{{ $pax }}</strong></li>
                                 @if (! $loop->first || $bookings->count() > 1)
                                     <li>{{ __('checkout_ui.thanks_ref') }}: <strong>{{ $booking['reference'] }}</strong></li>

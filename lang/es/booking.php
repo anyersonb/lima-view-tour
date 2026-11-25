@@ -25,6 +25,6 @@ return [
     'slot_item_unavailable' => 'El horario de «:tour» ya no está disponible para esa fecha. Cámbialo o elige otra fecha.',
     'same_day_notice' => 'Reserva para hoy disponible: con al menos :hours horas de anticipación al horario elegido.',
     'same_day_mail_prefix' => '[MISMO DÍA]',
-    'same_day_mail_banner' => 'RESERVA PARA EL MISMO DÍA — salida el :date a las :time. Confirmar hoy mismo.',
+    'same_day_mail_banner' => 'RESERVA PARA EL MISMO DÍA — confirmar hoy mismo. Salida el :date a las :time',
     'slot_label' => 'Horario de salida',
 ];

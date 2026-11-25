@@ -15,6 +15,6 @@ return [
     'slot_item_unavailable' => 'The time for ":tour" is no longer available on that date. Change it or choose another date.',
     'same_day_notice' => 'Same-day booking available: at least :hours hours before the chosen time.',
     'same_day_mail_prefix' => '[SAME DAY]',
-    'same_day_mail_banner' => 'SAME-DAY BOOKING — departs :date at :time. Confirm today.',
+    'same_day_mail_banner' => 'SAME-DAY BOOKING — confirm today. Departs :date at :time',
     'slot_label' => 'Departure time',
 ];

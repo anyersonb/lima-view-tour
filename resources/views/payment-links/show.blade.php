@@ -107,6 +107,12 @@
                             <b class="text-teal-800">{{ $link->travel_date->locale($locale)->translatedFormat('d M Y') }}</b>
                         </div>
                     @endif
+                    @if ($link->travel_date && $link->booking)
+                        <div class="flex justify-between">
+                            <span class="text-teal-800/70">{{ __('checkout_ui.time_label') }}</span>
+                            <b class="text-teal-800">{{ $link->booking->departureTimeLabel($locale) }}</b>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="mt-5 bg-cream-100 rounded-xl p-4 flex items-center justify-between">

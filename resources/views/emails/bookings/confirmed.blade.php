@@ -7,6 +7,15 @@
     };
     $first      = $bookings->first();
     $anyPickup  = $bookings->contains(fn ($b) => $b->tour?->pickup_included ?? true);
+    // Reserva de hoy o con salida en menos de 24 h: no hay "un dia antes" para avisar el recojo.
+    $soonPickup = $bookings->contains(function ($b) {
+        if ($b->isSameDay()) {
+            return true;
+        }
+        $dep = $b->departureAt();
+
+        return $dep !== null && $dep->lt(now(\App\Support\BookingCalendar::timezone())->addHours(24));
+    });
     // Adelanto cobrado (partial) tambien es reserva CONFIRMADA: solo falta el saldo.
     $payingNow  = in_array($first?->payment_status, ['paid', 'partial'], true);
     $isDeposit  = ($first?->payment_status === 'partial');
@@ -173,7 +182,7 @@
                 <td width="48" style="padding:18px 0 18px 18px;vertical-align:top;font-size:30px;color:#0c7354;">&#9742;</td>
                 <td style="padding:18px;">
                     <div style="font-family:Georgia,serif;font-size:18px;color:#0b3035;margin-bottom:5px;">{{ $L('¿Qué sigue?', "What's next?", 'O que vem a seguir?') }}</div>
-                    <div style="font-size:14px;color:#344b52;line-height:1.55;">{{ $L('Un día antes del tour, entre las 6:00 y 7:00 p.m., te enviaremos el horario exacto de recojo por WhatsApp o correo.', 'One day before the tour, between 6:00 and 7:00 p.m., we will send you the exact pickup time via WhatsApp or email.', 'Um dia antes do passeio, entre 18h e 19h, enviaremos o horário exato de embarque por WhatsApp ou e-mail.') }}</div>
+                    <div style="font-size:14px;color:#344b52;line-height:1.55;">{{ $soonPickup ? $L('Te contactaremos por WhatsApp en breve para coordinar tu recojo de hoy.', 'We will contact you on WhatsApp shortly to arrange your pickup today.', 'Entraremos em contato por WhatsApp em breve para combinar o seu embarque de hoje.') : $L('Un día antes del tour, entre las 6:00 y 7:00 p.m., te enviaremos el horario exacto de recojo por WhatsApp o correo.', 'One day before the tour, between 6:00 and 7:00 p.m., we will send you the exact pickup time via WhatsApp or email.', 'Um dia antes do passeio, entre 18h e 19h, enviaremos o horário exato de embarque por WhatsApp ou e-mail.') }}</div>
                 </td>
             </tr>
         </table>

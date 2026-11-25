@@ -571,4 +571,99 @@ class SameDayBookingTest extends TestCase
         $this->assertStringContainsString('wa.me/', $html);
         Log::shouldHaveReceived('warning')->withArgs(fn ($m) => $m === 'checkout.no_payment_method_available')->atLeast()->once();
     }
+
+    // ── Fixes QA 24-nov (M1, M3, B1, B4) ───────────────────────────────
+
+    public function test_card_error_messages_do_not_mention_paypal_in_any_locale(): void
+    {
+        foreach (['es', 'en', 'pt'] as $locale) {
+            $strings = trans('checkout_culqi', [], $locale);
+            foreach (['unavailable', 'charge_failed'] as $key) {
+                $this->assertStringNotContainsStringIgnoringCase('paypal', $strings[$key], "$locale.$key");
+                $this->assertStringContainsString('WhatsApp', $strings[$key], "$locale.$key");
+            }
+            foreach ($strings['declined'] as $key => $text) {
+                $this->assertStringNotContainsStringIgnoringCase('paypal', $text, "$locale.declined.$key");
+            }
+        }
+    }
+
+    public function test_customer_mail_for_same_day_booking_does_not_promise_a_day_before_notice(): void
+    {
+        $this->at('09:00');
+        $tour = $this->plainTour(['pickup_included' => true]);
+        $same = Booking::factory()->create([
+            'tour_id' => $tour->id, 'travel_date' => self::DAY, 'same_day' => true,
+            'departure_slot' => '14:30', 'locale' => 'es', 'payment_status' => 'paid',
+        ]);
+        $same->load('tour');
+
+        foreach (['es' => 'Te contactaremos por WhatsApp en breve', 'en' => 'We will contact you on WhatsApp shortly', 'pt' => 'Entraremos em contato por WhatsApp em breve'] as $loc => $text) {
+            $same->locale = $loc;
+            $html = (new \App\Mail\BookingConfirmed(collect([$same]), 'ana@example.com'))->render();
+            $this->assertStringContainsString($text, $html, $loc);
+            $this->assertStringNotContainsString('6:00 y 7:00', $html, $loc);
+            $this->assertStringNotContainsString('6:00 and 7:00', $html, $loc);
+        }
+
+        $later = Booking::factory()->create([
+            'tour_id' => $tour->id, 'travel_date' => '2026-12-20', 'same_day' => false,
+            'locale' => 'es', 'payment_status' => 'paid',
+        ]);
+        $later->load('tour');
+        $html = (new \App\Mail\BookingConfirmed(collect([$later]), 'ana@example.com'))->render();
+        $this->assertStringContainsString('Un día antes del tour', $html);
+    }
+
+    public function test_customer_mail_for_departure_under_24h_also_gets_the_whatsapp_copy(): void
+    {
+        $this->at('15:00');
+        $tour = $this->plainTour(['pickup_included' => true, 'departure_time' => '09:00']);
+        $b = Booking::factory()->create([
+            'tour_id' => $tour->id, 'travel_date' => '2026-12-08', 'same_day' => false,
+            'locale' => 'es', 'payment_status' => 'paid',
+        ]);
+        $b->load('tour');
+
+        $html = (new \App\Mail\BookingConfirmed(collect([$b]), 'ana@example.com'))->render();
+        $this->assertStringContainsString('Te contactaremos por WhatsApp en breve', $html);
+    }
+
+    public function test_operator_banner_has_no_double_period_after_the_time(): void
+    {
+        foreach (['es', 'en', 'pt'] as $locale) {
+            foreach (['06:00', '23:30'] as $t) {
+                $line = __('booking.same_day_mail_banner', ['date' => '24 nov 2026', 'time' => BookingCalendar::timeLabel($t, $locale)], $locale);
+                $this->assertStringNotContainsString('..', $line, $locale);
+            }
+        }
+    }
+
+    public function test_thanks_page_shows_the_chosen_departure_time_next_to_the_date(): void
+    {
+        Mail::fake();
+        $this->at('09:00');
+        $tour = $this->cityTour();
+        $this->addToCart($tour, ['departure_slot' => '14:30']);
+        $this->fakeCulqiApproved();
+        $this->culqi(['payment_mode' => 'full'])->assertOk();
+
+        $html = $this->get(route('checkout.thanks', ['locale' => self::LOCALE]))->assertOk()->getContent();
+        $this->assertStringContainsString('Horario de salida', $html);
+        $this->assertStringContainsString('2:30 p. m.', $html);
+    }
+
+    public function test_footer_hides_paypal_logo_when_toggle_is_on_but_there_are_no_credentials(): void
+    {
+        Setting::set('paypal_visible', '1', 'boolean');
+        config(['services.paypal.client_id' => '', 'services.paypal.secret' => '']);
+        Setting::set('paypal_client_id', '', 'string');
+
+        $html = $this->get(route('home', ['locale' => self::LOCALE]))->assertOk()->getContent();
+        $this->assertStringNotContainsString('aria-label="PayPal"', $html);
+
+        config(['services.paypal.client_id' => 'cid', 'services.paypal.secret' => 'sec', 'services.paypal.mode' => 'sandbox']);
+        $html = $this->get(route('home', ['locale' => self::LOCALE]))->assertOk()->getContent();
+        $this->assertStringContainsString('aria-label="PayPal"', $html);
+    }
 }

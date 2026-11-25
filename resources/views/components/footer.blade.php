@@ -129,7 +129,7 @@
                         </svg>
                     </li>
                     {{-- PayPal (solo si el admin lo dejó visible) --}}
-                    @if (\App\Services\PayPalService::visibleToCustomers())
+                    @if (\App\Services\PayPalService::availableForCustomers())
                     <li class="bg-white rounded px-2 py-1">
                         <svg class="h-4 w-auto" aria-label="PayPal" role="img" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <text x="0" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#003087">Pay</text>

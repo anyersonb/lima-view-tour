@@ -274,7 +274,7 @@ class Settings extends Page implements HasForms
                             ->label('Mostrar PayPal en el checkout')
                             ->default(false)
                             ->columnSpanFull()
-                            ->helperText('Apagado: los clientes pagan solo con tarjeta (Culqi) y PayPal no aparece en el checkout, ni en los links de pago, ni en los correos. Las credenciales de abajo se conservan. Las reservas ya pagadas con PayPal no se ven afectadas.'),
+                            ->helperText('Apagado: los clientes pagan solo con tarjeta (Culqi) y PayPal no aparece en el checkout, en el pie de página ni en los links de pago de saldo. Excepción: un link de pago suelto que tú crees (que no sea de saldo) sigue mostrando PayPal, porque es su único medio de pago. Las credenciales de abajo se conservan. Las reservas ya pagadas con PayPal no se ven afectadas.'),
                         Select::make('paypal_mode')
                             ->label('Modo de PayPal')
                             ->options(['sandbox' => 'Sandbox (pruebas)', 'live' => 'Live (producción)'])

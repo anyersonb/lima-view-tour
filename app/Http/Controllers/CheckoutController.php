@@ -946,6 +946,18 @@ class CheckoutController extends Controller
     {
         $bookings = collect($request->session()->get('last_bookings', []));
         $conversionPending = $request->session()->pull('conversion_pending', false);
+        // Horario elegido por reserva (la sesión guarda arrays sin relaciones).
+        $ids = $bookings->pluck('id')->filter()->all();
+        $models = $ids === [] ? collect() : \App\Models\Booking::with('tour')->whereIn('id', $ids)->get()->keyBy('id');
+        $bookings = $bookings->map(function ($b) use ($models) {
+            $m = $models->get($b['id'] ?? null);
+            if ($m !== null && ! empty($b['travel_date'])) {
+                $b['departure_time_label'] = $m->departureTimeLabel();
+            }
+
+            return $b;
+        });
+
 
         // Lo realmente cobrado en ESTA compra (tipo, modo, monto, saldo). Se
         // conserva en sesión como last_bookings (la página sobrevive a un F5);
