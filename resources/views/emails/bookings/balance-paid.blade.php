@@ -11,7 +11,7 @@
     $contactPhone = \App\Models\Setting::get('contact_phone') ?: '+51 925 886 725';
     $contactEmail = \App\Models\Setting::get('contact_email') ?: 'reservas@limaviewtours.com';
     $travelDate   = $booking->travel_date ? $booking->travel_date->copy()->locale($urlLocale)->isoFormat('D MMM YYYY') : null;
-    $departure    = \App\Support\DepartureTime::normalize($booking->tour?->departure_time);
+    $departure    = \App\Support\DepartureTime::normalize($booking->departure_slot) ?? \App\Support\DepartureTime::normalize($booking->tour?->departure_time);
 @endphp
 <!doctype html>
 <html lang="{{ $locale }}">

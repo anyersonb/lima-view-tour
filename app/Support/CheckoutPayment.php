@@ -22,6 +22,17 @@ class CheckoutPayment
     {
         $amounts = PaymentPlan::amounts($total);
         $methods = CheckoutInfo::paymentMethods();
+        // Salida en menos de 48 h (mismo día o mañana cercano): solo 100% ahora.
+        $fullOnly = PaymentPlan::mustPayInFull($items);
+
+        if (! $methods['any']) {
+            // Sin Culqi y con PayPal oculto: el checkout no puede cobrar. Se avisa al cliente
+            // (mensaje + WhatsApp en la vista) y se deja constancia para el equipo.
+            \Illuminate\Support\Facades\Log::warning('checkout.no_payment_method_available', [
+                'culqi_enabled' => (bool) config('services.culqi.enabled'),
+                'paypal_visible' => \App\Services\PayPalService::availableForCustomers(),
+            ]);
+        }
 
         return [
             'currency' => 'USD',
@@ -29,8 +40,11 @@ class CheckoutPayment
             'discount' => round($discount, 2),
             'total' => round($total, 2),
             'total_cents' => PaymentPlan::toCents($total),
-            // Modo preseleccionado en el diseño aprobado: 50% ahora.
-            'default_mode' => PaymentPlan::DEPOSIT,
+            // Modo preseleccionado en el diseño aprobado: 50% ahora (100% si sale en < 48 h).
+            'default_mode' => $fullOnly ? PaymentPlan::FULL : PaymentPlan::DEPOSIT,
+            'full_only' => $fullOnly,
+            'allowed_modes' => $fullOnly ? [PaymentPlan::FULL] : PaymentPlan::MODES,
+            'full_only_notice' => __('checkout_payment.full_only_notice'),
             'deposit_percent' => PaymentPlan::DEPOSIT_PERCENT,
             // Por modo: mode, total, due (cobro ahora), balance (saldo), *_cents.
             // Culqi Checkout v4 y PayPal cobran SIEMPRE `due`; el servidor lo recalcula.

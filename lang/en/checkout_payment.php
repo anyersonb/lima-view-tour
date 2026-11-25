@@ -11,7 +11,7 @@
 return [
     // Server errors
     'mode_invalid' => 'Choose how much to pay now: 100% or a 50% deposit.',
-    'pay_now_via_gateway' => 'Immediate payment must be made by card (Culqi) or PayPal.',
+    'pay_now_via_gateway' => 'Immediate payment must be made by card.',
     'nothing_to_charge' => 'There is no amount to charge right now.',
 
     // "How would you like to pay?" section
@@ -60,4 +60,12 @@ return [
     'thanks_deposit' => 'We received your 50% deposit. Your booking is confirmed; the balance is paid later with a link we will email you.',
     'thanks_later' => 'Your booking is registered. It is confirmed once you complete the payment.',
     'thanks_balance_paid' => 'Balance paid. Your booking is paid in full.',
+
+    // Departures in under 48 h: full payment only (2026-11-24)
+    'full_only_notice' => 'For departures in less than 48 h, payment is in full.',
+    'full_only_required' => 'For departures in less than 48 h, payment is in full (100% now). Please choose to pay the total.',
+
+    // No payment method available (PayPal hidden and Culqi off)
+    'no_method_available' => 'We cannot take online payments right now. Message us on WhatsApp and we will help you complete your booking.',
+    'paypal_disabled' => 'PayPal is not available. Please pay by card.',
 ];

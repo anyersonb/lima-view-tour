@@ -35,7 +35,8 @@ class SendBookingPaymentReminders extends Command
         // Same parser as the booking rule: "HH:MM" (new format) and legacy
         // "05:00 AM" both resolve. Unlike the booking rule there is NO default
         // time here: an unreadable departure keeps sending the reminder.
-        $time = DepartureTime::normalize($booking->tour?->departure_time);
+        $time = DepartureTime::normalize($booking->departure_slot)
+            ?? (BookingCalendar::slots($booking->tour)[0] ?? null);
 
         if ($time === null) {
             return false;
@@ -76,7 +77,7 @@ class SendBookingPaymentReminders extends Command
         $bookings = Booking::query()
             // cover_image: the e-mail card reads Tour::cover_url; without the column the
             // image always fell back to the generic banner.
-            ->with('tour:id,departure_time,cover_image')
+            ->with('tour')
             ->where('payment_method', 'pay_later')
             ->where('payment_status', 'pending')
             ->where('status', 'pending')

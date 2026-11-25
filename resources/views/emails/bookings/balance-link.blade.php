@@ -15,7 +15,7 @@
     $tz           = \App\Support\BookingCalendar::timezone();
     $deadline     = $link->expires_at ? $link->expires_at->copy()->setTimezone($tz)->locale($urlLocale)->isoFormat('D MMM YYYY, HH:mm') : null;
     $travelDate   = $booking->travel_date ? $booking->travel_date->copy()->locale($urlLocale)->isoFormat('D MMM YYYY') : null;
-    $departure    = \App\Support\DepartureTime::normalize($booking->tour?->departure_time);
+    $departure    = \App\Support\DepartureTime::normalize($booking->departure_slot) ?? \App\Support\DepartureTime::normalize($booking->tour?->departure_time);
     $waText       = $L(
         "Hola, tengo una consulta sobre el saldo de mi reserva {$booking->reference} de Lima View Tours.",
         "Hi, I have a question about the balance of my Lima View Tours booking {$booking->reference}.",

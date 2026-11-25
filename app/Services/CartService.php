@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\CartItemNotFoundException;
 use App\Exceptions\CartLimitExceededException;
 use App\Models\Tour;
+use App\Support\BookingCalendar;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
 
@@ -36,11 +37,14 @@ class CartService
 
     /**
      * Add or increment a tour in the cart.
-     * rowId = md5(tour_id . travel_date) — ensures one row per tour+date combo.
+     * rowId = md5(tour_id . travel_date [. '|' . horario]) — una fila por
+     * combinación tour + fecha + horario. $departureSlot ya viene validado
+     * contra el tour; si el tour tiene un solo horario se asigna solo.
      */
-    public function add(Tour $tour, int $adults, int $children, string $travelDate): void
+    public function add(Tour $tour, int $adults, int $children, string $travelDate, ?string $departureSlot = null): void
     {
-        $rowId = $this->buildRowId($tour->id, $travelDate);
+        $departureSlot = BookingCalendar::resolveSlot($tour, $departureSlot);
+        $rowId = $this->buildRowId($tour->id, $travelDate, $departureSlot);
         $items = $this->rawItems();
 
         // El tope solo aplica a filas NUEVAS: incrementar una fila que ya
@@ -80,6 +84,7 @@ class CartService
                 'quantity' => $adults + $children,
                 'subtotal' => round((float) $tour->price * ($adults + $children), 2),
                 'travel_date' => $travelDate,
+                'departure_slot' => $departureSlot,
             ];
         }
 
@@ -122,12 +127,15 @@ class CartService
 
         $newRowId = $rowId;
         $newDate = $data['travel_date'] ?? null;
+        $newSlot = $data['departure_slot'] ?? null;
 
-        if ($newDate && $newDate !== ($items[$rowId]['travel_date'] ?? null)) {
+        if (($newDate && $newDate !== ($items[$rowId]['travel_date'] ?? null))
+            || ($newSlot && $newSlot !== ($items[$rowId]['departure_slot'] ?? null))) {
             $row = $items[$rowId];
-            $row['travel_date'] = $newDate;
+            $row['travel_date'] = $newDate ?: ($row['travel_date'] ?? '');
+            $row['departure_slot'] = $newSlot ?: ($row['departure_slot'] ?? null);
 
-            $newRowId = $this->buildRowId($row['tour_id'], $newDate);
+            $newRowId = $this->buildRowId($row['tour_id'], $row['travel_date'], $row['departure_slot']);
             unset($items[$rowId]);
 
             // Ya había una fila de ESTE MISMO tour en la fecha de destino: se
@@ -209,7 +217,7 @@ class CartService
             }
 
             $rowId = $item['row_id']
-                ?? $this->buildRowId($item['tour_id'], $item['travel_date'] ?? '');
+                ?? $this->buildRowId($item['tour_id'], $item['travel_date'] ?? '', $item['departure_slot'] ?? null);
 
             $item['row_id'] = $rowId;
             $keyed[$rowId] = $item;
@@ -338,9 +346,9 @@ class CartService
     //  Helpers
     // ─────────────────────────────────────────────────────────────
 
-    private function buildRowId(int|string $tourId, string $travelDate): string
+    private function buildRowId(int|string $tourId, string $travelDate, ?string $slot = null): string
     {
-        return md5($tourId.$travelDate);
+        return md5($tourId.$travelDate.($slot ? '|'.$slot : ''));
     }
 
     /** @return array<string, array<string, mixed>> */

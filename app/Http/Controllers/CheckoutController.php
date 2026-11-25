@@ -122,6 +122,14 @@ class CheckoutController extends Controller
                     ->with('error', __('checkout_payment.pay_now_via_gateway'));
             }
 
+            // Salida en menos de 48 h: no se reserva sin pagar (solo pago 100% ahora).
+            if (PaymentPlan::mustPayInFull($items)) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', __('checkout_payment.full_only_required'));
+            }
+
             $customer = [
                 'customer_name' => $validated['customer_name'],
                 'customer_email' => $validated['customer_email'],
@@ -205,6 +213,15 @@ class CheckoutController extends Controller
      */
     public function paypalCreateOrder(Request $request, string $locale): JsonResponse
     {
+        // PayPal oculto por el admin (Ajustes -> "Mostrar PayPal en el checkout"):
+        // no basta con esconder el botón, el servidor también rechaza la orden.
+        // Capturas y webhooks de órdenes ya existentes NO pasan por aquí.
+        if (! PayPalService::availableForCustomers()) {
+            Log::info('checkout.paypal_create_order: rejected, PayPal hidden for customers');
+
+            return response()->json(['code' => 'paypal_disabled', 'error' => __('checkout_payment.paypal_disabled')], 403);
+        }
+
         try {
             // Bloqueo en servidor: si YA hay un cobro capturado en esta
             // sesión cuya reserva no se pudo crear (ver el catch de
@@ -262,6 +279,12 @@ class CheckoutController extends Controller
 
             if ($items->isEmpty()) {
                 return response()->json(['error' => 'El carrito está vacío.'], 422);
+            }
+
+            // Salida en menos de 48 h: solo pago 100% ahora (también en el servidor,
+            // no solo oculto en el front).
+            if (($validated['payment_mode'] ?? PaymentPlan::FULL) !== PaymentPlan::FULL && PaymentPlan::mustPayInFull($items)) {
+                return response()->json(['code' => 'full_payment_required', 'error' => __('checkout_payment.full_only_required')], 422);
             }
 
             // Reject a stale date BEFORE the buyer approves anything in the
@@ -752,6 +775,11 @@ class CheckoutController extends Controller
 
             if ($items->isEmpty()) {
                 return response()->json(['success' => false, 'message' => __('cart.empty_checkout_redirect')], 422);
+            }
+
+            // Salida en menos de 48 h: solo pago 100% ahora.
+            if (($validated['payment_mode'] ?? PaymentPlan::FULL) !== PaymentPlan::FULL && PaymentPlan::mustPayInFull($items)) {
+                return response()->json(['success' => false, 'code' => 'full_payment_required', 'message' => __('checkout_payment.full_only_required')], 422);
             }
 
             $customer = [

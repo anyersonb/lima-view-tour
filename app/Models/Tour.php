@@ -46,6 +46,8 @@ class Tour extends Model
         'show_in_day_trips' => 'boolean',
         'show_offer_badge' => 'boolean',
         'pickup_included' => 'boolean',
+        'allows_same_day' => 'boolean',
+        'departure_times' => 'array',
         'free_cancellation' => 'boolean',
         'price' => 'decimal:2',
         'price_before' => 'decimal:2',
@@ -151,6 +153,17 @@ class Tour extends Model
     public function setDepartureTimeAttribute(?string $value): void
     {
         $this->attributes['departure_time'] = \App\Support\DepartureTime::normalize($value);
+    }
+
+    /**
+     * departure_times: lista de "HH:MM" normalizadas, ordenadas y sin duplicados,
+     * o NULL si queda vacía (=> se usa departure_time). Lo ilegible se descarta.
+     */
+    public function setDepartureTimesAttribute(mixed $value): void
+    {
+        $list = \App\Support\DepartureTime::normalizeList($value);
+
+        $this->attributes['departure_times'] = $list === [] ? null : json_encode($list);
     }
 
     /**

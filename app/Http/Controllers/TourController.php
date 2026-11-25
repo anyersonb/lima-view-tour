@@ -114,6 +114,8 @@ class TourController extends Controller
             // time, so every calendar/min="" in the view reads these.
             'bookingMinDate'      => BookingCalendar::earliestDate($tour),
             'bookingDepartureTime' => BookingCalendar::departureTime($tour),
+            // Fecha mínima, horarios por fecha (hoy solo los que cumplen el margen), mismo día: ver BookingCalendar::availability().
+            'bookingAvailability' => BookingCalendar::availability($tour),
             'blockedDates'    => BlockedDate::blockedDatesFor($tour->id),
             'blockedWeekdays' => BlockedDate::blockedWeekdaysFor($tour->id),
         ]);

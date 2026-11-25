@@ -76,6 +76,31 @@ class TourResource extends Resource
                                     Forms\Components\TextInput::make('language')->label('Idiomas')->default('Español / Inglés'),
                                     Forms\Components\TextInput::make('group_type')->label('Tipo de grupo')->default('Grupal'),
                                 ]),
+                                Forms\Components\Grid::make(2)->schema([
+                                    Forms\Components\TagsInput::make('departure_times')
+                                        ->label('Varios horarios de salida (opcional)')
+                                        ->placeholder('Escribe 09:00 y pulsa Enter')
+                                        ->splitKeys([',', ';'])
+                                        ->nestedRecursiveRules([
+                                            fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                                                if (! is_string($value) || \App\Support\DepartureTime::normalizePickerState($value) === null) {
+                                                    $fail('Horario inválido. Usa el formato HH:MM en 24 h (por ejemplo 09:00 o 14:30).');
+                                                }
+                                            },
+                                        ])
+                                        ->helperText('Solo para tours con más de una salida al día (por ejemplo 09:00 y 14:30). El cliente elegirá uno al reservar. Déjalo VACÍO si el tour sale a una sola hora: entonces se usa "Hora salida".'),
+                                    Forms\Components\Toggle::make('allows_same_day')
+                                        ->label('Permite reservar para el mismo día')
+                                        ->helperText('Permite reservar para el mismo día — solo tours cortos en Lima. Se puede reservar hoy si faltan al menos las horas de margen para el inicio del horario elegido.')
+                                        ->default(false)
+                                        ->live(),
+                                    Forms\Components\TextInput::make('same_day_min_hours')
+                                        ->label('Horas de margen para el mismo día (opcional)')
+                                        ->numeric()->minValue(0)->maxValue(24)->integer()
+                                        ->placeholder((string) \App\Support\BookingCalendar::sameDayMinHours())
+                                        ->visible(fn (Forms\Get $get): bool => (bool) $get('allows_same_day'))
+                                        ->helperText('Vacío = se usa el margen general (' . \App\Support\BookingCalendar::sameDayMinHours() . ' horas). Escribe otro número solo si este tour necesita más o menos tiempo.'),
+                                ]),
                                 Forms\Components\Grid::make(3)->schema([
                                     Forms\Components\TimePicker::make('departure_time')
                                         ->label('Hora salida')

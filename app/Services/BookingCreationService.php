@@ -83,19 +83,19 @@ class BookingCreationService
         $totalCents = (int) ($plan['total_cents'] ?? $itemsList->sum(fn (array $i) => PaymentPlan::toCents($i['subtotal'] ?? 0)));
         $dueCents = (int) ($plan['due_cents'] ?? ($paid ? $totalCents : 0));
         $allocation = PaymentPlan::allocate($itemsList, $totalCents, $dueCents);
-        $tours = $planColumns
-            ? Tour::query()->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())->get(['id', 'departure_time'])->keyBy('id')
-            : collect();
+        $slotColumns = Schema::hasColumn('bookings', 'departure_slot');
+        $todayLima = BookingCalendar::today()->toDateString();
+        $tours = Tour::query()->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())->get()->keyBy('id');
 
         $bookings = DB::transaction(function () use (
             $itemsList, $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, &$pendingGuestMail,
-            $planColumns, $mode, $allocation, $tours
+            $planColumns, $mode, $allocation, $tours, $slotColumns, $todayLima
         ): Collection {
             $customerId = $this->resolveCustomerId($customer, $locale, $pendingGuestMail);
 
             return $itemsList->map(function (array $item, int $idx) use (
                 $customer, $method, $paymentReference, $paid, $locale, $hasPickupColumns, $noPickupTourIds, $tourLanguage, $customerId,
-                $planColumns, $mode, $allocation, $tours
+                $planColumns, $mode, $allocation, $tours, $slotColumns, $todayLima
             ): Booking {
                 $attrs = [
                     'customer_id' => $customerId,
@@ -126,6 +126,13 @@ class BookingCreationService
                     $attrs['tour_language'] = $tourLanguage;
                 }
 
+                // Horario elegido (solo si es de este tour) y marca "mismo día" para el operador.
+                if ($slotColumns) {
+                    $tourModel = $tours->get($item['tour_id'] ?? null);
+                    $attrs['departure_slot'] = BookingCalendar::resolveSlot($tourModel, $item['departure_slot'] ?? null);
+                    $attrs['same_day'] = (string) ($attrs['travel_date'] ?? '') === $todayLima;
+                }
+
                 if ($planColumns) {
                     $row = $allocation[$idx] ?? ['paid_cents' => 0, 'balance_cents' => 0];
                     $attrs['payment_plan'] = $mode;
@@ -136,7 +143,7 @@ class BookingCreationService
                     if ($mode === PaymentPlan::DEPOSIT && $row['balance_cents'] > 0) {
                         $travelDate = $attrs['travel_date'] ?? null;
                         $attrs['balance_due_at'] = $travelDate
-                            ? BookingCalendar::departureAt((string) $travelDate, $tours->get($item['tour_id'] ?? null))
+                            ? BookingCalendar::departureAt((string) $travelDate, $tours->get($item['tour_id'] ?? null), $item['departure_slot'] ?? null)
                                 ->subHours(PaymentPlan::BALANCE_LINK_EXPIRES_HOURS_BEFORE)
                                 ->utc() // las columnas timestamp se guardan en UTC (app.timezone)
                             : null;

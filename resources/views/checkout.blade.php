@@ -19,7 +19,8 @@
 
     $methods = $checkout['methods'];
     $hasGateway = (bool) ($methods['culqi'] || $methods['paypal']);
-    $defaultMode = $hasGateway ? $checkout['default_mode'] : \App\Support\PaymentPlan::LATER;
+    $fullOnly = (bool) ($checkout['full_only'] ?? false);
+    $defaultMode = $hasGateway ? $checkout['default_mode'] : ($fullOnly ? \App\Support\PaymentPlan::FULL : \App\Support\PaymentPlan::LATER);
     $defaultMethod = $methods['culqi'] ? 'culqi' : ($methods['paypal'] ? 'paypal' : null);
     $modes = $checkout['modes'];
 
@@ -67,6 +68,9 @@
 
     $jsItems = $items->map(function ($it) use ($checkoutInfo, $timeLabel) {
         $dep = $checkoutInfo['departure_times'][$it['tour_id'] ?? 0] ?? null;
+        if (! empty($it['departure_slot'])) {
+            $dep = ['time' => $it['departure_slot'], 'label' => $it['departure_slot']];
+        }
 
         return [
             'row_id' => $it['row_id'],
@@ -202,6 +206,9 @@
                         $imgSrc = \App\Support\ImagePath::url($item['cover_image'] ?? null) ?: asset('assets/banners/Rectangle 19210.jpg');
                         $pax = (int) $item['adults'] + (int) ($item['children'] ?? 0);
                         $dep = $checkoutInfo['departure_times'][$item['tour_id'] ?? 0] ?? null;
+                        if (! empty($item['departure_slot'])) {
+                            $dep = ['time' => $item['departure_slot'], 'label' => $item['departure_slot']];
+                        }
                         $depLabel = $dep ? $timeLabel($dep['time']) : null;
                         $guide = $guideLabel($item['language'] ?? null);
                         $dateExpired = (bool) ($item['date_expired'] ?? false);
@@ -324,19 +331,26 @@
                     <div class="co-box">
                         <div class="co-label" id="co-amount-label">{{ __('checkout_payment.amount_label') }}</div>
                         <div class="co-paychoices" role="radiogroup" aria-labelledby="co-amount-label" style="margin-bottom:13px">
+                            @unless ($fullOnly)
                             <label class="co-paychoice @if ($defaultMode === 'deposit') is-selected @endif">
                                 <input type="radio" name="payment_mode" value="deposit" @checked($defaultMode === 'deposit') @disabled(! $hasGateway)>
                                 <div><span>{{ __('checkout_payment.mode_deposit_title') }}</span><small>{{ __('checkout_payment.mode_deposit_sub') }}</small></div>
                             </label>
+                            @endunless
                             <label class="co-paychoice @if ($defaultMode === 'full') is-selected @endif">
                                 <input type="radio" name="payment_mode" value="full" @checked($defaultMode === 'full') @disabled(! $hasGateway)>
                                 <div><span>{{ __('checkout_payment.mode_full_title') }}</span><small>{{ __('checkout_payment.mode_full_sub') }}</small></div>
                             </label>
+                            @unless ($fullOnly)
                             <label class="co-paychoice co-paychoice--wide @if ($defaultMode === 'later') is-selected @endif">
                                 <input type="radio" name="payment_mode" value="later" @checked($defaultMode === 'later')>
                                 <div><span>{{ __('checkout_payment.mode_later_title') }}</span><small>{{ __('checkout_payment.mode_later_sub') }}</small></div>
                             </label>
+                            @endunless
                         </div>
+                        @if ($fullOnly)
+                            <p class="co-sub" data-full-only-notice style="margin:-4px 0 12px">{{ __('checkout_payment.full_only_notice') }}</p>
+                        @endif
 
                         @if ($hasGateway)
                             <div id="co-methods" class="co-methods" @if ($defaultMode === 'later') hidden @endif>
@@ -359,7 +373,8 @@
                                 </div>
                             </div>
                         @else
-                            <p class="co-sub" style="margin-top:0">{{ __('checkout_ui.no_gateway') }}</p>
+                            <p class="co-sub" style="margin-top:0" data-no-gateway>{{ $fullOnly ? __('checkout_payment.no_method_available') : __('checkout_ui.no_gateway') }}
+                                @if ($waNumber)<a href="https://wa.me/{{ $waNumber }}" rel="noopener" target="_blank">WhatsApp</a>@endif</p>
                         @endif
 
                         <div class="co-only-mobile">

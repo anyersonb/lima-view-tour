@@ -86,4 +86,37 @@ class DepartureTime
 
         return sprintf('%02d:%02d', $hour, $minute);
     }
+
+    /**
+     * Lista de horarios -> "HH:MM" normalizadas, sin duplicados y ordenadas.
+     * Acepta array (o JSON/CSV en texto); lo ilegible se descarta.
+     *
+     * @return list<string>
+     */
+    public static function normalizeList(mixed $raw): array
+    {
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : preg_split('/[,;\n]+/', $raw);
+        }
+
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($raw as $item) {
+            $time = is_string($item) ? self::normalizePickerState($item) : null;
+
+            if ($time !== null) {
+                $out[$time] = true;
+            }
+        }
+
+        $list = array_keys($out);
+        sort($list);
+
+        return $list;
+    }
 }

@@ -45,7 +45,7 @@ class CartController extends Controller
             // Enriquecer items con datos de descuento/badge del tour (sin tocar BD)
             if ($items->isNotEmpty()) {
                 $tourMeta = Tour::whereIn('id', $items->pluck('tour_id')->filter()->all())
-                    ->get(['id', 'price_before', 'is_featured', 'departure_time'])
+                    ->get()
                     ->keyBy('id');
 
                 // Items whose saved date no longer meets the lead time (the
@@ -59,7 +59,9 @@ class CartController extends Controller
                     $it['is_featured'] = (bool) ($t?->is_featured ?? false);
                     // First bookable date for THIS tour (min="" of its date input).
                     $it['min_date'] = BookingCalendar::earliestDate($t);
-                    $it['departure_time'] = BookingCalendar::departureTime($t);
+                    $it['departure_time'] = BookingCalendar::departureTime($t, $it['departure_slot'] ?? null);
+                    $it['departure_label'] = BookingCalendar::timeLabel($it['departure_time']);
+                    $it['available_slots'] = $t ? BookingCalendar::availability($t) : null;
                     $bad = $expired->get($it['row_id'] ?? null);
                     $it['date_expired'] = $bad !== null;
                     $it['date_expired_message'] = $bad['message'] ?? null;
@@ -200,6 +202,7 @@ class CartController extends Controller
                 (int) $request->validated('adults'),
                 (int) $request->validated('children'),
                 $request->validated('travel_date'),
+                $request->validated('departure_slot'),
             );
 
             if ($request->wantsJson()) {
@@ -259,6 +262,8 @@ class CartController extends Controller
                 // exigía `after:today`, así que se podía meter al carrito una
                 // fecha que el pago iba a rechazar al final.
                 'travel_date' => array_merge(['sometimes', 'required'], BookingCalendar::dateRules($rowTour)),
+                // Opcional: cambiar de horario desde el carrito (mismo criterio que al añadir).
+                'departure_slot' => BookingCalendar::slotRules($rowTour, $request->input('travel_date') ?: ($this->cart->items()->firstWhere('row_id', $rowId)['travel_date'] ?? null)),
             ], BookingCalendar::dateMessages('travel_date', $rowTour));
 
             // Misma comprobación de fechas bloqueadas que al añadir al carrito:

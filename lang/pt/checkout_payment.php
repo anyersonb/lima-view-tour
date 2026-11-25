@@ -12,7 +12,7 @@
 return [
     // Erros de servidor
     'mode_invalid' => 'Escolha quanto pagar agora: 100% ou 50% de sinal.',
-    'pay_now_via_gateway' => 'O pagamento imediato deve ser feito com cartão (Culqi) ou PayPal.',
+    'pay_now_via_gateway' => 'O pagamento imediato deve ser feito com cartão.',
     'nothing_to_charge' => 'Não há nenhum valor a cobrar neste momento.',
 
     // Seção "Como prefere pagar?"
@@ -61,4 +61,12 @@ return [
     'thanks_deposit' => 'Recebemos seu sinal de 50%. Sua reserva está confirmada; o saldo é pago depois com um link que enviaremos por e-mail.',
     'thanks_later' => 'Sua reserva foi registrada. Ela é confirmada quando você concluir o pagamento.',
     'thanks_balance_paid' => 'Saldo pago. Sua reserva está paga integralmente.',
+
+    // Saídas em menos de 48 h: somente pagamento integral (2026-11-24)
+    'full_only_notice' => 'Para saídas em menos de 48 h o pagamento é integral.',
+    'full_only_required' => 'Para saídas em menos de 48 h o pagamento é integral (100 % agora). Escolha pagar o total.',
+
+    // Nenhum método de pagamento disponível (PayPal oculto e Culqi desligado)
+    'no_method_available' => 'No momento não podemos receber pagamentos online. Fale conosco pelo WhatsApp e ajudamos a concluir sua reserva.',
+    'paypal_disabled' => 'O PayPal não está disponível. Pague com cartão.',
 ];

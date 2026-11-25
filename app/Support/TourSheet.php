@@ -100,7 +100,9 @@ class TourSheet
             'url' => route('cart.store', ['locale' => $locale]),
             'method' => 'POST',
             'cart_url' => route('cart.index', ['locale' => $locale]),
-            'fields' => ['tour_id' => $tour->getKey(), 'travel_date' => null, 'adults' => 2, 'children' => 0],
+            'fields' => ['tour_id' => $tour->getKey(), 'travel_date' => null, 'departure_slot' => null, 'adults' => 2, 'children' => 0],
+            // Fecha mínima, horarios (hoy solo los que cumplen el margen) y mismo día: todo calculado en servidor (hora de Lima).
+            'availability' => BookingCalendar::availability($tour),
             'min_date' => BookingCalendar::earliestDate($tour),
             'max_date' => BookingCalendar::latestDate(),
             'blocked_dates' => BlockedDate::blockedDatesFor($tour->getKey()),

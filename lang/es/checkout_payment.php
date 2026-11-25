@@ -12,7 +12,7 @@
 return [
     // Errores de servidor
     'mode_invalid' => 'Elige cuánto quieres pagar ahora: 100 % o 50 % de adelanto.',
-    'pay_now_via_gateway' => 'El pago inmediato debe hacerse con tarjeta (Culqi) o con PayPal.',
+    'pay_now_via_gateway' => 'El pago inmediato debe hacerse con tarjeta.',
     'nothing_to_charge' => 'No hay ningún importe para cobrar en este momento.',
 
     // Sección "¿Cómo prefieres pagar?"
@@ -61,4 +61,12 @@ return [
     'thanks_deposit' => 'Recibimos tu adelanto del 50%. Tu reserva está confirmada; el saldo se paga después con un enlace que te enviaremos por correo.',
     'thanks_later' => 'Tu reserva quedó registrada. Se confirma cuando completes el pago.',
     'thanks_balance_paid' => 'Saldo pagado. Tu reserva está pagada al 100%.',
+
+    // Salidas en menos de 48 h: solo pago completo (2026-11-24)
+    'full_only_notice' => 'Para salidas en menos de 48 h el pago es completo.',
+    'full_only_required' => 'Para salidas en menos de 48 h el pago es completo (100 % ahora). Elige pagar el total.',
+
+    // Sin método de pago disponible (PayPal oculto y Culqi apagado)
+    'no_method_available' => 'En este momento no podemos cobrar en línea. Escríbenos por WhatsApp y te ayudamos a completar tu reserva.',
+    'paypal_disabled' => 'PayPal no está disponible. Paga con tarjeta.',
 ];

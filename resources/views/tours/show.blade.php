@@ -825,6 +825,8 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
     // ninguno de los dos coincidía con lo que validaba el servidor (que corre
     // en UTC). Ahora los tres miran el mismo calendario.
     window.LVT_MIN_DATE = @json($bookingMinDate);
+    // Horarios por fecha, mismo día y margen: calculados en servidor (hora de Lima).
+    window.LVT_BOOKING = @json($bookingAvailability ?? []);
 </script>
 
 <script>
@@ -838,6 +840,21 @@ details[open] .acc-chevron            { transform: rotate(180deg); }
             // además NO se podía cambiar en el carrito. Un cliente que quería
             // reservar para mañana terminaba con el 4 de septiembre.
             date: '',
+            // Horario elegido ("HH:MM"); vacío si el tour tiene uno solo o ninguno propio.
+            slot: '',
+            cfg: window.LVT_BOOKING || {},
+            // Horarios de la fecha elegida: HOY solo los que cumplen el margen (cfg.today_slots).
+            slotList() {
+                var c = this.cfg;
+                if (!c.slots || !c.slots.length) return [];
+                return (this.date && this.date === c.today) ? (c.today_slots || []) : c.slots;
+            },
+            label(s) { return (this.cfg.labels || {})[s] || s; },
+            ensureSlot() {
+                var l = this.slotList();
+                if (l.indexOf(this.slot) === -1) this.slot = (l.length === 1) ? l[0] : '';
+            },
+            sameDayNow() { return !!this.cfg.same_day && !!this.date && this.date === this.cfg.today; },
         });
     });
 </script>
@@ -1330,6 +1347,7 @@ if (!empty($itinerary)) {
                             <span aria-hidden="true">📅</span>
                         </div>
                         <p class="m-date-notice">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]) }}</p>
+                        @include('tours.partials.slot-picker', ['idSuffix' => 'm'])
                         @error('travel_date')
                             <p class="m-date-error" role="alert" data-date-server-error>{{ $message }}</p>
                         @enderror
@@ -2532,6 +2550,7 @@ if (!empty($itinerary)) {
                            aria-label="{{ __('ui.select_tour_date') }}"
                            aria-describedby="sb-date-notice">
                     <p id="sb-date-notice" class="mt-1.5 text-[11px] leading-snug text-teal-800/75">{{ __('ui.booking_departure_notice', ['time' => $bookingDepartureTime, 'cutoff' => \App\Support\BookingCalendar::nextDayCutoffLabel()]) }}</p>
+                    @include('tours.partials.slot-picker', ['idSuffix' => 'd'])
                     @error('travel_date')
                         <p class="mt-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2" role="alert" data-date-server-error>{{ $message }}</p>
                     @enderror
@@ -2623,6 +2642,7 @@ if (!empty($itinerary)) {
     <input type="hidden" name="tour_id" value="{{ $tour->id }}">
     {{-- Campos canónicos: única fuente de verdad = $store.booking (sincronizado por mobile y desktop) --}}
     <input type="hidden" name="travel_date" :value="$store.booking.date">
+    <input type="hidden" name="departure_slot" :value="$store.booking.slot">
     <input type="hidden" name="adults" :value="$store.booking.adults">
     <input type="hidden" name="children" :value="$store.booking.children">
 </form>

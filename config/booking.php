@@ -53,6 +53,14 @@ return [
     'default_departure_time' => env('BOOKING_DEFAULT_DEPARTURE_TIME', '06:00'),
 
     /*
+     | Reserva el MISMO DÍA (solo tours con `allows_same_day`): se puede reservar
+     | hoy si faltan al menos N horas para el inicio del horario elegido.
+     | Cada tour puede tener su propio margen (`same_day_min_hours`). Vacío o
+     | inválido => 4 (ver BookingCalendar::sameDayMinHours()).
+     */
+    'same_day_min_hours' => env('BOOKING_SAME_DAY_MIN_HOURS', 4),
+
+    /*
      | Horizonte máximo de reserva, en meses desde hoy (hora de Lima). Sin
      | esto, `dateRules()` solo comprobaba el mínimo y una fecha como
      | 9999-12-31 pasaba la validación igual que una razonable.

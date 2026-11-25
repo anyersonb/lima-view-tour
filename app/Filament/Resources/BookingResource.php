@@ -154,6 +154,14 @@ class BookingResource extends Resource
                             ->label('Fecha del tour')
                             ->required()
                             ->native(false),
+                        // Solo para tours con más de un horario de salida.
+                        Forms\Components\Select::make('departure_slot')
+                            ->label('Horario de salida')
+                            ->options(fn (Forms\Get $get): array => collect(\App\Support\BookingCalendar::slots(\App\Models\Tour::find($get('tour_id'))))
+                                ->mapWithKeys(fn (string $t): array => [$t => \App\Support\BookingCalendar::timeLabel($t, 'es')])
+                                ->all())
+                            ->visible(fn (Forms\Get $get): bool => \App\Support\BookingCalendar::hasMultipleSlots(\App\Models\Tour::find($get('tour_id'))))
+                            ->helperText('El tour tiene varias salidas al día: elige a cuál pertenece esta reserva.'),
                     ]),
 
                 // ── Pasajeros y precio ──────────────────────────────────────
@@ -387,6 +395,17 @@ class BookingResource extends Resource
                     ->label('Fecha del tour')
                     ->date('d/m/Y')
                     ->sortable(),
+                // Horario elegido por el cliente (o el del tour si no eligió).
+                Tables\Columns\TextColumn::make('departure_slot')
+                    ->label('Horario')
+                    ->state(fn (\App\Models\Booking $record): string => $record->departureTimeLabel('es'))
+                    ->sortable(),
+                // Reserva hecha el mismo día de la salida: el operador debe confirmarla hoy.
+                Tables\Columns\TextColumn::make('same_day')
+                    ->label('Mismo día')
+                    ->badge()
+                    ->state(fn (\App\Models\Booking $record): ?string => $record->isSameDay() ? 'MISMO DÍA' : null)
+                    ->color('danger'),
                 Tables\Columns\TextColumn::make('adults')
                     ->label('Adultos')
                     ->numeric()
@@ -610,6 +629,17 @@ class BookingResource extends Resource
 
                         return $indicators;
                     }),
+
+                // Reservas hechas para salir el mismo día (hay que confirmarlas hoy).
+                Tables\Filters\Filter::make('same_day')
+                    ->label('Mismo día (salen hoy, reservadas hoy)')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'same_day')
+                        ? $query->where('same_day', true)
+                        : $query)
+                    ->indicateUsing(fn (array $data): array => ($data['isActive'] ?? false)
+                        ? ['Solo reservas del mismo día']
+                        : []),
 
                 // ── Plata en riesgo / seguimiento de cobro ──────────────────
                 Tables\Filters\Filter::make('payment_at_risk')

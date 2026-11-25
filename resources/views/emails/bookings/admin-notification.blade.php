@@ -8,7 +8,7 @@
     $grandTotal = (float) $bookings->sum('total_price');
     $currency   = $first?->currency ?? 'USD';
     $cur        = $currency === 'USD' ? 'US$' : $currency . ' ';
-    $payLabel   = $payingNow ? 'Pago inmediato (PayPal)' : 'Reservar y pagar después';
+    $payLabel   = $payingNow ? 'Pago inmediato (' . (['culqi' => 'Culqi', 'paypal' => 'PayPal'][$first?->payment_method] ?? 'en línea') . ')' : 'Reservar y pagar después';
     $wa         = preg_replace('/\D/', '', $first?->customer_phone ?? '');
     $adminUrl   = rtrim(config('app.url'), '/') . '/admin/bookings';
     $fallbackImg = asset('assets/banners/banner-hero.jpg');
@@ -49,6 +49,21 @@
         </table>
     </td></tr>
 
+    {{-- Reserva para el MISMO DÍA: bloque destacado con fecha + horario --}}
+    @foreach ($bookings->filter(fn ($b) => (bool) ($b->same_day ?? false)) as $sd)
+    <tr><td style="padding:14px 28px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fdecea;border:2px solid #c0392b;border-radius:14px;">
+            <tr><td style="padding:14px 16px;font-size:15px;color:#7b1d12;font-weight:bold;line-height:1.4;">
+                {{ __('booking.same_day_mail_prefix', [], 'es') }} {{ __('booking.same_day_mail_banner', [
+                    'date' => $sd->travel_date ? \Carbon\Carbon::parse($sd->travel_date)->locale('es')->isoFormat('D MMM YYYY') : '—',
+                    'time' => $sd->departureTimeLabel('es'),
+                ], 'es') }}
+                <span style="display:block;font-weight:normal;font-size:12px;color:#7b1d12;margin-top:4px;">{{ $sd->reference }} · {{ $sd->tour_title_snapshot }}</span>
+            </td></tr>
+        </table>
+    </td></tr>
+    @endforeach
+
     {{-- Tarjeta(s) --}}
     @foreach ($bookings as $booking)
         @php
@@ -71,6 +86,9 @@
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#153d46;">
                         <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Fecha</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->travel_date ? \Carbon\Carbon::parse($booking->travel_date)->locale('es')->isoFormat('D MMM YYYY') : __('payment_links.date_to_be_arranged') }}</td></tr>
                         <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Pasajeros</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->adults }} adulto(s)@if($booking->children > 0) · {{ $booking->children }} niño(s)@endif</td></tr>
+                        @if ($booking->departure_slot)
+                        <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Horario</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->departureTimeLabel('es') }}</td></tr>
+                        @endif
                         @if ($booking->tour_language_label)
                         <tr><td style="padding:9px 0;border-top:1px solid #ece6dc;color:#71808a;">Idioma del tour</td><td align="right" style="padding:9px 0;border-top:1px solid #ece6dc;font-weight:bold;">{{ $booking->tour_language_label }}</td></tr>
                         @endif

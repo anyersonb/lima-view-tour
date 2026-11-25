@@ -28,6 +28,12 @@ class BookingNotificationAdmin extends Mailable
         $references = $this->bookings->pluck('reference')->implode(', ');
         $subject    = "[Nueva reserva] {$references} — Lima View Tours";
 
+        // Reserva para el mismo día: el operador tiene que verla ANTES que el resto.
+        if ($this->bookings->contains(fn ($b) => (bool) ($b->same_day ?? false))) {
+            $subject = __('booking.same_day_mail_prefix', [], 'es').' '.$subject;
+        }
+
+
         return new Envelope(subject: $subject);
     }
 

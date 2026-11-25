@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Tour;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -38,6 +40,56 @@ class PaymentPlan
 
     /** Días antes del tour en que sale el recordatorio automático del saldo. */
     public const BALANCE_REMINDER_DAYS_BEFORE = 3;
+
+    /**
+     * Si alguna salida es en menos de estas horas (mismo día o mañana cercano)
+     * el pago es SOLO 100% ahora: no hay margen para cobrar un saldo, que
+     * además vence 48 h antes (BALANCE_LINK_EXPIRES_HOURS_BEFORE).
+     */
+    public const FULL_PAYMENT_WITHIN_HOURS = 48;
+
+    /**
+     * ¿Algún ítem del carrito sale en menos de 48 h? Entonces solo vale
+     * `full`. Cada ítem se mide con SU tour, fecha y horario (hora de Lima).
+     *
+     * @param  Collection<int, array<string, mixed>>  $items
+     */
+    public static function mustPayInFull(Collection $items, ?Carbon $now = null): bool
+    {
+        if ($items->isEmpty()) {
+            return false;
+        }
+
+        $tours = Tour::query()
+            ->whereIn('id', $items->pluck('tour_id')->filter()->unique()->all())
+            ->get()
+            ->keyBy('id');
+
+        foreach ($items as $item) {
+            $date = $item['travel_date'] ?? null;
+
+            if ($date && BookingCalendar::departsWithinFullPaymentWindow(
+                (string) $date,
+                $tours->get($item['tour_id'] ?? null),
+                $item['departure_slot'] ?? null,
+                $now,
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Modos que se pueden ofrecer/aceptar para estos ítems.
+     *
+     * @return list<string>
+     */
+    public static function allowedModes(Collection $items, ?Carbon $now = null): array
+    {
+        return self::mustPayInFull($items, $now) ? [self::FULL] : self::MODES;
+    }
 
     /**
      * Normaliza un modo recibido del cliente. Devuelve null si no es uno de

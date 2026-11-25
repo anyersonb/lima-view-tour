@@ -186,6 +186,12 @@
     function refreshSummary(seq) {
         return api(state.checkout.endpoints.summary).then(function (r) {
             if (r.res.ok && r.data && r.data.modes) {
+                // La fecha cambió y ahora la salida es (o dejó de ser) en < 48 h: cambian los modos
+                // de pago permitidos; se recarga para pintar solo los válidos.
+                if (state.checkout && typeof r.data.full_only !== 'undefined' && !!r.data.full_only !== !!state.checkout.full_only) {
+                    window.location.reload();
+                    return;
+                }
                 state.serverCheckout = r.data;
                 if (seq === state.edits) {
                     state.checkout = r.data;

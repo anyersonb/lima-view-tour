@@ -38,6 +38,8 @@ class CartItemRequest extends FormRequest
             'adults' => ['required', 'integer', 'min:1', 'max:20'],
             'children' => ['required', 'integer', 'min:0', 'max:20'],
             'travel_date' => array_merge(['required'], BookingCalendar::dateRules($this->tour())),
+            // Horario elegido: obligatorio si el tour ofrece varios; si es hoy, debe cumplir el margen.
+            'departure_slot' => BookingCalendar::slotRules($this->tour(), is_string($this->input('travel_date')) ? $this->input('travel_date') : null, true),
         ];
     }
 
@@ -56,6 +58,7 @@ class CartItemRequest extends FormRequest
             'children.max' => __('cart.validation.max_quantity'),
             // Los de la fecha salen del mismo sitio que la regla, para que el
             // mensaje nombre el primer día realmente reservable.
+            'departure_slot.required' => __('booking.slot_required'),
             ...BookingCalendar::dateMessages('travel_date', $this->tour()),
         ];
     }

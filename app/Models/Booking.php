@@ -20,6 +20,7 @@ class Booking extends Model
 
     protected $casts = [
         'travel_date' => 'date',
+        'same_day' => 'boolean',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'discount_value' => 'decimal:2',
@@ -106,7 +107,29 @@ class Booking extends Model
             return null;
         }
 
-        return BookingCalendar::departureAt($this->travel_date->toDateString(), $this->tour);
+        return BookingCalendar::departureAt($this->travel_date->toDateString(), $this->tour, $this->departure_slot);
+    }
+
+    /**
+     * Horario de salida de ESTA reserva, 'HH:MM': el elegido por el cliente si
+     * existe; si no, el del tour (o el de config). Los correos, el admin, los
+     * links de pago y los recordatorios leen esto, no tour->departure_time.
+     */
+    public function departureTime(): string
+    {
+        return BookingCalendar::departureTime($this->tour, $this->departure_slot);
+    }
+
+    /** Horario en el idioma indicado ("2:30 p. m." / "2:30 PM" / "14:30"). */
+    public function departureTimeLabel(?string $locale = null): string
+    {
+        return BookingCalendar::timeLabel($this->departureTime(), $locale);
+    }
+
+    /** ¿Se reservó el mismo día de la salida? (marca `same_day`, fijada al crear). */
+    public function isSameDay(): bool
+    {
+        return (bool) ($this->same_day ?? false);
     }
 
     /**
